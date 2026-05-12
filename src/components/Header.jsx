@@ -1,6 +1,5 @@
 'use client';
 // components/Header.jsx
-import heroImg from '../../public/images/logo.png';
 import Image from 'next/image';
 
 export default function Header() {
@@ -12,7 +11,7 @@ export default function Header() {
 
           {/* Logo */}
           <a href="/" className="header-logo d-flex align-items-center gap-2 text-decoration-none" aria-label="Shiftify Home">
-          <Image src={heroImg.src} alt="" />
+          <Image src="/images/logo.png" alt="Shiftify Logo" width={40} height={40} />
           </a>
 
           {/* Nav */}

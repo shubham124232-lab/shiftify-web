@@ -131,7 +131,7 @@ export default function HowItWorksSection() {
 
               <div className="mt-4 fade-up">
                 <a
-                  href={tab === 'participant' ? '/register' : '/register-worker'}
+                  href={'/register'}
                   className="btn btn-shiftify"
                   style={{ padding: '14px 32px', fontSize: 16 }}
                 >

@@ -14,7 +14,7 @@ const roles = [
       'Secure messaging & scheduling',
     ],
     cta: 'Find Support',
-    href: '/participants',
+    href: '/register',
   },
   {
     Icon: FiHeart,
@@ -28,7 +28,7 @@ const roles = [
       'Performance ratings & rewards',
     ],
     cta: 'Join as Worker',
-    href: '/register-worker',
+    href: '/register',
   },
   {
     Icon: FiBriefcase,
@@ -42,7 +42,7 @@ const roles = [
       'Analytics & performance reports',
     ],
     cta: 'List as Provider',
-    href: '/providers',
+    href: '/register',
   },
   {
     Icon: FiClipboard,
@@ -56,7 +56,7 @@ const roles = [
       'Compliance documentation',
     ],
     cta: 'Coordinator Access',
-    href: '/coordinators',
+    href: '/register',
   },
   {
     Icon: FiBarChart2,
@@ -70,7 +70,7 @@ const roles = [
       'Compliant payment processing',
     ],
     cta: 'Manage Plans',
-    href: '/plan-managers',
+    href: '/register',
   },
 ];
 

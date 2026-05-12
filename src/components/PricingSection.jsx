@@ -26,7 +26,7 @@ const plans = [
     featured: true,
     color: 'var(--clr-primary)',
     cta: 'Start Free Trial',
-    href: '/register-worker',
+    href: '/register',
     badge: 'Most Popular',
     features: [
       'Everything in Free',
@@ -47,7 +47,7 @@ const plans = [
     featured: false,
     color: 'var(--clr-text)',
     cta: 'Contact Sales',
-    href: '/providers',
+    href: '/register',
     features: [
       'Everything in Worker Pro',
       'Verified Provider badge',

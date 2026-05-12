@@ -214,7 +214,7 @@ export default function MarketplaceSection() {
         </div>
 
         <div className="text-center mt-5 fade-up">
-          <a href="/marketplace" className="btn btn-outline-shiftify">
+          <a href="#marketplace" className="btn btn-outline-shiftify">
             View All Listings <i className="bi bi-arrow-right ms-2" aria-hidden="true"></i>
           </a>
         </div>

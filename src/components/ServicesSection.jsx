@@ -141,7 +141,7 @@ export default function ServicesSection() {
                 <p className="svc-card-desc">{s.desc}</p>
 
                 <a
-                  href={`/services/${s.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`}
+                  href={'#services'}
                   className="svc-learn-link"
                   style={{ color: s.accent }}
                 >
@@ -157,7 +157,7 @@ export default function ServicesSection() {
 
         {/* ── CTA ── */}
         <div className="text-center mt-5 pt-2 fade-up">
-          <a href="/services" className="btn btn-outline-shiftify">
+          <a href="#services" className="btn btn-outline-shiftify">
             View All Services <FiArrowRight className="ms-2" aria-hidden="true" />
           </a>
         </div>

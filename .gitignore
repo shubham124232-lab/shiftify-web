@@ -1,10 +1,24 @@
+# Dependencies
 node_modules/
+package-lock.json
+
+# Next.js
 .next/
 out/
 build/
+
+# Env files (keep .env.example committed)
 .env
 .env.local
 .env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# TypeScript
 next-env.d.ts

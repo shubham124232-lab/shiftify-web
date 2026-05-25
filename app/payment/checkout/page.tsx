@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,7 +19,7 @@ function formatExpiry(v: string) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { user, activeRole, status, activatePlan, error, clearError } = useAuth();
@@ -250,6 +250,14 @@ export default function CheckoutPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
 

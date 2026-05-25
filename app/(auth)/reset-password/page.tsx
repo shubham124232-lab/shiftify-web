@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router  = useRouter();
   const params  = useSearchParams();
   const { resetPassword, loading, error, clearError } = useAuth();
@@ -147,6 +147,14 @@ export default function ResetPasswordPage() {
         </div>
       )}
     </AuthLayout>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
 

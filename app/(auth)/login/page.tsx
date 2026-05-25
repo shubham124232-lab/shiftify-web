@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
@@ -16,7 +16,7 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager'   },
 ];
 
-export default function LoginPage() {
+function LoginContent() {
   const router       = useRouter();
   const params       = useSearchParams();
   const { login, loading, error, clearError } = useAuth();
@@ -159,5 +159,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <LoginContent />
+    </Suspense>
   );
 }

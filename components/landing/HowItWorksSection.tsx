@@ -97,8 +97,13 @@ export default function HowItWorksSection() {
               </div>
               <div className="mt-4 fade-up">
                 <a
+<<<<<<< HEAD:components/landing/HowItWorksSection.tsx
                   href={tab === 'participant' ? '/register' : '/register'}
                   className="btn-shiftify"
+=======
+                  href={'/register'}
+                  className="btn btn-shiftify"
+>>>>>>> 0e4a54dce2042976282277440a952fab8066e4ab:src/components/HowItWorksSection.jsx
                   style={{ padding: '14px 32px', fontSize: 16 }}
                 >
                   {tab === 'participant' ? 'Find My Support Now' : 'Join as a Worker'}

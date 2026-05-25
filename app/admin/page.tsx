@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";

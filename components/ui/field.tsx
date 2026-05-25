@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Label } from "./label";
-import { cn } from "@/lib/utils/cn";
+import { cn } from "@/lib/utils";
 
 interface FieldProps {
   label?: string;

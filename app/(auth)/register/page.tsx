@@ -1,85 +1,330 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { SIGNUP_ROLES, ROLE_LABELS, ROLE_TAGLINES, type SignupRole } from "@/lib/constants/roles";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils/cn";
+import { useState, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import AuthLayout from '@/components/auth/AuthLayout';
+import { useAuth } from '@/hooks/useAuth';
+import { UserRole, AccountType, UserStatus } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
-const ROLE_PATHS: Record<SignupRole, string> = {
-  PARTICIPANT: "/register/participant",
-  SUPPORT_WORKER: "/register/worker",
-  PROVIDER: "/register/provider",
-  COORDINATOR: "/register/coordinator",
-  PLAN_MANAGER: "/register/plan-manager",
-};
+// ─── Role cards ───────────────────────────────────────────────────────────────
 
-export default function RegisterRolePickerPage() {
+const ROLE_CARDS: { value: UserRole; label: string; tagline: string; icon: string }[] = [
+  { value: UserRole.PARTICIPANT,    label: 'Participant',    tagline: 'I need NDIS support services',              icon: 'bi-person-heart'         },
+  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker', tagline: 'I provide direct care & support',           icon: 'bi-hand-thumbs-up-fill'  },
+  { value: UserRole.PROVIDER,       label: 'Provider',       tagline: 'Organisation delivering NDIS services',      icon: 'bi-building-fill-check'  },
+  { value: UserRole.COORDINATOR,    label: 'Coordinator',    tagline: 'I coordinate support for participants',      icon: 'bi-diagram-3-fill'       },
+  { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager',   tagline: 'I manage NDIS funding & budgets',            icon: 'bi-calculator-fill'      },
+];
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function RegisterPage() {
   const router = useRouter();
-  const [role, setRole] = useState<SignupRole | null>(null);
+  const { register: registerUser, loading, error, clearError } = useAuth();
 
-  function handleContinue() {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [role, setRole] = useState<UserRole | null>(null);
+
+  // Step-2 form state
+  const [firstName,  setFirstName]  = useState('');
+  const [lastName,   setLastName]   = useState('');
+  const [email,      setEmail]      = useState('');
+  const [phone,      setPhone]      = useState('');
+  const [username,   setUsername]   = useState('');
+  const [password,   setPassword]   = useState('');
+  const [confirm,    setConfirm]    = useState('');
+  const [accType,    setAccType]    = useState<AccountType>(AccountType.SELF);
+  const [devCode,    setDevCode]    = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // ── Step 1: Role selection ────────────────────────────────────────────────
+
+  function handleRoleNext() {
     if (!role) return;
-    router.push(ROLE_PATHS[role]);
+    clearError();
+    setLocalError(null);
+    setStep(2);
   }
 
+  // ── Step 2: Registration ──────────────────────────────────────────────────
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setLocalError(null);
+    clearError();
+
+    if (!firstName.trim()) { setLocalError('First name is required.'); return; }
+    if (!lastName.trim())  { setLocalError('Last name is required.');  return; }
+
+    if (accType === AccountType.SELF) {
+      if (!email && !phone) { setLocalError('Provide an email or phone number.'); return; }
+      if (!password)        { setLocalError('Password is required.');             return; }
+    } else {
+      if (!username) { setLocalError('Username is required.'); return; }
+      if (!password) { setLocalError('Password is required.'); return; }
+    }
+
+    if (password !== confirm) { setLocalError('Passwords do not match.'); return; }
+    if (password.length < 8)  { setLocalError('Password must be at least 8 characters.'); return; }
+
+    try {
+      const res = await registerUser({
+        role:     role!,
+        name:     `${firstName.trim()} ${lastName.trim()}`,
+        password,
+        ...(accType === AccountType.SELF
+          ? { email: email || undefined, phone: phone || undefined }
+          : { username }
+        ),
+      });
+
+      if (res._dev_code) setDevCode(res._dev_code);
+
+      // PROVIDER / PLAN_MANAGER start as PENDING → payment
+      if (
+        res.user.status === UserStatus.PENDING &&
+        (role === UserRole.PROVIDER || role === UserRole.PLAN_MANAGER)
+      ) {
+        router.replace('/payment');
+      } else {
+        router.replace('/dashboard');
+      }
+    } catch {
+      // error in store
+    }
+  }
+
+  const displayError = localError ?? error;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-end text-sm">
-        <span className="text-slate-500">Already have an account?&nbsp;</span>
-        <Link href="/login" className="font-semibold text-brand-700 hover:underline">Log In</Link>
+    <AuthLayout mode="register">
+
+      {/* Progress dots */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+        {([1, 2] as const).map((s) => (
+          <div
+            key={s}
+            style={{
+              width: s === step ? 28 : 10,
+              height: 10,
+              borderRadius: 5,
+              background: s <= step ? 'var(--clr-primary)' : 'var(--clr-border)',
+              transition: 'all 0.3s ease',
+            }}
+          />
+        ))}
+        <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--clr-muted)', fontWeight: 600 }}>
+          Step {step} of 2
+        </span>
       </div>
 
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Create your account</h1>
-      <p className="mt-1 text-sm text-slate-500">First, tell us how you&apos;ll use Shiftify</p>
+      {/* ── STEP 1: Role Picker ── */}
+      {step === 1 && (
+        <>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 800, color: 'var(--clr-text)', letterSpacing: -0.5, marginBottom: 4 }}>
+            Create your account
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--clr-muted)', marginBottom: 24 }}>
+            First, tell us how you&apos;ll use Shiftify
+          </p>
 
-      <div className="mt-6 space-y-3">
-        {SIGNUP_ROLES.map((r) => {
-          const selected = role === r;
-          return (
-            <button
-              key={r}
-              type="button"
-              onClick={() => setRole(r)}
-              className={cn(
-                "w-full rounded-xl border p-4 text-left transition-colors",
-                selected
-                  ? "border-brand-600 bg-brand-50"
-                  : "border-slate-200 bg-white hover:bg-slate-50",
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">{ROLE_LABELS[r]}</div>
-                  <div className="mt-0.5 text-xs text-slate-500">{ROLE_TAGLINES[r]}</div>
-                </div>
-                <div
-                  className={cn(
-                    "h-5 w-5 rounded-full border-2",
-                    selected ? "border-brand-600 bg-brand-600" : "border-slate-300 bg-white",
-                  )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {ROLE_CARDS.map((card) => {
+              const selected = role === card.value;
+              return (
+                <button
+                  key={card.value}
+                  type="button"
+                  onClick={() => setRole(card.value)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    width: '100%', padding: '14px 16px',
+                    borderRadius: 'var(--card-radius)',
+                    border: selected ? '2px solid var(--clr-primary)' : '1.5px solid var(--clr-border)',
+                    background: selected ? 'rgba(194,24,91,0.04)' : '#fff',
+                    cursor: 'pointer', textAlign: 'left',
+                    transition: 'all 0.18s ease',
+                  }}
                 >
-                  {selected ? (
-                    <svg viewBox="0 0 20 20" fill="white" className="h-full w-full p-0.5">
-                      <path d="M16.7 5.3a1 1 0 0 1 0 1.4l-7 7a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4L9 11.6l6.3-6.3a1 1 0 0 1 1.4 0z" />
-                    </svg>
-                  ) : null}
-                </div>
-              </div>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                    background: selected ? 'var(--clr-primary)' : 'var(--clr-surface)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 20, color: selected ? '#fff' : 'var(--clr-primary)',
+                    transition: 'all 0.18s ease',
+                  }}>
+                    <i className={`bi ${card.icon}`} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--clr-text)', lineHeight: 1.2 }}>{card.label}</div>
+                    <div style={{ fontSize: 12, color: 'var(--clr-muted)', marginTop: 2 }}>{card.tagline}</div>
+                  </div>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                    border: selected ? '2px solid var(--clr-primary)' : '2px solid var(--clr-border)',
+                    background: selected ? 'var(--clr-primary)' : '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {selected && <i className="bi bi-check-lg" style={{ color: '#fff', fontSize: 11 }} />}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            disabled={!role}
+            onClick={handleRoleNext}
+            className="btn-shiftify"
+            style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, marginTop: 20, opacity: role ? 1 : 0.5, cursor: role ? 'pointer' : 'not-allowed' }}
+          >
+            Continue
+          </button>
+
+          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--clr-muted)', marginTop: 20 }}>
+            Already have an account?{' '}
+            <Link href="/login" style={{ color: 'var(--clr-primary)', fontWeight: 700, textDecoration: 'none' }}>Log in</Link>
+          </p>
+        </>
+      )}
+
+      {/* ── STEP 2: Registration Form ── */}
+      {step === 2 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <button
+              type="button"
+              onClick={() => { setStep(1); setLocalError(null); clearError(); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-primary)', padding: 0 }}
+              aria-label="Back"
+            >
+              <i className="bi bi-arrow-left" style={{ fontSize: 18 }} />
             </button>
-          );
-        })}
-      </div>
+            <div>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--clr-text)', letterSpacing: -0.5, margin: 0 }}>
+                {ROLE_CARDS.find(r => r.value === role)?.label} Account
+              </h1>
+              <p style={{ fontSize: 13, color: 'var(--clr-muted)', margin: 0 }}>Fill in your details</p>
+            </div>
+          </div>
 
-      <Button size="lg" className="mt-6 w-full" disabled={!role} onClick={handleContinue}>
-        Continue
-      </Button>
+          {/* Account type toggle (SELF vs MANAGED) */}
+          <div style={{ display: 'flex', background: 'var(--clr-surface)', borderRadius: 10, padding: 4, marginBottom: 20, gap: 4 }}>
+            {([AccountType.SELF, AccountType.MANAGED] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setAccType(t)}
+                style={{
+                  flex: 1, height: 36, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  background: accType === t ? '#fff' : 'transparent',
+                  color: accType === t ? 'var(--clr-primary)' : 'var(--clr-muted)',
+                  boxShadow: accType === t ? 'var(--shadow-sm)' : 'none',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                {t === AccountType.SELF ? 'Email / Phone' : 'Username'}
+              </button>
+            ))}
+          </div>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
-        Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-brand-700 hover:underline">Log in</Link>
-      </p>
-    </div>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            {/* Name row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label htmlFor="firstName" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 }}>First Name</label>
+                <input id="firstName" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jane"
+                  style={inputStyle} autoComplete="given-name" />
+              </div>
+              <div>
+                <label htmlFor="lastName" style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 }}>Last Name</label>
+                <input id="lastName" type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Smith"
+                  style={inputStyle} autoComplete="family-name" />
+              </div>
+            </div>
+
+            {accType === AccountType.SELF ? (
+              <>
+                <div>
+                  <label htmlFor="email" style={labelStyle}>Email Address</label>
+                  <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com" style={inputStyle} autoComplete="email" />
+                </div>
+                <div>
+                  <label htmlFor="phone" style={labelStyle}>Phone <span style={{ fontWeight: 400, color: 'var(--clr-muted)' }}>(optional if email provided)</span></label>
+                  <input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                    placeholder="+61 4xx xxx xxx" style={inputStyle} autoComplete="tel" />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label htmlFor="username" style={labelStyle}>Username</label>
+                <input id="username" type="text" value={username} onChange={e => setUsername(e.target.value)}
+                  placeholder="jane_smith" style={inputStyle} autoComplete="username" />
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="reg-password" style={labelStyle}>Password</label>
+              <input id="reg-password" type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="Min. 8 characters" style={inputStyle} autoComplete="new-password" />
+            </div>
+            <div>
+              <label htmlFor="confirm" style={labelStyle}>Confirm Password</label>
+              <input id="confirm" type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+                placeholder="Repeat password" style={inputStyle} autoComplete="new-password" />
+            </div>
+
+            {displayError && (
+              <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#C62828', fontWeight: 500 }}>
+                {displayError}
+              </div>
+            )}
+
+            {devCode && (
+              <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2E7D32' }}>
+                <span style={{ fontWeight: 700 }}>Dev OTP: </span>{devCode}
+              </div>
+            )}
+
+            <p style={{ fontSize: 11, color: 'var(--clr-muted)', lineHeight: 1.5 }}>
+              By creating an account you agree to our{' '}
+              <Link href="/terms" style={{ color: 'var(--clr-primary)', textDecoration: 'none' }}>Terms</Link> and{' '}
+              <Link href="/privacy" style={{ color: 'var(--clr-primary)', textDecoration: 'none' }}>Privacy Policy</Link>.
+            </p>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-shiftify"
+              style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            >
+              {loading ? 'Creating account…' : 'Create Account'}
+            </button>
+          </form>
+        </>
+      )}
+    </AuthLayout>
   );
 }
+
+// ─── Shared styles ────────────────────────────────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', height: 42, padding: '0 12px',
+  borderRadius: 'var(--btn-radius)',
+  border: '1.5px solid var(--clr-border)',
+  fontSize: 14, outline: 'none', background: '#fff',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 12, fontWeight: 600,
+  color: 'var(--clr-text)', marginBottom: 5,
+};

@@ -1,109 +1,146 @@
-"use client";
+// Axios API client.
+// – Request interceptor attaches in-memory Bearer token.
+// – Response interceptor handles 401 → silent refresh → single retry.
+// – useAuth store is NOT imported here to avoid circular deps;
+//   token helpers come from the store's exported singletons below.
 
-// Fetch wrapper for the backend API.
-// - Sends credentials (cookies) so the HttpOnly refresh cookie roundtrips.
-// - Attaches the in-memory access token to Authorization.
-// - On 401, attempts one silent refresh and retries the request.
+import axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from 'axios';
 
-import { getAccessToken, setAccessToken, clearAccessToken } from "./auth";
+// ─── Token store (accessed without importing Zustand) ─────────────────────────
+// The auth store calls setApiToken / clearApiToken after login/logout/refresh.
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+let _accessToken: string | null = null;
 
-export interface ApiOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-  body?: unknown;
-  auth?: boolean;
-  signal?: AbortSignal;
-  formData?: FormData;
+export function setApiToken(token: string | null): void {
+  _accessToken = token;
 }
 
+export function getApiToken(): string | null {
+  return _accessToken;
+}
+
+// ─── Error class ──────────────────────────────────────────────────────────────
+
 export class ApiError extends Error {
-  status: number;
-  code: string;
+  status:   number;
+  code:     string;
   details?: unknown;
+
   constructor(status: number, code: string, message: string, details?: unknown) {
     super(message);
-    this.status = status;
-    this.code = code;
+    this.name    = 'ApiError';
+    this.status  = status;
+    this.code    = code;
     this.details = details;
   }
 }
 
-async function doFetch(path: string, opts: ApiOptions, accessToken: string | null): Promise<Response> {
-  const isFormData = !!opts.formData;
-  const headers: Record<string, string> = {};
-  if (!isFormData) headers["Content-Type"] = "application/json";
-  if (opts.auth !== false && accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
-  return fetch(`${BASE}${path}`, {
-    method: opts.method || "GET",
-    headers,
-    credentials: "include",
-    body: isFormData
-      ? opts.formData
-      : opts.body
-        ? JSON.stringify(opts.body)
-        : undefined,
-    signal: opts.signal,
-  });
-}
+// ─── Axios instance ───────────────────────────────────────────────────────────
 
-let refreshing: Promise<string | null> | null = null;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
+
+export const http = axios.create({
+  baseURL:         BASE_URL,
+  withCredentials: true,          // sends HttpOnly refresh cookie on every request
+  timeout:         15_000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// ─── Request interceptor — attach Bearer token ────────────────────────────────
+
+http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = _accessToken;
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ─── Silent refresh ───────────────────────────────────────────────────────────
+
+let _refreshing: Promise<string | null> | null = null;
 
 async function silentRefresh(): Promise<string | null> {
-  if (refreshing) return refreshing;
-  refreshing = (async () => {
+  if (_refreshing) return _refreshing;
+
+  _refreshing = (async () => {
     try {
-      const res = await fetch(`${BASE}/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) return null;
-      const json = (await res.json()) as { data?: { accessToken?: string } };
-      const token = json?.data?.accessToken ?? null;
-      if (token) setAccessToken(token);
+      const res = await axios.post<{ data: { accessToken: string } }>(
+        `${BASE_URL}/auth/refresh`,
+        {},
+        { withCredentials: true },
+      );
+      const token = res.data?.data?.accessToken ?? null;
+      if (token) setApiToken(token);
       return token;
     } catch {
+      setApiToken(null);
       return null;
     } finally {
-      refreshing = null;
+      _refreshing = null;
     }
   })();
-  return refreshing;
+
+  return _refreshing;
 }
 
-export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
-  let token = getAccessToken();
-  let res = await doFetch(path, opts, token);
+// ─── Response interceptor — 401 retry ─────────────────────────────────────────
 
-  if (res.status === 401 && opts.auth !== false) {
-    const newToken = await silentRefresh();
-    if (newToken) {
-      res = await doFetch(path, opts, newToken);
+http.interceptors.response.use(
+  (res) => res,
+  async (error: AxiosError) => {
+    const original = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+    if (
+      error.response?.status === 401 &&
+      !original._retry &&
+      original.url !== '/auth/refresh'
+    ) {
+      original._retry = true;
+      const newToken = await silentRefresh();
+      if (newToken) {
+        original.headers = {
+          ...(original.headers ?? {}),
+          Authorization: `Bearer ${newToken}`,
+        };
+        return http(original);
+      }
     }
-  }
 
-  const text = await res.text();
-  let json: unknown = null;
-  if (text) {
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
-    }
-  }
-
-  if (!res.ok) {
-    const err = (json as { error?: { code?: string; message?: string; details?: unknown } } | null)?.error;
-    if (res.status === 401) clearAccessToken();
+    // Normalise to ApiError
+    const data = (error.response?.data as { error?: { code?: string; message?: string; details?: unknown } } | undefined)?.error;
     throw new ApiError(
-      res.status,
-      err?.code ?? "REQUEST_FAILED",
-      err?.message ?? `Request failed (${res.status})`,
-      err?.details,
+      error.response?.status ?? 0,
+      data?.code    ?? 'NETWORK_ERROR',
+      data?.message ?? error.message,
+      data?.details,
     );
-  }
+  },
+);
 
-  return ((json as { data?: T })?.data ?? null) as T;
-}
+// ─── Typed helpers ────────────────────────────────────────────────────────────
+
+type Envelope<T> = { data: T };
+
+export const api = {
+  get<T>(url: string, config?: AxiosRequestConfig) {
+    return http.get<Envelope<T>>(url, config).then((r) => r.data.data);
+  },
+  post<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    return http.post<Envelope<T>>(url, body, config).then((r) => r.data.data);
+  },
+  put<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    return http.put<Envelope<T>>(url, body, config).then((r) => r.data.data);
+  },
+  patch<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    return http.patch<Envelope<T>>(url, body, config).then((r) => r.data.data);
+  },
+  del<T>(url: string, config?: AxiosRequestConfig) {
+    return http.delete<Envelope<T>>(url, config).then((r) => r.data.data);
+  },
+};

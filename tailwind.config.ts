@@ -1,49 +1,45 @@
 import type { Config } from "tailwindcss";
 
-// Colour palette derived from shiftify-ebon.vercel.app — crimson-pink brand.
-// Primary brand: deep magenta-crimson (#c01858). Emergency: red.
 const config: Config = {
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
+    "./hooks/**/*.{ts,tsx}",
     "./lib/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        brand: {
-          50:  "#fff0f5",
-          100: "#ffe0ec",
-          200: "#ffc0d9",
-          300: "#ff8fb8",
-          400: "#f95b92",
-          500: "#f0306e",
-          600: "#c01858",
-          700: "#a01248",
-          800: "#830e3c",
-          900: "#5c0a2a",
-          950: "#3d0620",
-        },
-        emergency: {
-          50:  "#fef2f2",
-          500: "#ef4444",
-          600: "#dc2626",
-          700: "#b91c1c",
-        },
-        accent: {
-          pink:   "#f43f5e",
-          violet: "#7c3aed",
-        },
+        primary:         "var(--clr-primary)",
+        "primary-dark":  "var(--clr-primary-dark)",
+        "primary-light": "var(--clr-primary-light)",
+        "primary-xlight":"var(--clr-primary-xlight)",
+        emergency:       "var(--clr-emergency)",
+        "emergency-dark":"var(--clr-emergency-dark)",
+        "shiftify-text": "var(--clr-text)",
+        muted:           "var(--clr-muted)",
+        "shiftify-border":"var(--clr-border)",
+        surface:         "var(--clr-surface)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "sans-serif"],
+        body:    ["var(--font-body)", "sans-serif"],
+        sans:    ["var(--font-body)", "sans-serif"],
       },
       boxShadow: {
-        card:     "0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.08)",
-        elevated: "0 4px 16px -2px rgb(0 0 0 / 0.08), 0 8px 24px -4px rgb(0 0 0 / 0.08)",
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+      },
+      borderRadius: {
+        card: "var(--card-radius)",
+        btn:  "var(--btn-radius)",
       },
       backgroundImage: {
-        "hero-gradient": "linear-gradient(135deg, #5c0a2a 0%, #a01248 55%, #c01858 100%)",
+        "hero-gradient":
+          "linear-gradient(135deg, #fff 0%, #fff6f9 50%, #fce4ec 100%)",
+        "dark-gradient":
+          "linear-gradient(145deg, #1A1A2E 0%, #880E4F 60%, #C2185B 100%)",
       },
     },
   },

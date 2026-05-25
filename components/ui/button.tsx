@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, type ButtonHTMLAttributes } from "react";
-import { cn } from "@/lib/utils/cn";
+import { cn } from "@/lib/utils";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 type Size = "sm" | "md" | "lg";

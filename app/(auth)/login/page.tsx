@@ -1,150 +1,163 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginInput } from "@/lib/schemas/auth";
-import { ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
-import { ROLE_DASHBOARD_PATHS, SIGNUP_ROLES, ROLE_LABELS } from "@/lib/constants/roles";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Field } from "@/components/ui/field";
-import { cn } from "@/lib/utils/cn";
+import { useState, FormEvent } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import AuthLayout from '@/components/auth/AuthLayout';
+import { useAuth } from '@/hooks/useAuth';
+import { UserRole, UserStatus } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+const ROLES: { value: UserRole; label: string }[] = [
+  { value: UserRole.PARTICIPANT,    label: 'Participant'    },
+  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker' },
+  { value: UserRole.PROVIDER,       label: 'Provider'       },
+  { value: UserRole.COORDINATOR,    label: 'Coordinator'    },
+  { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager'   },
+];
 
 export default function LoginPage() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const { login } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<(typeof SIGNUP_ROLES)[number] | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const router       = useRouter();
+  const params       = useSearchParams();
+  const { login, loading, error, clearError } = useAuth();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  const [identifier,   setIdentifier]   = useState('');
+  const [password,     setPassword]     = useState('');
+  const [activeRole,   setActiveRole]   = useState<UserRole | null>(null);
+  const [devCode,      setDevCode]      = useState<string | null>(null);
+  const [localError,   setLocalError]   = useState<string | null>(null);
 
-  async function onSubmit(values: LoginInput) {
-    setServerError(null);
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setLocalError(null);
+    clearError();
+
+    if (!identifier.trim()) { setLocalError('Enter your email, phone, or username.'); return; }
+    if (!password)           { setLocalError('Enter your password.');                  return; }
+
     try {
-      const user = await login(values.identifier, values.password);
-      const next = params.get("next");
-      router.replace(next || ROLE_DASHBOARD_PATHS[user.activeRole]);
-    } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : "Login failed");
+      const res = await login({
+        identifier: identifier.trim(),
+        password,
+        ...(activeRole ? { activeRole } : {}),
+      });
+
+      if (res._dev_code) setDevCode(res._dev_code);
+
+      const next = params.get('next') ?? '/dashboard';
+      // PROVIDER / PLAN_MANAGER with PENDING status → payment
+      if (
+        res.user.status === UserStatus.PENDING &&
+        (res.user.activeRole === UserRole.PROVIDER || res.user.activeRole === UserRole.PLAN_MANAGER)
+      ) {
+        router.replace('/payment');
+      } else {
+        router.replace(next);
+      }
+    } catch {
+      // error already in store
     }
   }
 
+  const displayError = localError ?? error;
+
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-end text-sm">
-        <span className="text-slate-500">Don&apos;t have an account?&nbsp;</span>
-        <Link href="/register" className="font-semibold text-brand-700 hover:underline">Sign Up</Link>
-      </div>
+    <AuthLayout mode="login">
+      <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, color: 'var(--clr-text)', letterSpacing: -0.5, marginBottom: 4 }}>
+        Welcome back
+      </h1>
+      <p style={{ fontSize: 14, color: 'var(--clr-muted)', marginBottom: 28 }}>
+        Log in to your Shiftify account
+      </p>
 
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Welcome back</h1>
-      <p className="mt-1 text-sm text-slate-500">Log in to your Shiftify account</p>
-
-      <div className="mt-6">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">I am a</p>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {SIGNUP_ROLES.map((r) => (
+      {/* Role hint (optional) */}
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--clr-muted)', marginBottom: 8 }}>I am a</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {ROLES.map((r) => (
             <button
-              key={r}
+              key={r.value}
               type="button"
-              onClick={() => setSelectedRole(r)}
+              onClick={() => setActiveRole(prev => prev === r.value ? null : r.value)}
               className={cn(
-                "rounded-lg border px-3 py-2 text-xs font-medium transition-colors",
-                selectedRole === r
-                  ? "border-brand-600 bg-brand-50 text-brand-800"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                'rounded-full border px-3 py-1 text-xs font-semibold transition-all',
+                activeRole === r.value
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-[var(--clr-border)] bg-white text-[var(--clr-muted)] hover:border-primary hover:text-primary',
               )}
             >
-              {ROLE_LABELS[r]}
+              {r.label}
             </button>
           ))}
         </div>
-        <p className="mt-2 text-[11px] text-slate-400">Role selection is just a hint; your role is determined by your account.</p>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 6 }}>
+          Optional — your role is verified by your account.
+        </p>
       </div>
 
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs text-slate-400">or continue with email / phone / username</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <Field label="Email, phone, or username" htmlFor="identifier" error={errors.identifier?.message}>
-          <Input
+        <div>
+          <label htmlFor="identifier" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 6 }}>
+            Email, phone, or username
+          </label>
+          <input
             id="identifier"
             type="text"
             autoComplete="username"
             placeholder="you@example.com"
-            error={errors.identifier?.message}
-            {...register("identifier")}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' }}
           />
-        </Field>
-        <Field label="Password" htmlFor="password" error={errors.password?.message}>
-          <Input
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <label htmlFor="password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>Password</label>
+            <Link href="/forgot-password" style={{ fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600, textDecoration: 'none' }}>
+              Forgot password?
+            </Link>
+          </div>
+          <input
             id="password"
             type="password"
             autoComplete="current-password"
             placeholder="••••••••"
-            error={errors.password?.message}
-            {...register("password")}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' }}
           />
-        </Field>
-
-        <div className="flex items-center justify-between text-xs">
-          <label className="flex items-center gap-2 text-slate-600">
-            <input type="checkbox" className="h-3.5 w-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500" />
-            Keep me signed in
-          </label>
-          <Link href="/forgot-password" className="font-medium text-brand-700 hover:underline">
-            Forgot password?
-          </Link>
         </div>
 
-        {serverError && (
-          <div className="rounded-lg bg-emergency-50 px-3 py-2 text-sm text-emergency-700">{serverError}</div>
+        {displayError && (
+          <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#C62828', fontWeight: 500 }}>
+            {displayError}
+          </div>
         )}
 
-        <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>
-          Log In
-        </Button>
+        {devCode && (
+          <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2E7D32' }}>
+            <span style={{ fontWeight: 700 }}>Dev OTP: </span>{devCode}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn-shiftify"
+          style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+        >
+          {loading ? 'Logging in…' : 'Log In'}
+        </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-slate-200" />
-        <span className="text-xs text-slate-400">or sign in with</span>
-        <div className="h-px flex-1 bg-slate-200" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          disabled
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-600 disabled:opacity-60"
-          title="OAuth coming later"
-        >
-          Google
-        </button>
-        <button
-          type="button"
-          disabled
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-600 disabled:opacity-60"
-          title="OAuth coming later"
-        >
-          Apple
-        </button>
-      </div>
-
-      <p className="mt-6 text-center text-sm text-slate-500">
-        Don&apos;t have an account?{" "}
-        <Link href="/register" className="font-semibold text-brand-700 hover:underline">Create one free</Link>
+      <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--clr-muted)', marginTop: 24 }}>
+        Don&apos;t have an account?{' '}
+        <Link href="/register" style={{ color: 'var(--clr-primary)', fontWeight: 700, textDecoration: 'none' }}>
+          Sign up free
+        </Link>
       </p>
-    </div>
+    </AuthLayout>
   );
 }

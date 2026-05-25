@@ -1,5 +1,5 @@
 import { type HTMLAttributes } from "react";
-import { cn } from "@/lib/utils/cn";
+import { cn } from "@/lib/utils";
 
 type Tone = "slate" | "brand" | "emerald" | "amber" | "rose" | "red" | "orange" | "violet" | "sky";
 

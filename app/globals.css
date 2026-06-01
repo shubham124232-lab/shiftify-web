@@ -1065,6 +1065,19 @@ h1, h2, h3, h4, h5, h6 {
 .qa-arrow { margin-top: 10px; color: var(--clr-primary); transition: transform var(--transition); display: flex; align-items: center; }
 .qa-card:hover .qa-arrow { transform: translateX(6px); }
 
+/* ---- Dashboard Layout ---- */
+.container-page {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+@media (min-width: 768px) {
+  .container-page { padding-left: 2rem; padding-right: 2rem; }
+}
+
 /* ---- Layout Utilities ---- */
 .container-xl {
   width: 100%;

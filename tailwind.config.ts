@@ -10,6 +10,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        brand: {
+          50:  "#fdf2f8",
+          100: "#fce7f3",
+          200: "#fbcfe8",
+          300: "#f9a8d4",
+          400: "#f47291",
+          500: "#e91e8c",
+          600: "#c2185b",
+          700: "#9c1450",
+          800: "#7a1040",
+          900: "#560c2d",
+        },
         primary:         "var(--clr-primary)",
         "primary-dark":  "var(--clr-primary-dark)",
         "primary-light": "var(--clr-primary-light)",

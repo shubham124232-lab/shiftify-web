@@ -1,97 +1,110 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { EmptyState } from "@/components/dashboard/empty-state";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { getDashboard, type WorkerDashboard } from "@/lib/api/dashboard";
 
 export default function WorkerDashboard() {
   const { user } = useAuth();
+  const [data, setData]       = useState<WorkerDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+
+  useEffect(() => {
+    getDashboard()
+      .then((d) => setData(d as WorkerDashboard))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   if (!user) return null;
-  const isSolo = true; // parentUserId linking arrives in Phase 2
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${user.name.split(" ")[0]}`}
-        description={
-          isSolo
-            ? "Browse available jobs and accept the ones that fit your schedule."
-            : "View jobs assigned to you by your provider and mark them complete when done."
-        }
-        actions={
-          isSolo ? (
-            <Link href="/jobs"><Button>Browse Jobs</Button></Link>
-          ) : null
-        }
+        title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
+        description="Your upcoming shifts and nearby opportunities."
+        actions={<Link href="/jobs"><Button>Browse Jobs</Button></Link>}
       />
-
       <div className="container-page py-8 space-y-8">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Open Opportunities" value="--" hint="Live when jobs API ready" />
-          <StatCard label="Active Bookings"    value="--" hint="Live when jobs API ready" />
-          <StatCard label="Completed Jobs"     value="--" hint="Live when jobs API ready" />
-          <StatCard label="Unread Messages"    value="--" hint="Live when messages API ready" />
-        </div>
+        {error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {isSolo ? "Recommended for you" : "Assigned to me"}{" "}
-              {!isSolo && <Badge tone="brand">Provider-employed</Badge>}
-            </CardTitle>
-            <CardDescription>
-              {isSolo
-                ? "Jobs near you that match your services."
-                : "Your provider assigns work to you. You cannot accept marketplace jobs directly."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EmptyState
-              icon={isSolo ? "🔎" : "📋"}
-              title={isSolo ? "No jobs yet" : "No assignments yet"}
-              description={
-                isSolo
-                  ? "Once participants post requests in your area, they will appear here."
-                  : "When your provider accepts a job and assigns it to you, it will show up here."
-              }
-              action={isSolo ? <Link href="/jobs"><Button>Browse marketplace</Button></Link> : undefined}
-            />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <StatCard label="Upcoming Shifts"      value={loading ? "..." : (data?.upcomingShifts?.length ?? 0)} />
+          <StatCard label="Nearby Jobs"          value={loading ? "..." : (data?.nearbyJobs?.length ?? 0)} tone="ok" />
+          <StatCard label="Pending Applications" value={loading ? "..." : (data?.pendingApplications?.length ?? 0)} />
+          <StatCard label="Unread Notifications" value={loading ? "..." : (data?.unreadNotifications ?? 0)} tone="warn" />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Coming next</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Upcoming shifts</CardTitle></CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li>- Browse and {isSolo ? "accept" : "track"} jobs</li>
-                <li>- Mark jobs in-progress and complete</li>
-                <li>- Message the participant during a booking</li>
-                <li>- Manage availability and preferences</li>
-              </ul>
+              {loading ? <p className="text-sm text-slate-400">Loading...</p>
+                : !data?.upcomingShifts?.length ? <p className="text-sm text-slate-500">No upcoming shifts.</p>
+                : (
+                  <ul className="divide-y divide-slate-100 text-sm">
+                    {data.upcomingShifts.map((s) => (
+                      <li key={s.id} className="py-2 flex justify-between">
+                        <span className="font-medium">{s.title}</span>
+                        <span className="text-slate-500">{new Date(s.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader>
-              <CardTitle>Your profile snapshot</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Nearby jobs</CardTitle>
+              <Link href="/jobs"><Button variant="ghost" size="sm">View all</Button></Link>
             </CardHeader>
-            <CardContent className="text-sm text-slate-700">
-              <dl className="space-y-2">
-                <div className="flex justify-between"><dt className="text-slate-500">Email</dt><dd>{user.email}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Status</dt><dd>{user.status}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Suburb</dt><dd>Not set</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Employment</dt><dd>{isSolo ? "Solo / Contractor" : "Provider-employed"}</dd></div>
-              </dl>
+            <CardContent>
+              {loading ? <p className="text-sm text-slate-400">Loading...</p>
+                : !data?.nearbyJobs?.length ? <p className="text-sm text-slate-500">No nearby jobs right now.</p>
+                : (
+                  <ul className="divide-y divide-slate-100 text-sm">
+                    {data.nearbyJobs.slice(0, 5).map((j) => (
+                      <li key={j.id} className="py-2 flex justify-between">
+                        <div>
+                          <span className="font-medium">{j.title}</span>
+                          <span className="ml-2 text-slate-400">{j.suburb}</span>
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-xs ${j.urgency === "EMERGENCY" ? "bg-red-100 text-red-700" : j.urgency === "SAME_DAY" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-500"}`}>{j.urgency}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Pending applications</CardTitle>
+            <Link href="/jobs/my"><Button variant="ghost" size="sm">View all</Button></Link>
+          </CardHeader>
+          <CardContent>
+            {loading ? <p className="text-sm text-slate-400">Loading...</p>
+              : !data?.pendingApplications?.length ? <p className="text-sm text-slate-500">No pending applications.</p>
+              : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {data.pendingApplications.map((a) => (
+                    <li key={a.applicationId} className="py-2 flex justify-between">
+                      <span className="font-medium">{a.job.title}</span>
+                      <span className="text-slate-500">{a.job.suburb}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </CardContent>
+        </Card>
       </div>
     </>
   );

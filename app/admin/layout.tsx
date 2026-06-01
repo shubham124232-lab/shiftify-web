@@ -9,9 +9,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const ADMIN_NAV = [
-  { href: "/admin",              label: "Admin Home" },
-  { href: "/admin/verification", label: "Verification Queue" },
+  { href: "/admin",              label: "Home" },
   { href: "/admin/users",        label: "All Users" },
+  { href: "/admin/verification", label: "Suspended Users" },
+  { href: "/admin/jobs",         label: "Jobs" },
+  { href: "/admin/broadcast",    label: "Notifications" },
   { href: "/admin/audit",        label: "Audit Log" },
 ];
 
@@ -30,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (loading || !user || !user.adminTier) {
     return (
       <div className="flex h-screen items-center justify-center text-slate-500">
-        <Spinner /> <span className="ml-2">Loading admin console…</span>
+        <Spinner /> <span className="ml-2">Loading admin console...</span>
       </div>
     );
   }
@@ -77,7 +79,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Button>
         </div>
       </aside>
-      <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 items-center border-b border-slate-200 bg-white px-6 md:hidden">
+          <span className="font-semibold text-brand-600">Shiftify Admin</span>
+        </header>
+        <main className="flex-1 overflow-y-auto bg-slate-50">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

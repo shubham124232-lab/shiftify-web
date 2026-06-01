@@ -110,6 +110,10 @@ http.interceptors.response.use(
         };
         return http(original);
       }
+      // Refresh failed — force logout
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
     }
 
     // Normalise to ApiError

@@ -21,12 +21,13 @@ function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
 }
 
-const ROLE_COLORS: Record<UserRole, string> = {
+const ROLE_COLORS: Record<string, string> = {
   PARTICIPANT:    "bg-sky-100 text-sky-800",
   SUPPORT_WORKER: "bg-violet-100 text-violet-800",
   PROVIDER:       "bg-orange-100 text-orange-800",
   COORDINATOR:    "bg-teal-100 text-teal-800",
   PLAN_MANAGER:   "bg-indigo-100 text-indigo-800",
+  ADMIN:          "bg-rose-100 text-rose-800",
 };
 
 export function AppTopbar() {
@@ -35,7 +36,7 @@ export function AppTopbar() {
 
   if (!user) return null;
 
-  const displayName = user.name || user.email || "User";
+  const displayName = user.name || (user as any).email || (user as any).username || "User";
 
   async function handleLogout() {
     await logout();

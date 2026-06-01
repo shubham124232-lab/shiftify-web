@@ -1,79 +1,82 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { EmptyState } from "@/components/dashboard/empty-state";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getDashboard, type ProviderDashboard } from "@/lib/api/dashboard";
 
-export default function ProviderDashboard() {
+export default function ProviderDashboardPage() {
   const { user } = useAuth();
+  const [data, setData]       = useState<ProviderDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+
+  useEffect(() => {
+    getDashboard()
+      .then((d) => setData(d as ProviderDashboard))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   if (!user) return null;
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${user.name.split(" ")[0]}`}
-        description="Accept jobs on behalf of your team and assign them to available workers."
-        actions={
-          <>
-            <Link href="/jobs"><Button variant="secondary">Browse Jobs</Button></Link>
-            <Link href="/team/new"><Button>+ Add Worker</Button></Link>
-          </>
-        }
+        title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
+        description="Manage your team's active jobs and expressions of interest."
       />
-
       <div className="container-page py-8 space-y-8">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Team Size"         value="--" hint="Live when linking API ready" />
-          <StatCard label="Active Jobs"       value="--" hint="Live when jobs API ready" />
-          <StatCard label="Available Workers" value="--" hint="Live when jobs API ready" />
-          <StatCard label="Unread Messages"   value="--" hint="Live when messages API ready" />
-        </div>
+        {error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>My team</CardTitle>
-            <CardDescription>Workers employed by your business.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EmptyState
-              icon="👥"
-              title="No workers yet"
-              description="Add support workers to your team so you can assign jobs to them when you accept work."
-              action={
-                <Link href="/team/new"><Button>Add Your First Worker</Button></Link>
-              }
-            />
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <StatCard label="Expressions of Interest" value={loading ? "..." : (data?.pendingExpressions?.length ?? 0)} tone="ok" />
+          <StatCard label="Active Shifts"           value={loading ? "..." : (data?.activeShifts?.length ?? 0)} />
+          <StatCard label="Unassigned (accepted)"   value={loading ? "..." : (data?.unassignedAccepted?.length ?? 0)} tone="warn" />
+          <StatCard label="Unread Notifications"    value={loading ? "..." : (data?.unreadNotifications ?? 0)} />
+        </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
-            <CardHeader>
-              <CardTitle>Coming next</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Pending expressions</CardTitle>
+              <Link href="/jobs"><Button variant="ghost" size="sm">Browse</Button></Link>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li>- Add workers to your team</li>
-                <li>- Browse and accept marketplace jobs</li>
-                <li>- Assign jobs to specific workers</li>
-                <li>- Post SIL/SDA and service availability (Phase 2+)</li>
-              </ul>
+              {loading ? <p className="text-sm text-slate-400">Loading...</p>
+                : !data?.pendingExpressions?.length ? <p className="text-sm text-slate-500">No pending expressions.</p>
+                : (
+                  <ul className="divide-y divide-slate-100 text-sm">
+                    {data.pendingExpressions.map((e) => (
+                      <li key={e.applicationId} className="py-2 flex justify-between">
+                        <span className="font-medium">{e.job.title}</span>
+                        <span className="text-slate-500">{e.job.suburb}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader>
-              <CardTitle>Business snapshot</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-slate-700">
-              <dl className="space-y-2">
-                <div className="flex justify-between"><dt className="text-slate-500">Account email</dt><dd>{user.email}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Status</dt><dd>{user.status}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Suburb</dt><dd>Not set</dd></div>
-              </dl>
+            <CardHeader><CardTitle>Active shifts</CardTitle></CardHeader>
+            <CardContent>
+              {loading ? <p className="text-sm text-slate-400">Loading...</p>
+                : !data?.activeShifts?.length ? <p className="text-sm text-slate-500">No active shifts right now.</p>
+                : (
+                  <ul className="divide-y divide-slate-100 text-sm">
+                    {data.activeShifts.map((s) => (
+                      <li key={s.id} className="py-2 flex justify-between">
+                        <span className="font-medium">{s.title}</span>
+                        <span className="text-slate-500">{s.suburb}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
             </CardContent>
           </Card>
         </div>

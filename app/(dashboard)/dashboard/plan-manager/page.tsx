@@ -1,71 +1,76 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { EmptyState } from "@/components/dashboard/empty-state";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getDashboard, type PlanManagerDashboard } from "@/lib/api/dashboard";
 
 export default function PlanManagerDashboard() {
   const { user } = useAuth();
+  const [data, setData]       = useState<PlanManagerDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+
+  useEffect(() => {
+    getDashboard()
+      .then((d) => setData(d as PlanManagerDashboard))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   if (!user) return null;
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${user.name.split(" ")[0]}`}
-        description="View the marketplace and the participants whose plans you manage."
+        title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
+        description="Your invoices and participant connections."
       />
-
       <div className="container-page py-8 space-y-8">
+        {error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Linked Participants" value="--" hint="Live when participant API ready" />
-          <StatCard label="Jobs Posted"         value="--" hint="Live when jobs API ready" />
-          <StatCard label="Jobs Completed"      value="--" hint="Live when jobs API ready" />
-          <StatCard label="Jobs In Progress"    value="--" hint="Live when jobs API ready" />
+          <StatCard label="Total Connections"  value={loading ? "..." : ((data?.connectionCounts?.pending ?? 0) + (data?.connectionCounts?.accepted ?? 0))} />
+          <StatCard label="Pending Requests"   value={loading ? "..." : (data?.connectionCounts?.pending ?? 0)} tone="warn" />
+          <StatCard label="Active Connections" value={loading ? "..." : (data?.connectionCounts?.accepted ?? 0)} tone="ok" />
+          <StatCard label="Recent Invoices"    value={loading ? "..." : (data?.recentInvoices?.length ?? 0)} />
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Marketplace overview</CardTitle>
-            <CardDescription>You have read-only access to all jobs system-wide.</CardDescription>
-          </CardHeader>
+          <CardHeader><CardTitle>Recent invoices</CardTitle></CardHeader>
           <CardContent>
-            <EmptyState
-              icon="📊"
-              title="No jobs to show yet"
-              description="Once participants and coordinators start posting, you will see the activity here."
-            />
+            {loading ? <p className="text-sm text-slate-400">Loading...</p>
+              : !data?.recentInvoices?.length ? <p className="text-sm text-slate-500">No invoices received yet.</p>
+              : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-slate-200">
+                      <tr>
+                        <th className="pb-2 text-left font-medium text-slate-600">Participant</th>
+                        <th className="pb-2 text-left font-medium text-slate-600">Sent by</th>
+                        <th className="pb-2 text-left font-medium text-slate-600">Hours</th>
+                        <th className="pb-2 text-left font-medium text-slate-600">Date</th>
+                        <th className="pb-2 text-left font-medium text-slate-600">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.recentInvoices.map((inv) => (
+                        <tr key={inv.id}>
+                          <td className="py-2">{inv.participant?.name ?? "—"}</td>
+                          <td className="py-2">{inv.sender?.name ?? "—"}</td>
+                          <td className="py-2">{inv.hours ?? "—"}</td>
+                          <td className="py-2">{new Date(inv.sentAt).toLocaleDateString()}</td>
+                          <td className="py-2 text-slate-500">{inv.note ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
           </CardContent>
         </Card>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Coming next</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-slate-600">
-                <li>- View marketplace activity (read-only)</li>
-                <li>- Track linked participants and their jobs</li>
-                <li>- Invoice approval workflow (Phase 2+)</li>
-                <li>- Budget reporting (Phase 2+)</li>
-              </ul>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Your profile snapshot</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-slate-700">
-              <dl className="space-y-2">
-                <div className="flex justify-between"><dt className="text-slate-500">Email</dt><dd>{user.email}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Status</dt><dd>{user.status}</dd></div>
-                <div className="flex justify-between"><dt className="text-slate-500">Service area</dt><dd>Not set</dd></div>
-              </dl>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </>
   );

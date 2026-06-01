@@ -2,12 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // If you later need to load images from external domains, add them here:
-  // images: {
-  //   remotePatterns: [
-  //     { protocol: 'https', hostname: 'example.com' },
-  //   ],
-  // },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: '*.r2.cloudflarestorage.com' },
+      { protocol: 'https', hostname: '*.r2.dev' },
+    ],
+  },
 };
 
 module.exports = nextConfig;

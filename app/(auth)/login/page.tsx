@@ -5,52 +5,48 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { UserRole, UserStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { UserStatus } from '@/lib/types';
 
-const ROLES: { value: UserRole; label: string }[] = [
-  { value: UserRole.PARTICIPANT,    label: 'Participant'    },
-  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker' },
-  { value: UserRole.PROVIDER,       label: 'Provider'       },
-  { value: UserRole.COORDINATOR,    label: 'Coordinator'    },
-  { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager'   },
-];
+// Map backend error codes to friendly messages
+function friendlyError(raw: string | null): string | null {
+  if (!raw) return null;
+  if (raw.includes('INVALID_CREDENTIALS') || raw.toLowerCase().includes('invalid credentials'))
+    return 'Incorrect email, phone, username or password.';
+  if (raw.includes('USER_SUSPENDED') || raw.toLowerCase().includes('suspended'))
+    return 'Your account has been suspended. Contact support for help.';
+  if (raw.includes('USER_PENDING') || raw.toLowerCase().includes('pending'))
+    return 'Your account is not yet activated. Complete the setup steps first.';
+  if (raw.includes('USER_NOT_FOUND') || raw.toLowerCase().includes('not found'))
+    return 'No account found with those details. Check your details or sign up.';
+  if (raw.includes('NETWORK_ERROR') || raw.toLowerCase().includes('network'))
+    return 'Could not reach the server. Check your connection and try again.';
+  return raw;
+}
 
 function LoginContent() {
-  const router       = useRouter();
-  const params       = useSearchParams();
+  const router  = useRouter();
+  const params  = useSearchParams();
   const { login, loading, error, clearError } = useAuth();
 
-  const [identifier,   setIdentifier]   = useState('');
-  const [password,     setPassword]     = useState('');
-  const [activeRole,   setActiveRole]   = useState<UserRole | null>(null);
-  const [devCode,      setDevCode]      = useState<string | null>(null);
-  const [localError,   setLocalError]   = useState<string | null>(null);
+  const [identifier,  setIdentifier]  = useState('');
+  const [password,    setPassword]    = useState('');
+  const [showPwd,     setShowPwd]     = useState(false);
+  const [localError,  setLocalError]  = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLocalError(null);
     clearError();
 
-    if (!identifier.trim()) { setLocalError('Enter your email, phone, or username.'); return; }
-    if (!password)           { setLocalError('Enter your password.');                  return; }
+    if (!identifier.trim()) { setLocalError('Enter your email, phone number, or username.'); return; }
+    if (!password)           { setLocalError('Enter your password.'); return; }
 
     try {
-      const res = await login({
-        identifier: identifier.trim(),
-        password,
-        ...(activeRole ? { activeRole } : {}),
-      });
-
-      if (res._dev_code) setDevCode(res._dev_code);
-
+      const res = await login({ identifier: identifier.trim(), password });
       const next = params.get('next') ?? '/dashboard';
-      // PROVIDER / PLAN_MANAGER with PENDING status → payment
-      if (
-        res.user.status === UserStatus.PENDING &&
-        (res.user.activeRole === UserRole.PROVIDER || res.user.activeRole === UserRole.PLAN_MANAGER)
-      ) {
-        router.replace('/payment');
+
+      if (res.user.status === UserStatus.PENDING) {
+        router.replace('/setup/verify');
       } else {
         router.replace(next);
       }
@@ -59,7 +55,7 @@ function LoginContent() {
     }
   }
 
-  const displayError = localError ?? error;
+  const displayError = friendlyError(localError ?? error);
 
   return (
     <AuthLayout mode="login">
@@ -70,48 +66,25 @@ function LoginContent() {
         Log in to your Shiftify account
       </p>
 
-      {/* Role hint (optional) */}
-      <div style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--clr-muted)', marginBottom: 8 }}>I am a</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {ROLES.map((r) => (
-            <button
-              key={r.value}
-              type="button"
-              onClick={() => setActiveRole(prev => prev === r.value ? null : r.value)}
-              className={cn(
-                'rounded-full border px-3 py-1 text-xs font-semibold transition-all',
-                activeRole === r.value
-                  ? 'border-primary bg-primary text-white'
-                  : 'border-[var(--clr-border)] bg-white text-[var(--clr-muted)] hover:border-primary hover:text-primary',
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 6 }}>
-          Optional — your role is verified by your account.
-        </p>
-      </div>
-
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+        {/* Identifier */}
         <div>
-          <label htmlFor="identifier" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 6 }}>
-            Email, phone, or username
+          <label htmlFor="identifier" style={labelStyle}>
+            Email, phone number, or username
           </label>
           <input
             id="identifier"
             type="text"
             autoComplete="username"
-            placeholder="you@example.com"
+            placeholder="you@example.com or +61 4xx xxx xxx"
             value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' }}
+            onChange={(e) => { setIdentifier(e.target.value); setLocalError(null); clearError(); }}
+            style={inputStyle}
           />
         </div>
 
+        {/* Password with show/hide */}
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <label htmlFor="password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>Password</label>
@@ -119,26 +92,36 @@ function LoginContent() {
               Forgot password?
             </Link>
           </div>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', height: 44, padding: '0 14px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' }}
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              id="password"
+              type={showPwd ? 'text' : 'password'}
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setLocalError(null); clearError(); }}
+              style={{ ...inputStyle, paddingRight: 44 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd(v => !v)}
+              tabIndex={-1}
+              aria-label={showPwd ? 'Hide password' : 'Show password'}
+              style={{
+                position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--clr-muted)', padding: 0, display: 'flex', alignItems: 'center',
+              }}
+            >
+              <i className={`bi ${showPwd ? 'bi-eye-slash' : 'bi-eye'}`} style={{ fontSize: 17 }} />
+            </button>
+          </div>
         </div>
 
+        {/* Error */}
         {displayError && (
           <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#C62828', fontWeight: 500 }}>
             {displayError}
-          </div>
-        )}
-
-        {devCode && (
-          <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2E7D32' }}>
-            <span style={{ fontWeight: 700 }}>Dev OTP: </span>{devCode}
           </div>
         )}
 
@@ -169,3 +152,18 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', height: 44, padding: '0 14px',
+  borderRadius: 'var(--btn-radius)',
+  border: '1.5px solid var(--clr-border)',
+  fontSize: 14, outline: 'none', background: '#fff',
+  boxSizing: 'border-box',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 13, fontWeight: 600,
+  color: 'var(--clr-text)', marginBottom: 6,
+};

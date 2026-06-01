@@ -5,8 +5,21 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { UserRole, AccountType, UserStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { UserRole } from '@/lib/types';
+
+// ─── Password strength ─────────────────────────────────────────────────────────
+
+function getStrength(pw: string): { level: 0 | 1 | 2 | 3; label: string; color: string } {
+  if (pw.length === 0) return { level: 0, label: '', color: 'transparent' };
+  const hasUpper = /[A-Z]/.test(pw);
+  const hasNum   = /[0-9]/.test(pw);
+  const hasSpec  = /[^A-Za-z0-9]/.test(pw);
+  const long     = pw.length >= 10;
+  const score    = [pw.length >= 8, hasUpper, hasNum, hasSpec, long].filter(Boolean).length;
+  if (score <= 2) return { level: 1, label: 'Weak',   color: '#ef4444' };
+  if (score <= 3) return { level: 2, label: 'Fair',   color: '#f59e0b' };
+  return           { level: 3, label: 'Strong', color: '#22c55e' };
+}
 
 // ─── Role cards ───────────────────────────────────────────────────────────────
 
@@ -32,12 +45,12 @@ export default function RegisterPage() {
   const [lastName,   setLastName]   = useState('');
   const [email,      setEmail]      = useState('');
   const [phone,      setPhone]      = useState('');
-  const [username,   setUsername]   = useState('');
   const [password,   setPassword]   = useState('');
   const [confirm,    setConfirm]    = useState('');
-  const [accType,    setAccType]    = useState<AccountType>(AccountType.SELF);
-  const [devCode,    setDevCode]    = useState<string | null>(null);
+  const [showPw,     setShowPw]     = useState(false);
+  const [showCf,     setShowCf]     = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const strength = getStrength(password);
 
   // ── Step 1: Role selection ────────────────────────────────────────────────
 
@@ -55,42 +68,29 @@ export default function RegisterPage() {
     setLocalError(null);
     clearError();
 
-    if (!firstName.trim()) { setLocalError('First name is required.'); return; }
-    if (!lastName.trim())  { setLocalError('Last name is required.');  return; }
-
-    if (accType === AccountType.SELF) {
-      if (!email && !phone) { setLocalError('Provide an email or phone number.'); return; }
-      if (!password)        { setLocalError('Password is required.');             return; }
-    } else {
-      if (!username) { setLocalError('Username is required.'); return; }
-      if (!password) { setLocalError('Password is required.'); return; }
-    }
-
-    if (password !== confirm) { setLocalError('Passwords do not match.'); return; }
-    if (password.length < 8)  { setLocalError('Password must be at least 8 characters.'); return; }
+    if (!firstName.trim()) { setLocalError('First name is required.');          return; }
+    if (!lastName.trim())  { setLocalError('Last name is required.');           return; }
+    if (!phone.trim())     { setLocalError('Phone number is required.');        return; }
+    if (!password)         { setLocalError('Password is required.');            return; }
+    if (password.length < 8) { setLocalError('Password must be at least 8 characters.'); return; }
+    if (password !== confirm) { setLocalError('Passwords do not match.');       return; }
 
     try {
       const res = await registerUser({
         role:     role!,
         name:     `${firstName.trim()} ${lastName.trim()}`,
         password,
-        ...(accType === AccountType.SELF
-          ? { email: email || undefined, phone: phone || undefined }
-          : { username }
-        ),
+        email:    email || undefined,
+        phone:    phone.trim(),
       });
 
-      if (res._dev_code) setDevCode(res._dev_code);
-
-      // PROVIDER / PLAN_MANAGER start as PENDING → payment
-      if (
-        res.user.status === UserStatus.PENDING &&
-        (role === UserRole.PROVIDER || role === UserRole.PLAN_MANAGER)
-      ) {
-        router.replace('/payment');
-      } else {
-        router.replace('/dashboard');
+      // Store dev code for OTP page
+      if (res._dev_code) {
+        sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
       }
+
+      // All new users → verify phone first
+      router.replace('/setup/verify');
     } catch {
       // error in store
     }
@@ -213,26 +213,6 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Account type toggle (SELF vs MANAGED) */}
-          <div style={{ display: 'flex', background: 'var(--clr-surface)', borderRadius: 10, padding: 4, marginBottom: 20, gap: 4 }}>
-            {([AccountType.SELF, AccountType.MANAGED] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setAccType(t)}
-                style={{
-                  flex: 1, height: 36, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  background: accType === t ? '#fff' : 'transparent',
-                  color: accType === t ? 'var(--clr-primary)' : 'var(--clr-muted)',
-                  boxShadow: accType === t ? 'var(--shadow-sm)' : 'none',
-                  transition: 'all 0.18s ease',
-                }}
-              >
-                {t === AccountType.SELF ? 'Email / Phone' : 'Username'}
-              </button>
-            ))}
-          </div>
-
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
             {/* Name row */}
@@ -249,47 +229,59 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {accType === AccountType.SELF ? (
-              <>
-                <div>
-                  <label htmlFor="email" style={labelStyle}>Email Address</label>
-                  <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com" style={inputStyle} autoComplete="email" />
-                </div>
-                <div>
-                  <label htmlFor="phone" style={labelStyle}>Phone <span style={{ fontWeight: 400, color: 'var(--clr-muted)' }}>(optional if email provided)</span></label>
-                  <input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder="+61 4xx xxx xxx" style={inputStyle} autoComplete="tel" />
-                </div>
-              </>
-            ) : (
-              <div>
-                <label htmlFor="username" style={labelStyle}>Username</label>
-                <input id="username" type="text" value={username} onChange={e => setUsername(e.target.value)}
-                  placeholder="jane_smith" style={inputStyle} autoComplete="username" />
-              </div>
-            )}
+            <div>
+              <label htmlFor="phone" style={labelStyle}>Phone Number <span style={{ color: '#ef4444' }}>*</span></label>
+              <input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                placeholder="+61 4xx xxx xxx" style={inputStyle} autoComplete="tel" />
+            </div>
 
             <div>
-              <label htmlFor="reg-password" style={labelStyle}>Password</label>
-              <input id="reg-password" type="password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Min. 8 characters" style={inputStyle} autoComplete="new-password" />
+              <label htmlFor="email" style={labelStyle}>Email Address <span style={{ fontWeight: 400, color: 'var(--clr-muted)' }}>(optional)</span></label>
+              <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com" style={inputStyle} autoComplete="email" />
             </div>
+
+            {/* Password with show/hide + strength */}
+            <div>
+              <label htmlFor="reg-password" style={labelStyle}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <input id="reg-password" type={showPw ? 'text' : 'password'} value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min. 8 characters" style={{ ...inputStyle, paddingRight: 42 }} autoComplete="new-password" />
+                <button type="button" onClick={() => setShowPw(v => !v)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)', padding: 0, fontSize: 16 }}>
+                  <i className={`bi ${showPw ? 'bi-eye-slash' : 'bi-eye'}`} />
+                </button>
+              </div>
+              {/* Strength bar */}
+              {password.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                    {([1, 2, 3] as const).map(l => (
+                      <div key={l} style={{ flex: 1, height: 3, borderRadius: 4, background: strength.level >= l ? strength.color : 'var(--clr-border)', transition: 'background 0.2s' }} />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: 11, color: strength.color, fontWeight: 600 }}>{strength.label}</span>
+                </div>
+              )}
+            </div>
+
             <div>
               <label htmlFor="confirm" style={labelStyle}>Confirm Password</label>
-              <input id="confirm" type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
-                placeholder="Repeat password" style={inputStyle} autoComplete="new-password" />
+              <div style={{ position: 'relative' }}>
+                <input id="confirm" type={showCf ? 'text' : 'password'} value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  placeholder="Repeat password" style={{ ...inputStyle, paddingRight: 42 }} autoComplete="new-password" />
+                <button type="button" onClick={() => setShowCf(v => !v)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)', padding: 0, fontSize: 16 }}>
+                  <i className={`bi ${showCf ? 'bi-eye-slash' : 'bi-eye'}`} />
+                </button>
+              </div>
             </div>
 
             {displayError && (
               <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#C62828', fontWeight: 500 }}>
                 {displayError}
-              </div>
-            )}
-
-            {devCode && (
-              <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#2E7D32' }}>
-                <span style={{ fontWeight: 700 }}>Dev OTP: </span>{devCode}
               </div>
             )}
 
@@ -315,6 +307,7 @@ export default function RegisterPage() {
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
+
 
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 42, padding: '0 12px',

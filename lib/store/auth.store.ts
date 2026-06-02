@@ -21,6 +21,12 @@ import {
 import { getPlan } from '@/lib/constants/plans';
 
 export const SUB_STORAGE_KEY = 'shiftify_sub';
+export const PLAN_REQUIRED_ROLES = new Set<UserRole>([
+  UserRole.SUPPORT_WORKER,
+  UserRole.PROVIDER,
+  UserRole.COORDINATOR,
+  UserRole.PLAN_MANAGER,
+]);
 
 // ─── State shape ──────────────────────────────────────────────────────────────
 
@@ -38,7 +44,7 @@ interface AuthState {
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<ForgotPasswordResponse>;
   resetPassword:  (payload: ResetPasswordPayload)  => Promise<void>;
   updateProfile:  (data: Partial<User>)            => void;
-  activatePlan:   (planId: string)                 => Promise<ActivatePlanResponse>;
+  activatePlan:   (planId?: string)                => Promise<ActivatePlanResponse>;
   setTokens:      (accessToken: string, user: User) => void;
   silentInit:     ()                               => Promise<void>;
   clearError:     ()                               => void;
@@ -108,18 +114,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // ── logout ─────────────────────────────────────────────────────────────────
 
   async logout() {
-    set({ loading: true });
+    setApiToken(null);
+    if (typeof window !== 'undefined') {
+      document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
+      localStorage.removeItem(SUB_STORAGE_KEY);
+    }
+    set({ user: null, accessToken: null, loading: false, error: null });
     try {
       await api.post('/auth/logout');
     } catch {
       // Best-effort — clear local state regardless
-    } finally {
-      setApiToken(null);
-      if (typeof window !== 'undefined') {
-        document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
-        localStorage.removeItem(SUB_STORAGE_KEY);
-      }
-      set({ user: null, accessToken: null, loading: false, error: null });
     }
   },
 
@@ -184,26 +188,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // ── activatePlan — calls /subscriptions/activate, updates status in store ──
 
-  async activatePlan(planId: string) {
+  async activatePlan(planId?: string) {
     set({ loading: true, error: null });
     try {
-      const data = await api.post<ActivatePlanResponse>('/subscriptions/activate', { plan: planId });
+      const data = await api.post<ActivatePlanResponse>(
+        '/subscriptions/activate',
+        planId ? { planId } : {},
+      );
 
       // Update status in store immediately — no need for a full refresh
       const current = get().user;
       if (current) {
-        set({ user: { ...current, status: UserStatus.ACTIVE }, loading: false });
+        set({ user: { ...current, status: data.status }, loading: false });
       } else {
         set({ loading: false });
       }
 
       // Persist plan info for profile display (dev mode returns _dev_payment)
       if (typeof window !== 'undefined' && data._dev_payment && current) {
-        const planConfig = getPlan(current.activeRole, planId);
+        const planConfig = planId ? getPlan(current.activeRole, data._dev_payment.plan) : undefined;
         const stored: StoredSubscription = {
           ...data._dev_payment,
           activatedAt: new Date().toISOString(),
-          planLabel:   planConfig?.label ?? planId,
+          planLabel:   planConfig?.label ?? data._dev_payment.plan,
         };
         localStorage.setItem(SUB_STORAGE_KEY, JSON.stringify(stored));
       }
@@ -240,7 +247,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Decode JWT for base identity — avoids the heavy /users/me include chain
         const claims = decodeJwt(refresh.accessToken);
 
-        const user: User = {
+        const baseUser: User = {
           id:          (claims.sub as string) ?? '',
           email:       null,
           phone:       null,
@@ -251,6 +258,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           adminTier:   null,
           roles:       refresh.roles,
           activeRole:  refresh.activeRole,
+        };
+        const me = await api.get<{ user: Partial<User> & Record<string, unknown> }>('/users/me');
+        const user: User = {
+          ...baseUser,
+          ...me.user,
+          roles:      refresh.roles,
+          activeRole: refresh.activeRole,
+          status:     (me.user.status as UserStatus) ?? baseUser.status,
         };
 
         if (typeof document !== 'undefined') {
@@ -288,4 +303,4 @@ export const selectIsPending   = (s: AuthState) =>
   s.user?.status === UserStatus.PENDING;
 export const selectNeedsPayment = (s: AuthState) =>
   s.user?.status === UserStatus.PENDING &&
-  (s.user.activeRole === UserRole.PROVIDER || s.user.activeRole === UserRole.PLAN_MANAGER);
+  PLAN_REQUIRED_ROLES.has(s.user.activeRole);

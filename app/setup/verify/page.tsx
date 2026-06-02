@@ -5,14 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import { UserRole } from '@/lib/types';
-
-// Roles that need a plan before dashboard
-const NEEDS_PLAN = new Set([UserRole.SUPPORT_WORKER, UserRole.PROVIDER, UserRole.COORDINATOR, UserRole.PLAN_MANAGER]);
+import { PLAN_REQUIRED_ROLES } from '@/lib/store/auth.store';
 
 export default function VerifyPage() {
   const router = useRouter();
-  const { user, activeRole, silentInit } = useAuth();
+  const { user, activeRole, silentInit, activatePlan } = useAuth();
 
   const [code,      setCode]      = useState(['', '', '', '', '', '']);
   const [devCode,   setDevCode]   = useState<string | null>(null);
@@ -62,9 +59,10 @@ export default function VerifyPage() {
       sessionStorage.removeItem('shiftify_dev_otp');
       await silentInit(); // refresh user state after verification
       // Redirect based on role
-      if (activeRole && NEEDS_PLAN.has(activeRole)) {
+      if (activeRole && PLAN_REQUIRED_ROLES.has(activeRole)) {
         router.replace('/setup/plan');
       } else {
+        await activatePlan();
         router.replace('/dashboard');
       }
     } catch (err: any) {
@@ -78,7 +76,11 @@ export default function VerifyPage() {
     setResent(false);
     setError(null);
     try {
-      await api.post('/auth/verify/resend', { channel: 'phone' });
+      const result = await api.post<{ _dev_code?: string }>('/auth/verify/resend', { channel: 'phone' });
+      if (result._dev_code) {
+        sessionStorage.setItem('shiftify_dev_otp', result._dev_code);
+        setDevCode(result._dev_code);
+      }
       setResent(true);
     } catch {
       setError('Could not resend code. Please try again.');

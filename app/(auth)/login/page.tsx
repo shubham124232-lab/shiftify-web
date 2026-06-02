@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { UserStatus } from '@/lib/types';
+import { PLAN_REQUIRED_ROLES } from '@/lib/store/auth.store';
 
 // Map backend error codes to friendly messages
 function friendlyError(raw: string | null): string | null {
@@ -26,7 +27,7 @@ function friendlyError(raw: string | null): string | null {
 function LoginContent() {
   const router  = useRouter();
   const params  = useSearchParams();
-  const { login, loading, error, clearError } = useAuth();
+  const { login, loading, error, clearError, activatePlan } = useAuth();
 
   const [identifier,  setIdentifier]  = useState('');
   const [password,    setPassword]    = useState('');
@@ -45,8 +46,13 @@ function LoginContent() {
       const res = await login({ identifier: identifier.trim(), password });
       const next = params.get('next') ?? '/dashboard';
 
-      if (res.user.status === UserStatus.PENDING) {
+      if (res.user.status === UserStatus.PENDING && !res.user.phoneVerified) {
         router.replace('/setup/verify');
+      } else if (res.user.status === UserStatus.PENDING && PLAN_REQUIRED_ROLES.has(res.user.activeRole)) {
+        router.replace('/setup/plan');
+      } else if (res.user.status === UserStatus.PENDING) {
+        await activatePlan();
+        router.replace('/dashboard');
       } else {
         router.replace(next);
       }

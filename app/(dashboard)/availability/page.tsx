@@ -11,9 +11,9 @@ import { UserRole } from "@/lib/types";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TimeSlot {
-  day: string;      // MON | TUE | WED | THU | FRI | SAT | SUN
-  startTime: string; // "08:00"
-  endTime: string;   // "17:00"
+  dayOfWeek: string;  // MON | TUE | WED | THU | FRI | SAT | SUN
+  startTime: string;  // "08:00"
+  endTime: string;    // "17:00"
 }
 
 interface UnavailDate {
@@ -46,41 +46,47 @@ export default function AvailabilityPage() {
   const [newNote,     setNewNote]     = useState("");
   const [addingDate,  setAddingDate]  = useState(false);
 
+  const isWorker   = activeRole === UserRole.SUPPORT_WORKER;
+  const isProvider = activeRole === UserRole.PROVIDER;
+
   useEffect(() => {
-    if (activeRole !== UserRole.SUPPORT_WORKER) return;
+    if (!isWorker && !isProvider) return;
     setLoading(true);
-    api.get<{ availability: TimeSlot[]; unavailability: UnavailDate[] }>("/users/me/availability")
+    const endpoint = isProvider
+      ? "/users/me/availability/provider-availability"
+      : "/users/me/availability";
+    api.get<{ availability: TimeSlot[]; unavailability?: UnavailDate[] }>(endpoint)
       .then(r => {
         setSlots(r.availability ?? []);
         setUnavail(r.unavailability ?? []);
       })
       .catch(() => {}) // no profile yet — leave empty
       .finally(() => setLoading(false));
-  }, [activeRole]);
+  }, [activeRole, isWorker, isProvider]);
 
   // ── Slot helpers ────────────────────────────────────────────────────────────
 
   function isEnabled(day: string) {
-    return slots.some(s => s.day === day);
+    return slots.some(s => s.dayOfWeek === day);
   }
 
   function getSlot(day: string): TimeSlot {
-    return slots.find(s => s.day === day) ?? { day, startTime: DEFAULT_START, endTime: DEFAULT_END };
+    return slots.find(s => s.dayOfWeek === day) ?? { dayOfWeek: day, startTime: DEFAULT_START, endTime: DEFAULT_END };
   }
 
   function toggleDay(day: string) {
     if (isEnabled(day)) {
-      setSlots(prev => prev.filter(s => s.day !== day));
+      setSlots(prev => prev.filter(s => s.dayOfWeek !== day));
     } else {
-      setSlots(prev => [...prev, { day, startTime: DEFAULT_START, endTime: DEFAULT_END }]);
+      setSlots(prev => [...prev, { dayOfWeek: day, startTime: DEFAULT_START, endTime: DEFAULT_END }]);
     }
   }
 
   function updateSlot(day: string, field: "startTime" | "endTime", value: string) {
     setSlots(prev => {
-      const existing = prev.find(s => s.day === day);
-      if (existing) return prev.map(s => s.day === day ? { ...s, [field]: value } : s);
-      return [...prev, { day, startTime: DEFAULT_START, endTime: DEFAULT_END, [field]: value }];
+      const existing = prev.find(s => s.dayOfWeek === day);
+      if (existing) return prev.map(s => s.dayOfWeek === day ? { ...s, [field]: value } : s);
+      return [...prev, { dayOfWeek: day, startTime: DEFAULT_START, endTime: DEFAULT_END, [field]: value }];
     });
   }
 
@@ -89,7 +95,10 @@ export default function AvailabilityPage() {
   async function handleSave() {
     setSaving(true); setError(null); setSuccess(false);
     try {
-      await api.put("/users/me/availability", { slots });
+      const endpoint = isProvider
+        ? "/users/me/availability/provider-availability"
+        : "/users/me/availability";
+      await api.put(endpoint, { slots });
       setSuccess(true);
     } catch (err: any) { setError(err?.message ?? "Save failed."); }
     finally { setSaving(false); }
@@ -118,14 +127,14 @@ export default function AvailabilityPage() {
     } catch (err: any) { setError(err?.message); }
   }
 
-  // ── Non-worker guard ─────────────────────────────────────────────────────────
+  // ── Guard: only workers and providers have availability pages ───────────────
 
-  if (activeRole !== UserRole.SUPPORT_WORKER) {
+  if (!isWorker && !isProvider) {
     return (
       <>
         <PageHeader title="Availability" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>Availability management is only available for Support Workers.</p>
+          <p style={{ color: "#64748b", fontSize: 14 }}>Availability management is only available for Support Workers and Providers.</p>
         </div>
       </>
     );

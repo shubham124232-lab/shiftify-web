@@ -75,6 +75,7 @@ export default function PostJobPage() {
     if (!title.trim()) { setError("Title is required."); return; }
     if (!suburb.trim()) { setError("Suburb is required."); return; }
     if (!startAt) { setError("Start date/time is required."); return; }
+    if (!endAt) { setError("End date/time is required."); return; }
     setSaving(true);
     setError(null);
     try {
@@ -87,7 +88,7 @@ export default function PostJobPage() {
         state,
         postcode: postcode.trim() || undefined,
         scheduledStartAt: new Date(startAt).toISOString(),
-        scheduledEndAt: endAt ? new Date(endAt).toISOString() : undefined,
+        scheduledEndAt: new Date(endAt).toISOString(),
         totalHours: totalHours ? parseFloat(totalHours) : undefined,
         asDraft,
       };
@@ -183,7 +184,7 @@ export default function PostJobPage() {
                   <input type="datetime-local" style={inp} value={startAt} onChange={e => setStartAt(e.target.value)} />
                 </div>
                 <div>
-                  <label style={lbl}>End date & time</label>
+                  <label style={lbl}>End date & time *</label>
                   <input type="datetime-local" style={inp} value={endAt} onChange={e => setEndAt(e.target.value)} />
                 </div>
               </div>

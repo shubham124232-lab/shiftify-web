@@ -50,7 +50,7 @@ function Textarea({ value, onChange, rows = 3, placeholder }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { user, activeRole, silentInit } = useAuth();
+  const { user, activeRole, silentInit, updateProfile } = useAuth();
 
   // ── Basic contact fields ──────────────────────────────────────────────────
   const [name,  setName]  = useState("");
@@ -72,6 +72,14 @@ export default function ProfilePage() {
   const [uploading,      setUploading]      = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // ── Phone verification state ──────────────────────────────────────────────
+  const [phoneVerified,  setPhoneVerified]  = useState(false);
+  const [verifyStep,     setVerifyStep]     = useState<"idle" | "sent" | "done">("idle");
+  const [otpCode,        setOtpCode]        = useState("");
+  const [otpSending,     setOtpSending]     = useState(false);
+  const [otpConfirming,  setOtpConfirming]  = useState(false);
+  const [otpError,       setOtpError]       = useState<string | null>(null);
+
   // ── UI state ──────────────────────────────────────────────────────────────
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState<string | null>(null);
@@ -85,12 +93,27 @@ export default function ProfilePage() {
     setEmail((user as any).email ?? "");
     setPhone((user as any).phone ?? "");
     setAvatarUrl((user as any).avatarUrl ?? null);
+    setPhoneVerified(!!(user as any).phoneVerified);
 
     // Load full user (includes embedded role profile)
     api.get<{ user: any; profileCompletion: number }>("/users/me")
       .then(res => {
         const u = res.user;
+        if (
+          u.name !== user.name ||
+          u.email !== user.email ||
+          u.phone !== user.phone ||
+          u.avatarUrl !== (user as any).avatarUrl ||
+          u.status !== user.status
+        ) {
+          updateProfile(u);
+        }
+        setName(u.name ?? "");
+        setEmail(u.email ?? "");
+        setPhone(u.phone ?? "");
+        setAvatarUrl(u.avatarUrl ?? null);
         setCompletion(res.profileCompletion ?? 0);
+        setPhoneVerified(!!u.phoneVerified);
         // Pick profile for the current active role only (multi-role users have multiple profiles)
         const profileByRole: Record<string, any> = {
           SUPPORT_WORKER: u.workerProfile,
@@ -128,6 +151,7 @@ export default function ProfilePage() {
       await fetch(res.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
       await api.patch("/users/me", { avatarUrl: res.publicUrl });
       setAvatarUrl(res.publicUrl);
+      updateProfile({ avatarUrl: res.publicUrl } as any);
     } catch {
       setError("Avatar upload failed.");
     } finally {
@@ -152,12 +176,13 @@ export default function ProfilePage() {
 
     try {
       // Update base user — only send non-empty values
-      await api.patch("/users/me", {
+      const base = await api.patch<{ user: any }>("/users/me", {
         name:          name.trim()   || undefined,
         email:         email.trim()  || undefined,
         phone:         phone.trim()  || undefined,
         defaultSuburb: suburb.trim() || undefined,
       });
+      updateProfile(base.user);
 
       // Update role profile
       const profilePayload: Record<string, any> = {};
@@ -203,9 +228,35 @@ export default function ProfilePage() {
     );
   }
 
+  // ── Phone OTP handlers ────────────────────────────────────────────────────
+  async function handleSendOtp() {
+    if (!phone.trim()) { setOtpError("Please enter a phone number first."); return; }
+    setOtpSending(true); setOtpError(null);
+    try {
+      // Save phone to user first so backend can send OTP to it
+      await api.patch("/users/me", { phone: phone.trim() });
+      await api.post("/auth/verify/request", { channel: "phone" });
+      setVerifyStep("sent");
+    } catch (err: any) { setOtpError(err?.message ?? "Failed to send code."); }
+    finally { setOtpSending(false); }
+  }
+
+  async function handleConfirmOtp() {
+    if (!otpCode.trim()) return;
+    setOtpConfirming(true); setOtpError(null);
+    try {
+      await api.post("/auth/verify/confirm", { channel: "phone", code: otpCode.trim() });
+      setPhoneVerified(true);
+      setVerifyStep("done");
+      setOtpCode("");
+      await silentInit();
+    } catch (err: any) { setOtpError(err?.message ?? "Incorrect code."); }
+    finally { setOtpConfirming(false); }
+  }
+
   if (!user) return null;
 
-  const initials = user.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+  const initials = (name || user.name || "User").split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -267,9 +318,50 @@ export default function ProfilePage() {
                 <Field label="Email">
                   <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
                 </Field>
-                <Field label="Phone">
-                  <input style={inp} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+61 4xx xxx xxx" />
-                </Field>
+                <div>
+                  <label style={lbl}>Phone</label>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input style={{ ...inp, flex: 1 }} type="tel" value={phone} onChange={e => { setPhone(e.target.value); setVerifyStep("idle"); }} placeholder="+61 4xx xxx xxx" />
+                    {phoneVerified ? (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>✓ Verified</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={otpSending || verifyStep === "sent"}
+                        style={{ height: 40, padding: "0 14px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", opacity: otpSending ? 0.7 : 1 }}
+                      >
+                        {otpSending ? "Sending…" : verifyStep === "sent" ? "Code sent" : "Verify phone"}
+                      </button>
+                    )}
+                  </div>
+                  {verifyStep === "sent" && !phoneVerified && (
+                    <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
+                      <input
+                        style={{ ...inp, width: 140 }}
+                        value={otpCode}
+                        onChange={e => setOtpCode(e.target.value)}
+                        placeholder="6-digit code"
+                        maxLength={6}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleConfirmOtp}
+                        disabled={otpConfirming || otpCode.length < 6}
+                        style={{ height: 40, padding: "0 14px", background: "#1e293b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: otpConfirming ? 0.7 : 1 }}
+                      >
+                        {otpConfirming ? "Verifying…" : "Confirm"}
+                      </button>
+                      <button type="button" onClick={handleSendOtp} style={{ fontSize: 12, color: "#c2185b", background: "none", border: "none", cursor: "pointer" }}>
+                        Resend
+                      </button>
+                    </div>
+                  )}
+                  {otpError && <p style={{ fontSize: 12, color: "#C62828", marginTop: 6 }}>{otpError}</p>}
+                  {!phoneVerified && verifyStep !== "sent" && (
+                    <p style={{ fontSize: 12, color: "#f59e0b", marginTop: 6 }}>⚠ Phone not verified — required to post support requests.</p>
+                  )}
+                </div>
               </div>
               <Field label="Default suburb">
                 <input style={inp} value={suburb} onChange={e => setSuburb(e.target.value)} placeholder="e.g. Parramatta" />

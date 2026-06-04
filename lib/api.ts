@@ -53,13 +53,18 @@ export const http = axios.create({
 // ─── Request interceptor — attach Bearer token ────────────────────────────────
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-   console.log("REQUEST:", config.url);
-  console.log("TOKEN:", _accessToken);
   const token = _accessToken;
+
+  console.log("REQUEST URL:", config.url);
+  console.log("TOKEN:", token);
+
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+   console.log("FINAL HEADERS:", config.headers);
+   
   return config;
 });
 

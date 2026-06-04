@@ -1,0 +1,82 @@
+import type { StepConfig } from './types';
+import {
+  workerStep1Schema,
+  workerStep2Schema,
+  workerStep3Schema,
+  workerStep4Schema,
+  workerStep5Schema,
+  workerStep6Schema,
+  workerStep7Schema,
+  workerStep8Schema,
+  workerStep9Schema,
+} from '@/lib/schemas/worker-steps';
+
+export const WORKER_STEPS: StepConfig[] = [
+  {
+    index:       0,
+    title:       'Location & Identity',
+    description: 'Your suburb, date of birth and profile photo',
+    icon:        'bi-geo-alt-fill',
+    schema:      workerStep1Schema,
+  },
+  {
+    index:       1,
+    title:       'Right to Work',
+    description: 'Citizenship, permanent residency or visa status',
+    icon:        'bi-file-earmark-person-fill',
+    schema:      workerStep2Schema,
+  },
+  {
+    index:       2,
+    title:       'Work Type & Insurance',
+    description: 'Contractor or agency, ABN and insurance coverage',
+    icon:        'bi-briefcase-fill',
+    schema:      workerStep3Schema,
+  },
+  {
+    index:       3,
+    title:       'Services & Skills',
+    description: 'Categories you provide and experience level',
+    icon:        'bi-stars',
+    schema:      workerStep4Schema,
+    requiredForMarketplace: ['servicesOffered'],
+  },
+  {
+    index:       4,
+    title:       'Availability',
+    description: 'When you are available to work each week',
+    icon:        'bi-calendar-week-fill',
+    schema:      workerStep5Schema,
+    requiredForMarketplace: ['availability'],
+  },
+  {
+    index:       5,
+    title:       'Service Areas & Travel',
+    description: 'Where you work and how far you can travel',
+    icon:        'bi-map-fill',
+    schema:      workerStep6Schema,
+  },
+  {
+    index:       6,
+    title:       'Financials & Bio',
+    description: 'Your hourly rate, bio and preferences',
+    icon:        'bi-cash-stack',
+    schema:      workerStep7Schema,
+  },
+  {
+    index:       7,
+    title:       'Compliance Documents',
+    description: 'Upload your NDIS, police check and certifications',
+    icon:        'bi-shield-fill-check',
+    schema:      workerStep8Schema,
+    requiredForMarketplace: ['NDIS_SCREENING', 'POLICE_CHECK'],
+  },
+  {
+    index:       8,
+    title:       'References & Declaration',
+    description: 'Referee contacts and platform compliance',
+    icon:        'bi-person-check-fill',
+    schema:      workerStep9Schema,
+    isFinal:     true,
+  },
+];

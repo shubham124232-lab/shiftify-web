@@ -84,7 +84,7 @@ export function useFileUpload(): UseFileUploadReturn {
         const result = await registerDocument(payload);
         setProgress(100);
         setStatus('done');
-        return result.document;
+        return result;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Upload failed';
         setError(msg);

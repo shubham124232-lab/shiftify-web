@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { listUsers, updateUserStatus, notifyUser, type AdminUser } from "@/lib/api/admin";
 
 const ROLES    = ["", "SUPPORT_WORKER", "PARTICIPANT", "PROVIDER", "COORDINATOR", "PLAN_MANAGER"];
-const STATUSES = ["", "PENDING", "APPROVED", "SUSPENDED", "REJECTED"];
+const STATUSES = ["", "PENDING", "ACTIVE", "SUSPENDED", "REJECTED"];
 
 const STATUS_COLOURS: Record<string, string> = {
-  APPROVED:  "bg-green-100 text-green-700",
+  ACTIVE:    "bg-green-100 text-green-700",
   PENDING:   "bg-yellow-100 text-yellow-700",
   SUSPENDED: "bg-red-100 text-red-700",
   REJECTED:  "bg-slate-100 text-slate-500",
@@ -107,9 +107,9 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2 flex-wrap">
-                          {u.status !== "APPROVED" && (
+                          {u.status !== "ACTIVE" && (
                             <Button size="sm" variant="outline" disabled={actionId === u.id}
-                              onClick={() => handleStatus(u.id, "APPROVED")}>Approve</Button>
+                              onClick={() => handleStatus(u.id, "ACTIVE")}>Approve</Button>
                           )}
                           {u.status !== "SUSPENDED" && (
                             <Button size="sm" variant="outline" disabled={actionId === u.id}

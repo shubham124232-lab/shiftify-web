@@ -81,10 +81,11 @@ export default function ProfilePage() {
   const [otpError,       setOtpError]       = useState<string | null>(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [saving,   setSaving]   = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
-  const [success,  setSuccess]  = useState(false);
-  const [profile,  setProfile]  = useState<any>(null);
+  const [saving,     setSaving]     = useState(false);
+  const [pageLoading,setPageLoading] = useState(true);
+  const [error,      setError]      = useState<string | null>(null);
+  const [success,    setSuccess]    = useState(false);
+  const [profile,    setProfile]    = useState<any>(null);
   const [completion, setCompletion] = useState<number>(0);
 
   useEffect(() => {
@@ -136,7 +137,8 @@ export default function ProfilePage() {
         // Workers: servicesOffered  Providers: coreServices
         setServicesOffered(p.servicesOffered ?? p.coreServices ?? []);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setPageLoading(false));
   }, [user, activeRole]);
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
@@ -145,13 +147,11 @@ export default function ProfilePage() {
     if (!file) return;
     setUploading(true);
     try {
-      const res = await api.get<{ uploadUrl: string; fileKey: string; publicUrl: string }>(
-        `/upload/presign?category=avatars&fileName=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`
-      );
-      await fetch(res.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      await api.patch("/users/me", { avatarUrl: res.publicUrl });
-      setAvatarUrl(res.publicUrl);
-      updateProfile({ avatarUrl: res.publicUrl } as any);
+      const form = new FormData();
+      form.append("avatar", file);
+      const res = await api.post<{ avatarUrl: string }>("/upload/avatar", form);
+      setAvatarUrl(res.avatarUrl);
+      updateProfile({ avatarUrl: res.avatarUrl } as any);
     } catch {
       setError("Avatar upload failed.");
     } finally {
@@ -257,6 +257,27 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const initials = (name || user.name || "User").split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  if (pageLoading) {
+    return (
+      <>
+        <PageHeader title="My Profile" description="Update your contact details and role information." />
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
+          {[1,2,3].map(i => (
+            <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 24 }}>
+              <div style={{ height: 16, width: "30%", background: "#f3f4f6", borderRadius: 6, marginBottom: 20, animation: "pulse 1.5s ease-in-out infinite" }} />
+              {[1,2].map(j => (
+                <div key={j} style={{ marginBottom: 14 }}>
+                  <div style={{ height: 10, width: "20%", background: "#f3f4f6", borderRadius: 4, marginBottom: 6 }} />
+                  <div style={{ height: 40, background: "#f9fafb", borderRadius: 8, border: "1px solid #e5e7eb" }} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -447,28 +468,22 @@ export default function ProfilePage() {
             </Card>
           )}
 
-          {error && (
-            <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
-              {error}
+            {/* Save button */}
+            <div style={{ display: "flex", gap: 12, justifyContent: "flex-start" }}>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Save profile"}
+              </Button>
+              {success && (
+                <span style={{ fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="bi bi-check-circle-fill" /> Saved successfully
+                </span>
+              )}
+              {error && (
+                <span style={{ fontSize: 13, color: "#dc2626" }}>{error}</span>
+              )}
             </div>
-          )}
-          {success && (
-            <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#2E7D32" }}>
-              Profile saved successfully.
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{ height: 44, padding: "0 28px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
-            >
-              {saving ? "Saving..." : "Save profile"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
+          </form>
+        </div>
+      </>
   );
 }

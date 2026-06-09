@@ -21,8 +21,8 @@ const DOC_TYPES = [
   { value: "POLICE_CHECK",   label: "Police Check" },
   { value: "WWCC",           label: "Working with Children Check" },
   { value: "FIRST_AID",      label: "First Aid Certificate" },
-  { value: "INSURANCE",      label: "Public Liability Insurance" },
-  { value: "QUALIFICATION",  label: "Qualification / Certificate" },
+  { value: "PUBLIC_LIABILITY_INSURANCE", label: "Public Liability Insurance" },
+  { value: "QUALIFICATION_CERTIFICATE", label: "Qualification / Certificate" },
   { value: "OTHER",          label: "Other Document" },
 ];
 

@@ -84,8 +84,8 @@ export default function ConnectionsPage() {
                 placeholder="Participant user ID..."
                 style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none" }}
               />
-              <Button type="submit" disabled={sending || !userId.trim()}>
-                {sending ? "Sending..." : "Send request"}
+              <Button type="submit" loading={sending} disabled={!userId.trim()}>
+                Send request
               </Button>
             </form>
           </CardContent>

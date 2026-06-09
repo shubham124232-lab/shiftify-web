@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
 import { Spinner } from "@/components/ui/spinner";
+import { TOTAL_STEPS, WIZARD_START_STEP } from "@/lib/registration/stepConfig";
 
 // Pages inside the dashboard that should be accessible even with an incomplete profile
 // (so the user can actually go fix their profile without getting redirect-looped)
@@ -18,6 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const profileCompletion  = useAuthStore(s => s.profileCompletion);
   const marketplaceMissing = useAuthStore(s => s.marketplaceMissing);
   const initialized        = useAuthStore(s => s.initialized);
+  const profileStep        = useAuthStore(s => s.profileStep);
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -44,7 +46,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     //    so we hold off until the background /users/me call sets initialized: true.
     if (!initialized) return;
     if (user.status === "PENDING") {
-      router.replace("/setup/verify");
+      // Route to the correct setup step instead of always /setup/verify.
+      const role = user.activeRole ?? "SUPPORT_WORKER";
+      const total = TOTAL_STEPS[role] ?? TOTAL_STEPS["SUPPORT_WORKER"];
+      if (profileStep < WIZARD_START_STEP) {
+        router.replace("/setup/verify");
+      } else if (profileStep < total) {
+        router.replace("/setup/profile/" + profileStep);
+      } else {
+        router.replace("/setup/plan");
+      }
       return;
     }
 
@@ -54,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isParticipant && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
       router.replace("/profile");
     }
-  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized]);
+  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep]);
 
   // Not authenticated and done loading -- render nothing, redirect fires above
   if (!loading && (!isAuth || !user)) return null;

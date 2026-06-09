@@ -1,9 +1,20 @@
 'use client';
-// Three-phase upload: presign → R2 PUT → register-document row
-// Returns uploadFile() fn + status + error
+// Upload strategy:
+//   avatars/logos     → POST /upload/avatar (multipart, local disk)
+//   compliance docs   → presign → R2 PUT → register-document (prod)
+//                     → POST /users/me/documents (multipart fallback when R2 unavailable)
 
 import { useState, useCallback } from 'react';
-import { presignUpload, putFileToR2, registerDocument, updateAvatarUrl, type RegisterDocumentPayload } from '@/lib/api/profile';
+import { http, ApiError } from '@/lib/api';
+import {
+  presignUpload,
+  putFileToR2,
+  registerDocument,
+  uploadDocumentLocal,
+  updateAvatarUrl,
+  normalizeDocType,
+  type RegisterDocumentPayload,
+} from '@/lib/api/profile';
 import type { UploadedDocument } from '@/lib/types/profile';
 
 export type UploadStatus = 'idle' | 'presigning' | 'uploading' | 'registering' | 'done' | 'error';
@@ -11,20 +22,24 @@ export type UploadStatus = 'idle' | 'presigning' | 'uploading' | 'registering' |
 export interface UseFileUploadReturn {
   status:      UploadStatus;
   error:       string | null;
-  progress:    number; // 0-100
-  /** Returns publicUrl (string) for avatar/logo, or UploadedDocument for compliance docs */
+  progress:    number;
   uploadFile:  (file: File, opts: UploadOptions) => Promise<UploadedDocument | string | null>;
   reset:       () => void;
 }
 
 export interface UploadOptions {
-  /** 'compliance' | 'avatar' | 'logo' */
   category: string;
-  /** Only for compliance docs */
   docType?:         string;
   referenceNumber?: string;
   issueDate?:       string;
   expiryDate?:      string;
+}
+
+function isR2NotConfigured(err: unknown): boolean {
+  if (err instanceof ApiError) {
+    return err.code === 'BAD_REQUEST' && err.message.includes('R2 storage is not configured');
+  }
+  return err instanceof Error && err.message.includes('R2 storage is not configured');
 }
 
 export function useFileUpload(): UseFileUploadReturn {
@@ -45,46 +60,59 @@ export function useFileUpload(): UseFileUploadReturn {
       setProgress(10);
 
       try {
-        // 1. Get presigned PUT URL
-        const { uploadUrl, fileKey, publicUrl } = await presignUpload(
-          opts.category,
-          file.name,
-          file.type,
-        );
-        setProgress(30);
-
-        // 2. PUT file directly to R2
-        setStatus('uploading');
-        await putFileToR2(uploadUrl, file);
-        setProgress(70);
-
-        // 3. Register with backend
-        setStatus('registering');
-
-        if (opts.category === 'avatar' || opts.category === 'logo') {
-          // For avatar/logo: just patch users/me with the publicUrl
+        if (opts.category === 'avatars' || opts.category === 'logos') {
+          setStatus('uploading');
+          setProgress(40);
+          const form = new FormData();
+          form.append('avatar', file);
+          const res = await http.post<{ data: { avatarUrl: string } }>('/upload/avatar', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+          const publicUrl = res.data?.data?.avatarUrl ?? '';
           await updateAvatarUrl(publicUrl);
           setProgress(100);
           setStatus('done');
           return publicUrl;
         }
 
-        // For compliance docs: register document row
-        const payload: RegisterDocumentPayload = {
-          fileKey,
-          fileName:        file.name,
-          mimeType:        file.type,
-          sizeBytes:       file.size,
-          docType:         opts.docType ?? 'OTHER',
+        const docPayload = {
+          docType:         normalizeDocType(opts.docType ?? 'OTHER'),
           referenceNumber: opts.referenceNumber,
           issueDate:       opts.issueDate,
           expiryDate:      opts.expiryDate,
         };
 
-        const result = await registerDocument(payload);
-        setProgress(100);
-        setStatus('done');
-        return result;
+        // Try R2 presign flow first; fall back to local multipart when R2 is not configured.
+        try {
+          const { uploadUrl, fileKey } = await presignUpload(opts.category, file.name, file.type);
+          setProgress(30);
+
+          setStatus('uploading');
+          await putFileToR2(uploadUrl, file);
+          setProgress(70);
+
+          setStatus('registering');
+          const payload: RegisterDocumentPayload = {
+            fileKey,
+            fileName:  file.name,
+            mimeType:  file.type,
+            sizeBytes: file.size,
+            ...docPayload,
+          };
+          const result = await registerDocument(payload);
+          setProgress(100);
+          setStatus('done');
+          return result;
+        } catch (presignErr) {
+          if (!isR2NotConfigured(presignErr)) throw presignErr;
+
+          setStatus('uploading');
+          setProgress(50);
+          const result = await uploadDocumentLocal(file, docPayload);
+          setProgress(100);
+          setStatus('done');
+          return result;
+        }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Upload failed';
         setError(msg);

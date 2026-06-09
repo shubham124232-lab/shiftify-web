@@ -17,6 +17,7 @@ const PROTECTED = [
   '/notifications',
   '/admin',
   '/payment',
+  '/setup/profile',
 ];
 
 // Pages that should NOT be accessible once logged in
@@ -57,6 +58,7 @@ export const config = {
     '/notifications/:path*',
     '/admin/:path*',
     '/payment/:path*',
+    '/setup/profile/:path*',
     '/login',
     '/register',
     '/forgot-password',

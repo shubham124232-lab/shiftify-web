@@ -8,16 +8,20 @@ import {
   selectUserStatus,
   selectIsPending,
   selectNeedsPayment,
+  selectInitialized,
 } from '@/lib/store/auth.store';
 
 export function useAuth() {
   const user         = useAuthStore(selectUser);
-  const isAuth       = useAuthStore(selectIsAuth);
+  const isAuth            = useAuthStore(selectIsAuth);
+  const profileCompletion  = useAuthStore(s => s.profileCompletion);
+  const marketplaceMissing = useAuthStore(s => s.marketplaceMissing);
   const activeRole   = useAuthStore(selectActiveRole);
   const status       = useAuthStore(selectUserStatus);
   const isPending    = useAuthStore(selectIsPending);
   const needsPayment = useAuthStore(selectNeedsPayment);
   const loading      = useAuthStore((s) => s.loading);
+  const initialized  = useAuthStore(selectInitialized);
   const error        = useAuthStore((s) => s.error);
 
   const login          = useAuthStore((s) => s.login);
@@ -35,11 +39,14 @@ export function useAuth() {
     // State
     user,
     isAuth,
+    profileCompletion,
+    marketplaceMissing,
     activeRole,
     status,
     isPending,
     needsPayment,
     loading,
+    initialized,
     error,
     // Actions
     login,

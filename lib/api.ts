@@ -55,15 +55,12 @@ export const http = axios.create({
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = _accessToken;
 
-  console.log("REQUEST URL:", config.url);
-  console.log("TOKEN:", token);
 
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-   console.log("FINAL HEADERS:", config.headers);
    
   return config;
 });

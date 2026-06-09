@@ -1,11 +1,11 @@
 // Profile API calls — all hit existing backend endpoints.
-// PUT /users/me/profile  — upsert any role profile (partial ok, advances profileStep)
+// POST /users/me/profile/{slug} — upsert role-specific profile (partial ok, advances profileStep)
 // GET /users/me/profile  — fetch current role profile
 // GET /upload/presign    — get R2 presigned URL
 // POST /upload/register-document — register doc row after upload
 // PATCH /users/me        — update avatarUrl
 
-import { api } from '@/lib/api';
+import { api, http } from '@/lib/api';
 import type {
   WorkerProfileData,
   ProviderProfileData,
@@ -22,10 +22,19 @@ type AnyProfileData =
   | ParticipantProfileData
   | PlanManagerProfileData;
 
+const ROLE_SLUG: Record<string, string> = {
+  SUPPORT_WORKER: 'worker',
+  PROVIDER:       'provider',
+  COORDINATOR:    'coordinator',
+  PARTICIPANT:    'participant',
+  PLAN_MANAGER:   'plan-manager',
+};
+
 // ─── Profile upsert ───────────────────────────────────────────────────────────
 
-export async function upsertProfile(data: AnyProfileData): Promise<unknown> {
-  return api.put('/users/me/profile', data);
+export async function upsertProfile(role: string, data: AnyProfileData | Record<string, unknown>): Promise<unknown> {
+  const slug = ROLE_SLUG[role] ?? role.toLowerCase();
+  return api.post(`/users/me/profile/${slug}`, data);
 }
 
 export async function getProfile(): Promise<unknown> {
@@ -74,10 +83,59 @@ export interface RegisterDocumentPayload {
 export async function registerDocument(
   payload: RegisterDocumentPayload,
 ): Promise<UploadedDocument> {
-  // Backend returns { ok: true, data: { document: UploadedDocument } }
-  // api.post unwraps one level → { document: UploadedDocument }
   const res = await api.post<{ document: UploadedDocument }>('/upload/register-document', payload);
   return (res as unknown as { document: UploadedDocument }).document;
+}
+
+/** Map wizard docType labels to backend DocumentType enum values. */
+const DOC_TYPE_ALIASES: Record<string, string> = {
+  NDIS_REGISTRATION:    'NDIS_AUDIT',
+  PUBLIC_LIABILITY:     'PUBLIC_LIABILITY_INSURANCE',
+  WORKERS_COMPENSATION: 'WORKERS_COMP',
+};
+
+export function normalizeDocType(docType: string): string {
+  return DOC_TYPE_ALIASES[docType] ?? docType;
+}
+
+function mapDocumentResponse(doc: Record<string, unknown>): UploadedDocument {
+  return {
+    id:              String(doc.id ?? ''),
+    docType:         String(doc.docType ?? ''),
+    fileName:        String(doc.fileName ?? ''),
+    fileKey:         String(doc.fileKey ?? doc.filePath ?? ''),
+    publicUrl:       (doc.publicUrl ?? doc.fileUrl ?? null) as string | null,
+    sizeBytes:       Number(doc.sizeBytes ?? 0),
+    mimeType:        String(doc.mimeType ?? ''),
+    referenceNumber: (doc.referenceNumber ?? null) as string | null,
+    issueDate:       (doc.issueDate ?? null) as string | null,
+    expiryDate:      (doc.expiryDate ?? null) as string | null,
+    status:          (doc.status ?? 'UPLOADED') as UploadedDocument['status'],
+    createdAt:       String(doc.createdAt ?? doc.uploadedAt ?? ''),
+  };
+}
+
+/** Multipart upload to local disk — used when R2 presign is unavailable. */
+export async function uploadDocumentLocal(
+  file: File,
+  payload: Omit<RegisterDocumentPayload, 'fileKey' | 'fileName' | 'mimeType' | 'sizeBytes'>,
+): Promise<UploadedDocument> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('docType', normalizeDocType(payload.docType));
+  if (payload.referenceNumber) form.append('referenceNumber', payload.referenceNumber);
+  if (payload.issueDate)       form.append('issueDate', payload.issueDate.slice(0, 10));
+  if (payload.expiryDate)      form.append('expiryDate', payload.expiryDate.slice(0, 10));
+
+  const res = await http.post<{ data: { document: Record<string, unknown> } }>(
+    '/users/me/documents',
+    form,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+
+  const doc = res.data?.data?.document;
+  if (!doc) throw new Error('Upload failed — no document returned');
+  return mapDocumentResponse(doc);
 }
 
 export async function updateAvatarUrl(avatarUrl: string): Promise<void> {
@@ -85,10 +143,22 @@ export async function updateAvatarUrl(avatarUrl: string): Promise<void> {
 }
 
 export async function listDocuments(): Promise<UploadedDocument[]> {
-  // GET /users/me/documents → { ok, data: UploadedDocument[] }
-  // api.get unwraps one level → returns UploadedDocument[] directly
-  const res = await api.get<UploadedDocument[]>('/users/me/documents');
-  return Array.isArray(res) ? res : [];
+  const res = await api.get<{ documents: Record<string, unknown>[] }>('/users/me/documents');
+  return (res.documents ?? []).map(mapDocumentResponse);
+}
+
+// ─── Wizard progress ─────────────────────────────────────────────────────────
+
+export interface ProfileProgress {
+  role:        string;
+  profileStep: number;
+  totalSteps:  number;
+  isComplete:  boolean;
+  nextStep:    number;
+}
+
+export async function getProfileProgress(): Promise<ProfileProgress> {
+  return api.get<ProfileProgress>('/users/me/profile/progress');
 }
 
 // ─── Availability slots ───────────────────────────────────────────────────────

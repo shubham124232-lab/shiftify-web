@@ -5,59 +5,43 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import { getPlan } from '@/lib/constants/plans';
 
 interface Plan {
-  id: string;
-  key: string;
-  name: string;
-  amountAud: string;
+  id:       string;
+  label:    string;
+  price:    number;
+  period:   string;
+  features: string[];
+  popular?: boolean;
 }
 
 export default function SetupPlanPage() {
   const router = useRouter();
-  const { activeRole, isAuth, loading: authLoading, logout, silentInit } = useAuth();
+  const { activeRole, logout } = useAuth();
 
   const [plans,   setPlans]   = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
-  const [restored, setRestored] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    silentInit().finally(() => {
-      if (!cancelled) setRestored(true);
-    });
-    return () => { cancelled = true; };
-  }, [silentInit]);
-
-  useEffect(() => {
-    if (!restored || authLoading) return;
-    if (!isAuth) {
-      setLoading(false);
-      router.replace('/login');
-      return;
-    }
-    if (!activeRole) {
-      setLoading(false);
-      setError('Could not restore your role. Please log in again.');
-      return;
-    }
-    api.get<{ plans: Plan[] }>(`/subscriptions/plans?role=${activeRole}`)
-      .then(res => setPlans(res.plans ?? []))
+    if (!activeRole) return;
+    api.get<{ plans: any[] }>(`/subscriptions/plans?role=${activeRole}`)
+      .then(res => setPlans(
+        (res.plans ?? []).map((p) => ({
+          id:       p.id,
+          label:    p.name,
+          price:    Number(p.amountAud),
+          period:   '/mo',
+          features: Array.isArray(p.features) ? p.features : [],
+          popular:  p.popular ?? false,
+        }))
+      ))
       .catch(() => setError('Failed to load plans. Please refresh.'))
       .finally(() => setLoading(false));
-  }, [activeRole, authLoading, isAuth, restored, router]);
+  }, [activeRole]);
 
-  function handleSelect(plan: Plan) {
-    const config = activeRole ? getPlan(activeRole, plan.key) : undefined;
-    const params = new URLSearchParams({
-      plan: plan.id,
-      key: plan.key,
-      label: config?.label ?? plan.name,
-      amount: plan.amountAud,
-    });
-    router.push(`/payment/checkout?${params.toString()}`);
+  function handleSelect(planId: string) {
+    router.push(`/payment/checkout?plan=${planId}`);
   }
 
   async function handleLogout() {
@@ -133,32 +117,28 @@ export default function SetupPlanPage() {
         {!loading && plans.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, width: '100%', maxWidth: 860 }}>
             {plans.map((plan) => (
-              (() => {
-                const config = activeRole ? getPlan(activeRole, plan.key) : undefined;
-                const price = Number(plan.amountAud);
-                return (
               <div
                 key={plan.id}
                 className="card-shiftify"
-                style={{ position: 'relative', padding: 28, border: config?.popular ? '2px solid var(--clr-primary)' : undefined, overflow: 'hidden' }}
+                style={{ position: 'relative', padding: 28, border: plan.popular ? '2px solid var(--clr-primary)' : undefined, overflow: 'hidden' }}
               >
-                {config?.popular && (
+                {plan.popular && (
                   <div style={{ position: 'absolute', top: 14, right: 14, background: 'var(--clr-primary)', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 100, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     Most Popular
                   </div>
                 )}
 
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 6 }}>{config?.label ?? plan.name}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 6 }}>{plan.label}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 20 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 800, color: config?.popular ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
-                    ${price.toFixed(2)}
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 800, color: plan.popular ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                    ${plan.price.toFixed(2)}
                   </span>
-                  <span style={{ fontSize: 13, color: 'var(--clr-muted)' }}>{config?.period ?? '/month'}</span>
+                  <span style={{ fontSize: 13, color: 'var(--clr-muted)' }}>{plan.period}</span>
                 </div>
 
-                {!!config?.features.length && (
+                {!!plan.features.length && (
                   <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {config.features.map((f) => (
+                    {plan.features.map((f) => (
                       <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--clr-text)' }}>
                         <i className="bi bi-check-circle-fill" style={{ color: 'var(--clr-primary)', fontSize: 14, marginTop: 1, flexShrink: 0 }} />
                         {f}
@@ -169,15 +149,13 @@ export default function SetupPlanPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleSelect(plan)}
-                  className={config?.popular ? 'btn-shiftify' : 'btn-outline-shiftify'}
+                  onClick={() => handleSelect(plan.id)}
+                  className={plan.popular ? 'btn-shiftify' : 'btn-outline-shiftify'}
                   style={{ width: '100%', height: 44, fontSize: 14, fontWeight: 700 }}
                 >
                   Select Plan
                 </button>
               </div>
-                );
-              })()
             ))}
           </div>
         )}

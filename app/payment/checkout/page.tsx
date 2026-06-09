@@ -22,37 +22,17 @@ function formatExpiry(v: string) {
 function CheckoutContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuth, activeRole, status, loading: authLoading, silentInit, activatePlan, error, clearError } = useAuth();
+  const { user, activeRole, status, activatePlan, error, clearError } = useAuth();
 
   const planId = searchParams.get('plan') ?? '';
-  const planKey = searchParams.get('key') ?? '';
-  const planLabel = searchParams.get('label') ?? '';
-  const planAmount = Number(searchParams.get('amount'));
-  const [restored, setRestored] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    silentInit().finally(() => {
-      if (!cancelled) setRestored(true);
-    });
-    return () => { cancelled = true; };
-  }, [silentInit]);
 
   // Redirect if no plan in URL or already active
   useEffect(() => {
-    if (!restored || authLoading) return;
-    if (!isAuth) {
-      router.replace('/login');
-      return;
-    }
     if (!planId) router.replace('/payment');
-    if (status === UserStatus.ACTIVE || status === UserStatus.APPROVED) router.replace('/dashboard');
-  }, [authLoading, isAuth, planId, restored, status, router]);
+    if (status === UserStatus.ACTIVE) router.replace('/dashboard');
+  }, [planId, status, router]);
 
-  const plan = (activeRole ? getPlan(activeRole, planKey) : undefined) ??
-    (planLabel && Number.isFinite(planAmount)
-      ? { id: planKey, label: planLabel, price: planAmount, period: '/month', features: [] }
-      : undefined);
+  const plan = activeRole ? getPlan(activeRole, planId) : undefined;
 
   // ── Form state ──────────────────────────────────────────────────────────────
   const [cardNumber,  setCardNumber]  = useState('');
@@ -76,14 +56,6 @@ function CheckoutContent() {
   }
 
   // ── Success screen ──────────────────────────────────────────────────────────
-  if (!restored || authLoading) {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--clr-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--clr-muted)' }}>
-        Loading checkout...
-      </div>
-    );
-  }
-
   if (receipt) {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--clr-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 20px' }}>
@@ -121,9 +93,9 @@ function CheckoutContent() {
             type="button"
             className="btn-shiftify"
             style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700 }}
-            onClick={() => router.replace('/dashboard')}
+            onClick={() => router.replace('/setup/profile')}
           >
-            Go to Dashboard
+            Complete Your Profile →
           </button>
         </div>
       </div>

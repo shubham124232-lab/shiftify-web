@@ -13,20 +13,13 @@ export default function PaymentPage() {
 
   // If already active skip this page entirely
   useEffect(() => {
-    if (status === UserStatus.ACTIVE || status === UserStatus.APPROVED) router.replace('/dashboard');
+    if (status === UserStatus.ACTIVE) router.replace('/dashboard');
   }, [status, router]);
 
   const availablePlans = activeRole ? (PLANS_BY_ROLE[activeRole] ?? []) : [];
 
   function handleSelectPlan(planId: string) {
-    const plan = availablePlans.find((p) => p.id === planId);
-    const params = new URLSearchParams({
-      plan: planId,
-      key: planId,
-      label: plan?.label ?? planId,
-      amount: String(plan?.price ?? 0),
-    });
-    router.push(`/payment/checkout?${params.toString()}`);
+    router.push(`/payment/checkout?plan=${planId}`);
   }
 
   async function handleLogout() {
@@ -35,9 +28,7 @@ export default function PaymentPage() {
   }
 
   const roleLabel =
-    activeRole === UserRole.SUPPORT_WORKER ? 'Support Worker' :
     activeRole === UserRole.PROVIDER ? 'Provider' :
-    activeRole === UserRole.COORDINATOR ? 'Support Coordinator' :
     activeRole === UserRole.PLAN_MANAGER ? 'Plan Manager' :
     'Shiftify';
 

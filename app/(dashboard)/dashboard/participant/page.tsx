@@ -1,4 +1,5 @@
 "use client";
+import { SetupBanner } from "@/components/dashboard/setup-banner";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -31,6 +32,7 @@ export default function ParticipantDashboard() {
         description="Your support requests and upcoming shifts."
         actions={<Link href="/jobs/post"><Button>Post a job</Button></Link>}
       />
+      <SetupBanner />
       <div className="container-page py-8 space-y-8">
         {error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 

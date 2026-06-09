@@ -1,4 +1,5 @@
 "use client";
+import { SetupBanner } from "@/components/dashboard/setup-banner";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ export default function ProviderDashboardPage() {
         title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
         description="Manage your team's active jobs and expressions of interest."
       />
+      <SetupBanner />
       <div className="container-page py-8 space-y-8">
         {error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 
@@ -44,7 +46,7 @@ export default function ProviderDashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Pending expressions</CardTitle>
-              <Link href="/jobs"><Button variant="ghost" size="sm">Browse</Button></Link>
+              <Link href="/jobs/my"><Button variant="ghost" size="sm">View all</Button></Link>
             </CardHeader>
             <CardContent>
               {loading ? <p className="text-sm text-slate-400">Loading...</p>

@@ -22,3 +22,13 @@ Thumbs.db
 
 # TypeScript
 next-env.d.ts
+
+# Scratch / export files — never commit these
+*.txt
+*.zip
+*.doc
+*.docx
+*.md
+!README.md
+.fuse_hidden*
+tsconfig.tsbuildinfo

@@ -17,10 +17,11 @@ export enum AccountType {
 
 export enum UserStatus {
   PENDING   = 'PENDING',
-  APPROVED  = 'APPROVED',
   ACTIVE    = 'ACTIVE',
+  APPROVED  = 'APPROVED',
+  REJECTED  = 'REJECTED',
   SUSPENDED = 'SUSPENDED',
-  INACTIVE  = 'INACTIVE',
+  DRAFT     = 'DRAFT',
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -65,10 +66,6 @@ export interface User {
   phone:       string | null;
   username:    string | null;
   name:        string;
-  avatarUrl?:   string | null;
-  defaultSuburb?: string | null;
-  emailVerified?: boolean;
-  phoneVerified?: boolean;
   accountType: AccountType;
   roles:       UserRole[];
   activeRole:  UserRole;

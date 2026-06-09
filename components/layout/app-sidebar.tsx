@@ -7,6 +7,7 @@ import {
   LayoutDashboard, ClipboardList, FilePlus, Search, Briefcase,
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -73,6 +74,7 @@ function navForRole(role: UserRole): NavItem[] {
 
 const COMMON_BOTTOM: NavItem[] = [
   { href: "/profile",       label: "My Profile",    icon: User },
+  { href: "/subscription",  label: "Subscription",  icon: CreditCard },
   { href: "/notifications", label: "Notifications", icon: Bell },
 ];
 
@@ -183,10 +185,9 @@ export function AppSidebar() {
         <SidebarContents mobile />
       </aside>
 
-      {/* Desktop sidebar */}
       <aside className={cn(
         "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white transition-[width] duration-200 overflow-hidden",
-        collapsed ? "w-[60px]" : "w-60",
+        collapsed ? "w-16" : "w-56",
       )}>
         <SidebarContents />
       </aside>

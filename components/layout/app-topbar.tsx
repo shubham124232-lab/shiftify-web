@@ -1,9 +1,8 @@
 "use client";
 
-import { Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { Bell, ChevronDown, LogOut, User, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
@@ -12,7 +11,6 @@ import type { UserRole } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
-  APPROVED:  "bg-emerald-100 text-emerald-800",
   ACTIVE:    "bg-emerald-100 text-emerald-800",
   SUSPENDED: "bg-red-100 text-red-800",
   INACTIVE:  "bg-slate-100 text-slate-700",
@@ -39,9 +37,13 @@ export function AppTopbar() {
 
   const displayName = user.name || (user as any).email || (user as any).username || "User";
 
-  async function handleLogout() {
-    await logout();
-    router.replace("/login");
+  function handleLogout() {
+    // logout() clears state synchronously before the first await,
+    // so the store and cookie are already clean by the time we navigate.
+    logout();
+    // window.location bypasses Next.js's prefetch cache — avoids the stale
+    // middleware redirect (cookie=true → /dashboard) firing after sign-out.
+    window.location.replace('/login');
   }
 
   async function handleSwitch(role: UserRole) {
@@ -58,7 +60,7 @@ export function AppTopbar() {
         <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", ROLE_COLORS[user.activeRole])}>
           {ROLE_LABELS[user.activeRole]}
         </span>
-        {user.status !== "ACTIVE" && user.status !== "APPROVED" && (
+        {user.status && user.status !== "ACTIVE" && (
           <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", STATUS_BADGE[user.status] ?? "bg-slate-100 text-slate-700")}>
             {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
           </span>
@@ -85,16 +87,10 @@ export function AppTopbar() {
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           </MenuButton>
 
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
+            <MenuItems
+            transition
+            className="absolute right-0 mt-1 w-72 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg focus:outline-none transition ease-out duration-100 data-[closed]:scale-95 data-[closed]:opacity-0 data-[closed]:transform"
           >
-            <MenuItems className="absolute right-0 mt-1 w-72 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg focus:outline-none">
               {/* Identity block */}
               <div className="border-b border-slate-100 px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -107,8 +103,8 @@ export function AppTopbar() {
                       {user.email ?? user.username ?? user.phone ?? "—"}
                     </p>
                   </div>
-                  <span className={cn("ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", STATUS_BADGE[user.status] ?? "bg-slate-100 text-slate-700")}>
-                    {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
+                  <span className={cn("ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", STATUS_BADGE[user.status ?? ""] ?? "bg-slate-100 text-slate-700")}>
+                    {user.status ? user.status.charAt(0) + user.status.slice(1).toLowerCase() : "—"}
                   </span>
                 </div>
               </div>
@@ -160,9 +156,8 @@ export function AppTopbar() {
                 )}
               </MenuItem>
             </MenuItems>
-          </Transition>
         </Menu>
       </div>
     </header>
-  );
+    );
 }

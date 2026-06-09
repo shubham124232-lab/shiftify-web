@@ -3,19 +3,22 @@
 import { useAuth } from "@/hooks/useAuth";
 
 export function StatusBanner() {
-  const { user } = useAuth();
+  const { user, activeRole } = useAuth();
   if (!user) return null;
 
-  if (user.status === "PENDING") {
+  // Participants are free -- never show a subscription banner for them.
+  const isParticipant = activeRole === "PARTICIPANT";
+
+  if (user.status === "PENDING" && !isParticipant) {
     return (
       <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-900">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-            Pending verification
+            Subscription required
           </span>
           <span>
-            Your account is awaiting admin verification. You can view your profile but
-            can&apos;t post or accept jobs until approved.
+            Activate a plan to post and accept jobs.{" "}
+            <a href="/subscription" className="font-semibold underline">Choose a plan</a>
           </span>
         </div>
       </div>
@@ -35,19 +38,19 @@ export function StatusBanner() {
     );
   }
 
-  if (user.status === "INACTIVE") {
+  if (user.status === "REJECTED") {
     return (
       <div className="border-b border-slate-200 bg-slate-50 px-6 py-3 text-sm text-slate-700">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
-            Inactive
+            Account rejected
           </span>
           <span>
-            Your account is inactive.{" "}
+            Your account application was rejected.{" "}
             <a href="/profile" className="font-medium underline">
               Contact support
             </a>{" "}
-            to reactivate.
+            for assistance.
           </span>
         </div>
       </div>

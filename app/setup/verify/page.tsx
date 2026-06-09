@@ -5,11 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import { PLAN_REQUIRED_ROLES } from '@/lib/store/auth.store';
-
 export default function VerifyPage() {
   const router = useRouter();
-  const { user, activeRole, silentInit, activatePlan } = useAuth();
+  const { user, activeRole, silentInit } = useAuth();
 
   const [code,      setCode]      = useState(['', '', '', '', '', '']);
   const [devCode,   setDevCode]   = useState<string | null>(null);
@@ -57,14 +55,9 @@ export default function VerifyPage() {
     try {
       await api.post('/auth/verify/confirm', { channel: 'phone', code: fullCode });
       sessionStorage.removeItem('shiftify_dev_otp');
-      await silentInit(); // refresh user state after verification
-      // Redirect based on role
-      if (activeRole && PLAN_REQUIRED_ROLES.has(activeRole)) {
-        router.replace('/setup/plan');
-      } else {
-        await activatePlan();
-        router.replace('/dashboard');
-      }
+      await silentInit(); // refresh user state
+      // All roles go to the profile wizard — participants activate after wizard completion
+      router.replace('/setup/profile/3');
     } catch (err: any) {
       setError(err?.message ?? 'Invalid or expired code. Please try again.');
     } finally {
@@ -76,11 +69,7 @@ export default function VerifyPage() {
     setResent(false);
     setError(null);
     try {
-      const result = await api.post<{ _dev_code?: string }>('/auth/verify/resend', { channel: 'phone' });
-      if (result._dev_code) {
-        sessionStorage.setItem('shiftify_dev_otp', result._dev_code);
-        setDevCode(result._dev_code);
-      }
+      await api.post('/auth/verify/resend', { channel: 'phone' });
       setResent(true);
     } catch {
       setError('Could not resend code. Please try again.');

@@ -188,8 +188,8 @@ export default function JobDetailPage() {
                       </Link>
                       <div style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: app.status === "PENDING" ? "#854d0e" : "#15803d" }}>{app.status}</span>
-                    {job.status === "OPEN" && app.status === "PENDING" && (
+                    <span style={{ fontSize: 12, fontWeight: 600, color: app.status === "INTERESTED" ? "#854d0e" : "#15803d" }}>{app.status}</span>
+                    {job.status === "OPEN" && app.status === "INTERESTED" && (
                       <Button size="sm" disabled={acting} onClick={() => selectApplicant(app.id)}>Select</Button>
                     )}
                   </div>

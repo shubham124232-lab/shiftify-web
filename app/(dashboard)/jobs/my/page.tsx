@@ -39,13 +39,22 @@ export default function MyJobsPage() {
   }, []);
 
   const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
+  const isProvider = activeRole === "PROVIDER";
+  const isWorker   = activeRole === "SUPPORT_WORKER";
   const shown = filter ? jobs.filter(j => j.status === filter) : jobs;
+
+  const pageTitle = isProvider ? "Team Jobs" : "My Jobs";
+  const pageDesc  = isProvider
+    ? "Jobs your team is working on or you've expressed interest in."
+    : isWorker
+      ? "Jobs you've applied to or been assigned to."
+      : "Jobs you've posted or been assigned to.";
 
   return (
     <>
       <PageHeader
-        title="My Jobs"
-        description="Jobs you've posted or been assigned to."
+        title={pageTitle}
+        description={pageDesc}
         actions={canPost ? <Link href="/jobs/post"><Button>+ Post a job</Button></Link> : undefined}
       />
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px" }}>
@@ -76,8 +85,13 @@ export default function MyJobsPage() {
         ) : shown.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#374151" }}>No jobs yet</p>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "#374151" }}>
+              {isProvider ? "No team jobs yet" : "No jobs yet"}
+            </p>
             {canPost && <Link href="/jobs/post"><Button style={{ marginTop: 16 }}>Post your first job</Button></Link>}
+            {(isProvider || isWorker) && (
+              <Link href="/jobs"><Button variant="outline" style={{ marginTop: 16, marginLeft: canPost ? 8 : 0 }}>Browse open jobs</Button></Link>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

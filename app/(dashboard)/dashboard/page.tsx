@@ -11,9 +11,12 @@ export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && isAuth && user) {
-      router.replace(ROLE_DASHBOARD_PATHS[user.activeRole]);
+    if (loading) return;
+    if (!isAuth || !user) {
+      router.replace('/login');
+      return;
     }
+    router.replace(ROLE_DASHBOARD_PATHS[user.activeRole]);
   }, [loading, isAuth, user, router]);
 
   return (

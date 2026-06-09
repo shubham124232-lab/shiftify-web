@@ -1,4 +1,5 @@
 "use client";
+import { SetupBanner } from "@/components/dashboard/setup-banner";
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,7 @@ export default function PlanManagerDashboard() {
         title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
         description="Your invoices and participant connections."
       />
+      <SetupBanner />
       <div className="container-page py-8 space-y-8">
         {error && <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 

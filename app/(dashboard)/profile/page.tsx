@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -146,12 +147,13 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setError(null);
     try {
-      const form = new FormData();
-      form.append("avatar", file);
-      const res = await api.post<{ avatarUrl: string }>("/upload/avatar", form);
-      setAvatarUrl(res.avatarUrl);
-      updateProfile({ avatarUrl: res.avatarUrl } as any);
+      const presign = await presignUpload("avatars", file.name, file.type);
+      await putFileToR2(presign.uploadUrl, file);
+      await api.patch("/users/me", { avatarUrl: presign.publicUrl });
+      setAvatarUrl(presign.publicUrl);
+      updateProfile({ avatarUrl: presign.publicUrl } as any);
     } catch {
       setError("Avatar upload failed.");
     } finally {
@@ -213,8 +215,8 @@ export default function ProfilePage() {
         await api.post(`/users/me/profile/${rolePath}`, profilePayload);
       }
 
-      await silentInit();
       setSuccess(true);
+      silentInit(); // background — store already updated from PATCH response
     } catch (err: any) {
       setError(err?.message ?? "Save failed.");
     } finally {
@@ -249,7 +251,7 @@ export default function ProfilePage() {
       setPhoneVerified(true);
       setVerifyStep("done");
       setOtpCode("");
-      await silentInit();
+      silentInit(); // background
     } catch (err: any) { setOtpError(err?.message ?? "Incorrect code."); }
     finally { setOtpConfirming(false); }
   }

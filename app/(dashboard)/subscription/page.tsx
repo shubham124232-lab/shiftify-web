@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store/auth.store';
+import { UserStatus } from '@/lib/types';
 import { api, setApiToken } from '@/lib/api';
 import { PageHeader } from '@/components/dashboard/page-header';
 
@@ -30,6 +32,7 @@ const STATUS_CHIP: Record<string, { bg: string; color: string; label: string }> 
 export default function SubscriptionPage() {
   const router = useRouter();
   const { activeRole, silentInit } = useAuth();
+  const setUser = useAuthStore(s => s.updateProfile);
 
   const [sub,          setSub]          = useState<Sub | null>(null);
   const [plans,        setPlans]        = useState<ApiPlan[]>([]);
@@ -53,9 +56,9 @@ export default function SubscriptionPage() {
     setUpgrading(planId); setUpgradeError(null); setUpgradeOk(null);
     try {
       await api.post('/subscriptions/activate', { planId });
-      // Force token refresh so the store picks up the new APPROVED status from the backend.
+      setUser({ status: UserStatus.ACTIVE } as any); // immediate — banner hides instantly
       setApiToken(null);
-      await silentInit();
+      silentInit(); // background
       setUpgradeOk(planId);
       const res = await api.get<{ subscription: Sub | null }>('/subscriptions/me');
       setSub((res as { subscription: Sub | null }).subscription);

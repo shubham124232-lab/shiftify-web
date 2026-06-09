@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, http } from "@/lib/api";
+import { api } from "@/lib/api";
+import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -152,11 +153,14 @@ export default function EditWorkerPage() {
     if (!file || !workerId) return;
     setUploading(true); setDocError(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("docType", uploadType);
-      await http.post(`/users/${workerId}/documents`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const presign = await presignUpload("compliance", file.name, file.type);
+      await putFileToR2(presign.uploadUrl, file);
+      await api.post("/upload/register-document", {
+        fileKey:   presign.fileKey,
+        fileName:  file.name,
+        mimeType:  file.type,
+        sizeBytes: file.size,
+        docType:   uploadType,
       });
       loadDocuments();
     } catch (err: any) {

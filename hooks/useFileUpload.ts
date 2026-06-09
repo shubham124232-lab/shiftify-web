@@ -1,11 +1,11 @@
 'use client';
 // Upload strategy:
-//   avatars/logos     → POST /upload/avatar (multipart, local disk)
-//   compliance docs   → presign → R2 PUT → register-document (prod)
+//   avatars/logos     → presign → R2 PUT → PATCH /users/me (avatarUrl)
+//   compliance docs   → presign → R2 PUT → register-document
 //                     → POST /users/me/documents (multipart fallback when R2 unavailable)
 
 import { useState, useCallback } from 'react';
-import { http, ApiError } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import {
   presignUpload,
   putFileToR2,
@@ -61,14 +61,12 @@ export function useFileUpload(): UseFileUploadReturn {
 
       try {
         if (opts.category === 'avatars' || opts.category === 'logos') {
+          const { uploadUrl, publicUrl } = await presignUpload('avatars', file.name, file.type);
+          setProgress(30);
           setStatus('uploading');
-          setProgress(40);
-          const form = new FormData();
-          form.append('avatar', file);
-          const res = await http.post<{ data: { avatarUrl: string } }>('/upload/avatar', form, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          });
-          const publicUrl = res.data?.data?.avatarUrl ?? '';
+          await putFileToR2(uploadUrl, file);
+          setProgress(80);
+          setStatus('registering');
           await updateAvatarUrl(publicUrl);
           setProgress(100);
           setStatus('done');

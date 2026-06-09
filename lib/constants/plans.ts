@@ -1,4 +1,4 @@
-// Plan configuration — mirrors the backend PLAN_AMOUNTS table in subscription.service.ts.
+// Plan configuration — only PROVIDER and PLAN_MANAGER require payment on registration.
 // Backend plan keys are seeded in Backend/prisma/seed.ts.
 
 import type { UserRole } from '@/lib/types';
@@ -13,39 +13,9 @@ export interface PlanConfig {
 }
 
 export const PLANS_BY_ROLE: Partial<Record<UserRole, PlanConfig[]>> = {
-  SUPPORT_WORKER: [
-    {
-      id:    'WORKER_BASIC',
-      label: 'Support Worker Basic',
-      price: 49.99,
-      period: '/month',
-      features: [
-        'Unlimited job applications',
-        'Messaging with participants and providers',
-        'General availability on profile',
-        'Full marketplace visibility',
-      ],
-      popular: true,
-    },
-  ],
-  COORDINATOR: [
-    {
-      id:    'COORDINATOR_BASIC',
-      label: 'Support Coordinator Basic',
-      price: 49.99,
-      period: '/month',
-      features: [
-        'Unlimited participant job posting',
-        'Manage participant profiles',
-        'Receive worker and provider applications',
-        'Full messaging access',
-      ],
-      popular: true,
-    },
-  ],
   PROVIDER: [
     {
-      id:    'PROVIDER_BASIC',
+      id:    'BASIC',
       label: 'Provider Essentials',
       price: 99.99,
       period: '/month',
@@ -57,22 +27,33 @@ export const PLANS_BY_ROLE: Partial<Record<UserRole, PlanConfig[]>> = {
       ],
     },
     {
-      id:      'PROVIDER_PRO',
-      label:   'Provider Pro',
-      price:   179.99,
+      id:      'GROWTH',
+      label:   'Provider Growth',
+      price:   39.99,
       period:  '/month',
       popular: true,
       features: [
-        'Up to 60 active job listings',
+        'Up to 40 active job listings',
         'Priority in search results',
-        'Team roster management',
-        'Dedicated account manager',
+        'Advanced analytics dashboard',
+        'Priority support',
+      ],
+    },
+    {
+      id:    'SPEED',
+      label: 'Provider Speed',
+      price: 29.99,
+      period: '/month',
+      features: [
+        'Up to 10 active job listings',
+        'Fast onboarding tools',
+        'Standard support',
       ],
     },
   ],
   PLAN_MANAGER: [
     {
-      id:    'PLAN_MANAGER_BASIC',
+      id:    'BASIC',
       label: 'Plan Manager',
       price: 19.99,
       period: '/month',

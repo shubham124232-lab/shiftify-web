@@ -5,11 +5,11 @@ import { listDocuments }        from '@/lib/api/profile';
 import { FileUploadField }      from '../../fields/FileUploadField';
 
 const PROVIDER_DOCS = [
-  { docType: 'NDIS_REGISTRATION',       label: 'NDIS Provider Registration Certificate', required: false },
-  { docType: 'PUBLIC_LIABILITY',         label: 'Public Liability Insurance Certificate',  required: false },
-  { docType: 'PROFESSIONAL_INDEMNITY',   label: 'Professional Indemnity Insurance',        required: false },
-  { docType: 'WORKERS_COMPENSATION',     label: 'Workers Compensation Insurance',          required: false },
-  { docType: 'POLICE_CHECK',             label: 'Police Check (Director/Key Personnel)',   required: false },
+  { docType: 'NDIS_AUDIT',                   label: 'NDIS Provider Registration Certificate', required: false },
+  { docType: 'PUBLIC_LIABILITY_INSURANCE',   label: 'Public Liability Insurance Certificate',  required: false },
+  { docType: 'PROFESSIONAL_INDEMNITY',       label: 'Professional Indemnity Insurance',        required: false },
+  { docType: 'WORKERS_COMP',                 label: 'Workers Compensation Insurance',          required: false },
+  { docType: 'POLICE_CHECK',                 label: 'Police Check (Director/Key Personnel)',   required: false },
 ];
 
 export function ProviderStep11_Documents() {

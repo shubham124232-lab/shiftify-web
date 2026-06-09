@@ -8,8 +8,8 @@ export function ProviderStep05_Logo() {
 
   async function handleLogoUploaded(url: string) {
     setLogoUrl(url);
-    // Save logoUrl into the provider profile immediately (PUT upsert is partial-safe)
-    await upsertProfile({ logoUrl: url }).catch(() => null);
+    // Save logoUrl into the provider profile immediately (upsert is partial-safe)
+    await upsertProfile('PROVIDER', { logoUrl: url }).catch(() => null);
   }
 
   return (
@@ -40,7 +40,7 @@ export function ProviderStep05_Logo() {
         label="Upload Logo"
         accept=".jpg,.jpeg,.png,.heic,.webp"
         maxSizeMb={5}
-        uploadOptions={{ category: 'logo' }}
+        uploadOptions={{ category: 'avatars' }}
         currentValue={logoUrl}
         optional
         onUploaded={handleLogoUploaded}

@@ -1,6 +1,6 @@
 'use client';
 // Reusable file upload field used inside wizard steps.
-// Handles presign → R2 PUT → register-document flow internally.
+// Handles upload internally (R2 presign in prod, local multipart fallback in dev).
 
 import { useRef, useState } from 'react';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -34,7 +34,7 @@ export function FileUploadField({
   const { status, error, progress, uploadFile, reset } = useFileUpload();
   const [localName, setLocalName] = useState<string | null>(null);
 
-  const accepted = accept ?? (uploadOptions.category === 'avatar' || uploadOptions.category === 'logo'
+  const accepted = accept ?? (uploadOptions.category === 'avatars'
     ? ACCEPTED_IMAGE
     : ACCEPTED_COMPLIANCE);
 

@@ -51,7 +51,7 @@ export function WorkerStep01_Identity() {
               label="Upload Photo"
               accept=".jpg,.jpeg,.png,.heic,.webp"
               maxSizeMb={5}
-              uploadOptions={{ category: 'avatar' }}
+              uploadOptions={{ category: 'avatars' }}
               currentValue={avatarUrl}
               onUploaded={handleAvatarUploaded}
             />

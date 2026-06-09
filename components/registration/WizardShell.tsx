@@ -69,7 +69,7 @@ export function WizardShell({ role, steps, stepComponents }: Props) {
 
     try {
       // Save this step's data to backend — always send profileStep
-      await upsertProfile({ ...store.formData, ...(data as Record<string, unknown>), profileStep: currentStep + 1 });
+      await upsertProfile(role, { ...store.formData, ...(data as Record<string, unknown>), profileStep: currentStep + 1 });
 
       store.markStepSaved(currentStep);
       store.setLastSaved();

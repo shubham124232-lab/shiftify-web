@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
 
-interface Worker { id: string; name: string; email: string | null; phone: string | null; }
+interface Worker { id: string; name: string; email: string | null; phone: string | null; status: string; }
 
 export default function TeamPage() {
   const { activeRole } = useAuth();
@@ -87,12 +87,21 @@ export default function TeamPage() {
                         {w.name[0]}
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>{w.name}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600 }}>{w.name}</span>
+                          {w.status === "DRAFT" && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "2px 8px" }}>
+                              Setup Incomplete
+                            </span>
+                          )}
+                        </div>
                         <div style={{ fontSize: 12, color: "#94a3b8" }}>{w.email ?? w.phone ?? "No contact"}</div>
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
                         <Link href={`/team/${w.id}/edit`}>
-                          <button style={{ height: 32, padding: "0 12px", background: "transparent", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#374151", cursor: "pointer" }}>Edit</button>
+                          <button style={{ height: 32, padding: "0 12px", background: w.status === "DRAFT" ? "#c2185b" : "transparent", border: w.status === "DRAFT" ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: w.status === "DRAFT" ? "#fff" : "#374151", fontWeight: w.status === "DRAFT" ? 600 : 400, cursor: "pointer" }}>
+                            {w.status === "DRAFT" ? "Continue setup" : "Edit"}
+                          </button>
                         </Link>
                         <button
                           onClick={() => handleUnlink(w.id, w.name)}

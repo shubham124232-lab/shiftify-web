@@ -240,17 +240,7 @@ export default function CreateInvoicePage() {
               )}
 
               <div style={{ display: "flex", gap: 12, paddingTop: 4 }}>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    height: 44, padding: "0 32px", background: "#c2185b", color: "#fff",
-                    border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-                    cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1,
-                  }}
-                >
-                  {saving ? "Sending..." : "Send invoice to plan manager"}
-                </button>
+                <Button type="submit" loading={saving}>Send invoice to plan manager</Button>
                 <Button type="button" variant="ghost" onClick={() => router.back()}>Cancel</Button>
               </div>
             </CardContent>

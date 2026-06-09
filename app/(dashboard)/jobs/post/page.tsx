@@ -261,13 +261,9 @@ export default function PostJobPage() {
           )}
 
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{ height: 44, padding: "0 28px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
-            >
-              {saving ? "Posting..." : asDraft ? "Save as draft" : "Publish job"}
-            </button>
+            <Button type="submit" loading={saving}>
+              {asDraft ? "Save as draft" : "Publish job"}
+            </Button>
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#64748b", cursor: "pointer" }}>
               <input type="checkbox" checked={asDraft} onChange={e => setAsDraft(e.target.checked)} />
               Save as draft

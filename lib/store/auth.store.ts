@@ -32,6 +32,7 @@ interface AuthState {
   error:              string | null;
   profileCompletion:  number | null;
   profileStep:        number;
+  phoneVerified:      boolean;
   marketplaceMissing: string[];
 
   // Actions
@@ -82,6 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   initialized:        false,
   profileCompletion:  null,
   profileStep:        0,
+  phoneVerified:      false,
   marketplaceMissing: [],
   error:              null,
 
@@ -126,7 +128,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
       localStorage.removeItem(SUB_STORAGE_KEY);
     }
-    set({ user: null, accessToken: null, loading: false, initialized: false, error: null, profileCompletion: null, profileStep: 0, marketplaceMissing: [] });
+    set({ user: null, accessToken: null, loading: false, initialized: false, error: null, profileCompletion: null, profileStep: 0, phoneVerified: false, marketplaceMissing: [] });
 
     // Best-effort backend call — invalidates the HttpOnly refresh cookie.
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
@@ -283,7 +285,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // full profile fields (phone, username, profileCompletion, etc.).
         // The layout guards the PENDING redirect on `initialized`, so it won't
         // redirect based on stale JWT status until this call confirms the truth.
-        api.get<User & { profileCompletion?: number; profileStep?: number; marketplace?: { missing: string[] } }>('/users/me')
+        api.get<User & { phoneVerified?: boolean; profileCompletion?: number; profileStep?: number; marketplace?: { missing: string[] } }>('/users/me')
           .then(me => {
             set({
               user: {
@@ -298,6 +300,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               },
               profileCompletion:  me.profileCompletion  ?? null,
               profileStep:        me.profileStep        ?? 0,
+              phoneVerified:      me.phoneVerified      ?? false,
               marketplaceMissing: me.marketplace?.missing ?? [],
               initialized: true,
             });

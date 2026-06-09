@@ -20,6 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const marketplaceMissing = useAuthStore(s => s.marketplaceMissing);
   const initialized        = useAuthStore(s => s.initialized);
   const profileStep        = useAuthStore(s => s.profileStep);
+  const phoneVerified      = useAuthStore(s => s.phoneVerified);
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -49,9 +50,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       // Route to the correct setup step instead of always /setup/verify.
       const role = user.activeRole ?? "SUPPORT_WORKER";
       const total = TOTAL_STEPS[role] ?? TOTAL_STEPS["SUPPORT_WORKER"];
-      if (profileStep < WIZARD_START_STEP) {
+      if (!phoneVerified) {
+        // Phone not yet verified — send to OTP step
         router.replace("/setup/verify");
+      } else if (profileStep < WIZARD_START_STEP) {
+        // Verified but wizard not started — begin at first wizard step
+        router.replace("/setup/profile/" + WIZARD_START_STEP);
       } else if (profileStep < total) {
+        // Wizard in progress — resume at current step
         router.replace("/setup/profile/" + profileStep);
       } else {
         router.replace("/setup/plan");
@@ -65,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isParticipant && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
       router.replace("/profile");
     }
-  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep]);
+  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified]);
 
   // Not authenticated and done loading -- render nothing, redirect fires above
   if (!loading && (!isAuth || !user)) return null;

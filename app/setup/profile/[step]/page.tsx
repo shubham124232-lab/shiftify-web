@@ -15,17 +15,27 @@ export default function SetupProfileStepPage() {
   const params   = useParams();
   const step     = Number(params.step);
 
-  const { user, activeRole, isAuth } = useAuth();
-  const updateProfile = useAuthStore(s => s.updateProfile);
+  const { user, activeRole, isAuth, silentInit } = useAuth();
+  const updateProfile  = useAuthStore(s => s.updateProfile);
+  const phoneVerified  = useAuthStore(s => s.phoneVerified);
+  const initialized    = useAuthStore(s => s.initialized);
 
   const [progress,    setProgress]    = useState<ProfileProgress | null>(null);
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
 
+  // Ensure auth state is populated when arriving directly on this URL
+  useEffect(() => {
+    silentInit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!isAuth || !activeRole) return;
-    if (!user || user.status === 'PENDING') {
+    if (!initialized) return; // wait for /users/me so phoneVerified is accurate
+    // Only block unverified PENDING users — verified PENDING users belong here
+    if (!user || (!phoneVerified && user.status === 'PENDING')) {
       router.replace('/setup/verify');
       return;
     }
@@ -55,7 +65,7 @@ export default function SetupProfileStepPage() {
         }
       })
       .catch(() => setProgress(null));
-  }, [isAuth, activeRole, user, step, router]);
+  }, [isAuth, activeRole, user, step, router, phoneVerified, initialized]);
 
   async function handleNext() {
     if (!activeRole) return;

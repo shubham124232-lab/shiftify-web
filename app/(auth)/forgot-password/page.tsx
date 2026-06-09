@@ -12,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [sent,        setSent]        = useState(false);
   const [devCode,     setDevCode]     = useState<string | null>(null);
   const [localError,  setLocalError]  = useState<string | null>(null);
+  const [submitting,  setSubmitting]  = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,12 +24,15 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    setSubmitting(true);
     try {
       const res = await forgotPassword({ identifier: identifier.trim() });
       setSent(true);
       if (res._dev_code) setDevCode(res._dev_code);
     } catch {
       // error in store
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -81,11 +85,11 @@ export default function ForgotPasswordPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={submitting}
             className="btn-shiftify"
-            style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, opacity: submitting ? 0.7 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
           >
-            {loading ? 'Sending…' : 'Send Reset Link'}
+            {submitting ? 'Sending…' : 'Send Reset Link'}
           </button>
         </form>
       ) : (

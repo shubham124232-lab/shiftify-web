@@ -19,6 +19,7 @@ function ResetPasswordContent() {
   const [confirm,     setConfirm]     = useState('');
   const [done,        setDone]        = useState(false);
   const [localError,  setLocalError]  = useState<string | null>(null);
+  const [submitting,  setSubmitting]  = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -30,11 +31,14 @@ function ResetPasswordContent() {
     if (password.length < 8) { setLocalError('Password must be at least 8 characters.');  return; }
     if (password !== confirm) { setLocalError('Passwords do not match.');                  return; }
 
+    setSubmitting(true);
     try {
       await resetPassword({ token: token.trim(), newPassword: password });
       setDone(true);
     } catch {
       // error in store
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -120,11 +124,11 @@ function ResetPasswordContent() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={submitting}
             className="btn-shiftify"
-            style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}
+            style={{ width: '100%', height: 46, fontSize: 15, fontWeight: 700, opacity: submitting ? 0.7 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}
           >
-            {loading ? 'Updating…' : 'Update Password'}
+            {submitting ? 'Updating…' : 'Update Password'}
           </button>
         </form>
       ) : (

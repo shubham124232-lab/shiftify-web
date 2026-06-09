@@ -1,16 +1,25 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/lib/store/auth.store";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
 import { Spinner } from "@/components/ui/spinner";
 
+// Pages inside the dashboard that should be accessible even with an incomplete profile
+// (so the user can actually go fix their profile without getting redirect-looped)
+const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability"];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();
-  const router = useRouter();
+  const profileCompletion  = useAuthStore(s => s.profileCompletion);
+  const marketplaceMissing = useAuthStore(s => s.marketplaceMissing);
+  const initialized        = useAuthStore(s => s.initialized);
+  const router   = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     silentInit();
@@ -18,13 +27,42 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!loading && !isAuth) router.replace("/login");
-  }, [loading, isAuth, router]);
+    if (loading) return;
 
-  if (loading || !user) {
+    // 1. Not authenticated -> login
+    if (!isAuth || !user) {
+      router.replace("/login");
+      return;
+    }
+
+    // Skip gates for pages that let the user fix their profile
+    const isExempt = GATE_EXEMPT.some(p => pathname.startsWith(p));
+    if (isExempt) return;
+
+    // 2. PENDING status -- wait for /users/me to confirm DB status before redirecting.
+    //    JWT claims can say PENDING even after the user has completed activation,
+    //    so we hold off until the background /users/me call sets initialized: true.
+    if (!initialized) return;
+    if (user.status === "PENDING") {
+      router.replace("/setup/verify");
+      return;
+    }
+
+    // 3. Profile incomplete -- only gate paid roles; Participants are free and
+    //    their wizard covers the required fields, so don't force-redirect them.
+    const isParticipant = user.activeRole === "PARTICIPANT";
+    if (!isParticipant && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
+      router.replace("/profile");
+    }
+  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized]);
+
+  // Not authenticated and done loading -- render nothing, redirect fires above
+  if (!loading && (!isAuth || !user)) return null;
+
+  if (loading) {
     return (
       <div className="flex h-screen items-center justify-center text-slate-500">
-        <Spinner /> <span className="ml-2">Loading…</span>
+        <Spinner /> <span className="ml-2">Loading</span>
       </div>
     );
   }

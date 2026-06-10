@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { UserStatus } from '@/lib/types';
+import { WIZARD_START_STEP } from '@/lib/registration/stepConfig';
 
 // Map backend error codes to friendly messages
 function friendlyError(raw: string | null): string | null {
@@ -48,7 +49,7 @@ function LoginContent() {
       const next = params.get('next') ?? '/dashboard';
 
       if (res.user.status === UserStatus.PENDING) {
-        router.replace('/setup/verify');
+        router.replace(res.user.phoneVerified ? `/setup/profile/${WIZARD_START_STEP}` : '/setup/verify');
       } else {
         router.replace(next);
       }

@@ -71,6 +71,7 @@ export interface User {
   activeRole:  UserRole;
   status:      UserStatus;
   adminTier:   string | null;
+  phoneVerified?: boolean;
   profile?:    Profile | null;
   createdAt?:  string;
   updatedAt?:  string;

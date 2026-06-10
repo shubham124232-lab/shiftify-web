@@ -56,8 +56,9 @@ export default function SetupProfileStepPage() {
           router.replace(`/setup/profile/${WIZARD_START_STEP}`);
           return;
         }
-        if (step > prog.profileStep + 1) {
-          router.replace(`/setup/profile/${prog.profileStep + 1}`);
+        const nextStep = Math.max(prog.profileStep + 1, WIZARD_START_STEP);
+        if (step > nextStep) {
+          router.replace(`/setup/profile/${nextStep}`);
           return;
         }
         if (step > totalSteps) {
@@ -72,7 +73,7 @@ export default function SetupProfileStepPage() {
     setSaving(true);
     setError(null);
     try {
-      await upsertProfile(activeRole, { step });
+      await upsertProfile(activeRole, { profileStep: step });
       const totalSteps = TOTAL_STEPS[activeRole] ?? progress?.totalSteps ?? 4;
       if (step < totalSteps) {
         router.push(`/setup/profile/${step + 1}`);

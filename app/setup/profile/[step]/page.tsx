@@ -61,6 +61,12 @@ export default function SetupProfileStepPage() {
           router.replace(`/setup/profile/${nextStep}`);
           return;
         }
+        // Landing on the wizard entry point (e.g. fresh login) but progress is
+        // further along — resume where the user left off instead of redoing steps.
+        if (step === WIZARD_START_STEP && nextStep > WIZARD_START_STEP) {
+          router.replace(`/setup/profile/${nextStep}`);
+          return;
+        }
         if (step > totalSteps) {
           router.replace('/dashboard');
         }
@@ -88,7 +94,6 @@ export default function SetupProfileStepPage() {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not save step. Please try again.');
-    } finally {
       setSaving(false);
     }
   }

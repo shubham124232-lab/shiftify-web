@@ -69,7 +69,38 @@ function applyTokens(set: (partial: Partial<AuthState>) => void, token: string, 
   if (typeof document !== 'undefined') {
     document.cookie = 'shiftify_is_auth=true; path=/; SameSite=Lax';
   }
-  set({ accessToken: token, user, loading: false, error: null });
+  set({ accessToken: token, user, loading: false, error: null, initialized: false });
+  refreshUserMe(set, user);
+}
+
+// /users/me runs in the background after login/register/refresh — provides
+// DB-accurate status and profile fields (phone, username, profileStep, etc.).
+// `initialized` flips true when this completes so pages can safely act on
+// the real status/profileStep instead of stale JWT-derived defaults.
+function refreshUserMe(set: (partial: Partial<AuthState>) => void, baseUser: User) {
+  api.get<User & { phoneVerified?: boolean; profileCompletion?: number; profileStep?: number; marketplace?: { missing: string[] } }>('/users/me')
+    .then(me => {
+      set({
+        user: {
+          ...baseUser,
+          email:       me.email       ?? null,
+          phone:       me.phone       ?? null,
+          username:    me.username    ?? null,
+          name:        me.name        ?? baseUser.name,
+          accountType: me.accountType ?? AccountType.SELF,
+          status:      me.status,
+          adminTier:   me.adminTier   ?? null,
+        },
+        profileCompletion:  me.profileCompletion  ?? null,
+        profileStep:        me.profileStep        ?? 0,
+        phoneVerified:      me.phoneVerified      ?? false,
+        marketplaceMissing: me.marketplace?.missing ?? [],
+        initialized: true,
+      });
+    })
+    .catch(() => {
+      set({ initialized: true });
+    });
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -281,35 +312,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Render the dashboard immediately with JWT-derived user data.
         set({ user: jwtUser, accessToken: refresh.accessToken, loading: false, error: null });
 
-        // /users/me runs in the background — provides DB-accurate status and
-        // full profile fields (phone, username, profileCompletion, etc.).
         // The layout guards the PENDING redirect on `initialized`, so it won't
         // redirect based on stale JWT status until this call confirms the truth.
-        api.get<User & { phoneVerified?: boolean; profileCompletion?: number; profileStep?: number; marketplace?: { missing: string[] } }>('/users/me')
-          .then(me => {
-            set({
-              user: {
-                ...jwtUser,
-                email:       me.email       ?? null,
-                phone:       me.phone       ?? null,
-                username:    me.username    ?? null,
-                name:        me.name        ?? jwtUser.name,
-                accountType: me.accountType ?? AccountType.SELF,
-                status:      me.status,
-                adminTier:   me.adminTier   ?? null,
-              },
-              profileCompletion:  me.profileCompletion  ?? null,
-              profileStep:        me.profileStep        ?? 0,
-              phoneVerified:      me.phoneVerified      ?? false,
-              marketplaceMissing: me.marketplace?.missing ?? [],
-              initialized: true,
-            });
-          })
-          .catch(() => {
-            // /users/me failed — keep JWT-derived state, mark initialized so
-            // the layout can still proceed (JWT status is the fallback).
-            set({ initialized: true });
-          });
+        refreshUserMe(set, jwtUser);
 
       } catch {
         setApiToken(null);

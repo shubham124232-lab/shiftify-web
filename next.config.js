@@ -9,14 +9,6 @@ const nextConfig = {
       { protocol: 'https', hostname: '*.r2.dev' },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/backend/:path*',
-        destination: 'https://midnightblue-gazelle-752413.hostingersite.com/:path*',
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;

@@ -49,7 +49,7 @@ const labelStyle: React.CSSProperties = {
 // ─── Step 1 — credentials ─────────────────────────────────────────────────────
 
 interface Step1Props {
-  onSuccess: (pending: LoginPendingResponse) => void;
+  onSuccess: (data: LoginPendingResponse | LoginResponse) => void;
 }
 
 function Step1({ onSuccess }: Step1Props) {
@@ -68,7 +68,7 @@ function Step1({ onSuccess }: Step1Props) {
 
     setSubmitting(true);
     try {
-      const data = await api.post<LoginPendingResponse>('/auth/login', {
+      const data = await api.post<LoginPendingResponse | LoginResponse>('/auth/login', {
         identifier: identifier.trim(),
         password,
       });
@@ -293,9 +293,15 @@ function LoginContent() {
   const [step,    setStep]    = useState<'credentials' | 'otp'>('credentials');
   const [pending, setPending] = useState<LoginPendingResponse | null>(null);
 
-  function handleStep1Success(data: LoginPendingResponse) {
-    setPending(data);
-    setStep('otp');
+  function handleStep1Success(data: LoginPendingResponse | LoginResponse) {
+    if ('pendingToken' in data) {
+      // Phone login — show OTP step
+      setPending(data);
+      setStep('otp');
+    } else {
+      // Email/username login — direct session, no OTP needed
+      handleStep2Success(data);
+    }
   }
 
   function handleStep2Success(data: LoginResponse) {

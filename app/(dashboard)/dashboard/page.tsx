@@ -16,7 +16,9 @@ export default function DashboardRedirect() {
       router.replace('/login');
       return;
     }
-    router.replace(ROLE_DASHBOARD_PATHS[user.activeRole]);
+    // Admin users have no role-specific dashboard — send to admin area.
+    const dest = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS] ?? '/admin';
+    router.replace(dest);
   }, [loading, isAuth, user, router]);
 
   return (

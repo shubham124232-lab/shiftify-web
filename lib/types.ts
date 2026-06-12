@@ -101,6 +101,15 @@ export interface LoginPayload {
   activeRole?: UserRole;
 }
 
+// Step 1 response — credentials accepted, OTP sent.
+export interface LoginPendingResponse {
+  pendingToken:  string;
+  maskedContact: string;
+  channel:       string;
+  _dev_code?:    string;
+}
+
+// Step 2 response — OTP confirmed, full session granted.
 export interface LoginResponse {
   accessToken: string;
   user:        User;
@@ -162,11 +171,15 @@ export interface DevPayment {
 export interface ActivatePlanResponse {
   message:       string;
   status:        UserStatus;
+  subscription?: StoredSubscription;
   _dev_payment?: DevPayment;
 }
 
-// Stored in localStorage after a successful plan activation (dev mode)
-export interface StoredSubscription extends DevPayment {
-  activatedAt: string;   // ISO string
-  planLabel:   string;   // human-readable name
+export interface StoredSubscription {
+  plan:        string;
+  planLabel:   string;
+  amount:      number;
+  currency:    string;
+  receipt:     string;
+  activatedAt: string;
 }

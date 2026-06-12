@@ -58,6 +58,14 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [suburb, setSuburb] = useState("");
+  const [username,      setUsername]      = useState<string | null>(null);
+  // Participant extra fields (needed for 100% completion)
+  const [preferredName,  setPreferredName]  = useState("");
+  const [primaryDisability, setPrimaryDisability] = useState("");
+  const [fundingType,    setFundingType]    = useState<string>("");
+  const [emergencyName,  setEmergencyName]  = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [emergencyRel,   setEmergencyRel]   = useState("");
 
   // ── Role-specific fields ──────────────────────────────────────────────────
   const [bio,            setBio]            = useState("");
@@ -135,7 +143,15 @@ export default function ProfilePage() {
         setNdisNumber(p.ndisNumber ?? "");
         // Suburb lives on base user for all roles
         setSuburb((u as any).defaultSuburb ?? "");
+        setUsername((u as any).username ?? null);
         setAcceptingClients(p.acceptingClients ?? true);
+        // Participant extra fields
+        setPreferredName(p.preferredName ?? "");
+        setPrimaryDisability(p.primaryDisability ?? "");
+        setFundingType(p.fundingManagementType ?? "");
+        setEmergencyName(p.emergencyContactName ?? "");
+        setEmergencyPhone(p.emergencyContactPhone ?? "");
+        setEmergencyRel(p.emergencyContactRelationship ?? "");
         // Workers: servicesOffered  Providers: coreServices
         setServicesOffered(p.servicesOffered ?? p.coreServices ?? []);
       })
@@ -181,7 +197,6 @@ export default function ProfilePage() {
       // Update base user — only send non-empty values
       const base = await api.patch<{ user: any }>("/users/me", {
         name:          name.trim()   || undefined,
-        email:         email.trim()  || undefined,
         phone:         phone.trim()  || undefined,
         defaultSuburb: suburb.trim() || undefined,
       });
@@ -208,8 +223,13 @@ export default function ProfilePage() {
         profilePayload.abn              = abn || undefined;
         profilePayload.acceptingClients = acceptingClients;
       } else if (activeRole === UserRole.PARTICIPANT) {
-        // participant schema: ndisNumber only; bio/suburb go via base user
-        profilePayload.ndisNumber = ndisNumber || undefined;
+        profilePayload.ndisNumber                    = ndisNumber || undefined;
+        profilePayload.preferredName                 = preferredName || undefined;
+        profilePayload.primaryDisability             = primaryDisability || undefined;
+        profilePayload.fundingManagementType         = fundingType || undefined;
+        profilePayload.emergencyContactName          = emergencyName || undefined;
+        profilePayload.emergencyContactPhone         = emergencyPhone || undefined;
+        profilePayload.emergencyContactRelationship  = emergencyRel || undefined;
       }
       const rolePath = ROLE_PROFILE_PATH[activeRole as UserRole];
       if (rolePath && Object.keys(profilePayload).length > 0) {
@@ -339,9 +359,18 @@ export default function ProfilePage() {
               <Field label="Full name">
                 <input style={inp} value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" />
               </Field>
+              {(username !== null) && (
+                <Field label="Username">
+                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: '#f9fafb', color: '#374151', cursor: 'default', userSelect: 'all' as const }}>
+                    {username || '—'}
+                  </div>
+                </Field>
+              )}
               <div style={row}>
                 <Field label="Email">
-                  <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: '#f9fafb', color: '#374151', cursor: 'default', userSelect: 'all' as const }}>
+                    {email || '—'}
+                  </div>
                 </Field>
                 <div>
                   <label style={lbl}>Phone</label>
@@ -413,14 +442,46 @@ export default function ProfilePage() {
           )}
 
           {activeRole === UserRole.PARTICIPANT && (
-            <Card>
-              <CardHeader><CardTitle>NDIS details</CardTitle></CardHeader>
-              <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <Field label="NDIS number">
-                  <input style={inp} value={ndisNumber} onChange={e => setNdisNumber(e.target.value)} placeholder="43 000 000 00" />
-                </Field>
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader><CardTitle>NDIS details</CardTitle></CardHeader>
+                <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <Field label="NDIS number">
+                    <input style={inp} value={ndisNumber} onChange={e => setNdisNumber(e.target.value)} placeholder="43 000 000 00" />
+                  </Field>
+                  <Field label="Preferred name">
+                    <input style={inp} value={preferredName} onChange={e => setPreferredName(e.target.value)} placeholder="e.g. Alex" />
+                  </Field>
+                  <Field label="Primary disability">
+                    <input style={inp} value={primaryDisability} onChange={e => setPrimaryDisability(e.target.value)} placeholder="e.g. Autism Spectrum Disorder" />
+                  </Field>
+                  <Field label="Funding management type">
+                    <select style={inp} value={fundingType} onChange={e => setFundingType(e.target.value)}>
+                      <option value="">Select…</option>
+                      <option value="SELF">Self-managed</option>
+                      <option value="PLAN">Plan-managed</option>
+                      <option value="NDIA">NDIA-managed</option>
+                    </select>
+                  </Field>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Emergency contact</CardTitle></CardHeader>
+                <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <Field label="Contact name">
+                    <input style={inp} value={emergencyName} onChange={e => setEmergencyName(e.target.value)} placeholder="e.g. Jane Smith" />
+                  </Field>
+                  <div style={row}>
+                    <Field label="Contact phone">
+                      <input style={inp} value={emergencyPhone} onChange={e => setEmergencyPhone(e.target.value)} placeholder="+61 4xx xxx xxx" />
+                    </Field>
+                    <Field label="Relationship">
+                      <input style={inp} value={emergencyRel} onChange={e => setEmergencyRel(e.target.value)} placeholder="e.g. Parent, Carer" />
+                    </Field>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {(activeRole === UserRole.SUPPORT_WORKER || activeRole === UserRole.PROVIDER) && (
@@ -477,6 +538,13 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           )}
+
+            {/* Edit full profile link */}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <a href="/dashboard/profile/edit" style={{ fontSize: 13, color: "var(--clr-primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+                Edit full profile <i className="bi bi-arrow-right" />
+              </a>
+            </div>
 
             {/* Save button */}
             <div style={{ display: "flex", gap: 12, justifyContent: "flex-start" }}>

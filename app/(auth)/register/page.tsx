@@ -146,6 +146,9 @@ export default function RegisterPage() {
   const [confirm,    setConfirm]    = useState('');
   const [showPw,     setShowPw]     = useState(false);
   const [showCf,     setShowCf]     = useState(false);
+  const [username,       setUsername]       = useState('');
+  const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'available'|'taken'>('idle');
+  const usernameTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
   const [localError, setLocalError] = useState<string|null>(null);
   const strength = getStrength(password);
 
@@ -201,6 +204,19 @@ export default function RegisterPage() {
     clearError(); setLocalError(null); setPhase('details');
   }
 
+  function handleUsernameBlur() {
+    const val = username.trim();
+    if (!val || val.length < 3) return;
+    if (usernameTimer.current) clearTimeout(usernameTimer.current);
+    usernameTimer.current = setTimeout(async () => {
+      setUsernameStatus('checking');
+      try {
+        const res = await api.get<{ available: boolean }>(`/auth/check-username?username=${encodeURIComponent(val)}`);
+        setUsernameStatus(res.available ? 'available' : 'taken');
+      } catch { setUsernameStatus('idle'); }
+    }, 3000);
+  }
+
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
     setLocalError(null); clearError();
@@ -210,9 +226,12 @@ export default function RegisterPage() {
     if (!password)            { setLocalError('Password is required.'); return; }
     if (password.length < 8)  { setLocalError('Password must be at least 8 characters.'); return; }
     if (password !== confirm)  { setLocalError('Passwords do not match.'); return; }
+    if (!username.trim())           { setLocalError('Username is required.'); return; }
+    if (username.trim().length < 3) { setLocalError('Username must be at least 3 characters.'); return; }
+    if (usernameStatus === 'taken') { setLocalError('That username is already taken. Please choose another.'); return; }
     setSubmitting(true);
     try {
-      const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: phone.trim() });
+      const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: phone.trim(), username: username.trim() });
       if (res._dev_code) {
         setDevCode(res._dev_code);
         sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
@@ -414,6 +433,25 @@ export default function RegisterPage() {
                 <label style={lbl}>Last Name</label>
                 <input type="text" value={lastName} onChange={e=>setLastName(e.target.value)} placeholder="Smith" style={inp} autoComplete="family-name" />
               </div>
+            </div>
+
+            <div>
+              <label style={lbl}>Username <span style={{color:'#ef4444'}}>*</span></label>
+              <div style={{position:'relative'}}>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
+                  onBlur={handleUsernameBlur}
+                  placeholder="e.g. jane.smith"
+                  style={inp}
+                  autoComplete="username"
+                />
+                {usernameStatus === 'checking' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#64748b'}}>Checking…</span>}
+                {usernameStatus === 'available' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#16a34a',fontWeight:700}}>✓ Available</span>}
+                {usernameStatus === 'taken'     && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#dc2626',fontWeight:700}}>✗ Taken</span>}
+              </div>
+              <p style={{fontSize:11,color:'var(--clr-muted)',marginTop:3}}>Lowercase letters, numbers, dots and underscores only</p>
             </div>
 
             <div>

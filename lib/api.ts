@@ -121,13 +121,13 @@ http.interceptors.response.use(
     }
 
     // Normalise to ApiError
-    const data = (error.response?.data as { error?: { code?: string; message?: string; details?: unknown } } | undefined)?.error;
-    throw new ApiError(
-      error.response?.status ?? 0,
-      data?.code    ?? 'NETWORK_ERROR',
-      data?.message ?? error.message,
-      data?.details,
-    );
+    const status = error.response?.status ?? 0;
+    const data   = (error.response?.data as { error?: { code?: string; message?: string; details?: unknown } } | undefined)?.error;
+    const message =
+      status === 429
+        ? 'Too many requests — please wait a moment and try again.'
+        : (data?.message ?? error.message);
+    throw new ApiError(status, data?.code ?? 'NETWORK_ERROR', message, data?.details);
   },
 );
 

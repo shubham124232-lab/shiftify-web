@@ -80,6 +80,7 @@ export default function ProfilePage() {
   const [otpSending,     setOtpSending]     = useState(false);
   const [otpConfirming,  setOtpConfirming]  = useState(false);
   const [otpError,       setOtpError]       = useState<string | null>(null);
+  const [otpDevCode,     setOtpDevCode]     = useState<string | null>(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [saving,     setSaving]     = useState(false);
@@ -237,8 +238,9 @@ export default function ProfilePage() {
     try {
       // Save phone to user first so backend can send OTP to it
       await api.patch("/users/me", { phone: phone.trim() });
-      await api.post("/auth/verify/request", { channel: "phone" });
+      const res = await api.post<{ _dev_code?: string }>("/auth/verify/request", { channel: "phone" });
       setVerifyStep("sent");
+      if (res._dev_code) setOtpDevCode(res._dev_code);
     } catch (err: any) { setOtpError(err?.message ?? "Failed to send code."); }
     finally { setOtpSending(false); }
   }
@@ -358,6 +360,12 @@ export default function ProfilePage() {
                       </button>
                     )}
                   </div>
+                  {verifyStep === "sent" && !phoneVerified && otpDevCode && (
+                    <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#2E7D32', marginTop: 8 }}>
+                      <span style={{ fontWeight: 700 }}>Dev OTP: </span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: 2 }}>{otpDevCode}</span>
+                    </div>
+                  )}
                   {verifyStep === "sent" && !phoneVerified && (
                     <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
                       <input

@@ -69,8 +69,12 @@ export default function VerifyPage() {
     setResent(false);
     setError(null);
     try {
-      await api.post('/auth/verify/resend', { channel: 'phone' });
+      const res = await api.post<{ _dev_code?: string }>('/auth/verify/resend', { channel: 'phone' });
       setResent(true);
+      if (res._dev_code) {
+        setDevCode(res._dev_code);
+        sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
+      }
     } catch {
       setError('Could not resend code. Please try again.');
     }

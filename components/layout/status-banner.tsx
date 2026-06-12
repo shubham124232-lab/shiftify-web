@@ -1,15 +1,48 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { getProfileProgress } from "@/lib/api/profile";
 
 export function StatusBanner() {
   const { user, activeRole } = useAuth();
+  const [wizardComplete, setWizardComplete] = useState<boolean | null>(null);
+  const [nextStep,       setNextStep]       = useState<number>(3);
+
+  const isParticipant = activeRole === "PARTICIPANT";
+  const isPending     = !isParticipant && user?.status === "PENDING";
+
+  useEffect(() => {
+    if (!isPending) return;
+    getProfileProgress()
+      .then(p => { setWizardComplete(p.isComplete); setNextStep(p.nextStep); })
+      .catch(() => setWizardComplete(true)); // fallback: show subscription banner
+  }, [isPending]);
+
   if (!user) return null;
 
-  // Participants are free -- never show a subscription banner for them.
-  const isParticipant = activeRole === "PARTICIPANT";
+  if (isPending) {
+    // While loading, show nothing (avoids flicker between the two states)
+    if (wizardComplete === null) return null;
 
-  if (user.status === "PENDING" && !isParticipant) {
+    if (!wizardComplete) {
+      return (
+        <div className="border-b border-blue-200 bg-blue-50 px-6 py-3 text-sm text-blue-900">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
+              Profile incomplete
+            </span>
+            <span>
+              Complete your profile to activate your account.{" "}
+              <a href={`/setup/profile/${nextStep}`} className="font-semibold underline">
+                Continue setup
+              </a>
+            </span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-900">
         <div className="flex items-center gap-2 flex-wrap">

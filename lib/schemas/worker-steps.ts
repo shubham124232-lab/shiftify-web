@@ -1,31 +1,26 @@
 // Per-step Zod schemas for Support Worker profile wizard.
-// Only the current step is validated before advancing.
 
 import { z } from 'zod';
 
-// Step 1 — Location & Identity
 export const workerStep1Schema = z.object({
-  // Suburb comes from User.defaultSuburb — saved via PATCH /users/me
-  suburb:     z.string().min(2, 'Suburb is required'),
-  state:      z.string().min(2, 'State is required'),
-  dob:        z.string().optional(),
-  gender:     z.string().optional(),
-  // Profile photo is handled separately via file upload — not a form field
+  suburb:   z.string().min(2, 'Suburb is required'),
+  postcode: z.string().optional(),
+  state:    z.string().min(2, 'State is required'),
+  dob:      z.string().optional(),
+  gender:   z.string().optional(),
 });
 
-// Step 2 — Right to Work
 export const workerStep2Schema = z.object({
   rightToWork: z.enum(['CITIZEN', 'PR', 'VISA_HOLDER'], { required_error: 'Right to work is required' }),
-  visaType:   z.string().optional(),
-  visaExpiry: z.string().optional(),
+  visaType:    z.string().optional(),
+  visaExpiry:  z.string().optional(),
 }).superRefine((val, ctx) => {
   if (val.rightToWork === 'VISA_HOLDER') {
-    if (!val.visaType) ctx.addIssue({ code: 'custom', path: ['visaType'],   message: 'Visa type is required for visa holders' });
+    if (!val.visaType)   ctx.addIssue({ code: 'custom', path: ['visaType'],   message: 'Visa type is required for visa holders' });
     if (!val.visaExpiry) ctx.addIssue({ code: 'custom', path: ['visaExpiry'], message: 'Visa expiry is required for visa holders' });
   }
 });
 
-// Step 3 — Work Type & Insurance
 export const workerStep3Schema = z.object({
   workType:                  z.enum(['CONTRACTOR', 'AGENCY'], { required_error: 'Employment type is required' }),
   abn:                       z.string().optional(),
@@ -38,7 +33,6 @@ export const workerStep3Schema = z.object({
   }
 });
 
-// Step 4 — Services & Skills
 export const workerStep4Schema = z.object({
   servicesOffered:      z.array(z.string()).min(1, 'Select at least one service'),
   subServices:          z.array(z.string()).optional(),
@@ -49,12 +43,12 @@ export const workerStep4Schema = z.object({
   disabilityExperience: z.array(z.string()).optional(),
 });
 
-// Step 5 — Availability
 export const workerStep5Schema = z.object({
   availabilityType:      z.enum(['CASUAL', 'PART_TIME', 'FULL_TIME', 'ON_DEMAND'], {
     required_error: 'Availability type is required',
   }),
   emergencyAvailability: z.boolean().optional(),
+  sleeperAvailability:   z.boolean().optional(),
   availability:          z.array(z.object({
     dayOfWeek: z.enum(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']),
     startTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -62,12 +56,12 @@ export const workerStep5Schema = z.object({
   })).min(1, 'Add at least one availability slot'),
 });
 
-// Step 6 — Service Areas & Travel
 export const workerStep6Schema = z.object({
-  serviceAreas:  z.array(z.string()).min(1, 'Add at least one service area'),
-  travelRadiusKm: z.number().int().min(0).max(500).optional(),
-  hasVehicle:    z.boolean().optional(),
-  vehicleDetails: z.object({
+  serviceAreas:           z.array(z.string()).min(1, 'Add at least one service area'),
+  travelRadiusKm:         z.number().int().min(0).max(500).optional(),
+  hasVehicle:             z.boolean().optional(),
+  canTransportParticipants: z.boolean().optional(),
+  vehicleDetails:         z.object({
     make:   z.string().optional(),
     model:  z.string().optional(),
     year:   z.number().int().optional(),
@@ -80,22 +74,30 @@ export const workerStep6Schema = z.object({
   }
 });
 
-// Step 7 — Financials, Bio & Preferences
 export const workerStep7Schema = z.object({
-  hourlyRate:   z.number({ required_error: 'Hourly rate is required' }).min(1).max(9999),
-  bio:          z.string().max(2000).optional(),
-  preferences:  z.string().max(1000).optional(),
-  isAvailableNow: z.boolean().optional(),
-  seekingPlanManager: z.boolean().optional(),
+  hourlyRate:              z.number({ required_error: 'Hourly rate is required' }).min(1).max(9999),
+  hourlyRateType:          z.string().optional(),
+  weekendNightRates:       z.object({
+    weekendRate:      z.number().optional(),
+    nightRate:        z.number().optional(),
+    publicHolidayRate: z.number().optional(),
+  }).optional(),
+  travelCharges:           z.string().optional(),
+  preferredParticipantType: z.array(z.string()).optional(),
+  genderPreference:        z.string().optional(),
+  languagesSpoken:         z.array(z.string()).optional(),
+  bio:                     z.string().max(2000).optional(),
+  preferences:             z.string().max(1000).optional(),
+  isAvailableNow:          z.boolean().optional(),
+  seekingPlanManager:      z.boolean().optional(),
 });
 
-// Step 8 — Document Uploads (validation is presence-based, done in component)
 export const workerStep8Schema = z.object({
-  // These fields just confirm the user has acknowledged the requirement
-  docsAcknowledged: z.boolean().optional(),
+  manualHandlingCompleted: z.boolean().optional(),
+  firstAidCertType:        z.string().optional(),
+  docsAcknowledged:        z.boolean().optional(),
 });
 
-// Step 9 — References & Compliance
 export const workerStep9Schema = z.object({
   references: z.array(z.object({
     name:         z.string().min(1, 'Name is required'),
@@ -103,11 +105,11 @@ export const workerStep9Schema = z.object({
     phone:        z.string().optional(),
     email:        z.string().email().optional().or(z.literal('')),
   })).optional(),
-  termsAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
-  ndisCodeAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
+  termsAccepted:         z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
+  ndisCodeAccepted:      z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
+  privacyPolicyAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the Privacy Policy' }),
+  declarationStatement:  z.boolean().refine(v => v === true, { message: 'You must confirm the declaration' }),
 });
-
-// ─── Union type for all worker step data ─────────────────────────────────────
 
 export type WorkerStep1 = z.infer<typeof workerStep1Schema>;
 export type WorkerStep2 = z.infer<typeof workerStep2Schema>;

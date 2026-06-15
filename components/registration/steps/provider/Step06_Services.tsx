@@ -42,23 +42,66 @@ export function ProviderStep06_Services() {
         )}
       />
 
-      {/* SIL */}
       <Toggle label="We offer Supported Independent Living (SIL)" name="offersSil" />
       {offersSil && (
-        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label style={labelStyle}>SIL Details</label>
-          <textarea {...register('silDetails.description')} rows={3} placeholder="Describe your SIL offering: vacancy types, locations, ratios, support hours…"
-            style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
+        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>SIL Type</label>
+              <select {...register('silType')} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="">Select...</option>
+                <option value="SHARED">Shared Living</option>
+                <option value="INDIVIDUAL">Individual Living</option>
+                <option value="BOTH">Both</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Support Level</label>
+              <select {...register('silSupportLevel')} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="">Select...</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="COMPLEX">Complex / Intensive</option>
+              </select>
+            </div>
+          </div>
+          <Toggle label="Current Vacancies Available" name="silCurrentVacancies" />
         </div>
       )}
 
-      {/* SDA */}
       <Toggle label="We offer Specialist Disability Accommodation (SDA)" name="offersSda" />
       {offersSda && (
-        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label style={labelStyle}>SDA Details</label>
-          <textarea {...register('sdaDetails.description')} rows={3} placeholder="Describe your SDA properties: design categories, locations, vacancies, accessibility features…"
-            style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
+        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>SDA Design Categories</label>
+            <Controller name="sdaDesignCategory" control={control} defaultValue={[]} render={({ field }) => (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {['Improved Liveability', 'Fully Accessible', 'Robust', 'High Physical Support'].map(cat => {
+                  const sel = (field.value ?? []).includes(cat);
+                  return (
+                    <button key={cat} type="button"
+                      onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== cat) : [...cur, cat]); }}
+                      style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                        border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                        background: sel ? 'rgba(79,70,229,0.1)' : '#fff', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                      {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{cat}
+                    </button>
+                  );
+                })}
+              </div>
+            )} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>Current Vacancy Count</label>
+              <input type="number" min={0} {...register('sdaVacancyCount', { valueAsNumber: true })} placeholder="0" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Locations / Suburbs</label>
+              <input {...register('sdaLocations.0')} placeholder="e.g. Parramatta NSW" style={inputStyle} />
+            </div>
+          </div>
         </div>
       )}
     </div>

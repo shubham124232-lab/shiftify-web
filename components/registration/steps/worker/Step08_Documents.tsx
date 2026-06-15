@@ -1,93 +1,91 @@
 'use client';
-// Document upload step for Support Worker.
-// Shows required docs (NDIS, Police Check, WWCC, First Aid) + optional certs.
-// Does NOT gate step progression — user can skip and upload from /documents later.
+import { useFormContext } from 'react-hook-form';
+import { FileUploadField } from '@/components/registration/FileUploadField';
 
-import { useState, useEffect } from 'react';
-import { useRegistrationStore } from '@/lib/store/registration.store';
-import { listDocuments }        from '@/lib/api/profile';
-import { FileUploadField }      from '../../fields/FileUploadField';
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
 
-interface DocSpec {
-  docType:  string;
-  label:    string;
-  required: boolean;
-  helpText?: string;
+function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {
+  const { register, watch } = useFormContext();
+  const val = watch(name) as boolean;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
+        {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
+      </div>
+      <label style={{ cursor: 'pointer' }}>
+        <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
+        <div style={{ width: 42, height: 24, borderRadius: 12, transition: 'background 0.2s', background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+        </div>
+      </label>
+    </div>
+  );
 }
 
-const WORKER_DOCS: DocSpec[] = [
-  { docType: 'NDIS_SCREENING',  label: 'NDIS Worker Screening Check', required: true,  helpText: 'Required by law for NDIS work. Apply via your state screening unit.' },
-  { docType: 'POLICE_CHECK',    label: 'Police Check',                required: true,  helpText: 'Must be issued within the last 3 years.' },
-  { docType: 'WWCC',            label: 'Working With Children Check', required: false, helpText: 'Required if you work with participants under 18.' },
-  { docType: 'FIRST_AID',       label: 'First Aid Certificate',       required: false, helpText: 'HLTAID011 or equivalent.' },
-  { docType: 'CPR',             label: 'CPR Certificate',             required: false, helpText: 'HLTAID009 or equivalent. Often combined with First Aid.' },
-  { docType: 'MANUAL_HANDLING', label: 'Manual Handling Certificate', required: false },
-  { docType: 'INFECTION_CONTROL', label: 'Infection Control Certificate', required: false },
+const DOCS = [
+  { key: 'policeCheck',          label: 'Police Check',               docType: 'POLICE_CHECK',              required: true  },
+  { key: 'ndisScreening',        label: 'NDIS Worker Screening Check', docType: 'NDIS_SCREENING',            required: true  },
+  { key: 'wwcc',                 label: 'Working with Children Check', docType: 'WWCC',                      required: false },
+  { key: 'firstAid',             label: 'First Aid Certificate',       docType: 'FIRST_AID',                 required: false },
+  { key: 'cpr',                  label: 'CPR Certificate',             docType: 'CPR',                       required: false },
+  { key: 'driversLicence',       label: "Driver's Licence",            docType: 'DRIVERS_LICENCE',           required: false },
+  { key: 'vehicleInsurance',     label: 'Vehicle Insurance',           docType: 'VEHICLE_INSURANCE',         required: false },
+  { key: 'manualHandlingCert',   label: 'Manual Handling Certificate', docType: 'MANUAL_HANDLING',           required: false },
+  { key: 'infectionControl',     label: 'Infection Control Training',  docType: 'INFECTION_CONTROL',         required: false },
 ];
 
 export function WorkerStep08_Documents() {
-  const store = useRegistrationStore();
-  const [existingDocs, setExistingDocs] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
-
-  // Load already-uploaded docs so we can show them as done
-  useEffect(() => {
-    listDocuments()
-      .then(docs => {
-        const map: Record<string, boolean> = {};
-        docs.forEach(d => { map[d.docType] = true; });
-        setExistingDocs(map);
-      })
-      .catch(() => null)
-      .finally(() => setLoading(false));
-  }, []);
+  const { register } = useFormContext();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{
-        background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.2)',
-        borderRadius: 10, padding: 14,
-      }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
-          <i className="bi bi-info-circle" style={{ marginRight: 6 }} />
-          Documents marked <span style={{ color: '#ef4444' }}>*</span> are required to apply for jobs.
-          You can upload them now or later from your Documents page. Your account will remain active either way.
-        </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <p style={{ fontSize: 13, color: 'var(--clr-muted)', margin: 0 }}>
+        Upload your compliance documents. Police Check and NDIS Screening are required to go live on the marketplace.
+      </p>
+
+      {/* Training Toggles */}
+      <div>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Training Completed</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Toggle label="Manual Handling Training" name="manualHandlingCompleted"
+            desc="Have you completed a manual handling / safe patient handling course?" />
+        </div>
       </div>
 
-      {loading ? (
-        <p style={{ fontSize: 13, color: 'var(--clr-muted)' }}>Loading your documents…</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {WORKER_DOCS.map(doc => {
-            const alreadyUploaded = existingDocs[doc.docType] || !!store.uploadedDocs[doc.docType];
-            return (
-              <div key={doc.docType}>
-                <FileUploadField
-                  label={`${doc.label}${doc.required ? ' *' : ''}`}
-                  accept=".pdf,.jpg,.jpeg,.png,.heic"
-                  maxSizeMb={25}
-                  uploadOptions={{ category: 'compliance', docType: doc.docType }}
-                  currentValue={alreadyUploaded ? 'uploaded' : null}
-                  optional={!doc.required}
-                  helpText={doc.helpText}
-                  onUploaded={(val) => {
-                    store.setUploadedDoc(doc.docType, val);
-                    setExistingDocs(prev => ({ ...prev, [doc.docType]: true }));
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* First Aid Cert Type */}
+      <div>
+        <label style={labelStyle}>First Aid Certificate Type</label>
+        <select {...register('firstAidCertType')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="HLTAID011">HLTAID011 — Provide First Aid</option>
+          <option value="HLTAID009">HLTAID009 — Provide CPR</option>
+          <option value="HLTAID010">HLTAID010 — Provide Basic Emergency Life Support</option>
+          <option value="HLTAID014">HLTAID014 — Provide Advanced First Aid</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
 
-      <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 4 }}>
-        Files accepted: PDF, JPG, PNG, HEIC · Max 25 MB each ·
-        <a href="/documents" style={{ color: 'var(--clr-primary)', marginLeft: 4 }}>
-          View all documents
-        </a>
-      </p>
+      {/* Document Uploads */}
+      <div>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Documents</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {DOCS.map(doc => (
+            <div key={doc.key} style={{ padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 6 }}>
+                {doc.label}
+                {doc.required && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
+                {!doc.required && <span style={{ fontSize: 11, color: 'var(--clr-muted)', marginLeft: 6, fontWeight: 400 }}>Optional</span>}
+              </div>
+              <FileUploadField
+                name={doc.key}
+                uploadOptions={{ category: 'COMPLIANCE', docType: doc.docType }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

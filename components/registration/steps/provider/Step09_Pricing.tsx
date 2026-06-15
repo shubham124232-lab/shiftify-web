@@ -11,16 +11,36 @@ export function ProviderStep09_Pricing() {
       <div>
         <label style={labelStyle}>Pricing Model</label>
         <select {...register('pricingModel')} style={{ ...inputStyle, cursor: 'pointer' }}>
-          <option value="">Select…</option>
-          {['NDIS Price Guide Rates', 'Negotiated Rates', 'Fixed Package Pricing', 'Hourly Rate'].map(p => <option key={p} value={p}>{p}</option>)}
+          <option value="">Select...</option>
+          {['NDIS Price Guide Rates', 'Negotiated Rates', 'Fixed Package Pricing', 'Hourly Rate'].map(p => (
+            <option key={p} value={p}>{p}</option>
+          ))}
         </select>
       </div>
       <div>
         <label style={labelStyle}>Preferred Billing Method</label>
         <select {...register('billingMethod')} style={{ ...inputStyle, cursor: 'pointer' }}>
-          <option value="">Select…</option>
-          {['Invoice to Plan Manager', 'Invoice to NDIA (Agency Managed)', 'Invoice to Participant (Self Managed)', 'All billing methods'].map(b => <option key={b} value={b}>{b}</option>)}
+          <option value="">Select...</option>
+          {['Invoice to Plan Manager', 'Invoice to NDIA (Agency Managed)', 'Invoice to Participant (Self Managed)', 'All billing methods'].map(b => (
+            <option key={b} value={b}>{b}</option>
+          ))}
         </select>
+      </div>
+      <div>
+        <label style={labelStyle}>Travel Charges</label>
+        <select {...register('travelCharges')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select...</option>
+          <option value="NONE">No travel charges</option>
+          <option value="INCLUDED">Included in service rates</option>
+          <option value="CHARGED_SEPARATELY">Charged separately (NDIS transport rates)</option>
+        </select>
+      </div>
+      <div>
+        <label style={labelStyle}>Cancellation Policy</label>
+        <textarea {...register('cancellationPolicy')} rows={3}
+          placeholder="e.g. Cancellations within 7 days are charged at 100%. No-shows charged in full."
+          style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>This will be displayed to participants and coordinators on your profile.</p>
       </div>
       <div style={{ padding: 12, background: 'rgba(79,70,229,0.04)', borderRadius: 10, fontSize: 12, color: 'var(--clr-primary)' }}>
         <i className="bi bi-info-circle" style={{ marginRight: 6 }} />

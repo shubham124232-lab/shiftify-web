@@ -24,6 +24,15 @@ export function CoordStep06_Billing() {
         </div>
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>NDIS Support Coordination rate under Capacity Building budget.</p>
       </div>
+      <div>
+        <label style={labelStyle}>Travel Charges</label>
+        <select {...register('travelCharges')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="NONE">No travel charges</option>
+          <option value="INCLUDED">Included in hourly rate</option>
+          <option value="CHARGED_SEPARATELY">Charged separately (NDIS transport rates)</option>
+        </select>
+      </div>
     </div>
   );
 }

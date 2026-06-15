@@ -1,5 +1,5 @@
 'use client';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext, Controller, useFieldArray } from 'react-hook-form';
 
 const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
@@ -37,6 +37,33 @@ function ChipSelector({ name, options, label, error }: { name: string; options: 
   );
 }
 
+function QualificationsField() {
+  const { register, control } = useFormContext();
+  const { fields, append, remove } = useFieldArray({ control, name: 'qualifications' });
+  return (
+    <div>
+      <label style={{ ...labelStyle, marginBottom: 8 }}>
+        Qualifications <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span>
+      </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {fields.map((field, idx) => (
+          <div key={field.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
+            <input {...register(`qualifications.${idx}.name`)} placeholder="Qualification name" style={{ ...inputStyle, fontSize: 12 }} />
+            <input {...register(`qualifications.${idx}.institution`)} placeholder="Institution (optional)" style={{ ...inputStyle, fontSize: 12 }} />
+            <button type="button" onClick={() => remove(idx)} style={{ width: 36, height: 36, borderRadius: 8, border: '1.5px solid var(--clr-border)', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', flexShrink: 0 }}>
+              <i className="bi bi-x" />
+            </button>
+          </div>
+        ))}
+        <button type="button" onClick={() => append({ name: '', institution: '' })}
+          style={{ alignSelf: 'flex-start', padding: '6px 12px', borderRadius: 8, border: '1.5px dashed var(--clr-border)', background: '#fff', cursor: 'pointer', fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
+          <i className="bi bi-plus" style={{ marginRight: 4 }} />Add Qualification
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function CoordStep03_Experience() {
   const { register, formState: { errors } } = useFormContext();
   return (
@@ -52,6 +79,7 @@ export function CoordStep03_Experience() {
       <ChipSelector name="supportCoordinationLevel" options={COORD_LEVELS} label="Coordination Level(s) *" error={errors.supportCoordinationLevel?.message as string} />
       <ChipSelector name="participantComplexityExperience" options={COMPLEXITY} label="Complexity Experience" />
       <ChipSelector name="servicesOfferedBeyondCoordination" options={EXTRA_SVCS} label="Additional Services Offered" />
+      <QualificationsField />
     </div>
   );
 }

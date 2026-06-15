@@ -9,7 +9,7 @@ const FUNDING_TYPES     = ['NDIS Self Managed', 'NDIS Plan Managed', 'NDIS Agenc
 const PARTICIPANT_TYPES = ['Adults', 'Older Adults', 'Children', 'Autism Spectrum', 'Psychosocial / Mental Health', 'Physical Disability', 'Intellectual Disability', 'Complex Needs'];
 
 export function CoordStep05_Capacity() {
-  const { register, control, formState: { errors } } = useFormContext();
+  const { register, control } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
@@ -19,10 +19,23 @@ export function CoordStep05_Capacity() {
           {CAPACITY_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+
+      <div>
+        <label style={labelStyle}>Availability Type</label>
+        <select {...register('availabilityType')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="FULL_TIME">Full-time</option>
+          <option value="PART_TIME">Part-time</option>
+          <option value="CASUAL">Casual / As needed</option>
+          <option value="CONTRACT">Contract / Fixed term</option>
+        </select>
+      </div>
+
       <div>
         <label style={labelStyle}>Maximum Participant Caseload</label>
         <input type="number" {...register('maxParticipantLoad', { valueAsNumber: true })} min={0} max={500} placeholder="e.g. 15" style={inputStyle} />
       </div>
+
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>Participant Types Accepted</label>
         <Controller name="participantTypesAccepted" control={control} defaultValue={[]} render={({ field }) => (
@@ -44,6 +57,7 @@ export function CoordStep05_Capacity() {
           </div>
         )} />
       </div>
+
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>Funding Types Supported</label>
         <Controller name="fundingTypeCompatibility" control={control} defaultValue={[]} render={({ field }) => (

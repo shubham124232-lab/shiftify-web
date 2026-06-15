@@ -47,15 +47,27 @@ import { CoordStep08_Documents }   from '@/components/registration/steps/coordin
 import { CoordStep09_Declaration } from '@/components/registration/steps/coordinator/Step09_Declaration';
 
 // ─── Participant step components ──────────────────────────────────────────────
-import { ParticipantStep01_Personal }        from '@/components/registration/steps/participant/Step01_Personal';
-import { ParticipantStep02_NDIS }            from '@/components/registration/steps/participant/Step02_NDIS';
-import { ParticipantStep03_SupportNeeds }    from '@/components/registration/steps/participant/Step03_SupportNeeds';
-import { ParticipantStep04_EmergencyContact }from '@/components/registration/steps/participant/Step04_EmergencyContact';
-import { ParticipantStep05_Declaration }     from '@/components/registration/steps/participant/Step05_Declaration';
+import { ParticipantStep01_Personal }         from '@/components/registration/steps/participant/Step01_Personal';
+import { ParticipantStep02_NDIS }             from '@/components/registration/steps/participant/Step02_NDIS';
+import { ParticipantStep03_SupportNeeds }     from '@/components/registration/steps/participant/Step03_SupportNeeds';
+import { ParticipantStep04_EmergencyContact } from '@/components/registration/steps/participant/Step04_EmergencyContact';
+import { ParticipantStep05_Declaration }      from '@/components/registration/steps/participant/Step05_Declaration';
 
 // ─── Plan Manager step components ─────────────────────────────────────────────
-import { PmStep01_Business }    from '@/components/registration/steps/plan-manager/Step01_Business';
-import { PmStep02_Availability } from '@/components/registration/steps/plan-manager/Step02_Availability';
+import { PmStep01_Business }            from '@/components/registration/steps/plan-manager/Step01_Business';
+import { PmStep02_NDISStatus }          from '@/components/registration/steps/plan-manager/Step02_NDISStatus';
+import { PmStep03_Capability }          from '@/components/registration/steps/plan-manager/Step03_Capability';
+import { PmStep04_ParticipantScope }    from '@/components/registration/steps/plan-manager/Step04_ParticipantScope';
+import { PmStep05_ServiceCoverage }     from '@/components/registration/steps/plan-manager/Step05_ServiceCoverage';
+import { PmStep06_PaymentOps }          from '@/components/registration/steps/plan-manager/Step06_PaymentOps';
+import { PmStep07_Compliance }          from '@/components/registration/steps/plan-manager/Step07_Compliance';
+import { PmStep08_StaffModel }          from '@/components/registration/steps/plan-manager/Step08_StaffModel';
+import { PmStep09_ParticipantLinking }  from '@/components/registration/steps/plan-manager/Step09_ParticipantLinking';
+import { PmStep10_ProviderInteraction } from '@/components/registration/steps/plan-manager/Step10_ProviderInteraction';
+import { PmStep11_Documents }           from '@/components/registration/steps/plan-manager/Step11_Documents';
+import { PmStep12_Communication }       from '@/components/registration/steps/plan-manager/Step12_Communication';
+import { PmStep13_Commercial }          from '@/components/registration/steps/plan-manager/Step13_Commercial';
+import { PmStep14_Terms }               from '@/components/registration/steps/plan-manager/Step14_Terms';
 
 // ─── Role → step components map ───────────────────────────────────────────────
 
@@ -106,7 +118,19 @@ const STEP_COMPONENTS: Record<UserRole, React.ComponentType<any>[]> = {
   ],
   [UserRole.PLAN_MANAGER]: [
     PmStep01_Business,
-    PmStep02_Availability,
+    PmStep02_NDISStatus,
+    PmStep03_Capability,
+    PmStep04_ParticipantScope,
+    PmStep05_ServiceCoverage,
+    PmStep06_PaymentOps,
+    PmStep07_Compliance,
+    PmStep08_StaffModel,
+    PmStep09_ParticipantLinking,
+    PmStep10_ProviderInteraction,
+    PmStep11_Documents,
+    PmStep12_Communication,
+    PmStep13_Commercial,
+    PmStep14_Terms,
   ],
 };
 

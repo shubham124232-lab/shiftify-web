@@ -27,6 +27,16 @@ export function CoordStep01_RoleOrg() {
       </div>
       <div><label style={labelStyle}>Organisation Name</label><input {...register('organisationName')} placeholder="e.g. Care Coordination Partners" style={inputStyle} /></div>
       <div><label style={labelStyle}>ABN</label><input {...register('abn')} placeholder="XX XXX XXX XXX" style={inputStyle} /></div>
+      <div>
+        <label style={labelStyle}>Gender <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span></label>
+        <select {...register('gender')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Prefer not to say</option>
+          <option value="MALE">Male</option>
+          <option value="FEMALE">Female</option>
+          <option value="NON_BINARY">Non-binary</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
     </div>
   );
 }

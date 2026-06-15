@@ -23,4 +23,25 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
   );
 }
 
-expo
+export function PmStep12_Communication() {
+  const { register } = useFormContext();
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <label style={labelStyle}>Invoice Notification Email</label>
+        <input {...register('invoiceNotificationEmail')} type="email" placeholder="Receives alerts when invoices arrive" style={inputStyle} />
+      </div>
+      <div>
+        <label style={labelStyle}>Compliance Notices Email</label>
+        <input {...register('complianceNoticesEmail')} type="email" placeholder="Receives NDIS Commission notices and audits" style={inputStyle} />
+      </div>
+      <div>
+        <label style={labelStyle}>Escalation Contact for Failed Payments</label>
+        <input {...register('escalationContactForFailedPayments')} placeholder="Name or email" style={inputStyle} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Who is contacted if an NDIA payment fails or a claim is rejected.</p>
+      </div>
+      <Toggle label="Enable SMS Alerts" name="smsAlertsEnabled"
+        desc="Receive SMS notifications for urgent items (e.g. failed claims, large invoices)" />
+    </div>
+  );
+}

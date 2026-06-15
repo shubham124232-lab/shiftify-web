@@ -5,10 +5,12 @@ import { listDocuments }        from '@/lib/api/profile';
 import { FileUploadField }      from '../../fields/FileUploadField';
 
 const COORD_DOCS = [
-  { docType: 'PROFESSIONAL_INDEMNITY', label: 'Professional Indemnity Insurance',          required: false, helpText: 'Required for NDIS registered coordinators.' },
-  { docType: 'PUBLIC_LIABILITY',       label: 'Public Liability Insurance',                required: false },
-  { docType: 'POLICE_CHECK',           label: 'Police Check',                             required: false, helpText: 'Recommended for participant-facing coordinators.' },
-  { docType: 'WWCC',                   label: 'Working With Children Check',               required: false, helpText: 'Required if coordinating support for participants under 18.' },
+  { docType: 'PROFESSIONAL_INDEMNITY',       label: 'Professional Indemnity Insurance',  required: false, helpText: 'Required for NDIS registered coordinators.' },
+  { docType: 'PUBLIC_LIABILITY_INSURANCE',   label: 'Public Liability Insurance',        required: false },
+  { docType: 'POLICE_CHECK',                 label: 'Police Check',                     required: false, helpText: 'Recommended for participant-facing coordinators.' },
+  { docType: 'NDIS_SCREENING',               label: 'NDIS Worker Screening Check',      required: false, helpText: 'Required for direct participant contact.' },
+  { docType: 'WWCC',                         label: 'Working With Children Check',       required: false, helpText: 'Required if coordinating support for participants under 18.' },
+  { docType: 'QUALIFICATION_CERTIFICATE',    label: 'Qualification Certificate',         required: false, helpText: 'Diploma of Community Services or equivalent.' },
 ];
 
 export function CoordStep08_Documents() {
@@ -21,7 +23,9 @@ export function CoordStep08_Documents() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.2)', borderRadius: 10, padding: 14 }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}><i className="bi bi-info-circle" style={{ marginRight: 6 }} />All documents are optional at this stage. Upload from your Documents page at any time.</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
+          <i className="bi bi-info-circle" style={{ marginRight: 6 }} />All documents are optional at this stage. Upload from your Documents page at any time.
+        </p>
       </div>
       {loading ? <p style={{ fontSize: 13, color: 'var(--clr-muted)' }}>Loading…</p> : (
         COORD_DOCS.map(doc => {

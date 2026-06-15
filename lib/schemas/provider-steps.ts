@@ -14,6 +14,7 @@ export const providerStep2Schema = z.object({
   gstRegistered:      z.boolean().optional(),
   ndisRegistered:     z.boolean().optional(),
   ndisProviderNumber: z.string().optional(),
+  ndisAuditStatus:    z.string().optional(),
 });
 
 export const providerStep3Schema = z.object({
@@ -24,52 +25,86 @@ export const providerStep3Schema = z.object({
 });
 
 export const providerStep4Schema = z.object({
-  accountsContactName:  z.string().optional(),
-  accountsContactEmail: z.string().email('Valid email required').optional().or(z.literal('')),
+  secondaryContactName:  z.string().optional(),
+  secondaryContactRole:  z.string().optional(),
+  secondaryContactPhone: z.string().optional(),
+  secondaryContactEmail: z.string().email().optional().or(z.literal('')),
+  accountsContactName:   z.string().optional(),
+  accountsContactEmail:  z.string().email().optional().or(z.literal('')),
 });
 
-// Step 5: Logo upload — handled via file upload, schema is a pass-through
 export const providerStep5Schema = z.object({
   logoUploaded: z.boolean().optional(),
 });
 
 export const providerStep6Schema = z.object({
-  coreServices: z.array(z.string()).min(1, 'Select at least one service'),
-  offersSil:    z.boolean().optional(),
-  silDetails:   z.record(z.unknown()).optional(),
-  offersSda:    z.boolean().optional(),
-  sdaDetails:   z.record(z.unknown()).optional(),
+  coreServices:         z.array(z.string()).min(1, 'Select at least one service'),
+  offersSil:            z.boolean().optional(),
+  silType:              z.string().optional(),
+  silSupportLevel:      z.string().optional(),
+  silCurrentVacancies:  z.boolean().optional(),
+  silDetails:           z.record(z.unknown()).optional(),
+  offersSda:            z.boolean().optional(),
+  sdaDesignCategory:    z.array(z.string()).optional(),
+  sdaVacancyCount:      z.number().int().min(0).optional(),
+  sdaLocations:         z.array(z.string()).optional(),
+  sdaDetails:           z.record(z.unknown()).optional(),
 });
 
 export const providerStep7Schema = z.object({
-  serviceAreas: z.array(z.string()).min(1, 'Add at least one service area'),
-  serviceMode:  z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { required_error: 'Service mode is required' }),
+  serviceAreas:      z.array(z.string()).min(1, 'Add at least one service area'),
+  serviceMode:       z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { required_error: 'Service mode is required' }),
+  multipleLocations: z.array(z.string()).optional(),
 });
 
 export const providerStep8Schema = z.object({
-  workforceSize:    z.string().optional(),
-  participantTypes: z.array(z.string()).optional(),
+  workforceSize:                  z.string().optional(),
+  staffCapability:                z.array(z.string()).optional(),
+  abilityToFillUrgentShifts:      z.boolean().optional(),
+  workforceHiringType:            z.string().optional(),
+  participantTypes:               z.array(z.string()).optional(),
+  currentCapacityStatus:          z.string().optional(),
+  abilityToPostLiveAvailability:  z.boolean().optional(),
+  participantComplexityAccepted:  z.array(z.string()).optional(),
 });
 
 export const providerStep9Schema = z.object({
-  pricingModel:  z.string().optional(),
-  billingMethod: z.string().optional(),
+  pricingModel:       z.string().optional(),
+  billingMethod:      z.string().optional(),
+  travelCharges:      z.string().optional(),
+  cancellationPolicy: z.string().max(1000).optional(),
 });
 
 export const providerStep10Schema = z.object({
-  businessDescription: z.string().max(3000).optional(),
-  websiteUrl:          z.string().url().optional().or(z.literal('')),
+  businessDescription:      z.string().max(3000).optional(),
+  websiteUrl:               z.string().url().optional().or(z.literal('')),
+  socialLinks:              z.object({
+    facebook:  z.string().optional(),
+    instagram: z.string().optional(),
+    linkedin:  z.string().optional(),
+  }).optional(),
+  seekingPlanManager:       z.boolean().optional(),
+  canPostRequests:          z.boolean().optional(),
+  canViewWorkerMarketplace: z.boolean().optional(),
+  canPostWorkerRequirements: z.boolean().optional(),
+  canPostSilSdaVacancies:   z.boolean().optional(),
 });
 
-// Step 11: Document uploads — presence-based, handled in component
 export const providerStep11Schema = z.object({
-  docsAcknowledged: z.boolean().optional(),
+  publicLiabilityPolicyNumber:       z.string().optional(),
+  publicLiabilityCoverageAmount:     z.string().optional(),
+  professionalIndemnityPolicyNumber: z.string().optional(),
+  workersCompPolicyNumber:           z.string().optional(),
+  docsAcknowledged:                  z.boolean().optional(),
 });
 
-// Step 12: Compliance declaration
 export const providerStep12Schema = z.object({
-  termsAccepted:    z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
-  ndisCodeAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
+  termsAccepted:         z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
+  ndisCodeAccepted:      z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
+  privacyPolicyAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the Privacy Policy' }),
+  serviceAgreementAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the Service Agreement' }),
+  platformRulesAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the Platform Rules' }),
+  complianceDeclaration: z.boolean().refine(v => v === true, { message: 'You must confirm the compliance declaration' }),
 });
 
 export type ProviderStep1  = z.infer<typeof providerStep1Schema>;

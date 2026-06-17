@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
+import logoImg from '@/public/images/logo.png';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -29,13 +31,8 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <div style={{ width: '100%', padding: '0 1.5rem' }}>
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 no-underline" aria-label="Shiftify Home">
-              <div style={{ width: 38, height: 38, background: 'var(--clr-primary)', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <i className="bi bi-heart-pulse-fill text-white" style={{ fontSize: 18 }} />
-              </div>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--clr-primary)', letterSpacing: '-0.5px' }}>
-                Shiftify
-              </span>
+            <Link href="/" className="flex items-center gap-2 no-underline header-logo" aria-label="Shiftify Home">
+              <Image src={logoImg.src} alt="Shiftify" width={160} height={55} priority />
             </Link>
             <div className="flex items-center gap-2">
               <span style={{ fontSize: 14, color: 'var(--clr-muted)', fontWeight: 500 }}>

@@ -78,18 +78,19 @@ function applyTokens(set: (partial: Partial<AuthState>) => void, token: string, 
 // `initialized` flips true when this completes so pages can safely act on
 // the real status/profileStep instead of stale JWT-derived defaults.
 function refreshUserMe(set: (partial: Partial<AuthState>) => void, baseUser: User) {
-  api.get<User & { phoneVerified?: boolean; profileCompletion?: number; profileStep?: number; marketplace?: { missing: string[] } }>('/users/me')
+  api.get<{ user: User; phoneVerified?: boolean; profileCompletion?: number; profileStep?: number; marketplace?: { missing: string[] } }>('/users/me')
     .then(me => {
+      const u = me.user;
       set({
         user: {
           ...baseUser,
-          email:       me.email       ?? null,
-          phone:       me.phone       ?? null,
-          username:    me.username    ?? null,
-          name:        me.name        ?? baseUser.name,
-          accountType: me.accountType ?? AccountType.SELF,
-          status:      me.status,
-          adminTier:   me.adminTier   ?? null,
+          email:       u.email       ?? null,
+          phone:       u.phone       ?? null,
+          username:    u.username    ?? null,
+          name:        u.name        ?? baseUser.name,
+          accountType: u.accountType ?? AccountType.SELF,
+          status:      u.status,
+          adminTier:   u.adminTier   ?? null,
         },
         profileCompletion:  me.profileCompletion  ?? null,
         profileStep:        me.profileStep        ?? 0,
@@ -347,3 +348,5 @@ export const selectNeedsPayment   = (s: AuthState) => s.user?.status === UserSta
 export const selectActiveRole     = (s: AuthState) => s.user?.activeRole ?? null;
 export const selectInitialized    = (s: AuthState) => s.initialized;
 export const selectProfileStep    = (s: AuthState) => s.profileStep;
+export const selectPhoneVerified  = (s: AuthState) => s.phoneVerified;
+export const selectMarketplaceMissing = (s: AuthState) => s.marketplaceMissing;

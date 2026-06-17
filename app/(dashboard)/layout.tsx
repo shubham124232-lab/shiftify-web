@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
 import { Spinner } from "@/components/ui/spinner";
-import { TOTAL_STEPS, WIZARD_START_STEP } from "@/lib/registration/stepConfig";
+import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
 
 // Pages inside the dashboard that should be accessible even with an incomplete profile
 // (so the user can actually go fix their profile without getting redirect-looped)
@@ -42,33 +42,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const isExempt = GATE_EXEMPT.some(p => pathname.startsWith(p));
     if (isExempt) return;
 
-    // 2. PENDING status -- wait for /users/me to confirm DB status before redirecting.
-    //    JWT claims can say PENDING even after the user has completed activation,
-    //    so we hold off until the background /users/me call sets initialized: true.
+    // 2. PENDING status — only block if phone is unverified.
+    //    Profile completion is handled by the setup banner inside the dashboard.
+    //    JWT claims can say PENDING even after activation, so wait for initialized.
     if (!initialized) return;
     if (user.status === "PENDING") {
-      // Route to the correct setup step instead of always /setup/verify.
-      const role = user.activeRole ?? "SUPPORT_WORKER";
-      const total = TOTAL_STEPS[role] ?? TOTAL_STEPS["SUPPORT_WORKER"];
       if (!phoneVerified) {
-        // Phone not yet verified — send to OTP step
         router.replace("/setup/verify");
-      } else if (profileStep < WIZARD_START_STEP) {
-        // Verified but wizard not started — begin at first wizard step
-        router.replace("/setup/profile/" + WIZARD_START_STEP);
-      } else if (profileStep < total) {
-        // Wizard in progress — resume at current step
-        router.replace("/setup/profile/" + profileStep);
-      } else {
-        router.replace("/setup/plan");
+        return;
       }
+      // Phone verified — let them into the dashboard; banner will guide them.
       return;
     }
 
     // 3. Profile incomplete -- only gate paid roles; Participants are free and
     //    their wizard covers the required fields, so don't force-redirect them.
+    //    ACTIVE users are already approved — don't gate them (handles seeded accounts).
     const isParticipant = user.activeRole === "PARTICIPANT";
-    if (!isParticipant && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
+    if (!isParticipant && user.status !== "ACTIVE" && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
       router.replace("/profile");
     }
   }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified]);

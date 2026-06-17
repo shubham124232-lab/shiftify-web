@@ -96,15 +96,25 @@ export default function SetupProfileStepPage() {
   const phoneVerified  = useAuthStore(s => s.phoneVerified);
   const initialized    = useAuthStore(s => s.initialized);
 
-  const [progress,    setProgress]    = useState<ProfileProgress | null>(null);
-  const [error,       setError]       = useState<string | null>(null);
-  const [redirecting, setRedirecting] = useState(false);
+  const [progress,     setProgress]     = useState<ProfileProgress | null>(null);
+  const [error,        setError]        = useState<string | null>(null);
+  const [redirecting,  setRedirecting]  = useState(false);
+  const [profileData,  setProfileData]  = useState<Record<string, unknown>>({});
 
   // Ensure auth state is populated when arriving directly on this URL
   useEffect(() => {
     silentInit();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fetch full /users/me (including role profiles) for form prefill.
+  // The auth store only holds basic user fields — profile sub-objects live here.
+  useEffect(() => {
+    if (!isAuth) return;
+    api.get<Record<string, unknown>>('/users/me')
+      .then(data => setProfileData(data as Record<string, unknown>))
+      .catch(() => {});
+  }, [isAuth]);
 
   useEffect(() => {
     if (!isAuth || !activeRole) return;
@@ -226,14 +236,15 @@ export default function SetupProfileStepPage() {
             role={activeRole as UserRole}
             compIndex={step - WIZARD_START_STEP}
             defaultValues={
-              // Merge top-level user fields + role profile for prefill
+              // Merge top-level user fields + role profile for prefill.
+              // profileData comes from GET /users/me which includes profile sub-objects.
               {
-                ...(user as unknown as Record<string, unknown> ?? {}),
-                ...((user as unknown as Record<string, unknown>)?.workerProfile as Record<string, unknown> ?? {}),
-                ...((user as unknown as Record<string, unknown>)?.providerProfile as Record<string, unknown> ?? {}),
-                ...((user as unknown as Record<string, unknown>)?.coordinatorProfile as Record<string, unknown> ?? {}),
-                ...((user as unknown as Record<string, unknown>)?.participantProfile as Record<string, unknown> ?? {}),
-                ...((user as unknown as Record<string, unknown>)?.planManagerProfile as Record<string, unknown> ?? {}),
+                ...(profileData ?? {}),
+                ...((profileData?.workerProfile        as Record<string, unknown>) ?? {}),
+                ...((profileData?.providerProfile      as Record<string, unknown>) ?? {}),
+                ...((profileData?.coordinatorProfile   as Record<string, unknown>) ?? {}),
+                ...((profileData?.participantProfile   as Record<string, unknown>) ?? {}),
+                ...((profileData?.planManagerProfile   as Record<string, unknown>) ?? {}),
               }
             }
             onSave={handleNext}

@@ -1,24 +1,40 @@
 'use client';
 // Reusable file upload field used inside wizard steps.
 // Handles upload internally (R2 presign in prod, local multipart fallback in dev).
+// Optionally renders metadata inputs (referenceNumber, expiryDate, issueDate)
+// which are collected locally and passed into the upload payload.
 
 import { useRef, useState } from 'react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import type { UploadOptions } from '@/hooks/useFileUpload';
 
 export interface FileUploadFieldProps {
-  label:           string;
-  accept?:         string; // e.g. ".pdf,.jpg,.png,.heic"
-  maxSizeMb?:      number;
-  uploadOptions:   UploadOptions;
-  currentValue?:   string | null; // current file URL or doc ID
-  onUploaded:      (value: string) => void;
-  optional?:       boolean;
-  helpText?:       string;
+  label:                  string;
+  accept?:                string;
+  maxSizeMb?:             number;
+  uploadOptions:          UploadOptions;
+  currentValue?:          string | null;
+  onUploaded:             (value: string) => void;
+  optional?:              boolean;
+  helpText?:              string;
+  // Metadata collection — inputs shown below upload button, values sent with upload
+  showReferenceNumber?:   boolean;
+  referenceNumberLabel?:  string;   // default: "Reference / Certificate Number"
+  showExpiryDate?:        boolean;
+  showIssueDate?:         boolean;
 }
 
 const ACCEPTED_COMPLIANCE = '.pdf,.jpg,.jpeg,.png,.heic';
 const ACCEPTED_IMAGE      = '.jpg,.jpeg,.png,.heic,.webp';
+
+const metaLabel: React.CSSProperties = {
+  display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--clr-muted)', marginBottom: 3,
+};
+const metaInput: React.CSSProperties = {
+  width: '100%', height: 36, padding: '0 10px', borderRadius: 8,
+  border: '1px solid var(--clr-border)', fontSize: 12, outline: 'none',
+  background: '#fff', boxSizing: 'border-box',
+};
 
 export function FileUploadField({
   label,
@@ -29,14 +45,25 @@ export function FileUploadField({
   onUploaded,
   optional,
   helpText,
+  showReferenceNumber,
+  referenceNumberLabel = 'Reference / Certificate Number',
+  showExpiryDate,
+  showIssueDate,
 }: FileUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { status, error, progress, uploadFile, reset } = useFileUpload();
   const [localName, setLocalName] = useState<string | null>(null);
 
+  // Metadata local state — passed into uploadOptions at upload time
+  const [refNum,   setRefNum]   = useState('');
+  const [expDate,  setExpDate]  = useState('');
+  const [issDate,  setIssDate]  = useState('');
+
   const accepted = accept ?? (uploadOptions.category === 'avatars'
     ? ACCEPTED_IMAGE
     : ACCEPTED_COMPLIANCE);
+
+  const hasMetadata = showReferenceNumber || showExpiryDate || showIssueDate;
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -47,8 +74,15 @@ export function FileUploadField({
       return;
     }
 
+    const enrichedOptions: UploadOptions = {
+      ...uploadOptions,
+      ...(showReferenceNumber && refNum   ? { referenceNumber: refNum  } : {}),
+      ...(showExpiryDate      && expDate  ? { expiryDate:      expDate  } : {}),
+      ...(showIssueDate       && issDate  ? { issueDate:        issDate  } : {}),
+    };
+
     setLocalName(file.name);
-    const result = await uploadFile(file, uploadOptions);
+    const result = await uploadFile(file, enrichedOptions);
     if (result) {
       onUploaded(typeof result === 'string' ? result : result.id);
     }
@@ -65,6 +99,35 @@ export function FileUploadField({
 
       {helpText && (
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 6, marginTop: 0 }}>{helpText}</p>
+      )}
+
+      {/* Metadata inputs — shown before upload so user can fill in details */}
+      {hasMetadata && (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${[showReferenceNumber, showIssueDate, showExpiryDate].filter(Boolean).length}, 1fr)`, gap: 8, marginBottom: 8 }}>
+          {showReferenceNumber && (
+            <div>
+              <label style={metaLabel}>{referenceNumberLabel}</label>
+              <input
+                value={refNum}
+                onChange={e => setRefNum(e.target.value)}
+                placeholder="Enter number…"
+                style={metaInput}
+              />
+            </div>
+          )}
+          {showIssueDate && (
+            <div>
+              <label style={metaLabel}>Issue Date</label>
+              <input type="date" value={issDate} onChange={e => setIssDate(e.target.value)} style={metaInput} />
+            </div>
+          )}
+          {showExpiryDate && (
+            <div>
+              <label style={metaLabel}>Expiry Date</label>
+              <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} style={metaInput} />
+            </div>
+          )}
+        </div>
       )}
 
       {/* Drop zone / click area */}

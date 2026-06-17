@@ -18,18 +18,21 @@ const ADMIN_NAV = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuth, loading, silentInit, logout } = useAuth();
+  const { user, isAuth, loading, initialized, silentInit, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => { silentInit(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, []);
 
   useEffect(() => {
-    if (!loading && !isAuth) router.replace("/login?next=/admin");
-    if (!loading && isAuth && user && !user.adminTier) router.replace("/dashboard");
-  }, [loading, isAuth, user, router]);
+    if (loading) return;
+    if (!isAuth) { router.replace("/login?next=/admin"); return; }
+    // Wait for /users/me to confirm adminTier — JWT doesn't carry it.
+    if (!initialized) return;
+    if (user && !user.adminTier) router.replace("/dashboard");
+  }, [loading, isAuth, initialized, user, router]);
 
-  if (loading || !user || !user.adminTier) {
+  if (loading || !initialized || !user || !user.adminTier) {
     return (
       <div className="flex h-screen items-center justify-center text-slate-500">
         <Spinner /> <span className="ml-2">Loading admin console...</span>

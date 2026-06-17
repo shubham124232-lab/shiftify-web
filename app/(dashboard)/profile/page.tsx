@@ -541,7 +541,7 @@ export default function ProfilePage() {
 
             {/* Edit full profile link */}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <a href="/dashboard/profile/edit" style={{ fontSize: 13, color: "var(--clr-primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+              <a href="/profile/edit" style={{ fontSize: 13, color: "var(--clr-primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
                 Edit full profile <i className="bi bi-arrow-right" />
               </a>
             </div>

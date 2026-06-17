@@ -226,7 +226,7 @@ export default function ProfileEditPage() {
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 20px 48px' }}>
 
         <div style={{ marginBottom: 20 }}>
-          <Link href="/dashboard/profile" style={{ fontSize: 13, color: 'var(--clr-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Link href="/profile" style={{ fontSize: 13, color: 'var(--clr-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <i className="bi bi-arrow-left" /> Back to My Profile
           </Link>
         </div>

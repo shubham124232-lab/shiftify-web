@@ -309,7 +309,9 @@ function LoginContent() {
     const next = params.get('next') ?? '/dashboard';
 
     if (data.user.status === UserStatus.PENDING) {
-      router.replace(data.user.phoneVerified ? `/setup/profile/${WIZARD_START_STEP}` : '/setup/verify');
+      // Let the dashboard layout determine the correct setup step — it has
+      // initialized state (phoneVerified, profileStep) after /users/me loads.
+      router.replace('/dashboard');
     } else {
       router.replace(next);
     }

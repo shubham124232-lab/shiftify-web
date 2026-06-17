@@ -5,12 +5,35 @@ import { listDocuments }        from '@/lib/api/profile';
 import { FileUploadField }      from '../../fields/FileUploadField';
 
 const PROVIDER_DOCS = [
-  { docType: 'NDIS_AUDIT',                   label: 'NDIS Provider Registration Certificate', required: false },
-  { docType: 'PUBLIC_LIABILITY_INSURANCE',   label: 'Public Liability Insurance Certificate',  required: false },
-  { docType: 'PROFESSIONAL_INDEMNITY',       label: 'Professional Indemnity Insurance',        required: false },
-  { docType: 'WORKERS_COMP',                 label: 'Workers Compensation Insurance',          required: false },
-  { docType: 'POLICE_CHECK',                 label: 'Police Check (Director/Key Personnel)',   required: false },
-];
+  {
+    docType: 'NDIS_AUDIT',
+    label: 'NDIS Provider Registration Certificate',
+  },
+  {
+    docType: 'PUBLIC_LIABILITY_INSURANCE',
+    label: 'Public Liability Insurance Certificate',
+    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
+    showExpiryDate: true,
+  },
+  {
+    docType: 'PROFESSIONAL_INDEMNITY',
+    label: 'Professional Indemnity Insurance',
+    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
+    showExpiryDate: true,
+  },
+  {
+    docType: 'WORKERS_COMP',
+    label: 'Workers Compensation Insurance',
+    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
+    showExpiryDate: true,
+  },
+  {
+    docType: 'POLICE_CHECK',
+    label: 'Police Check (Director / Key Personnel)',
+    showIssueDate: true,
+    showExpiryDate: true,
+  },
+] as const;
 
 export function ProviderStep11_Documents() {
   const store = useRegistrationStore();
@@ -18,11 +41,10 @@ export function ProviderStep11_Documents() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    listDocuments().then(docs => {
-      const map: Record<string, boolean> = {};
-      docs.forEach(d => { map[d.docType] = true; });
-      setExistingDocs(map);
-    }).catch(() => null).finally(() => setLoading(false));
+    listDocuments()
+      .then(docs => { const map: Record<string, boolean> = {}; docs.forEach(d => { map[d.docType] = true; }); setExistingDocs(map); })
+      .catch(() => null)
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -33,6 +55,7 @@ export function ProviderStep11_Documents() {
           All documents are optional at this stage. You can upload them from your Documents page at any time.
         </p>
       </div>
+
       {loading ? <p style={{ fontSize: 13, color: 'var(--clr-muted)' }}>Loading…</p> : (
         PROVIDER_DOCS.map(doc => {
           const uploaded = existingDocs[doc.docType] || !!store.uploadedDocs[doc.docType];
@@ -45,6 +68,10 @@ export function ProviderStep11_Documents() {
               uploadOptions={{ category: 'compliance', docType: doc.docType }}
               currentValue={uploaded ? 'uploaded' : null}
               optional
+              showReferenceNumber={'showReferenceNumber' in doc ? (doc as { showReferenceNumber?: boolean }).showReferenceNumber : false}
+              referenceNumberLabel={'referenceNumberLabel' in doc ? (doc as { referenceNumberLabel?: string }).referenceNumberLabel : undefined}
+              showExpiryDate={'showExpiryDate' in doc ? (doc as { showExpiryDate?: boolean }).showExpiryDate : false}
+              showIssueDate={'showIssueDate' in doc ? (doc as { showIssueDate?: boolean }).showIssueDate : false}
               onUploaded={(val) => { store.setUploadedDoc(doc.docType, val); setExistingDocs(p => ({ ...p, [doc.docType]: true })); }}
             />
           );

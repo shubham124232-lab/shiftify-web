@@ -17,8 +17,9 @@ import type { UserRole } from "@/lib/types";
 
 interface NavItem { href: string; label: string; icon: LucideIcon; }
 
-function navForRole(role: UserRole): NavItem[] {
-  const dash: NavItem = { href: ROLE_DASHBOARD_PATHS[role], label: "Dashboard", icon: LayoutDashboard };
+function navForRole(role: string): NavItem[] {
+  const dashHref = ROLE_DASHBOARD_PATHS[role as UserRole] ?? "/admin";
+  const dash: NavItem = { href: dashHref, label: "Dashboard", icon: LayoutDashboard };
   switch (role) {
     case "PARTICIPANT":
       return [
@@ -99,7 +100,7 @@ export function AppSidebar() {
 
   if (!user) return null;
 
-  const items = navForRole(user.activeRole);
+  const items = navForRole(user.activeRole as string);
 
   function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
     const Icon = item.icon;

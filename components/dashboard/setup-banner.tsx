@@ -37,29 +37,35 @@ export function SetupBanner() {
 
   if (dismissed) return null;
 
-  // Participants are free -- pending status means they haven't activated yet (auto happens),
-  // not that they need a paid subscription.
-  const isPending  = !isParticipant && (user as unknown as Record<string, unknown>)?.status === 'PENDING';
+  const totalWizardSteps = activeRole ? (TOTAL_STEPS[activeRole] ?? 0) : 0;
+  const isManaged  = (user as unknown as Record<string, unknown>)?.accountType === 'MANAGED';
   const hasMissing = (check?.missing?.length ?? 0) > 0;
   const pct        = completion ?? 0;
+  const userStatus = (user as unknown as Record<string, unknown>)?.status as string | undefined;
 
-  // Profile wizard incomplete banner (shown when profileStep < totalSteps, after account creation)
-  const totalWizardSteps = activeRole ? (TOTAL_STEPS[activeRole] ?? 0) : 0;
-  const isManaged = (user as unknown as Record<string, unknown>)?.accountType === 'MANAGED';
-  const showWizardBanner =
-    !isManaged &&
+  // PENDING + profile not yet done → guide them to complete it
+  const showPendingProfileBanner =
+    !isManaged && !isParticipant && !!activeRole &&
+    userStatus === 'PENDING' &&
+    totalWizardSteps > 0 && profileStep < totalWizardSteps;
+
+  // PENDING + profile done → needs subscription
+  const showPendingSubscriptionBanner =
     !isParticipant &&
-    activeRole &&
-    user?.status === 'ACTIVE' &&
-    profileStep >= 2 &&
-    profileStep < totalWizardSteps;
+    userStatus === 'PENDING' &&
+    !showPendingProfileBanner;
 
-  // API reachable + profile fully complete + not pending -> nothing to show
-  if (!apiError && !isPending && !hasMissing && pct >= 100 && !showWizardBanner) return null;
+  // ACTIVE users with incomplete wizard (re-entry from dashboard)
+  const showWizardBanner =
+    !isManaged && !isParticipant && !!activeRole &&
+    userStatus === 'ACTIVE' &&
+    profileStep >= 2 && profileStep < totalWizardSteps;
 
-  // API unreachable -- show a minimal nudge so the banner is never invisible
-  // (wizard banner doesn't need API data — falls through to the main return)
-  if (apiError && !showWizardBanner) {
+  // Nothing to show
+  if (!apiError && !showPendingProfileBanner && !showPendingSubscriptionBanner && !hasMissing && pct >= 100 && !showWizardBanner) return null;
+
+  // API unreachable — minimal nudge (wizard banners don't need API data)
+  if (apiError && !showPendingProfileBanner && !showWizardBanner) {
     return (
       <div style={{
         background: '#F0F9FF', border: '1px solid #BAE6FD',
@@ -83,23 +89,45 @@ export function SetupBanner() {
 
   return (
     <div style={{
-      background: isPending ? '#FFF9C4' : '#fff7ed',
-      border: `1px solid ${isPending ? '#F59E0B' : '#fb923c'}`,
+      background: showPendingSubscriptionBanner ? '#FFF9C4' : '#fff7ed',
+      border: `1px solid ${showPendingSubscriptionBanner ? '#F59E0B' : '#fb923c'}`,
       borderRadius: 12, padding: '16px 20px', marginBottom: 20,
       display: 'flex', alignItems: 'flex-start', gap: 14, position: 'relative',
     }}>
       {/* Icon */}
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: isPending ? 'rgba(245,158,11,0.12)' : 'rgba(251,146,60,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <i className={`bi ${isPending ? 'bi-lock-fill' : 'bi-person-fill-exclamation'}`}
-          style={{ fontSize: 18, color: isPending ? '#d97706' : '#ea580c' }} />
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: showPendingSubscriptionBanner ? 'rgba(245,158,11,0.12)' : 'rgba(251,146,60,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <i className={`bi ${showPendingSubscriptionBanner ? 'bi-lock-fill' : 'bi-person-fill-exclamation'}`}
+          style={{ fontSize: 18, color: showPendingSubscriptionBanner ? '#d97706' : '#ea580c' }} />
       </div>
 
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {isPending && (
+
+        {/* PENDING — profile incomplete */}
+        {showPendingProfileBanner && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
+                Complete your profile ({Math.max(0, profileStep - 2)} of {totalWizardSteps - 2} steps done)
+              </div>
+            </div>
+            <div style={{ height: 5, background: '#fed7aa', borderRadius: 4, marginBottom: 10, maxWidth: 320 }}>
+              <div style={{ height: '100%', width: `${Math.round((profileStep / totalWizardSteps) * 100)}%`, background: '#ea580c', borderRadius: 4, transition: 'width 0.4s' }} />
+            </div>
+            <div style={{ fontSize: 13, color: '#92400e', marginBottom: 10, lineHeight: 1.5 }}>
+              Finish your profile to unlock marketplace features and activate your plan.
+            </div>
+            <Link href="/profile/edit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
+              Complete Profile <i className="bi bi-arrow-right" />
+            </Link>
+          </>
+        )}
+
+        {/* PENDING — profile done, needs subscription */}
+        {showPendingSubscriptionBanner && (
           <>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
-              Subscription required -- jobs are locked
+              Subscription required — jobs are locked
             </div>
             <div style={{ fontSize: 13, color: '#78350f', marginBottom: 10, lineHeight: 1.5 }}>
               You cannot post or apply to jobs until your subscription is active.
@@ -110,7 +138,7 @@ export function SetupBanner() {
           </>
         )}
 
-        {!isPending && hasMissing && (
+        {!showPendingProfileBanner && !showPendingSubscriptionBanner && hasMissing && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
@@ -139,7 +167,7 @@ export function SetupBanner() {
           </>
         )}
 
-        {!isPending && !hasMissing && pct < 100 && !showWizardBanner && (
+        {!showPendingProfileBanner && !showPendingSubscriptionBanner && !hasMissing && pct < 100 && !showWizardBanner && (
           <div style={{ fontSize: 13, color: '#78350f' }}>
             Your profile is almost complete.{' '}
             <Link href="/profile" style={{ fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
@@ -167,7 +195,7 @@ export function SetupBanner() {
       </div>
 
       {/* Dismiss */}
-      {!isPending && (
+      {!showPendingSubscriptionBanner && (
         <button type="button" onClick={() => setDismissed(true)}
           style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16, padding: 4 }}>
           <i className="bi bi-x-lg" />

@@ -76,6 +76,24 @@ export function PmStep06_PaymentOps() {
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Specify what you require on invoices for faster processing.</p>
       </div>
 
+      <div>
+        <label style={labelStyle}>Remittance Advice</label>
+        <input {...register('remittanceAdvice')} type="email" placeholder="remittance@planmanager.com.au" style={inputStyle} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Email or portal address where remittance advice is sent to providers after payment.</p>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Dispute Handling Contact</label>
+        <input {...register('disputeHandlingContact')} placeholder="e.g. disputes@planmanager.com.au or 1300 000 000" style={inputStyle} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Who providers contact to raise a payment dispute or discrepancy.</p>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Finance Team Email (Staff Access)</label>
+        <input {...register('staffFinanceTeamEmail')} type="email" placeholder="finance-team@planmanager.com.au" style={inputStyle} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Internal email for the finance team used for staff-to-staff payment escalations.</p>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Toggle label="Registered Providers Only" name="acceptsRegisteredProvidersOnly"
           desc="Only accept invoices from NDIS-registered providers" />

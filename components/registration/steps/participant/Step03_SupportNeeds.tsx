@@ -10,7 +10,7 @@ const MOBILITY_NEEDS      = ['Wheelchair user', 'Walking frame', 'Manual transfe
 const COMMS_NEEDS         = ['Verbal communication', 'Non-verbal / AAC device', 'Simplified language', 'Visual supports', 'Sign language / Auslan', 'Interpreter required'];
 const BEHAVIOUR_NOTES     = ['Challenging behaviours', 'Behaviour support plan in place', 'Requires consistent routine', 'Sensory sensitivities', 'Elopement risk'];
 const MEDICAL_NOTES       = ['Epilepsy', 'Diabetes management', 'Complex medication needs', 'Enteral feeding', 'Respiratory support', 'Allergy management'];
-const SUPPORT_PREFERENCES = ['Female worker preferred', 'Male worker preferred', 'Any gender', 'Speaks specific language', 'Cultural background match', 'Has experience with my disability type'];
+const SUPPORT_PREFERENCES = ['Speaks specific language', 'Cultural background match', 'Has experience with my disability type', 'Non-smoker', 'Pet-friendly', 'Driving required'];
 const SKILL_TAGS          = ['Manual handling', 'Hoist operation', 'Medication administration', 'PEG feeding', 'Behaviour support', 'Positive behaviour support', 'Sign language', 'Swimming / aquatic', 'Cooking / meal prep', 'Community access'];
 const DAYS                = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const TIME_PREFS          = [
@@ -95,11 +95,22 @@ export function ParticipantStep03_SupportNeeds() {
         <textarea {...register('riskSafetyNotes')} rows={3} placeholder="Any safety considerations, risks, or important context for the support worker…" style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
       </div>
 
-      {/* ── Preferences ─────────────────────────────────────── */}
+      {/* Worker Preferences */}
       <div style={{ borderTop: '1px solid var(--clr-border)', paddingTop: 16 }}>
         <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--clr-text)' }}>Worker Preferences</p>
 
-        <ChipPicker name="supportPreferences" options={SUPPORT_PREFERENCES} label="Preferences" />
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>Preferred Worker Gender</label>
+          <select {...register('preferredWorkerGender')} style={{ ...inputStyle, cursor: 'pointer' }}>
+            <option value="">No preference</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Non-binary">Non-binary</option>
+            <option value="Any">Any gender</option>
+          </select>
+        </div>
+
+        <ChipPicker name="supportPreferences" options={SUPPORT_PREFERENCES} label="Other Preferences" />
 
         <div style={{ marginTop: 14 }}>
           <label style={labelStyle}>Language Preference</label>
@@ -116,7 +127,7 @@ export function ParticipantStep03_SupportNeeds() {
         </div>
       </div>
 
-      {/* ── Availability ─────────────────────────────────────── */}
+      {/* Availability */}
       <div style={{ borderTop: '1px solid var(--clr-border)', paddingTop: 16 }}>
         <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--clr-text)' }}>Preferred Availability</p>
 

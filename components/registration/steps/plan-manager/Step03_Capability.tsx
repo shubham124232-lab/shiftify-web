@@ -28,10 +28,39 @@ const SERVICES = [
   'Transition Support', 'Complex Case Management',
 ];
 
+const PLAN_TYPES = ['Plan-managed', 'Agency-managed (NDIA)', 'Self-managed'];
+
 export function PmStep03_Capability() {
   const { control } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Plan Types Supported <span style={{ color: '#ef4444' }}>*</span></label>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', margin: '0 0 8px' }}>Which NDIS funding management types do you support?</p>
+        <Controller name="planTypesSupported" control={control} defaultValue={[]} render={({ field }) => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+            {PLAN_TYPES.map(pt => {
+              const sel = (field.value ?? []).includes(pt);
+              return (
+                <label key={pt} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                  padding: '10px 12px', borderRadius: 8,
+                  border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                  background: sel ? 'rgba(79,70,229,0.06)' : '#fff' }}>
+                  <input type="checkbox" checked={sel}
+                    onChange={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== pt) : [...cur, pt]); }}
+                    style={{ display: 'none' }} />
+                  <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                    background: sel ? 'var(--clr-primary)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {sel && <i className="bi bi-check-lg" style={{ color: '#fff', fontSize: 9 }} />}
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 500 }}>{pt}</span>
+                </label>
+              );
+            })}
+          </div>
+        )} />
+      </div>
+
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>Services Provided</label>
         <Controller name="servicesProvided" control={control} defaultValue={[]} render={({ field }) => (
@@ -51,7 +80,10 @@ export function PmStep03_Capability() {
           </div>
         )} />
       </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Toggle label="SIL / SDA Invoicing" name="silSdaInvoicing"
+          desc="You process invoices for Supported Independent Living (SIL) and Specialist Disability Accommodation (SDA) services" />
         <Toggle label="Manages Recurring / Regular Invoices" name="plansRecurringInvoices"
           desc="Handles invoices on a regular schedule (weekly, fortnightly, monthly)" />
         <Toggle label="Manages Once-Off Invoices" name="plansOnceOffInvoices"

@@ -24,10 +24,9 @@ export function CoordStep05_Capacity() {
         <label style={labelStyle}>Availability Type</label>
         <select {...register('availabilityType')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>
-          <option value="FULL_TIME">Full-time</option>
-          <option value="PART_TIME">Part-time</option>
-          <option value="CASUAL">Casual / As needed</option>
-          <option value="CONTRACT">Contract / Fixed term</option>
+          <option value="BUSINESS_HOURS">Business Hours (Mon–Fri 9am–5pm)</option>
+          <option value="FLEXIBLE">Flexible (available outside business hours)</option>
+          <option value="EMERGENCY_AVAILABLE">Emergency Available (on-call / crisis response)</option>
         </select>
       </div>
 

@@ -7,7 +7,7 @@ export const TOTAL_STEPS: Record<string, number> = {
   SUPPORT_WORKER: 11,
   PROVIDER:       13,
   COORDINATOR:    10,
-  PLAN_MANAGER:   4,
+  PLAN_MANAGER:   15,
 };
 
 /** First step of the role-specific wizard (steps 1+2 belong to /register). */

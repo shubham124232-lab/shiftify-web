@@ -39,6 +39,7 @@ function Toggle({ label, name }: { label: string; name: string }) {
 export function WorkerStep03_WorkType() {
   const { register, watch, formState: { errors } } = useFormContext();
   const workType = watch('workType') as string;
+  const hasPL    = watch('publicLiabilityInsurance') as boolean;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -89,12 +90,50 @@ export function WorkerStep03_WorkType() {
         <label style={{ ...labelStyle, marginBottom: 10 }}>Insurance Coverage</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Toggle label="I have Public Liability Insurance" name="publicLiabilityInsurance" />
-          <Toggle label="I have Personal Accident Insurance" name="personalAccidentInsurance" />
         </div>
-        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 8 }}>
-          You can upload insurance certificates in the Documents step. These toggles indicate current coverage.
-        </p>
       </div>
+
+      {/* PL Insurance details — conditional */}
+      {hasPL && (
+        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--clr-primary)' }}>Public Liability Insurance Details</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>Policy Number</label>
+              <input {...register('publicLiabilityPolicyNumber')} placeholder="e.g. PL-123456" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Expiry Date</label>
+              <input {...register('publicLiabilityExpiry')} type="date" style={inputStyle} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Driving */}
+      <div>
+        <label style={{ ...labelStyle, marginBottom: 10 }}>Driving</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Toggle label="I have a valid Australian driver's licence" name="hasDriversLicence" />
+        </div>
+      </div>
+
+      {watch('hasDriversLicence') && (
+        <div>
+          <label style={labelStyle}>Licence Class</label>
+          <select {...register('driversLicenceType')} style={{ ...inputStyle, cursor: 'pointer' }}>
+            <option value="">Select class…</option>
+            <option value="C">C — Car</option>
+            <option value="R">R — Motorcycle</option>
+            <option value="MR">MR — Medium Rigid</option>
+            <option value="HR">HR — Heavy Rigid</option>
+            <option value="HC">HC — Heavy Combination</option>
+          </select>
+        </div>
+      )}
+
+      {/* Own vehicle */}
+      <Toggle label="I have my own vehicle for client transport" name="ownVehicle" />
     </div>
   );
 }

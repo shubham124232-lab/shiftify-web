@@ -50,6 +50,10 @@ export function PmStep14_Terms() {
         desc="Your organisation is open to taking on new NDIS participants" />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+        <CheckboxDeclaration name="termsAccepted"
+          label={<>I have read and agree to the Shiftify <a href="/terms" target="_blank" style={{ color: 'var(--clr-primary)' }}>Terms &amp; Conditions</a>.</>} />
+        <CheckboxDeclaration name="ndisCodeAccepted"
+          label="I commit to upholding the NDIS Code of Conduct and my obligations as a registered Plan Manager." />
         <CheckboxDeclaration name="privacyPolicyAccepted"
           label={<>I have read and agree to the Shiftify <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a> and consent to the collection and handling of participant and organisational data.</>} />
         <CheckboxDeclaration name="confirmAuthorityToRegister"
@@ -61,7 +65,7 @@ export function PmStep14_Terms() {
         <CheckboxDeclaration name="consentToParticipantLinkingControls"
           label="I understand and agree to the Shiftify participant linking and consent framework, including requirements around participant approval before processing funds." />
         <CheckboxDeclaration name="consentToInvoiceRoutingRules"
-          label="I agree to comply with Shiftify's invoice routing and payment processing guidelines, and understand that non-compliance may result in delayed processing or account review." />
+          label="I agree to comply with Shiftify invoice routing and payment processing guidelines, and understand that non-compliance may result in delayed processing or account review." />
       </div>
     </div>
   );

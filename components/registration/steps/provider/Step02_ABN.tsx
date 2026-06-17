@@ -33,14 +33,50 @@ export function ProviderStep02_ABN() {
         <input {...register('abn')} placeholder="XX XXX XXX XXX" style={{ ...inputStyle, borderColor: errors.abn ? '#ef4444' : undefined }} />
         {errors.abn && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.abn.message as string}</p>}
       </div>
+
       <Toggle label="Registered for GST" name="gstRegistered" />
       <Toggle label="NDIS Registered Provider" name="ndisRegistered" desc="Registered with the NDIS Quality and Safeguards Commission" />
+
       {ndisReg && (
-        <div>
-          <label style={labelStyle}>NDIS Provider Registration Number</label>
-          <input {...register('ndisProviderNumber')} placeholder="4-XXXXXXXX" style={inputStyle} />
+        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={labelStyle}>NDIS Provider Registration Number</label>
+            <input {...register('ndisProviderNumber')} placeholder="4-XXXXXXXX" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>NDIS Registration Expiry</label>
+            <input {...register('ndisRegistrationExpiry')} type="date" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>NDIS Audit Status</label>
+            <select {...register('ndisAuditStatus')} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <option value="">Select…</option>
+              <option value="NOT_REQUIRED">Not required (low-risk supports only)</option>
+              <option value="CERTIFICATION">Certification audit (medium/high-risk supports)</option>
+              <option value="VERIFICATION">Verification audit (lower-risk category)</option>
+              <option value="AWAITING_AUDIT">Awaiting scheduled audit</option>
+              <option value="AUDIT_IN_PROGRESS">Audit in progress</option>
+              <option value="COMPLIANT">Compliant — audit passed</option>
+              <option value="CONDITIONS_IMPOSED">Conditions imposed following audit</option>
+            </select>
+          </div>
         </div>
       )}
+
+      <div>
+        <label style={labelStyle}>Business Structure</label>
+        <select {...register('businessStructure')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="SOLE_TRADER">Sole Trader</option>
+          <option value="PARTNERSHIP">Partnership</option>
+          <option value="COMPANY">Company (Pty Ltd)</option>
+          <option value="TRUST">Trust</option>
+          <option value="NOT_FOR_PROFIT">Not-for-Profit / Charity</option>
+          <option value="GOVERNMENT">Government / Local Council</option>
+        </select>
+      </div>
+
+      <Toggle label="I confirm this ABN is active and registered to my business" name="abnConfirmed" />
     </div>
   );
 }

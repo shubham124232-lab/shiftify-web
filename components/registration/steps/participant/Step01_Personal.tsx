@@ -84,6 +84,15 @@ export function ParticipantStep01_Personal() {
           Used to find support workers near you. Not shown publicly.
         </p>
       </div>
+
+      {/* Full Address */}
+      <div>
+        <label style={labelStyle}>Full Address <span style={{ fontWeight: 400, color: 'var(--clr-muted)' }}>(optional)</span></label>
+        <input {...register('fullAddress')} placeholder="Unit 2, 45 Example Street, Sydney NSW 2000" style={inputStyle} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 4 }}>
+          Only shared with confirmed support workers for in-home supports.
+        </p>
+      </div>
     </div>
   );
 }

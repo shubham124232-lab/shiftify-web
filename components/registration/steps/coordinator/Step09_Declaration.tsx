@@ -21,7 +21,9 @@ export function CoordStep09_Declaration() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <p style={{ margin: 0, fontSize: 13, color: 'var(--clr-muted)' }}>By completing your profile you agree to the following declarations.</p>
       <CheckboxDeclaration name="termsAccepted"
-        label={<>I have read and agree to the Shiftify <a href="/terms" target="_blank" style={{ color: 'var(--clr-primary)' }}>Terms & Conditions</a> and <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a>.</>} />
+        label={<>I have read and agree to the Shiftify <a href="/terms" target="_blank" style={{ color: 'var(--clr-primary)' }}>Terms &amp; Conditions</a>.</>} />
+      <CheckboxDeclaration name="privacyPolicyAccepted"
+        label={<>I have read and agree to the Shiftify <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a>.</>} />
       <CheckboxDeclaration name="ndisCodeAccepted"
         label="I commit to upholding the NDIS Code of Conduct and understand my obligations as a Support Coordinator." />
       <CheckboxDeclaration name="consentForVerification"

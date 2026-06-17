@@ -57,8 +57,9 @@ export const coordStep8Schema = z.object({
 });
 
 export const coordStep9Schema = z.object({
-  termsAccepted:         z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
-  ndisCodeAccepted:      z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
+  termsAccepted:          z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
+  privacyPolicyAccepted:  z.boolean().refine(v => v === true, { message: 'You must accept the Privacy Policy' }),
+  ndisCodeAccepted:       z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
   consentForVerification: z.boolean().refine(v => v === true, { message: 'You must consent to document verification' }),
 });
 

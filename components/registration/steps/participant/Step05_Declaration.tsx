@@ -33,6 +33,8 @@ export function ParticipantStep05_Declaration() {
         label={<>I have read and agree to the Shiftify <a href="/terms" target="_blank" style={{ color: 'var(--clr-primary)' }}>Terms &amp; Conditions</a>.</>} />
       <CheckboxDeclaration name="privacyPolicyAccepted"
         label={<>I have read and agree to the Shiftify <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a>.</>} />
+      <CheckboxDeclaration name="ndisCodeAccepted"
+        label="I understand and agree to uphold the NDIS Code of Conduct in all interactions with my supports." />
     </div>
   );
 }

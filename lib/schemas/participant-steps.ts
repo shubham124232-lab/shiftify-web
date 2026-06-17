@@ -48,6 +48,7 @@ export const participantStep4Schema = z.object({
 export const participantStep5Schema = z.object({
   termsAccepted:         z.boolean().refine(v => v === true, { message: 'You must accept the Terms & Conditions' }),
   privacyPolicyAccepted: z.boolean().refine(v => v === true, { message: 'You must accept the Privacy Policy' }),
+  ndisCodeAccepted:      z.boolean().refine(v => v === true, { message: 'You must accept the NDIS Code of Conduct' }),
 });
 
 export type ParticipantStep1 = z.infer<typeof participantStep1Schema>;

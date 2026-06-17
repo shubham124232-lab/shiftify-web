@@ -13,8 +13,9 @@ const inputStyle: React.CSSProperties = {
 
 export function WorkerStep06_ServiceAreas() {
   const { register, watch, control, setValue, formState: { errors } } = useFormContext();
-  const hasVehicle = watch('hasVehicle') as boolean;
-  const radius     = watch('travelRadiusKm') as number ?? 10;
+  const hasVehicle           = watch('hasVehicle') as boolean;
+  const canTransport         = watch('canTransportParticipants') as boolean;
+  const radius               = watch('travelRadiusKm') as number ?? 10;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -44,6 +45,31 @@ export function WorkerStep06_ServiceAreas() {
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--clr-muted)', marginTop: 2 }}>
           <span>0 km</span><span>100 km</span><span>200 km</span>
+        </div>
+      </div>
+
+      {/* Transport capability */}
+      <div>
+        <label style={labelStyle}>Can you transport participants?</label>
+        <p style={{ fontSize: 12, color: 'var(--clr-muted)', margin: '0 0 8px' }}>
+          Includes transporting participants to appointments, community activities, or between locations.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['Yes', 'No'] as const).map(opt => {
+            const selected = opt === 'Yes' ? canTransport === true : canTransport === false;
+            return (
+              <button key={opt} type="button"
+                onClick={() => setValue('canTransportParticipants', opt === 'Yes')}
+                style={{
+                  flex: 1, height: 42, borderRadius: 10, fontWeight: 700, fontSize: 13,
+                  border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                  background: selected ? 'rgba(79,70,229,0.07)' : '#fff',
+                  color: selected ? 'var(--clr-primary)' : 'var(--clr-text)', cursor: 'pointer',
+                }}>
+                {opt}
+              </button>
+            );
+          })}
         </div>
       </div>
 

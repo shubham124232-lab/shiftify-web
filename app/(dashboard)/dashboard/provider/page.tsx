@@ -67,8 +67,7 @@ export default function ProviderDashboardPage() {
         actions={
           <div className="flex gap-2">
             <Link href="/jobs"><Button>Browse Requests</Button></Link>
-            {/* TODO: link to post-service-availability page */}
-            <Button variant="outline" size="sm" disabled>Post Service Availability</Button>
+            <Link href="/provider/post-service"><Button variant="outline" size="sm">Post Service Availability</Button></Link>
           </div>
         }
       />
@@ -96,15 +95,15 @@ export default function ProviderDashboardPage() {
 
         {/* ── Quick actions ── */}
         <div className="flex flex-wrap gap-2">
-          <Link href="/jobs">         <Button variant="outline" size="sm">🔍 Browse Requests</Button></Link>
-          {/* TODO: these pages need to be built */}
-          <Button variant="outline" size="sm" disabled>＋ Post Service Availability</Button>
-          <Button variant="outline" size="sm" disabled>🏠 Post SIL/SDA Vacancy</Button>
-          <Button variant="outline" size="sm" disabled>👷 Post Workforce Request</Button>
-          <Link href="/jobs/my">      <Button variant="outline" size="sm">📋 View Enquiries</Button></Link>
-          <Link href="/messages">     <Button variant="outline" size="sm">💬 Messages</Button></Link>
-          <Link href="/profile/edit"> <Button variant="outline" size="sm">⚙ Update Profile</Button></Link>
-          <Link href="/documents">    <Button variant="outline" size="sm">📄 Documents</Button></Link>
+          <Link href="/jobs">                  <Button variant="outline" size="sm">Browse Requests</Button></Link>
+          <Link href="/provider/post-service"> <Button variant="outline" size="sm">Post Service Availability</Button></Link>
+          <Link href="/provider/sil-vacancy">  <Button variant="outline" size="sm">Post SIL/SDA Vacancy</Button></Link>
+          <Link href="/provider/workforce">    <Button variant="outline" size="sm">Post Workforce Request</Button></Link>
+          <Link href="/provider/listings">     <Button variant="outline" size="sm">My Listings</Button></Link>
+          <Link href="/jobs/my">               <Button variant="outline" size="sm">View Enquiries</Button></Link>
+          <Link href="/messages">              <Button variant="outline" size="sm">Messages</Button></Link>
+          <Link href="/profile/edit">          <Button variant="outline" size="sm">Update Profile</Button></Link>
+          <Link href="/documents">             <Button variant="outline" size="sm">Documents</Button></Link>
         </div>
 
         {/* ── Row 1: LIVE ── */}

@@ -63,7 +63,7 @@ export default function CoordinatorDashboard() {
         actions={
           <div className="flex gap-2">
             <Link href="/jobs/post"><Button>Post New Request</Button></Link>
-            <Link href="/jobs/post?urgent=true"><Button variant="outline" size="sm">⚡ Post Urgent</Button></Link>
+            <Link href="/jobs/post?urgent=1"><Button variant="outline" size="sm">Post Urgent</Button></Link>
           </div>
         }
       />
@@ -92,17 +92,12 @@ export default function CoordinatorDashboard() {
 
         {/* ── Quick actions ── */}
         <div className="flex flex-wrap gap-2">
-          <Link href="/jobs/post">          <Button variant="outline" size="sm">＋ Post Request</Button></Link>
-          <Link href="/jobs/post?urgent=1"> <Button variant="outline" size="sm">⚡ Post Urgent</Button></Link>
-          {/* TODO: replacement request flow */}
-          <Button variant="outline" size="sm" disabled>🔄 Post Replacement</Button>
-          {/* TODO: repeat last request */}
-          <Button variant="outline" size="sm" disabled>↩ Repeat Past Request</Button>
-          <Link href="/jobs/my">            <Button variant="outline" size="sm">📋 View Applications</Button></Link>
-          <Link href="/participants">       <Button variant="outline" size="sm">👤 Participant Cases</Button></Link>
-          <Link href="/messages">           <Button variant="outline" size="sm">💬 Message Applicants</Button></Link>
-          {/* TODO: invite provider flow */}
-          <Button variant="outline" size="sm" disabled>📨 Invite Providers</Button>
+          <Link href="/jobs/post">                          <Button variant="outline" size="sm">Post Request</Button></Link>
+          <Link href="/jobs/post?urgent=1">                 <Button variant="outline" size="sm">Post Urgent</Button></Link>
+          <Link href="/jobs/post?type=replacement">         <Button variant="outline" size="sm">Post Replacement</Button></Link>
+          <Link href="/jobs/my">                            <Button variant="outline" size="sm">View Applications</Button></Link>
+          <Link href="/participants">                       <Button variant="outline" size="sm">Participant Cases</Button></Link>
+          <Link href="/messages">                           <Button variant="outline" size="sm">Message Applicants</Button></Link>
         </div>
 
         {/* ── Row 1: LIVE ── */}

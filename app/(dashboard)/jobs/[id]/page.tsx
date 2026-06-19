@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
+import { ApplyModal } from "@/components/jobs/ApplyModal";
 
 interface Applicant { id: string; userId: string; userName: string; status: string; createdAt: string; }
 interface Message   { id: string; senderId: string; senderName: string; body: string; createdAt: string; }
@@ -42,13 +43,14 @@ export default function JobDetailPage() {
   const router         = useRouter();
   const { user, activeRole } = useAuth();
 
-  const [job,      setJob]      = useState<JobDetail | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
-  const [msgBody,  setMsgBody]  = useState("");
-  const [sending,  setSending]  = useState(false);
-  const [acting,   setActing]   = useState(false);
+  const [job,       setJob]       = useState<JobDetail | null>(null);
+  const [messages,  setMessages]  = useState<Message[]>([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState<string | null>(null);
+  const [msgBody,   setMsgBody]   = useState("");
+  const [sending,   setSending]   = useState(false);
+  const [acting,    setActing]    = useState(false);
+  const [showApply, setShowApply] = useState(false);
   const pollRef      = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -156,7 +158,25 @@ export default function JobDetailPage() {
           </Card>
         )}
 
-        {/* Worker actions */}
+        {/* Worker: Apply button → structured modal */}
+        {isWorker && job.status === "OPEN" && !job.applicants?.some(a => a.userId === user?.id) && (
+          <Card>
+            <CardHeader><CardTitle>Apply for this support request</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <Button onClick={() => setShowApply(true)}>Apply Now</Button>
+              <span style={{ fontSize: 13, color: "#94a3b8" }}>Takes 2–3 minutes — structured 6-step application</span>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Worker: already applied */}
+        {isWorker && job.applicants?.some(a => a.userId === user?.id) && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#166534" }}>
+            ✓ You have applied for this support request.
+          </div>
+        )}
+
+        {/* Worker actions — assigned */}
         {isWorker && job.assignedWorker?.id === user?.id && job.status === "ASSIGNED" && (
           <Card>
             <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
@@ -209,7 +229,7 @@ export default function JobDetailPage() {
               ) : messages.map(m => (
                 <div key={m.id} style={{ padding: "10px 14px", borderRadius: 10, background: m.senderId === user?.id ? "rgba(194,24,91,0.06)" : "#f8fafc", border: "1px solid #e2e8f0" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 4 }}>
-                    {m.senderName} · {new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                    {m.senderName} - {new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
                   </div>
                   <div style={{ fontSize: 14, color: "#1e293b" }}>{m.body}</div>
                 </div>
@@ -231,6 +251,27 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {showApply && (
+        <ApplyModal
+          job={{
+            id: job.id,
+            title: job.title,
+            suburb: job.suburb,
+            state: job.state,
+            scheduledStartAt: job.scheduledStartAt,
+            scheduledEndAt: job.scheduledEndAt,
+            totalHours: job.totalHours,
+            urgency: job.urgency,
+          }}
+          onClose={() => setShowApply(false)}
+          onSuccess={() => {
+            setShowApply(false);
+            loadJob();
+          }}
+        />
+      )}
     </>
   );
 }
+

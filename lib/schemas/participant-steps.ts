@@ -10,6 +10,7 @@ export const participantStep1Schema = z.object({
   suburb:          z.string().optional(),
   postcode:        z.string().optional(),
   state:           z.string().optional(),
+  fullAddress:     z.string().optional(),
 });
 
 export const participantStep2Schema = z.object({
@@ -21,21 +22,22 @@ export const participantStep2Schema = z.object({
 });
 
 export const participantStep3Schema = z.object({
-  primaryDisability:     z.string().optional(),
-  primarySupportNeeds:   z.array(z.string()).optional(),
-  preferredSupportType:  z.string().optional(),
-  mobilitySupportNeeds:  z.array(z.string()).optional(),
-  communicationNeeds:    z.array(z.string()).optional(),
-  behaviourSensoryNotes: z.array(z.string()).optional(),
-  medicalConsiderations: z.array(z.string()).optional(),
-  riskSafetyNotes:       z.string().max(2000).optional(),
-  supportPreferences:    z.array(z.string()).optional(),
-  preferredWorkerGender: z.string().optional(),
-  languagePreference:    z.string().optional(),
-  culturalPreference:    z.string().optional(),
-  skillsRequired:        z.array(z.string()).optional(),
-  preferredDays:         z.array(z.string()).optional(),
-  preferredTime:         z.string().optional(),
+  primaryDisability:       z.string().optional(),
+  primarySupportNeeds:     z.array(z.string()).optional(),
+  preferredSupportType:    z.string().optional(),
+  personalCareSupportLevel: z.string().optional(),
+  mobilitySupportNeeds:    z.array(z.string()).optional(),
+  communicationNeeds:      z.array(z.string()).optional(),
+  behaviourSensoryNotes:   z.array(z.string()).optional(),
+  medicalConsiderations:   z.array(z.string()).optional(),
+  riskSafetyNotes:         z.string().max(2000).optional(),
+  supportPreferences:      z.array(z.string()).optional(),
+  preferredWorkerGender:   z.string().optional(),
+  languagePreference:      z.string().optional(),
+  culturalPreference:      z.string().optional(),
+  skillsRequired:          z.array(z.string()).optional(),
+  preferredDays:           z.array(z.string()).optional(),
+  preferredTime:           z.array(z.string()).optional(),
 });
 
 export const participantStep4Schema = z.object({

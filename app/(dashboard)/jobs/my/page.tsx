@@ -61,7 +61,10 @@ export default function MyJobsPage() {
 
         {/* Status filter pills */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-          {["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"].map(s => (
+          {(canPost
+            ? ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "DRAFT"]
+            : ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+          ).map(s => (
             <button
               key={s}
               type="button"

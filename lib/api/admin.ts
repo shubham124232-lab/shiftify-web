@@ -157,3 +157,25 @@ export function getAuditLog(params?: {
     { params },
   );
 }
+
+// ─── Subscriptions ────────────────────────────────────────────────────────────
+
+export interface AdminSubscription {
+  id: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  user: { id: string; name: string; email: string | null; phone: string | null };
+  plan: { id: string; key: string; name: string; role: string; amountAud: number } | null;
+}
+
+export function listAdminSubscriptions(params?: { status?: string; page?: number; limit?: number }) {
+  return api.get<{ subscriptions: AdminSubscription[]; total: number; page: number; limit: number }>(
+    "/admin/subscriptions",
+    { params },
+  );
+}
+
+export function cancelAdminSubscription(id: string, reason?: string) {
+  return api.patch(`/admin/subscriptions/${id}/cancel`, { reason });
+}

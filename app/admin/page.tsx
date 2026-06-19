@@ -136,11 +136,10 @@ export default function AdminPage() {
           <Link href="/admin/users">        <Button variant="outline" size="sm">👤 Users</Button></Link>
           <Link href="/admin/jobs">         <Button variant="outline" size="sm">📋 Listings</Button></Link>
           <Link href="/admin/verification"> <Button variant="outline" size="sm">✅ Verifications</Button></Link>
-          <Link href="/admin/audit">        <Button variant="outline" size="sm">📜 Audit Logs</Button></Link>
-          <Link href="/admin/broadcast">    <Button variant="outline" size="sm">📢 Broadcast</Button></Link>
-          {/* TODO: build these admin pages */}
+          <Link href="/admin/audit">         <Button variant="outline" size="sm">📜 Audit Logs</Button></Link>
+          <Link href="/admin/broadcast">     <Button variant="outline" size="sm">📢 Broadcast</Button></Link>
+          <Link href="/admin/subscriptions"> <Button variant="outline" size="sm">💳 Subscriptions</Button></Link>
           <Button variant="outline" size="sm" disabled>🚨 Complaints</Button>
-          <Button variant="outline" size="sm" disabled>💳 Subscriptions</Button>
           <Button variant="outline" size="sm" disabled>📊 Reports</Button>
           <Button variant="outline" size="sm" disabled>⚙ Platform Settings</Button>
         </div>
@@ -213,13 +212,14 @@ export default function AdminPage() {
         </div>
 
         {/* ── Admin page links ── */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { href: "/admin/users",        icon: "👤", label: "Users",         desc: "Manage all accounts"     },
-            { href: "/admin/jobs",         icon: "📋", label: "Listings",      desc: "All load board posts"    },
-            { href: "/admin/verification", icon: "✅", label: "Verifications", desc: "Document review queue"   },
-            { href: "/admin/audit",        icon: "📜", label: "Audit Log",     desc: "Platform activity trail" },
-            { href: "/admin/broadcast",    icon: "📢", label: "Broadcast",     desc: "Send platform notices"   },
+            { href: "/admin/users",         icon: "👤", label: "Users",         desc: "Manage all accounts"     },
+            { href: "/admin/jobs",          icon: "📋", label: "Listings",      desc: "All load board posts"    },
+            { href: "/admin/verification",  icon: "✅", label: "Verifications", desc: "Document review queue"   },
+            { href: "/admin/subscriptions", icon: "💳", label: "Subscriptions", desc: "Manage billing & plans"  },
+            { href: "/admin/audit",         icon: "📜", label: "Audit Log",     desc: "Platform activity trail" },
+            { href: "/admin/broadcast",     icon: "📢", label: "Broadcast",     desc: "Send platform notices"   },
           ].map((item) => (
             <Link key={item.href} href={item.href}>
               <div className="rounded-xl border border-slate-200 bg-white p-4 hover:border-brand-400 hover:shadow-sm transition-all cursor-pointer">

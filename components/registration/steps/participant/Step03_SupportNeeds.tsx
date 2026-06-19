@@ -13,12 +13,8 @@ const MEDICAL_NOTES       = ['Epilepsy', 'Diabetes management', 'Complex medicat
 const SUPPORT_PREFERENCES = ['Speaks specific language', 'Cultural background match', 'Has experience with my disability type', 'Non-smoker', 'Pet-friendly', 'Driving required'];
 const SKILL_TAGS          = ['Manual handling', 'Hoist operation', 'Medication administration', 'PEG feeding', 'Behaviour support', 'Positive behaviour support', 'Sign language', 'Swimming / aquatic', 'Cooking / meal prep', 'Community access'];
 const DAYS                = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const TIME_PREFS          = [
-  { value: 'MORNING',   label: 'Morning (6am–12pm)' },
-  { value: 'AFTERNOON', label: 'Afternoon (12pm–6pm)' },
-  { value: 'EVENING',   label: 'Evening (6pm–10pm)' },
-  { value: 'OVERNIGHT', label: 'Overnight (10pm–6am)' },
-];
+const TIME_PREFS          = ['Morning (6am–12pm)', 'Afternoon (12pm–6pm)', 'Evening (6pm–10pm)', 'Overnight (10pm–6am)'];
+const PERSONAL_CARE_LEVELS = ['None', 'Basic assistance', 'Moderate assistance', 'Full assistance', 'High intensity support'];
 
 function ChipPicker({ name, options, label }: { name: string; options: string[]; label: string }) {
   const { control } = useFormContext();
@@ -46,8 +42,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
 }
 
 export function ParticipantStep03_SupportNeeds() {
-  const { register, watch } = useFormContext();
-  const preferredTime = watch('preferredTime') as string;
+  const { register } = useFormContext();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -83,6 +78,15 @@ export function ParticipantStep03_SupportNeeds() {
             );
           })}
         </div>
+      </div>
+
+      {/* Personal Care Support Level */}
+      <div>
+        <label style={labelStyle}>Personal Care Support Level</label>
+        <select {...register('personalCareSupportLevel')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          {PERSONAL_CARE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
       </div>
 
       <ChipPicker name="mobilitySupportNeeds" options={MOBILITY_NEEDS} label="Mobility Support Needs" />
@@ -134,17 +138,7 @@ export function ParticipantStep03_SupportNeeds() {
         <ChipPicker name="preferredDays" options={DAYS} label="Preferred Days" />
 
         <div style={{ marginTop: 12 }}>
-          <label style={labelStyle}>Preferred Time of Day</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {TIME_PREFS.map(t => (
-              <label key={t.value} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 14px',
-                border: `1.5px solid ${preferredTime === t.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                borderRadius: 8, background: preferredTime === t.value ? 'rgba(79,70,229,0.05)' : '#fff', fontSize: 13 }}>
-                <input type="radio" value={t.value} {...register('preferredTime')} style={{ accentColor: 'var(--clr-primary)' }} />
-                {t.label}
-              </label>
-            ))}
-          </div>
+          <ChipPicker name="preferredTime" options={TIME_PREFS} label="Preferred Time of Day (select all that apply)" />
         </div>
       </div>
     </div>

@@ -9,12 +9,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const ADMIN_NAV = [
-  { href: "/admin",              label: "Home" },
-  { href: "/admin/users",        label: "All Users" },
-  { href: "/admin/verification", label: "Suspended Users" },
-  { href: "/admin/jobs",         label: "Jobs" },
-  { href: "/admin/broadcast",    label: "Notifications" },
-  { href: "/admin/audit",        label: "Audit Log" },
+  { href: "/admin",                  label: "Home" },
+  { href: "/admin/users",            label: "All Users" },
+  { href: "/admin/verification",     label: "Suspended Users" },
+  { href: "/admin/jobs",             label: "Jobs" },
+  { href: "/admin/subscriptions",    label: "Subscriptions" },
+  { href: "/admin/broadcast",        label: "Notifications" },
+  { href: "/admin/audit",            label: "Audit Log" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

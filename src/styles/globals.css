@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --clr-primary:        #C2185B;
+  --clr-primary-dark:   #880E4F;
+  --clr-primary-light:  #F8BBD0;
+  --clr-primary-xlight: #FFF0F5;
+  --clr-emergency:      #D32F2F;
+  --clr-emergency-dark: #B71C1C;
+  --clr-text:           #1A1A2E;
+  --clr-muted:          #6B7280;
+  --clr-border:         #E5E7EB;
+  --clr-surface:        #FFFFFF;
+  --shadow-sm:          0 1px 3px 0 rgba(0,0,0,0.10);
+  --shadow-md:          0 4px 6px -1px rgba(0,0,0,0.10);
+  --shadow-lg:          0 10px 15px -3px rgba(0,0,0,0.10);
+  --card-radius:        1rem;
+  --btn-radius:         0.5rem;
+}

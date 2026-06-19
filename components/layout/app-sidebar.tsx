@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, FilePlus, Search, Briefcase,
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
-  CreditCard,
+  CreditCard, Building2, Home, Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -42,22 +42,27 @@ function navForRole(role: string): NavItem[] {
     case "PROVIDER":
       return [
         dash,
-        { href: "/jobs",         label: "Browse Jobs",    icon: Search },
-        { href: "/jobs/my",      label: "Team Jobs",      icon: Briefcase },
-        { href: "/invoices",     label: "Invoices",       icon: Receipt },
-        { href: "/team",         label: "My Team",        icon: Users },
-        { href: "/documents",    label: "Documents",      icon: FileText },
-        { href: "/messages",     label: "Messages",       icon: MessageSquare },
+        { href: "/jobs",                      label: "Browse Requests",      icon: Search },
+        { href: "/provider/listings",         label: "My Listings",          icon: ClipboardList },
+        { href: "/provider/post-service",     label: "Post Service",         icon: FilePlus },
+        { href: "/provider/sil-vacancy",      label: "SIL / SDA Vacancy",   icon: Home },
+        { href: "/provider/workforce",        label: "Workforce Requests",   icon: Wrench },
+        { href: "/jobs/my",                   label: "Enquiries",            icon: Briefcase },
+        { href: "/team",                      label: "My Team",              icon: Users },
+        { href: "/invoices",                  label: "Invoices",             icon: Receipt },
+        { href: "/documents",                 label: "Documents",            icon: FileText },
+        { href: "/messages",                  label: "Messages",             icon: MessageSquare },
       ];
     case "COORDINATOR":
       return [
         dash,
-        { href: "/participants", label: "My Participants", icon: UserCheck },
-        { href: "/jobs/my",      label: "Posted Requests", icon: ClipboardList },
-        { href: "/jobs/post",    label: "Post Request",    icon: FilePlus },
-        { href: "/invoices",     label: "Invoices",        icon: Receipt },
-        { href: "/documents",    label: "Documents",       icon: FileText },
-        { href: "/messages",     label: "Messages",        icon: MessageSquare },
+        { href: "/participants",         label: "Participant Cases",  icon: UserCheck },
+        { href: "/jobs/my",              label: "My Requests",        icon: ClipboardList },
+        { href: "/jobs/post",            label: "Post Request",       icon: FilePlus },
+        { href: "/jobs?urgent=1",        label: "Urgent Requests",    icon: BarChart2 },
+        { href: "/invoices",             label: "Invoices",           icon: Receipt },
+        { href: "/documents",            label: "Documents",          icon: FileText },
+        { href: "/messages",             label: "Messages",           icon: MessageSquare },
       ];
     case "PLAN_MANAGER":
       return [

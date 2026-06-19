@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

@@ -42,7 +42,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
 }
 
 export function ParticipantStep03_SupportNeeds() {
-  const { register } = useFormContext();
+  const { register, watch } = useFormContext();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

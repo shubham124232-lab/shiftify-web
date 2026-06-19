@@ -48,4 +48,24 @@ export function ProviderStep07_ServiceAreas() {
           ].map(opt => (
             <label key={opt.value} style={{
               flex: 1, padding: '10px 6px', borderRadius: 10, textAlign: 'center', cursor: 'pointer',
-              border: `1.5px solid ${mode ===
+              border: `1.5px solid ${mode === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+              background: mode === opt.value ? 'rgba(79,70,229,0.05)' : '#fff',
+              fontSize: 13, fontWeight: 500,
+            }}>
+              <input type="radio" value={opt.value} {...register('serviceMode')} style={{ display: 'none' }} />
+              {opt.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Travel radius */}
+      <div>
+        <label style={labelStyle}>Maximum Travel Radius (km)</label>
+        <input type="number" min={0} max={500} {...register('travelRadiusKm', { valueAsNumber: true })}
+          placeholder="e.g. 50" style={{ width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' as const }} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Leave blank if you serve all of Australia.</p>
+      </div>
+    </div>
+  );
+}

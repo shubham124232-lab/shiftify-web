@@ -99,4 +99,3 @@ export function listPmConnections() {
   return api.get<{ connections: unknown[] }>("/pm/connections").then((r) => r.connections);
 }
 
-export function req

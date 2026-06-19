@@ -431,31 +431,3 @@ export default function JobsBrowsePage() {
     </>
   );
 }
-     {jobs.map(job => (
-                    <JobCard
-                      key={job.id}
-                      job={job}
-                      canApply={canApply}
-                      applying={applying === job.id}
-                      onApply={() => handleApply(job.id)}
-                      onView={() => router.push(`/jobs/${job.id}`)}
-                    />
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {total > 20 && (
-                  <div className="flex justify-center gap-3 mt-8">
-                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-                    <span className="flex items-center text-sm text-slate-500">Page {page} of {Math.ceil(total / 20)}</span>
-                    <Button variant="ghost" size="sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(p => p + 1)}>Next</Button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}

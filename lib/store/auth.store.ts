@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, setApiToken } from '@/lib/api';
+import { api, setApiToken, setRefreshToken } from '@/lib/api';
 import {
   User,
   UserRole,
@@ -64,8 +64,9 @@ function decodeJwt(token: string): Record<string, unknown> {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function applyTokens(set: (partial: Partial<AuthState>) => void, token: string, user: User) {
+function applyTokens(set: (partial: Partial<AuthState>) => void, token: string, user: User, refreshToken?: string) {
   setApiToken(token);
+  if (refreshToken) setRefreshToken(refreshToken);
   if (typeof document !== 'undefined') {
     document.cookie = 'shiftify_is_auth=true; path=/; SameSite=Lax';
   }
@@ -125,7 +126,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const data = await api.post<LoginResponse>('/auth/login', payload);
-      applyTokens(set, data.accessToken, data.user);
+      applyTokens(set, data.accessToken, data.user, data.refreshToken);
       return data;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Login failed';
@@ -140,7 +141,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const data = await api.post<RegisterResponse>('/auth/register', payload);
-      applyTokens(set, data.accessToken, data.user);
+      applyTokens(set, data.accessToken, data.user, data.refreshToken);
       return data;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Registration failed';

@@ -13,7 +13,8 @@ import axios, {
 // ─── Token store (accessed without importing Zustand) ─────────────────────────
 // The auth store calls setApiToken / clearApiToken after login/logout/refresh.
 
-let _accessToken: string | null = null;
+let _accessToken:  string | null = null;
+let _refreshToken: string | null = null;
 
 export function setApiToken(token: string | null): void {
   _accessToken = token;
@@ -21,6 +22,14 @@ export function setApiToken(token: string | null): void {
 
 export function getApiToken(): string | null {
   return _accessToken;
+}
+
+export function setRefreshToken(token: string | null): void {
+  _refreshToken = token;
+}
+
+export function getRefreshToken(): string | null {
+  return _refreshToken;
 }
 
 // ─── Error class ──────────────────────────────────────────────────────────────
@@ -74,13 +83,16 @@ async function silentRefresh(): Promise<string | null> {
 
   _refreshing = (async () => {
     try {
-      const res = await axios.post<{ data: { accessToken: string } }>(
+      const res = await axios.post<{ data: { accessToken: string; refreshToken?: string } }>(
         `${BASE_URL}/auth/refresh`,
-        {},
+        // Send token in body as fallback for cross-site cookie environments
+        _refreshToken ? { refreshToken: _refreshToken } : {},
         { withCredentials: true },
       );
       const token = res.data?.data?.accessToken ?? null;
       if (token) setApiToken(token);
+      const rt = res.data?.data?.refreshToken ?? null;
+      if (rt) setRefreshToken(rt);
       return token;
     } catch {
       setApiToken(null);
@@ -142,13 +154,18 @@ export const api = {
   post<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
     return http.post<Envelope<T>>(url, body, config).then((r) => r.data.data);
   },
-  put<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
-    return http.put<Envelope<T>>(url, body, config).then((r) => r.data.data);
-  },
   patch<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
     return http.patch<Envelope<T>>(url, body, config).then((r) => r.data.data);
   },
+  delete<T>(url: string, config?: AxiosRequestConfig) {
+    return http.delete<Envelope<T>>(url, config).then((r) => r.data.data);
+  },
+  /** alias — some agent-written pages use api.del */
   del<T>(url: string, config?: AxiosRequestConfig) {
     return http.delete<Envelope<T>>(url, config).then((r) => r.data.data);
+  },
+  /** alias — some agent-written pages use api.put */
+  put<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    return http.put<Envelope<T>>(url, body, config).then((r) => r.data.data);
   },
 };

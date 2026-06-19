@@ -111,9 +111,10 @@ export interface LoginPendingResponse {
 
 // Step 2 response — OTP confirmed, full session granted.
 export interface LoginResponse {
-  accessToken: string;
-  user:        User;
-  _dev_code?:  string;   // present in dev mode only
+  accessToken:  string;
+  refreshToken?: string;
+  user:         User;
+  _dev_code?:   string;   // present in dev mode only
 }
 
 export interface RegisterPayload {
@@ -126,9 +127,10 @@ export interface RegisterPayload {
 }
 
 export interface RegisterResponse {
-  user:        User;
-  accessToken: string;
-  _dev_code?:  string;
+  user:          User;
+  accessToken:   string;
+  refreshToken?: string;
+  _dev_code?:    string;
 }
 
 export interface ForgotPasswordPayload {

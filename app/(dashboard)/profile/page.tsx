@@ -101,6 +101,9 @@ export default function ProfilePage() {
   const [completion, setCompletion] = useState<number>(0);
 
   useEffect(() => {
+    // Guard lives inside the effect — fires on every mount and activeRole change,
+    // not gated on the `user` object reference (which stays stable after login
+    // and would prevent a fresh fetch after wizard completion).
     if (!user) return;
     setName(user.name ?? "");
     setEmail((user as any).email ?? "");
@@ -159,7 +162,7 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setPageLoading(false));
-  }, [user, activeRole]);
+  }, [activeRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Avatar upload ──────────────────────────────────────────────────────────
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {

@@ -62,13 +62,45 @@ function decodeJwt(token: string): Record<string, unknown> {
   }
 }
 
+// ─── Session storage key for persisting the access token across reloads ───────
+const ACCESS_TOKEN_KEY = 'shiftify_access_token';
+
+function saveAccessToken(token: string): void {
+  if (typeof sessionStorage === 'undefined') return;
+  const claims = decodeJwt(token);
+  const exp = typeof claims.exp === 'number' ? claims.exp * 1000 : Date.now() + 86400_000;
+  sessionStorage.setItem(ACCESS_TOKEN_KEY, JSON.stringify({ token, exp }));
+}
+
+function loadAccessToken(): string | null {
+  if (typeof sessionStorage === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(ACCESS_TOKEN_KEY);
+    if (!raw) return null;
+    const { token, exp } = JSON.parse(raw) as { token: string; exp: number };
+    // Treat as expired 60s early so we never hand out a token that expires mid-request
+    if (Date.now() > exp - 60_000) {
+      sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+      return null;
+    }
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+function clearAccessToken(): void {
+  if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function applyTokens(set: (partial: Partial<AuthState>) => void, token: string, user: User, refreshToken?: string) {
   setApiToken(token);
+  saveAccessToken(token);
   if (refreshToken) setRefreshToken(refreshToken);
   if (typeof document !== 'undefined') {
-    document.cookie = 'shiftify_is_auth=true; path=/; SameSite=Lax';
+    document.cookie = 'shiftify_is_auth=true; path=/; max-age=604800; SameSite=Lax';
   }
   set({ accessToken: token, user, loading: false, error: null, initialized: false });
   refreshUserMe(set, user);
@@ -157,6 +189,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async logout() {
     setApiToken(null);
     _initPromise = null;
+    clearAccessToken();
     if (typeof window !== 'undefined') {
       document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
       localStorage.removeItem(SUB_STORAGE_KEY);
@@ -276,7 +309,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // fire the PENDING redirect only after the real status is confirmed.
 
   async silentInit() {
-    if (get().accessToken) return;           // already hydrated
+    if (get().accessToken) return;           // already hydrated in this tab
 
     // No auth cookie → definitely logged out, skip loading spinner entirely
     if (typeof document !== 'undefined' && !document.cookie.includes('shiftify_is_auth=true')) {
@@ -289,8 +322,33 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     _initPromise = (async () => {
       set({ loading: true });
       try {
+        // ── Fast path: valid access token already in sessionStorage ────────────
+        // Access tokens last 1 day — no need to call /auth/refresh on every reload.
+        const stored = loadAccessToken();
+        if (stored) {
+          setApiToken(stored);
+          const claims = decodeJwt(stored);
+          const jwtUser: User = {
+            id:          String(claims.sub ?? ''),
+            email:       (claims.email as string) ?? null,
+            phone:       null,
+            username:    null,
+            name:        (claims.name as string) ?? '',
+            accountType: AccountType.SELF,
+            status:      (claims.status as UserStatus) ?? UserStatus.PENDING,
+            adminTier:   null,
+            roles:       (claims.roles as UserRole[]) ?? [],
+            activeRole:  (claims.activeRole as UserRole) ?? (claims.roles as UserRole[])?.[0],
+          };
+          set({ user: jwtUser, accessToken: stored, loading: false, error: null });
+          refreshUserMe(set, jwtUser);
+          return;
+        }
+
+        // ── Slow path: token missing or expired → call /auth/refresh ──────────
         const refresh = await api.post<RefreshResponse>('/auth/refresh', {});
         setApiToken(refresh.accessToken);
+        saveAccessToken(refresh.accessToken);
 
         // Decode JWT synchronously for immediate render — zero extra latency.
         const claims = decodeJwt(refresh.accessToken);
@@ -308,7 +366,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         };
 
         if (typeof document !== 'undefined') {
-          document.cookie = 'shiftify_is_auth=true; path=/; SameSite=Lax';
+          document.cookie = 'shiftify_is_auth=true; path=/; max-age=604800; SameSite=Lax';
         }
 
         // Render the dashboard immediately with JWT-derived user data.
@@ -320,6 +378,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       } catch {
         setApiToken(null);
+        clearAccessToken();
         if (typeof document !== 'undefined') {
           document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
         }

@@ -4,10 +4,11 @@ import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store/auth.store';
 import { api } from '@/lib/api';
 export default function VerifyPage() {
   const router = useRouter();
-  const { user, activeRole, silentInit } = useAuth();
+  const { user, activeRole } = useAuth();
 
   const [code,      setCode]      = useState(['', '', '', '', '', '']);
   const [devCode,   setDevCode]   = useState<string | null>(null);
@@ -55,7 +56,8 @@ export default function VerifyPage() {
     try {
       await api.post('/auth/verify/confirm', { channel: 'phone', code: fullCode });
       sessionStorage.removeItem('shiftify_dev_otp');
-      await silentInit(); // refresh user state
+      // silentInit() exits early when accessToken is already set, so set phoneVerified directly
+      useAuthStore.setState({ phoneVerified: true });
       // All roles go to the profile wizard — participants activate after wizard completion
       router.replace('/setup/profile/3');
     } catch (err: any) {

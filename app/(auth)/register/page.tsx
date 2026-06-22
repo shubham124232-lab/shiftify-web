@@ -260,9 +260,15 @@ export default function RegisterPage() {
     setOtpError(null); setOtpLoading(true);
     try {
       await api.post('/auth/verify/confirm', { channel:'phone', code });
+      // Mark phone verified in store immediately — silentInit() returns early when
+      // accessToken is already set, so we update the flag directly.
+      useAuthStore.setState({ phoneVerified: true });
       // Activate free roles immediately after OTP; paid roles activate after payment
-      if (FREE_ROLES.has(role!)) await api.post('/subscriptions/activate', {});
-      await silentInit();
+      if (FREE_ROLES.has(role!)) {
+        await api.post('/subscriptions/activate', {});
+        const current = useAuthStore.getState().user;
+        if (current) useAuthStore.setState({ user: { ...current, status: UserStatus.ACTIVE } });
+      }
       setShowOtp(false);
       // All roles go through wizard first, then plan/payment for paid roles
       store.setRole(role!, STEP_COMPONENTS[role!].length);

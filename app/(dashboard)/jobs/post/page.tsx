@@ -45,9 +45,12 @@ const DELIVERY_MODES = [
 ];
 
 const FUNDING_TYPES = [
-  { value: "SELF", label: "Self-managed" },
-  { value: "PLAN", label: "Plan-managed" },
-  { value: "NDIA", label: "NDIA-managed" },
+  { value: "SELF_MANAGED",  label: "Self-managed" },
+  { value: "PLAN_MANAGED",  label: "Plan-managed" },
+  { value: "NDIA_MANAGED",  label: "NDIA-managed" },
+  { value: "PRIVATE",       label: "Private" },
+  { value: "MIXED",         label: "Mixed" },
+  { value: "DISCUSS",       label: "To be discussed" },
 ];
 
 const QUALIFICATIONS = [
@@ -146,7 +149,7 @@ const defaultData: WizardData = {
   suburb: "", state: "NSW", postcode: "", serviceDeliveryMode: "AT_HOME",
   participantId: "", postingAs: "SELF", participantContext: "", complexityLevel: "LOW", personalCareSupportLevel: "", mobilityNeeds: "", behaviourNotes: "", medicalNotes: "", riskSafetyNotes: "",
   workerType: "EITHER", requiredQualifications: [], genderPreference: "", languagePreference: "", experienceLevel: "ANY",
-  budgetType: "HOURLY", hourlyRate: "", totalBudget: "", fundingType: "PLAN",
+  budgetType: "HOURLY", hourlyRate: "", totalBudget: "", fundingType: "PLAN_MANAGED",
   visibleTo: "BOTH", geographicRadius: "25", allowDirectApplications: true, allowQuotes: true, maxApplicants: "", showParticipantName: true, acceptBackupWorker: false, asDraft: false,
 };
 

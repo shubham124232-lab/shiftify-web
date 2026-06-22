@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { UserStatus } from '@/lib/types';
-import { api, setApiToken } from '@/lib/api';
+import { api } from '@/lib/api';
 import { PageHeader } from '@/components/dashboard/page-header';
 
 interface Sub {
@@ -31,7 +31,7 @@ const STATUS_CHIP: Record<string, { bg: string; color: string; label: string }> 
 
 export default function SubscriptionPage() {
   const router = useRouter();
-  const { activeRole, silentInit } = useAuth();
+  const { activeRole } = useAuth();
   const setUser = useAuthStore(s => s.updateProfile);
 
   const [sub,          setSub]          = useState<Sub | null>(null);
@@ -57,8 +57,6 @@ export default function SubscriptionPage() {
     try {
       await api.post('/subscriptions/activate', { planId });
       setUser({ status: UserStatus.ACTIVE } as any); // immediate — banner hides instantly
-      setApiToken(null);
-      silentInit(); // background
       setUpgradeOk(planId);
       const res = await api.get<{ subscription: Sub | null }>('/subscriptions/me');
       setSub((res as { subscription: Sub | null }).subscription);

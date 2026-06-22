@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/lib/store/auth.store";
 import { api } from "@/lib/api";
 import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -52,7 +53,7 @@ function Textarea({ value, onChange, rows = 3, placeholder }: {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { user, activeRole, silentInit, updateProfile } = useAuth();
+  const { user, activeRole, updateProfile } = useAuth();
 
   // ── Basic contact fields ──────────────────────────────────────────────────
   const [name,  setName]  = useState("");
@@ -238,7 +239,6 @@ export default function ProfilePage() {
       }
 
       setSuccess(true);
-      silentInit(); // background — store already updated from PATCH response
     } catch (err: any) {
       setError(err?.message ?? "Save failed.");
     } finally {
@@ -272,9 +272,9 @@ export default function ProfilePage() {
     try {
       await api.post("/auth/verify/confirm", { channel: "phone", code: otpCode.trim() });
       setPhoneVerified(true);
+      useAuthStore.setState({ phoneVerified: true });
       setVerifyStep("done");
       setOtpCode("");
-      silentInit(); // background
     } catch (err: any) { setOtpError(err?.message ?? "Incorrect code."); }
     finally { setOtpConfirming(false); }
   }

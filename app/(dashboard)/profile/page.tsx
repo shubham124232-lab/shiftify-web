@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, FormEvent } from "react";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { presignUpload, putFileToR2 } from "@/lib/api/profile";
@@ -541,9 +542,9 @@ export default function ProfilePage() {
 
             {/* Edit full profile link */}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <a href="/profile/edit" style={{ fontSize: 13, color: "var(--clr-primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+              <Link href="/profile/edit" style={{ fontSize: 13, color: "var(--clr-primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
                 Edit full profile <i className="bi bi-arrow-right" />
-              </a>
+              </Link>
             </div>
 
             {/* Save button */}

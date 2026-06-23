@@ -38,9 +38,9 @@ export function ParticipantStep01_Personal() {
         <label style={labelStyle}>Age Group</label>
         <select {...register('ageGroup')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>
-          {['0–5 years', '6–12 years', '13–17 years', '18–25 years', '26–40 years', '41–60 years', '61–75 years', '75+ years'].map(a => (
-            <option key={a} value={a}>{a}</option>
-          ))}
+          <option value="CHILD">Under 18 (Child / Young Person)</option>
+          <option value="ADULT">18–64 (Adult)</option>
+          <option value="SENIOR">65+ (Senior)</option>
         </select>
       </div>
 

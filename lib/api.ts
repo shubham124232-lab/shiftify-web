@@ -48,6 +48,33 @@ export class ApiError extends Error {
   }
 }
 
+// ─── Friendly error messages ─────────────────────────────────────────────────
+// Maps raw backend/Zod error codes to plain-English messages a user can act on.
+
+function friendlyMessage(status: number, code: string, raw: string): string {
+  if (status === 429) return 'Too many requests — please wait a moment and try again.';
+  if (status === 0  ) return 'Could not reach the server. Please check your internet connection.';
+
+  switch (code) {
+    case 'VALIDATION_ERROR':
+      return 'Some information you entered is invalid. Please review your answers and try again.';
+    case 'CONFLICT_ERROR':
+      // Conflict messages (e.g. "ABN already registered") are already human-readable.
+      return raw;
+    case 'NOT_FOUND':
+      return 'We couldn\'t find what you were looking for. Please refresh the page and try again.';
+    case 'UNAUTHORIZED':
+      return 'Your session has expired. Please log in again.';
+    case 'FORBIDDEN':
+      return 'You don\'t have permission to do that.';
+    default:
+      // For any other server error, show a generic message — never expose raw Zod internals.
+      return status >= 500
+        ? 'Something went wrong on our end. Please try again in a moment.'
+        : raw;
+  }
+}
+
 // ─── Axios instance ───────────────────────────────────────────────────────────
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
@@ -135,11 +162,10 @@ http.interceptors.response.use(
     // Normalise to ApiError
     const status = error.response?.status ?? 0;
     const data   = (error.response?.data as { error?: { code?: string; message?: string; details?: unknown } } | undefined)?.error;
-    const message =
-      status === 429
-        ? 'Too many requests — please wait a moment and try again.'
-        : (data?.message ?? error.message);
-    throw new ApiError(status, data?.code ?? 'NETWORK_ERROR', message, data?.details);
+    const code   = data?.code ?? 'NETWORK_ERROR';
+    const raw    = data?.message ?? error.message;
+    const message = friendlyMessage(status, code, raw);
+    throw new ApiError(status, code, message, data?.details);
   },
 );
 

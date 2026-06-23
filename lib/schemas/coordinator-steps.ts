@@ -7,7 +7,7 @@ export const coordStep1Schema = z.object({
   roleType:           z.enum(['INDEPENDENT', 'AGENCY_EMPLOYED'], { required_error: 'Role type is required' }),
   organisationName:   z.string().optional(),
   abn:                z.string().optional(),
-  ndisRegistered:     z.boolean().optional(),
+  ndisRegistered:     z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
   ndisProviderNumber: z.string().optional(),
   yearsExperience:    z.string().min(1, 'Years of experience is required'),
 }).superRefine((val, ctx) => {

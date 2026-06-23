@@ -4,46 +4,44 @@ import { useFormContext, Controller } from 'react-hook-form';
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const COORD_LEVELS = [
-  { value: 'SUPPORT_COORDINATION',         label: 'Support Coordination',            desc: 'Assist participants to implement their NDIS plan effectively' },
-  { value: 'SPECIALIST_SUPPORT_COORD',     label: 'Specialist Support Coordination', desc: 'Complex needs requiring specialist expertise' },
-  { value: 'COORDINATION_OF_SUPPORTS',     label: 'Coordination of Supports',        desc: 'Low-complexity plan navigation and provider connection' },
+  { value: 'SUPPORT_CONNECTION',       label: 'Support Connection (Level 1)',          desc: 'Help participants identify and connect with providers' },
+  { value: 'SUPPORT_COORDINATION',     label: 'Support Coordination (Level 2)',        desc: 'Assist participants to implement their NDIS plan' },
+  { value: 'SPECIALIST_SUPPORT_COORD', label: 'Specialist Support Coordination (Level 3)', desc: 'Complex needs requiring specialist expertise' },
 ];
 
 const COMPLEXITY = [
-  { value: 'LOW',      label: 'Low Complexity',    desc: 'Straightforward plans and stable needs' },
-  { value: 'MEDIUM',   label: 'Medium Complexity', desc: 'Multiple providers and moderate coordination' },
-  { value: 'HIGH',     label: 'High Complexity',   desc: 'Specialist needs, crisis, or complex circumstances' },
-  { value: 'ALL',      label: 'All Levels',        desc: 'Comfortable with any participant complexity' },
+  { value: 'PSYCHOSOCIAL_DISABILITY',  label: 'Psychosocial Disability' },
+  { value: 'AUTISM',                   label: 'Autism' },
+  { value: 'PHYSICAL_DISABILITY',      label: 'Physical Disability' },
+  { value: 'INTELLECTUAL_DISABILITY',  label: 'Intellectual Disability' },
+  { value: 'COMPLEX_BEHAVIOUR',        label: 'Complex Behaviour' },
+  { value: 'HIGH_MEDICAL_NEEDS',       label: 'High Medical Needs' },
 ];
 
 const EXTRA_SERVICES = [
-  { value: 'CRISIS_SUPPORT',          label: 'Crisis Support' },
-  { value: 'HOUSING_TRANSITIONS',     label: 'Housing Transitions' },
-  { value: 'SDA_SIL_SETUP',           label: 'SDA / SIL Setup' },
-  { value: 'HOSPITAL_DISCHARGE',      label: 'Hospital Discharge' },
-  { value: 'RURAL_REMOTE',            label: 'Rural / Remote' },
-  { value: 'ABORIGINAL_TORRES_STRAIT',label: 'Aboriginal & Torres Strait Islander' },
-  { value: 'CALD_COMMUNITIES',        label: 'CALD Communities' },
-  { value: 'ADVOCACY_REFERRAL',       label: 'Advocacy & Referral' },
+  { value: 'PLAN_REVIEWS_SUPPORT',     label: 'Plan Reviews Support' },
+  { value: 'CRISIS_MANAGEMENT',        label: 'Crisis Management' },
+  { value: 'HOUSING_NAVIGATION',       label: 'Housing Navigation (SIL / SDA)' },
+  { value: 'PROVIDER_SOURCING',        label: 'Provider Sourcing' },
+  { value: 'CAPACITY_BUILDING',        label: 'Capacity Building' },
 ];
 
-function ChipGroup({ name, options, defaultValue = [] }: { name: string; options: { value: string; label: string; desc?: string }[]; defaultValue?: string[] }) {
+function ChipGroup({ name, options }: { name: string; options: { value: string; label: string; desc?: string }[] }) {
   const { control, formState: { errors } } = useFormContext();
   const err = (errors[name]?.message) as string | undefined;
   return (
-    <Controller name={name} control={control} defaultValue={defaultValue} render={({ field }) => (
+    <Controller name={name} control={control} defaultValue={[]} render={({ field }) => (
       <>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {options.map(o => {
             const sel = (field.value ?? []).includes(o.value);
             return (
-              <button key={o.value} type="button"
+              <button key={o.value} type="button" title={o.desc}
                 onClick={() => {
                   const cur = field.value ?? [];
                   field.onChange(sel ? cur.filter((s: string) => s !== o.value) : [...cur, o.value]);
                 }}
-                title={o.desc}
-                style={{ padding: '7px 13px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                style={{ padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
                   border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
                   background: sel ? 'var(--clr-primary)' : '#fff',
                   color: sel ? '#fff' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
@@ -60,26 +58,23 @@ function ChipGroup({ name, options, defaultValue = [] }: { name: string; options
 
 export function CoordStep03_Experience() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* Coordination levels */}
       <div>
-        <label style={labelStyle}>Coordination Level(s) <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Support Coordination Level(s) Offered <span style={{ color: '#ef4444' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select all service types you are qualified to provide.</p>
         <ChipGroup name="coordinationLevels" options={COORD_LEVELS} />
       </div>
 
-      {/* Complexity */}
       <div>
-        <label style={labelStyle}>Participant Complexity <span style={{ color: '#ef4444' }}>*</span></label>
-        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select the complexity levels you are comfortable supporting.</p>
+        <label style={labelStyle}>Participant Complexity Experience <span style={{ color: '#ef4444' }}>*</span></label>
+        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select the disability and complexity types you are experienced with.</p>
         <ChipGroup name="participantComplexity" options={COMPLEXITY} />
       </div>
 
-      {/* Additional services */}
       <div>
-        <label style={labelStyle}>Specialist / Additional Services</label>
-        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Optional — select any specialist areas you cover.</p>
+        <label style={labelStyle}>Services Offered Beyond Coordination</label>
+        <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Optional — select any additional services you provide.</p>
         <ChipGroup name="additionalServices" options={EXTRA_SERVICES} />
       </div>
 

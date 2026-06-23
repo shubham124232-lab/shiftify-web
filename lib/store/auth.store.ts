@@ -65,11 +65,29 @@ function decodeJwt(token: string): Record<string, unknown> {
 // ─── Session storage key for persisting the access token across reloads ───────
 const ACCESS_TOKEN_KEY = 'shiftify_access_token';
 
+const USER_META_KEY = 'shiftify_user_meta';
+
 function saveAccessToken(token: string): void {
   if (typeof sessionStorage === 'undefined') return;
   const claims = decodeJwt(token);
   const exp = typeof claims.exp === 'number' ? claims.exp * 1000 : Date.now() + 86400_000;
   sessionStorage.setItem(ACCESS_TOKEN_KEY, JSON.stringify({ token, exp }));
+}
+
+function saveUserMeta(profileCompletion: number | null, profileStep: number): void {
+  if (typeof sessionStorage === 'undefined') return;
+  sessionStorage.setItem(USER_META_KEY, JSON.stringify({ profileCompletion, profileStep }));
+}
+
+function loadUserMeta(): { profileCompletion: number | null; profileStep: number } {
+  if (typeof sessionStorage === 'undefined') return { profileCompletion: null, profileStep: 0 };
+  try {
+    const raw = sessionStorage.getItem(USER_META_KEY);
+    if (!raw) return { profileCompletion: null, profileStep: 0 };
+    return JSON.parse(raw) as { profileCompletion: number | null; profileStep: number };
+  } catch {
+    return { profileCompletion: null, profileStep: 0 };
+  }
 }
 
 function loadAccessToken(): string | null {
@@ -131,6 +149,7 @@ function refreshUserMe(set: (partial: Partial<AuthState>) => void, baseUser: Use
         marketplaceMissing: me.marketplace?.missing ?? [],
         initialized: true,
       });
+      saveUserMeta(me.profileCompletion ?? null, me.profileStep ?? 0);
     })
     .catch(() => {
       set({ initialized: true });
@@ -340,7 +359,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             roles:       (claims.roles as UserRole[]) ?? [],
             activeRole:  (claims.activeRole as UserRole) ?? (claims.roles as UserRole[])?.[0],
           };
-          set({ user: jwtUser, accessToken: stored, loading: false, error: null });
+          const cached = loadUserMeta();
+          set({ user: jwtUser, accessToken: stored, loading: false, error: null,
+            profileCompletion: cached.profileCompletion,
+            profileStep:       cached.profileStep });
           refreshUserMe(set, jwtUser);
           return;
         }

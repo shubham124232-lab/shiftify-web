@@ -6,13 +6,13 @@ import {
 } from '@/lib/schemas/coordinator-steps';
 
 export const COORDINATOR_STEPS: StepConfig[] = [
-  { index: 0, title: 'Role & Organisation',   description: 'Your coordinator role type and organisation',              icon: 'bi-diagram-3-fill',         schema: coordStep1Schema },
-  { index: 1, title: 'NDIS Registration',     description: 'NDIS registration status and provider number',            icon: 'bi-file-earmark-text-fill', schema: coordStep2Schema },
-  { index: 2, title: 'Experience',            description: 'Years of experience, coordination level and specialisms', icon: 'bi-award-fill',             schema: coordStep3Schema },
-  { index: 3, title: 'Service Coverage',      description: 'Areas covered, delivery mode and languages spoken',       icon: 'bi-map-fill',               schema: coordStep4Schema },
-  { index: 4, title: 'Capacity',              description: 'Current capacity, caseload and participant types',        icon: 'bi-people-fill',            schema: coordStep5Schema },
-  { index: 5, title: 'Billing & Rates',       description: 'Preferred billing method and hourly rate',               icon: 'bi-cash-stack',             schema: coordStep6Schema },
-  { index: 6, title: 'Bio',                   description: 'Professional bio and plan manager preferences',          icon: 'bi-person-fill',            schema: coordStep7Schema },
-  { index: 7, title: 'Compliance Documents',  description: 'Professional indemnity and public liability insurance',  icon: 'bi-shield-fill-check',      schema: coordStep8Schema },
-  { index: 8, title: 'Declaration',           description: 'Agree to platform terms and NDIS code of conduct',      icon: 'bi-patch-check-fill',       schema: coordStep9Schema, isFinal: true },
+  { index: 0, title: 'Professional Identity',     description: 'Role type, ABN, NDIS status and years of experience',        icon: 'bi-diagram-3-fill',         schema: coordStep1Schema },
+  { index: 1, title: 'Qualification & Compliance', description: 'Qualifications, screening checks and insurance documents',   icon: 'bi-shield-fill-check',      schema: coordStep2Schema },
+  { index: 2, title: 'Service Capability',         description: 'Coordination levels, complexity experience and services',    icon: 'bi-award-fill',             schema: coordStep3Schema },
+  { index: 3, title: 'Service Coverage',           description: 'Service areas and delivery mode',                           icon: 'bi-map-fill',               schema: coordStep4Schema },
+  { index: 4, title: 'Availability & Capacity',    description: 'Current capacity status and availability type',             icon: 'bi-calendar-check-fill',    schema: coordStep5Schema },
+  { index: 5, title: 'Plan Management Handling',   description: 'Participant types and billing method preference',           icon: 'bi-people-fill',            schema: coordStep6Schema },
+  { index: 6, title: 'Rates & Commercials',        description: 'Hourly rate and travel charge policy',                     icon: 'bi-cash-stack',             schema: coordStep7Schema },
+  { index: 7, title: 'Profile & Trust Layer',      description: 'Bio, languages, gender and profile photo',                 icon: 'bi-person-fill',            schema: coordStep8Schema },
+  { index: 8, title: 'Platform Rules & Compliance', description: 'Agree to platform terms and NDIS code of conduct',        icon: 'bi-patch-check-fill',       schema: coordStep9Schema, isFinal: true },
 ];

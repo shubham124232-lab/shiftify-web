@@ -5,9 +5,9 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const PLAN_TYPES = [
-  { value: 'SELF_MANAGED', label: 'Self-Managed', desc: 'Participant manages their own budget and pays providers directly' },
-  { value: 'PLAN_MANAGED', label: 'Plan-Managed', desc: 'A plan manager handles invoices and payments on behalf of participant' },
-  { value: 'NDIA_MANAGED', label: 'NDIA-Managed (Agency)', desc: 'NDIA pays registered providers directly from participant funds' },
+  { value: 'SELF_MANAGED',   label: 'Self-Managed',         desc: 'Participant manages their own budget and pays providers directly' },
+  { value: 'PLAN_MANAGED',   label: 'Plan-Managed',         desc: 'A plan manager handles invoices and payments on behalf of participant' },
+  { value: 'NDIA_MANAGED',   label: 'NDIA-Managed (Agency)',desc: 'NDIA pays registered providers directly from participant funds' },
 ];
 
 export function CoordStep06_Billing() {
@@ -15,11 +15,9 @@ export function CoordStep06_Billing() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Participant plan types — drives matching logic */}
+      {/* Participant plan types */}
       <div>
-        <label style={{ ...labelStyle, marginBottom: 8 }}>
-          Participant Plan Types You Work With <span style={{ color: '#ef4444' }}>*</span>
-        </label>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Participant Plan Types You Work With <span style={{ color: '#ef4444' }}>*</span></label>
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', margin: '0 0 10px' }}>
           You will only be matched with participants whose funding type matches your selection.
         </p>
@@ -58,28 +56,6 @@ export function CoordStep06_Billing() {
           <option value="">Select…</option>
           <option value="DIRECT_INVOICE">Direct invoice</option>
           <option value="THROUGH_PLAN_MANAGER">Through plan manager</option>
-        </select>
-      </div>
-
-      {/* Hourly rate */}
-      <div>
-        <label style={labelStyle}>Hourly Rate</label>
-        <div style={{ position: 'relative' }}>
-          <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 600, color: 'var(--clr-muted)' }}>$</span>
-          <input type="number" step="0.50" min="0" {...register('hourlyRate', { valueAsNumber: true })} placeholder="100.00" style={{ ...inputStyle, paddingLeft: 28 }} />
-          <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--clr-muted)' }}>/hr</span>
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>NDIS Support Coordination rate under Capacity Building budget.</p>
-      </div>
-
-      {/* Travel charges */}
-      <div>
-        <label style={labelStyle}>Travel Charges</label>
-        <select {...register('travelCharges')} style={{ ...inputStyle, cursor: 'pointer' }}>
-          <option value="">Select…</option>
-          <option value="NONE">No travel charges</option>
-          <option value="INCLUDED">Included in hourly rate</option>
-          <option value="CHARGED_SEPARATELY">Charged separately (NDIS transport rates)</option>
         </select>
       </div>
 

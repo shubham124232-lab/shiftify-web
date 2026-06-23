@@ -51,13 +51,15 @@ const TAB_GROUPS: Record<UserRole, TabGroup[]> = {
     { id: 'profile',     label: 'Profile & Agreements', compIndices: [10, 11] },  // Profile & Branding + Agreements
   ],
   [UserRole.COORDINATOR]: [
-    { id: 'roleorg',      label: 'Role & Organisation',    compIndices: [0] },
-    { id: 'ndis',         label: 'NDIS',                   compIndices: [1] },
-    { id: 'experience',   label: 'Experience',             compIndices: [2] },
-    { id: 'coverage',     label: 'Coverage',               compIndices: [3] },
-    { id: 'capacity',     label: 'Capacity',               compIndices: [4] },
-    { id: 'billing',      label: 'Billing & Bio',          compIndices: [5, 6] },
-    { id: 'docs',         label: 'Documents & Declaration',compIndices: [7, 8] },
+    { id: 'roleorg',     label: 'Role & Organisation',     compIndices: [0] },
+    { id: 'compliance',  label: 'Qualification & Docs',    compIndices: [1] },
+    { id: 'capability',  label: 'Service Capability',      compIndices: [2] },
+    { id: 'coverage',    label: 'Service Coverage',        compIndices: [3] },
+    { id: 'capacity',    label: 'Availability & Capacity', compIndices: [4] },
+    { id: 'plan',        label: 'Plan Management',         compIndices: [5] },
+    { id: 'rates',       label: 'Rates & Commercials',     compIndices: [6] },
+    { id: 'profile',     label: 'Profile & Trust',         compIndices: [7] },
+    { id: 'declaration', label: 'Declaration',             compIndices: [8] },
   ],
   [UserRole.PLAN_MANAGER]: [
     { id: 'business',     label: 'Business',               compIndices: [0] },
@@ -265,6 +267,7 @@ export default function ProfileEditPage() {
               <TabPanel
                 key={`${role}-${g.id}`}
                 role={role}
+          
                 group={g}
                 defaultValues={defaultValues}
                  />

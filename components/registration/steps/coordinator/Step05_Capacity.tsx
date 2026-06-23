@@ -1,100 +1,67 @@
 'use client';
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 
 const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const CAPACITY_STATUSES = [
-  'Accepting New Participants',
-  'Limited Capacity',
-  'Not Accepting',
-];
-// Spec Step 7: "Types of Participants They Work With" — billing/management type
-const PARTICIPANT_MGMT_TYPES = [
-  'Self-managed',
-  'Plan-managed',
-  'NDIA-managed',
+  { value: 'ACCEPTING',      label: 'Accepting New Participants', desc: 'I have capacity to take on new referrals now' },
+  { value: 'LIMITED',        label: 'Limited Availability',       desc: 'I can take a few more participants with some lead time' },
+  { value: 'WAITLIST_ONLY',  label: 'Waitlist Only',              desc: 'I am at capacity but open to future inquiries' },
+  { value: 'NOT_ACCEPTING',  label: 'Not Accepting',              desc: 'I am fully booked and not taking new participants' },
 ];
 
-function CheckboxGroup({ name, options, label }: { name: string; options: string[]; label: string }) {
-  const { control } = useFormContext();
-  return (
-    <div>
-      <label style={{ ...labelStyle, marginBottom: 8 }}>{label}</label>
-      <Controller name={name} control={control} defaultValue={[]} render={({ field }) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {options.map(opt => {
-            const selected = (field.value ?? []).includes(opt);
-            return (
-              <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-                padding: '10px 12px', borderRadius: 8,
-                border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                background: selected ? 'rgba(79,70,229,0.06)' : '#fff' }}>
-                <input type="checkbox" checked={selected}
-                  onChange={() => { const cur = field.value ?? []; field.onChange(selected ? cur.filter((s: string) => s !== opt) : [...cur, opt]); }}
-                  style={{ display: 'none' }} />
-                <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                  border: `2px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: selected ? 'var(--clr-primary)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {selected && <i className="bi bi-check-lg" style={{ color: '#fff', fontSize: 9 }} />}
-                </div>
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{opt}</span>
-              </label>
-            );
-          })}
-        </div>
-      )} />
-    </div>
-  );
-}
+const AVAILABILITY_TYPES = [
+  { value: 'FULL_TIME',  label: 'Full-Time' },
+  { value: 'PART_TIME',  label: 'Part-Time' },
+  { value: 'CASUAL',     label: 'Casual / Flexible' },
+];
 
 export function CoordStep05_Capacity() {
-  const { register } = useFormContext();
+  const { register, watch, formState: { errors } } = useFormContext();
+  const status = watch('capacityStatus') as string;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      {/* Spec Step 6 — Current Capacity Status */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+      {/* Capacity status */}
       <div>
         <label style={labelStyle}>Current Capacity Status <span style={{ color: '#ef4444' }}>*</span></label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {CAPACITY_STATUSES.map(s => (
-            <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer',
-              border: '1.5px solid var(--clr-border)', borderRadius: 8 }}>
-              <input type="radio" value={s} {...register('currentCapacityStatus')} />
-              <span style={{ fontSize: 13, fontWeight: 500 }}>{s}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {CAPACITY_STATUSES.map(cs => (
+            <label key={cs.value} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+              padding: '12px 14px', borderRadius: 10,
+              border: `1.5px solid ${status === cs.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+              background: status === cs.value ? 'rgba(79,70,229,0.05)' : '#fff' }}>
+              <input type="radio" value={cs.value} {...register('capacityStatus')} style={{ marginTop: 2, accentColor: 'var(--clr-primary)' }} />
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-text)' }}>{cs.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2 }}>{cs.desc}</div>
+              </div>
             </label>
           ))}
         </div>
+        {errors.capacityStatus && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.capacityStatus.message as string}</p>}
       </div>
 
-      {/* Spec Step 6 — Availability Type */}
+      {/* Max participant load */}
       <div>
-        <label style={labelStyle}>Availability Type</label>
-        <select {...register('availabilityType')} style={{ ...inputStyle, cursor: 'pointer' }}>
+        <label style={labelStyle}>Maximum Participant Load</label>
+        <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--clr-muted)' }}>How many active participants can you support at once?</p>
+        <input type="number" min={1} max={200} {...register('maxParticipantLoad', { valueAsNumber: true })}
+          placeholder="e.g. 20" style={{ ...inputStyle, width: 160 }} />
+      </div>
+
+      {/* Availability type */}
+      <div>
+        <label style={labelStyle}>Availability Type <span style={{ color: '#ef4444' }}>*</span></label>
+        <select {...register('availabilityType')} style={{ ...inputStyle, cursor: 'pointer', borderColor: errors.availabilityType ? '#ef4444' : undefined }}>
           <option value="">Select…</option>
-          <option value="BUSINESS_HOURS">Business Hours Only</option>
-          <option value="FLEXIBLE">Flexible</option>
-          <option value="EMERGENCY_AVAILABLE">Emergency Available</option>
+          {AVAILABILITY_TYPES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
         </select>
+        {errors.availabilityType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.availabilityType.message as string}</p>}
       </div>
 
-      {/* Spec Step 6 — Max Participant Load */}
-      <div>
-        <label style={labelStyle}>
-          Maximum Participant Caseload{' '}
-          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span>
-        </label>
-        <input type="number" {...register('maxParticipantLoad', { valueAsNumber: true })} min={0} max={500} placeholder="e.g. 15" style={inputStyle} />
-        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Number of participants you can handle at one time.</p>
-      </div>
-
-      {/* Spec Step 7 — Types of Participants They Work With (funding management type) */}
-      <CheckboxGroup
-        name="participantTypesAccepted"
-        options={PARTICIPANT_MGMT_TYPES}
-        label="Participant Management Types (Spec Step 7)"
-      />
-
-      {/* Note: Billing method preference is captured in the next step (Billing & Rates) */}
     </div>
   );
 }

@@ -111,11 +111,11 @@ export default function DashboardProfileSetupStepPage() {
         const totalSteps = TOTAL_STEPS[activeRole] ?? prog.totalSteps;
 
         if (step < WIZARD_START_STEP) {
-          router.replace(`/dashboard/profile-setup/${WIZARD_START_STEP}`);
+          router.replace(`/profile-setup/${WIZARD_START_STEP}`);
           return;
         }
         if (step > prog.profileStep + 1) {
-          router.replace(`/dashboard/profile-setup/${prog.profileStep + 1}`);
+          router.replace(`/profile-setup/${prog.profileStep + 1}`);
           return;
         }
         if (step > totalSteps) {
@@ -140,7 +140,7 @@ export default function DashboardProfileSetupStepPage() {
       await upsertProfile(activeRole, payload);
       const totalSteps = TOTAL_STEPS[activeRole] ?? progress?.totalSteps ?? 4;
       if (step < totalSteps) {
-        router.push(`/dashboard/profile-setup/${step + 1}`);
+        router.push(`/profile-setup/${step + 1}`);
         return;
       }
       if (activeRole === 'PARTICIPANT') {
@@ -151,7 +151,7 @@ export default function DashboardProfileSetupStepPage() {
         router.replace('/dashboard');
       } else {
         if (user?.status === UserStatus.PENDING) {
-          router.replace('/dashboard/profile-setup/plan');
+          router.replace('/profile-setup/plan');
         } else {
           router.replace('/dashboard');
         }
@@ -206,7 +206,7 @@ export default function DashboardProfileSetupStepPage() {
               }
             }
             onSave={handleNext}
-            onBack={() => step > WIZARD_START_STEP ? router.push(`/dashboard/profile-setup/${step - 1}`) : router.back()}
+            onBack={() => step > WIZARD_START_STEP ? router.push(`/profile-setup/${step - 1}`) : router.back()}
             isFinalStep={step >= totalSteps}
           />
         )}

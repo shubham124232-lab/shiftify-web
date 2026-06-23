@@ -185,7 +185,7 @@ export function SetupBanner() {
               Complete your profile to unlock full marketplace access.
             </div>
             <Link
-              href={`/dashboard/profile-setup/${profileStep + 1}`}
+              href={`/profile-setup/${profileStep + 1}`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}
             >
               Continue Setup <i className="bi bi-arrow-right" />

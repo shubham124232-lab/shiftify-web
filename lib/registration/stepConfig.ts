@@ -5,7 +5,7 @@
 export const TOTAL_STEPS: Record<string, number> = {
   PARTICIPANT:    4,
   SUPPORT_WORKER: 11,
-  PROVIDER:       13,
+  PROVIDER:       14,
   COORDINATOR:    10,
   PLAN_MANAGER:   15,
 };

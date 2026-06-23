@@ -42,15 +42,13 @@ const TAB_GROUPS: Record<UserRole, TabGroup[]> = {
     { id: 'docs',         label: 'Documents & Compliance', compIndices: [7, 8] },
   ],
   [UserRole.PROVIDER]: [
-    { id: 'business',     label: 'Business',               compIndices: [0] },
-    { id: 'abn',          label: 'ABN',                    compIndices: [1] },
-    { id: 'contacts',     label: 'Contacts',               compIndices: [2, 3] },
-    { id: 'logo',         label: 'Logo',                   compIndices: [4] },
-    { id: 'services',     label: 'Services',               compIndices: [5] },
-    { id: 'areas',        label: 'Service Areas',          compIndices: [6] },
-    { id: 'workforce',    label: 'Workforce',              compIndices: [7] },
-    { id: 'pricing',      label: 'Pricing & About',        compIndices: [8, 9] },
-    { id: 'docs',         label: 'Documents & Declaration',compIndices: [10, 11] },
+    { id: 'business',    label: 'Business',             compIndices: [0] },       // Business Identity
+    { id: 'contacts',    label: 'Contacts',             compIndices: [1] },       // Key Contacts
+    { id: 'compliance',  label: 'Compliance',           compIndices: [2] },       // Compliance & Legal
+    { id: 'services',    label: 'Services',             compIndices: [3, 4] },    // Services Offered + Service Coverage
+    { id: 'workforce',   label: 'Workforce',            compIndices: [5, 6, 7] }, // Workforce Capability + Capacity + Participant Handling
+    { id: 'pricing',     label: 'Pricing & Features',   compIndices: [8, 9] },    // Pricing & Billing + Platform Features
+    { id: 'profile',     label: 'Profile & Agreements', compIndices: [10, 11] },  // Profile & Branding + Agreements
   ],
   [UserRole.COORDINATOR]: [
     { id: 'roleorg',      label: 'Role & Organisation',    compIndices: [0] },
@@ -269,7 +267,7 @@ export default function ProfileEditPage() {
                 role={role}
                 group={g}
                 defaultValues={defaultValues}
-              />
+                 />
             </div>
           )
         )}

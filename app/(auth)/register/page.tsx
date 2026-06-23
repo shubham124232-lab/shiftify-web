@@ -150,6 +150,7 @@ export default function RegisterPage() {
   const [usernameStatus, setUsernameStatus] = useState<'idle'|'checking'|'available'|'taken'>('idle');
   const usernameTimer = useRef<ReturnType<typeof setTimeout>|null>(null);
   const [localError, setLocalError] = useState<string|null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string,string>>({});
   const strength = getStrength(password);
 
   // Plan
@@ -219,16 +220,29 @@ export default function RegisterPage() {
 
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
-    setLocalError(null); clearError();
-    if (!firstName.trim())    { setLocalError('First name is required.'); return; }
-    if (!lastName.trim())     { setLocalError('Last name is required.'); return; }
-    if (!phone.trim())        { setLocalError('Phone number is required.'); return; }
-    if (!password)            { setLocalError('Password is required.'); return; }
-    if (password.length < 8)  { setLocalError('Password must be at least 8 characters.'); return; }
-    if (password !== confirm)  { setLocalError('Passwords do not match.'); return; }
-    if (!username.trim())           { setLocalError('Username is required.'); return; }
-    if (username.trim().length < 3) { setLocalError('Username must be at least 3 characters.'); return; }
-    if (usernameStatus === 'taken') { setLocalError('That username is already taken. Please choose another.'); return; }
+    setLocalError(null); clearError(); setFieldErrors({});
+
+    // ── Client-side field validation ─────────────────────────────────────────
+    const errs: Record<string,string> = {};
+    if (!firstName.trim())    errs.firstName = 'First name is required.';
+    if (!lastName.trim())     errs.lastName  = 'Last name is required.';
+    if (!username.trim())     errs.username  = 'Username is required.';
+    else if (username.trim().length < 3) errs.username = 'Username must be at least 3 characters.';
+    else if (usernameStatus === 'taken') errs.username = 'That username is already taken. Please choose another.';
+
+    const cleanPhone = phone.trim().replace(/[\s\-()]/g, '');
+    if (!cleanPhone) {
+      errs.phone = 'Phone number is required.';
+    } else if (!/^(\+?61[2-9]\d{8}|0[2-9]\d{8})$/.test(cleanPhone)) {
+      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678).';
+    }
+
+    if (!password)            errs.password = 'Password is required.';
+    else if (password.length < 8) errs.password = 'Password must be at least 8 characters.';
+    if (password && password !== confirm) errs.confirm = 'Passwords do not match.';
+
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+
     setSubmitting(true);
     try {
       const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: phone.trim(), username: username.trim() });
@@ -237,7 +251,17 @@ export default function RegisterPage() {
         sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
       }
       setShowOtp(true);
-    } catch { /* error in store */ }
+    } catch (err) {
+      // If backend returned field-level details, map them to inline errors
+      if (err instanceof Error && 'details' in err && Array.isArray((err as any).details)) {
+        const backendErrs: Record<string,string> = {};
+        ((err as any).details as { path: string; message: string }[]).forEach(d => {
+          if (d.path) backendErrs[d.path] = d.message;
+        });
+        if (Object.keys(backendErrs).length > 0) setFieldErrors(backendErrs);
+      }
+      // authError banner is already set by the store
+    }
     finally { setSubmitting(false); }
   }
 
@@ -433,11 +457,13 @@ export default function RegisterPage() {
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div>
                 <label style={lbl}>First Name</label>
-                <input type="text" value={firstName} onChange={e=>setFirstName(e.target.value)} placeholder="Jane" style={inp} autoComplete="given-name" />
+                <input type="text" value={firstName} onChange={e=>{setFirstName(e.target.value);setFieldErrors(p=>({...p,firstName:''}));}} placeholder="Jane" style={{...inp,borderColor:fieldErrors.firstName?'#ef4444':undefined}} autoComplete="given-name" />
+                {fieldErrors.firstName && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.firstName}</p>}
               </div>
               <div>
                 <label style={lbl}>Last Name</label>
-                <input type="text" value={lastName} onChange={e=>setLastName(e.target.value)} placeholder="Smith" style={inp} autoComplete="family-name" />
+                <input type="text" value={lastName} onChange={e=>{setLastName(e.target.value);setFieldErrors(p=>({...p,lastName:''}));}} placeholder="Smith" style={{...inp,borderColor:fieldErrors.lastName?'#ef4444':undefined}} autoComplete="family-name" />
+                {fieldErrors.lastName && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.lastName}</p>}
               </div>
             </div>
 
@@ -462,7 +488,8 @@ export default function RegisterPage() {
 
             <div>
               <label style={lbl}>Phone Number <span style={{color:'#ef4444'}}>*</span></label>
-              <input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+61 4xx xxx xxx" style={inp} autoComplete="tel" />
+              <input type="tel" value={phone} onChange={e=>{setPhone(e.target.value);setFieldErrors(p=>({...p,phone:''}));}} placeholder="+61 4xx xxx xxx" style={{...inp,borderColor:fieldErrors.phone?'#ef4444':undefined}} autoComplete="tel" />
+              {fieldErrors.phone && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.phone}</p>}
             </div>
 
             <div>
@@ -488,6 +515,7 @@ export default function RegisterPage() {
                   <span style={{fontSize:11,color:strength.color,fontWeight:600}}>{strength.label}</span>
                 </div>
               )}
+              {fieldErrors.password && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.password}</p>}
             </div>
 
             <div>
@@ -500,6 +528,7 @@ export default function RegisterPage() {
                   <i className={`bi ${showCf?'bi-eye-slash':'bi-eye'}`} />
                 </button>
               </div>
+              {fieldErrors.confirm && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.confirm}</p>}
             </div>
 
             {displayError && (

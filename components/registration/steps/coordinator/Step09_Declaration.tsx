@@ -26,6 +26,8 @@ export function CoordStep09_Declaration() {
         label={<>I have read and agree to the Shiftify <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a>.</>} />
       <CheckboxDeclaration name="ndisCodeAccepted"
         label="I commit to upholding the NDIS Code of Conduct and understand my obligations as a Support Coordinator." />
+      <CheckboxDeclaration name="complianceDeclaration"
+        label="I confirm all information provided is accurate and I meet NDIS requirements to provide support coordination services." />
       <CheckboxDeclaration name="consentForVerification"
         label="I consent to Shiftify verifying my credentials, qualifications, and compliance documents with relevant issuing bodies (NDIS Commission, WWCC agencies, police services) as required." />
     </div>

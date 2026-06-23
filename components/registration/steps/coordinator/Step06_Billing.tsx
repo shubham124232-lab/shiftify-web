@@ -56,9 +56,8 @@ export function CoordStep06_Billing() {
         <label style={labelStyle}>Preferred Billing Method</label>
         <select {...register('billingMethodPreference')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>
-          {['Invoice to Plan Manager', 'Invoice to NDIA (Agency Managed)', 'Invoice to Participant (Self Managed)', 'Multiple methods accepted'].map(b => (
-            <option key={b} value={b}>{b}</option>
-          ))}
+          <option value="DIRECT_INVOICE">Direct invoice</option>
+          <option value="THROUGH_PLAN_MANAGER">Through plan manager</option>
         </select>
       </div>
 

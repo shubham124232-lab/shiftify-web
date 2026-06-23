@@ -25,22 +25,20 @@ function CheckboxDeclaration({ name, label }: { name: string; label: React.React
 
 export function ProviderStep12_Declaration() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--clr-muted)' }}>
-        By completing your profile you agree to the following declarations.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--clr-muted)' }}>
+        By completing your profile you agree to the following.
       </p>
       <CheckboxDeclaration name="termsAccepted"
         label={<>I have read and agree to the Shiftify <a href="/terms" target="_blank" style={{ color: 'var(--clr-primary)' }}>Terms &amp; Conditions</a>.</>} />
-      <CheckboxDeclaration name="ndisCodeAccepted"
-        label="Our organisation commits to upholding the NDIS Code of Conduct and applicable Quality and Safeguarding standards." />
       <CheckboxDeclaration name="privacyPolicyAccepted"
-        label={<>I have read and agree to the Shiftify <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a> and consent to the collection and handling of organisational data as described.</>} />
+        label={<>I have read and agree to the Shiftify <a href="/privacy" target="_blank" style={{ color: 'var(--clr-primary)' }}>Privacy Policy</a> and consent to the collection and handling of organisational data.</>} />
       <CheckboxDeclaration name="serviceAgreementAccepted"
         label="I agree to operate under the Shiftify Provider Service Agreement and understand the obligations this creates." />
       <CheckboxDeclaration name="platformRulesAccepted"
-        label="I acknowledge the Shiftify Platform Rules including expectations around response times, participant communication, and marketplace conduct." />
-      <CheckboxDeclaration name="complianceDeclaration"
-        label="I declare that all information provided is true and accurate, our organisation holds all required registrations and insurances, and we will notify Shiftify of any material changes to our compliance status." />
+        label="I acknowledge the Shiftify Platform Rules including no off-platform payments and compliance with NDIS rules." />
+      <CheckboxDeclaration name="ndisCodeAccepted"
+        label="Our organisation commits to upholding the NDIS Code of Conduct and applicable Quality and Safeguarding standards." />
     </div>
   );
 }

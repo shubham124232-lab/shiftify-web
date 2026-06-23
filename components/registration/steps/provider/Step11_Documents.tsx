@@ -1,156 +1,89 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useFormContext }        from 'react-hook-form';
-import { useRegistrationStore }  from '@/lib/store/registration.store';
-import { listDocuments }         from '@/lib/api/profile';
-import { FileUploadField }       from '../../fields/FileUploadField';
+import { useState } from 'react';
+import { useFormContext } from 'react-hook-form';
+import { FileUploadField } from '../../fields/FileUploadField';
+import { upsertProfile }   from '@/lib/api/profile';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 40, padding: '0 12px', borderRadius: 8, border: '1.5px solid var(--clr-border)', fontSize: 13, outline: 'none', background: '#fff', boxSizing: 'border-box' };
-const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 4 };
-
-const PROVIDER_DOCS = [
-  {
-    docType: 'NDIS_AUDIT',
-    label: 'NDIS Provider Registration Certificate',
-  },
-  {
-    docType: 'PUBLIC_LIABILITY_INSURANCE',
-    label: 'Public Liability Insurance Certificate',
-    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
-    showExpiryDate: true,
-  },
-  {
-    docType: 'PROFESSIONAL_INDEMNITY',
-    label: 'Professional Indemnity Insurance',
-    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
-    showExpiryDate: true,
-  },
-  {
-    docType: 'WORKERS_COMP',
-    label: 'Workers Compensation Insurance',
-    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
-    showExpiryDate: true,
-  },
-  {
-    docType: 'POLICIES_PROCEDURES',
-    label: 'Policies & Procedures Document',
-  },
-  {
-    docType: 'POLICE_CHECK',
-    label: 'Police Check (Director / Key Personnel)',
-    showIssueDate: true,
-    showExpiryDate: true,
-  },
-] as const;
-
-function InsurancePolicyDetails() {
-  const { register } = useFormContext();
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 14, background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10 }}>
-      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--clr-primary)' }}>
-        <i className="bi bi-shield-check" style={{ marginRight: 6 }} />
-        Insurance Policy Details
-      </p>
-      <p style={{ margin: 0, fontSize: 11, color: 'var(--clr-muted)' }}>
-        Enter policy metadata here and upload certificates below. These details help match you with participants requiring compliant providers.
-      </p>
-
-      {/* Public Liability */}
-      <div>
-        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)' }}>Public Liability Insurance</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <div>
-            <label style={labelStyle}>Policy Number</label>
-            <input {...register('publicLiabilityPolicyNumber')} placeholder="e.g. PLI-2024-001" style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Coverage Amount</label>
-            <input {...register('publicLiabilityCoverageAmount')} placeholder="e.g. $20M" style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Expiry Date</label>
-            <input type="date" {...register('publicLiabilityExpiryDate')} style={inputStyle} />
-          </div>
-        </div>
-      </div>
-
-      {/* Professional Indemnity */}
-      <div>
-        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)' }}>Professional Indemnity Insurance</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div>
-            <label style={labelStyle}>Policy Number</label>
-            <input {...register('professionalIndemnityPolicyNumber')} placeholder="e.g. PI-2024-001" style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Expiry Date</label>
-            <input type="date" {...register('professionalIndemnityExpiryDate')} style={inputStyle} />
-          </div>
-        </div>
-      </div>
-
-      {/* Workers Comp */}
-      <div>
-        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)' }}>Workers Compensation Insurance</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <div>
-            <label style={labelStyle}>Policy Number</label>
-            <input {...register('workersCompPolicyNumber')} placeholder="e.g. WC-2024-001" style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Expiry Date</label>
-            <input type="date" {...register('workersCompExpiryDate')} style={inputStyle} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 export function ProviderStep11_Documents() {
-  const store = useRegistrationStore();
-  const [existingDocs, setExistingDocs] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
+  const { register, formState: { errors } } = useFormContext();
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    listDocuments()
-      .then(docs => { const map: Record<string, boolean> = {}; docs.forEach(d => { map[d.docType] = true; }); setExistingDocs(map); })
-      .catch(() => null)
-      .finally(() => setLoading(false));
-  }, []);
+  async function handleLogoUploaded(url: string) {
+    setLogoUrl(url);
+    await upsertProfile('PROVIDER', { logoUrl: url }).catch(() => null);
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <InsurancePolicyDetails />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.2)', borderRadius: 10, padding: 14 }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
-          <i className="bi bi-info-circle" style={{ marginRight: 6 }} />
-          All documents are optional at this stage. You can upload them from your Documents page at any time.
-        </p>
+      {/* Business description */}
+      <div>
+        <label style={labelStyle}>Business Description</label>
+        <textarea {...register('businessDescription')} rows={5}
+          placeholder="Tell participants, coordinators and plan managers about your organisation — your values, experience and approach to care…"
+          style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Appears on your provider profile. Be warm, specific and professional.</p>
       </div>
 
-      {loading ? <p style={{ fontSize: 13, color: 'var(--clr-muted)' }}>Loading…</p> : (
-        PROVIDER_DOCS.map(doc => {
-          const uploaded = existingDocs[doc.docType] || !!store.uploadedDocs[doc.docType];
-          return (
-            <FileUploadField
-              key={doc.docType}
-              label={doc.label}
-              accept=".pdf,.jpg,.jpeg,.png,.heic"
-              maxSizeMb={25}
-              uploadOptions={{ category: 'compliance', docType: doc.docType }}
-              currentValue={uploaded ? 'uploaded' : null}
-              optional
-              showReferenceNumber={'showReferenceNumber' in doc ? (doc as { showReferenceNumber?: boolean }).showReferenceNumber : false}
-              referenceNumberLabel={'referenceNumberLabel' in doc ? (doc as { referenceNumberLabel?: string }).referenceNumberLabel : undefined}
-              showExpiryDate={'showExpiryDate' in doc ? (doc as { showExpiryDate?: boolean }).showExpiryDate : false}
-              showIssueDate={'showIssueDate' in doc ? (doc as { showIssueDate?: boolean }).showIssueDate : false}
-              onUploaded={(val) => { store.setUploadedDoc(doc.docType, val); setExistingDocs(p => ({ ...p, [doc.docType]: true })); }}
-            />
-          );
-        })
-      )}
+      {/* Logo */}
+      <div>
+        <label style={labelStyle}>Organisation Logo</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: 'var(--clr-surface)', borderRadius: 12, marginBottom: 10 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 12, flexShrink: 0, overflow: 'hidden',
+            border: '1.5px solid var(--clr-border)',
+            background: logoUrl ? 'transparent' : 'rgba(79,70,229,0.07)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {logoUrl
+              ? <img src={logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              : <i className="bi bi-building-fill" style={{ fontSize: 26, color: 'var(--clr-primary)', opacity: 0.5 }} />}
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-text)' }}>Organisation Logo</div>
+            <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2 }}>JPG, PNG, HEIC or WebP · Max 5 MB · Square or landscape preferred</div>
+          </div>
+        </div>
+        <FileUploadField
+          label="Upload Logo"
+          accept=".jpg,.jpeg,.png,.heic,.webp"
+          maxSizeMb={5}
+          uploadOptions={{ category: 'avatars' }}
+          currentValue={logoUrl}
+          optional
+          onUploaded={handleLogoUploaded}
+        />
+      </div>
+
+      {/* Website */}
+      <div>
+        <label style={labelStyle}>Website URL <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span></label>
+        <input {...register('websiteUrl')} type="url" placeholder="https://yourorganisation.com.au"
+          style={{ ...inputStyle, borderColor: errors.websiteUrl ? '#ef4444' : undefined }} />
+        {errors.websiteUrl && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.websiteUrl.message as string}</p>}
+      </div>
+
+      {/* Social links */}
+      <div>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Social Media <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span></label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { field: 'socialLinks.facebook',  placeholder: 'https://facebook.com/yourpage',    icon: 'bi-facebook'  },
+            { field: 'socialLinks.instagram', placeholder: 'https://instagram.com/yourhandle', icon: 'bi-instagram' },
+            { field: 'socialLinks.linkedin',  placeholder: 'https://linkedin.com/company/…',  icon: 'bi-linkedin'  },
+          ].map(({ field, placeholder, icon }) => (
+            <div key={field} style={{ position: 'relative' }}>
+              <i className={`bi ${icon}`} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--clr-muted)', fontSize: 14 }} />
+              <input {...register(field)} type="url" placeholder={placeholder}
+                style={{ ...inputStyle, paddingLeft: 36 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }

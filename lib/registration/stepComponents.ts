@@ -13,18 +13,18 @@ import { WorkerStep07_Financials }   from '@/components/registration/steps/worke
 import { WorkerStep08_Documents }    from '@/components/registration/steps/worker/Step08_Documents';
 import { WorkerStep09_Compliance }   from '@/components/registration/steps/worker/Step09_Compliance';
 
-import { ProviderStep01_Business }        from '@/components/registration/steps/provider/Step01_Business';
-import { ProviderStep02_ABN }             from '@/components/registration/steps/provider/Step02_ABN';
-import { ProviderStep03_PrimaryContact }  from '@/components/registration/steps/provider/Step03_PrimaryContact';
-import { ProviderStep04_AccountsContact } from '@/components/registration/steps/provider/Step04_AccountsContact';
-import { ProviderStep05_Logo }            from '@/components/registration/steps/provider/Step05_Logo';
-import { ProviderStep06_Services }        from '@/components/registration/steps/provider/Step06_Services';
-import { ProviderStep07_ServiceAreas }    from '@/components/registration/steps/provider/Step07_ServiceAreas';
-import { ProviderStep08_Workforce }       from '@/components/registration/steps/provider/Step08_Workforce';
-import { ProviderStep09_Pricing }         from '@/components/registration/steps/provider/Step09_Pricing';
-import { ProviderStep10_About }           from '@/components/registration/steps/provider/Step10_About';
-import { ProviderStep11_Documents }       from '@/components/registration/steps/provider/Step11_Documents';
-import { ProviderStep12_Declaration }     from '@/components/registration/steps/provider/Step12_Declaration';
+import { ProviderStep01_Business }        from '@/components/registration/steps/provider/Step01_Business';       // Business Identity
+import { ProviderStep02_ABN }             from '@/components/registration/steps/provider/Step02_ABN';              // Key Contacts
+import { ProviderStep03_PrimaryContact }  from '@/components/registration/steps/provider/Step03_PrimaryContact';  // Compliance & Legal
+import { ProviderStep04_AccountsContact } from '@/components/registration/steps/provider/Step04_AccountsContact'; // Services Offered
+import { ProviderStep05_Logo }            from '@/components/registration/steps/provider/Step05_Logo';             // Service Coverage
+import { ProviderStep06_Services }        from '@/components/registration/steps/provider/Step06_Services';         // Workforce Capability
+import { ProviderStep07_ServiceAreas }    from '@/components/registration/steps/provider/Step07_ServiceAreas';    // Capacity & Availability
+import { ProviderStep08_Workforce }       from '@/components/registration/steps/provider/Step08_Workforce';       // Participant Handling
+import { ProviderStep09_Pricing }         from '@/components/registration/steps/provider/Step09_Pricing';         // Pricing & Billing
+import { ProviderStep10_About }           from '@/components/registration/steps/provider/Step10_About';           // Platform Features
+import { ProviderStep11_Documents }       from '@/components/registration/steps/provider/Step11_Documents';       // Profile & Branding
+import { ProviderStep12_Declaration }     from '@/components/registration/steps/provider/Step12_Declaration';     // Agreements
 
 import { CoordStep01_RoleOrg }     from '@/components/registration/steps/coordinator/Step01_RoleOrg';
 import { CoordStep02_NDIS }        from '@/components/registration/steps/coordinator/Step02_NDIS';

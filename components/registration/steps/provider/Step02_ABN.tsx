@@ -3,80 +3,110 @@ import { useFormContext } from 'react-hook-form';
 
 const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
-
-function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {
-  const { register, watch } = useFormContext();
-  const val = watch(name) as boolean;
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
-        {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
-      </div>
-      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-        <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
-        <div style={{ width: 42, height: 24, borderRadius: 12, background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative', transition: 'background 0.2s' }}>
-          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-        </div>
-      </label>
-    </div>
-  );
-}
+const sectionLabel: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 10 };
 
 export function ProviderStep02_ABN() {
-  const { register, watch, formState: { errors } } = useFormContext();
-  const ndisReg = watch('ndisRegistered') as boolean;
+  const { register, formState: { errors } } = useFormContext();
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+      {/* Primary Contact */}
       <div>
-        <label style={labelStyle}>ABN <span style={{ color: '#ef4444' }}>*</span></label>
-        <input {...register('abn')} placeholder="XX XXX XXX XXX" style={{ ...inputStyle, borderColor: errors.abn ? '#ef4444' : undefined }} />
-        {errors.abn && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.abn.message as string}</p>}
-      </div>
-
-      <Toggle label="Registered for GST" name="gstRegistered" />
-      <Toggle label="NDIS Registered Provider" name="ndisRegistered" desc="Registered with the NDIS Quality and Safeguards Commission" />
-
-      {ndisReg && (
-        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={sectionLabel}>Primary Contact Person</div>
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--clr-muted)' }}>
+          The person participants and coordinators will contact for bookings and enquiries.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
-            <label style={labelStyle}>NDIS Provider Registration Number</label>
-            <input {...register('ndisProviderNumber')} placeholder="4-XXXXXXXX" style={inputStyle} />
+            <label style={labelStyle}>Full Name <span style={{ color: '#ef4444' }}>*</span></label>
+            <input {...register('primaryContactName')} placeholder="Jane Smith"
+              style={{ ...inputStyle, borderColor: errors.primaryContactName ? '#ef4444' : undefined }} />
+            {errors.primaryContactName && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.primaryContactName.message as string}</p>}
           </div>
           <div>
-            <label style={labelStyle}>NDIS Registration Expiry</label>
-            <input {...register('ndisRegistrationExpiry')} type="date" style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>NDIS Audit Status</label>
-            <select {...register('ndisAuditStatus')} style={{ ...inputStyle, cursor: 'pointer' }}>
-              <option value="">Select…</option>
-              <option value="NOT_REQUIRED">Not required (low-risk supports only)</option>
-              <option value="CERTIFICATION">Certification audit (medium/high-risk supports)</option>
-              <option value="VERIFICATION">Verification audit (lower-risk category)</option>
-              <option value="AWAITING_AUDIT">Awaiting scheduled audit</option>
-              <option value="AUDIT_IN_PROGRESS">Audit in progress</option>
-              <option value="COMPLIANT">Compliant — audit passed</option>
-              <option value="CONDITIONS_IMPOSED">Conditions imposed following audit</option>
+            <label style={labelStyle}>Role / Title</label>
+            <select {...register('primaryContactRole')} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <option value="">Select role…</option>
+              <option value="Director">Director</option>
+              <option value="Manager">Manager</option>
+              <option value="Admin">Admin</option>
+              <option value="Operations Manager">Operations Manager</option>
+              <option value="Other">Other</option>
             </select>
           </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>Phone <span style={{ color: '#ef4444' }}>*</span></label>
+              <input {...register('primaryContactPhone')} type="tel" placeholder="+61 4xx xxx xxx"
+                style={{ ...inputStyle, borderColor: errors.primaryContactPhone ? '#ef4444' : undefined }} />
+              {errors.primaryContactPhone && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.primaryContactPhone.message as string}</p>}
+            </div>
+            <div>
+              <label style={labelStyle}>Email <span style={{ color: '#ef4444' }}>*</span></label>
+              <input {...register('primaryContactEmail')} type="email" placeholder="contact@org.com.au"
+                style={{ ...inputStyle, borderColor: errors.primaryContactEmail ? '#ef4444' : undefined }} />
+              {errors.primaryContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.primaryContactEmail.message as string}</p>}
+            </div>
+          </div>
         </div>
-      )}
-
-      <div>
-        <label style={labelStyle}>Business Structure</label>
-        <select {...register('businessStructure')} style={{ ...inputStyle, cursor: 'pointer' }}>
-          <option value="">Select…</option>
-          <option value="SOLE_TRADER">Sole Trader</option>
-          <option value="PARTNERSHIP">Partnership</option>
-          <option value="COMPANY">Company (Pty Ltd)</option>
-          <option value="TRUST">Trust</option>
-          <option value="NOT_FOR_PROFIT">Not-for-Profit / Charity</option>
-          <option value="GOVERNMENT">Government / Local Council</option>
-        </select>
       </div>
 
-      <Toggle label="I confirm this ABN is active and registered to my business" name="abnConfirmed" />
+      {/* Accounts / Billing Contact */}
+      <div style={{ borderTop: '1px solid var(--clr-border)', paddingTop: 18 }}>
+        <div style={sectionLabel}>Accounts / Billing Contact</div>
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--clr-muted)' }}>
+          For invoices and payment enquiries. Leave blank if same as primary contact.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <label style={labelStyle}>Name</label>
+            <input {...register('accountsContactName')} placeholder="Finance Manager" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Email</label>
+            <input {...register('accountsContactEmail')} type="email" placeholder="accounts@org.com.au"
+              style={{ ...inputStyle, borderColor: errors.accountsContactEmail ? '#ef4444' : undefined }} />
+            {errors.accountsContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.accountsContactEmail.message as string}</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Secondary Contact */}
+      <div style={{ borderTop: '1px solid var(--clr-border)', paddingTop: 18 }}>
+        <div style={{ ...sectionLabel, display: 'flex', alignItems: 'center', gap: 8 }}>
+          Secondary Contact
+          <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span>
+        </div>
+        <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--clr-muted)' }}>
+          An additional point of contact e.g. compliance officer.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>Name</label>
+              <input {...register('secondaryContactName')} placeholder="Jane Smith" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Role / Title</label>
+              <input {...register('secondaryContactRole')} placeholder="Compliance Officer" style={inputStyle} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={labelStyle}>Phone</label>
+              <input {...register('secondaryContactPhone')} type="tel" placeholder="0400 000 000" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input {...register('secondaryContactEmail')} type="email" placeholder="secondary@org.com.au"
+                style={{ ...inputStyle, borderColor: errors.secondaryContactEmail ? '#ef4444' : undefined }} />
+              {errors.secondaryContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.secondaryContactEmail.message as string}</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

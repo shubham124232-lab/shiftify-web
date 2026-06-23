@@ -22,9 +22,9 @@ export function ParticipantStep02_NDIS() {
         <label style={labelStyle}>How is your NDIS funding managed? <span style={{ color: '#ef4444' }}>*</span></label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
-            { value: 'SELF',  label: 'Self-Managed', desc: 'You manage your own budget and pay providers directly' },
-            { value: 'PLAN',  label: 'Plan-Managed', desc: 'A plan manager handles invoices and payments for you' },
-            { value: 'NDIA',  label: 'NDIA-Managed (Agency)', desc: 'The NDIA pays registered providers directly' },
+            { value: 'SELF_MANAGED',  label: 'Self-Managed', desc: 'You manage your own budget and pay providers directly' },
+            { value: 'PLAN_MANAGED',  label: 'Plan-Managed', desc: 'A plan manager handles invoices and payments for you' },
+            { value: 'NDIA_MANAGED',  label: 'NDIA-Managed (Agency)', desc: 'The NDIA pays registered providers directly' },
           ].map(opt => (
             <label key={opt.value} style={{
               display: 'flex', gap: 12, cursor: 'pointer', padding: '12px 14px',

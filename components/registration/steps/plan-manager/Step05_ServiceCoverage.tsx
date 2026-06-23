@@ -16,9 +16,9 @@ export function PmStep05_ServiceCoverage() {
         <label style={labelStyle}>Service Coverage <span style={{ color: '#ef4444' }}>*</span></label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
-            { value: 'NATIONAL', label: 'National', desc: 'Can manage participants across all states and territories' },
-            { value: 'STATE', label: 'State / Territory', desc: 'Specific states only' },
-            { value: 'REGIONAL', label: 'Regional / Local', desc: 'Specific postcodes or suburbs only' },
+            { value: 'AUSTRALIA_WIDE', label: 'National', desc: 'Can manage participants across all states and territories' },
+            { value: 'STATE_BASED', label: 'State / Territory', desc: 'Specific states only' },
+            { value: 'REGION_BASED', label: 'Regional / Local', desc: 'Specific postcodes or suburbs only' },
           ].map(opt => (
             <label key={opt.value} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
               border: `1.5px solid ${coverageType === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
@@ -34,7 +34,7 @@ export function PmStep05_ServiceCoverage() {
         {errors.serviceCoverageType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.serviceCoverageType.message as string}</p>}
       </div>
 
-      {coverageType === 'STATE' && (
+      {coverageType === 'STATE_BASED' && (
         <div>
           <label style={{ ...labelStyle, marginBottom: 8 }}>States / Territories Covered <span style={{ color: '#ef4444' }}>*</span></label>
           <Controller name="stateCoverage" control={control} defaultValue={[]} render={({ field }) => (
@@ -56,7 +56,7 @@ export function PmStep05_ServiceCoverage() {
         </div>
       )}
 
-      {coverageType === 'REGIONAL' && (
+      {coverageType === 'REGION_BASED' && (
         <div>
           <label style={labelStyle}>Postcodes / Suburbs Served <span style={{ color: '#ef4444' }}>*</span></label>
           <textarea {...register('postcodesServed.0')} rows={3} placeholder="List postcodes or suburb names, one per line or comma-separated"

@@ -21,7 +21,7 @@ export function PmStep02_NDISStatus() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
             { value: 'REGISTERED', label: 'Registered NDIS Plan Manager', desc: 'Hold current NDIS registration for plan management' },
-            { value: 'APPLYING', label: 'Applying / In Progress', desc: 'Application submitted or in progress with the NDIS Commission' },
+            { value: 'IN_PROGRESS', label: 'Applying / In Progress', desc: 'Application submitted or in progress with the NDIS Commission' },
             { value: 'NOT_REGISTERED', label: 'Not Currently Registered', desc: 'Operating without NDIS registration (self-managed participants only)' },
           ].map(opt => (
             <label key={opt.value} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
@@ -38,7 +38,7 @@ export function PmStep02_NDISStatus() {
         {errors.ndisRegistrationStatus && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.ndisRegistrationStatus.message as string}</p>}
       </div>
 
-      {(status === 'REGISTERED' || status === 'APPLYING') && (
+      {(status === 'REGISTERED' || status === 'IN_PROGRESS') && (
         <>
           <div>
             <label style={labelStyle}>NDIS Provider Number</label>

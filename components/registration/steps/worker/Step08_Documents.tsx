@@ -70,8 +70,7 @@ export function WorkerStep08_Documents() {
           <option value="">Select…</option>
           <option value="HLTAID011">HLTAID011 — Provide First Aid</option>
           <option value="HLTAID009">HLTAID009 — Provide CPR</option>
-          <option value="HLTAID010">HLTAID010 — Provide Basic Emergency Life Support</option>
-          <option value="HLTAID014">HLTAID014 — Provide Advanced First Aid</option>
+          <option value="OTHER">Other</option>
           <option value="OTHER">Other</option>
         </select>
       </div>

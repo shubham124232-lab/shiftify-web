@@ -14,9 +14,9 @@ export function PmStep08_StaffModel() {
         <label style={labelStyle}>Organisation User Model</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
-            { value: 'SINGLE_USER', label: 'Single User', desc: 'Just you — sole trader or principal managing everything' },
-            { value: 'SMALL_TEAM', label: 'Small Team', desc: '2–5 staff accessing the platform' },
-            { value: 'LARGE_ORG', label: 'Large Organisation', desc: '6+ staff with separate admin and case manager roles' },
+            { value: 'SINGLE', label: 'Single User', desc: 'Just you — sole trader or principal managing everything' },
+            { value: 'MULTI_USER', label: 'Small Team', desc: '2–5 staff accessing the platform' },
+            { value: 'MULTI_USER', label: 'Large Organisation', desc: '6+ staff with separate admin and case manager roles' },
           ].map(opt => (
             <label key={opt.value} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
               border: `1.5px solid ${model === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
@@ -31,7 +31,7 @@ export function PmStep08_StaffModel() {
         </div>
       </div>
 
-      {(model === 'SMALL_TEAM' || model === 'LARGE_ORG') && (
+      {(model === 'MULTI_USER') && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Primary Admin Name</label><input {...register('staffAdminName')} placeholder="Full name" style={inputStyle} /></div>

@@ -61,6 +61,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const isParticipant = user.activeRole === "PARTICIPANT";
     if (!isParticipant && user.status !== "ACTIVE" && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
       router.replace("/profile");
+      return;
+    }
+
+    // 4. Profile complete but plan never activated (paid roles only) — send them
+    //    to the subscription page instead of letting them sit in the dashboard
+    //    with no active plan.
+    if (!isParticipant && user.status !== "ACTIVE") {
+      router.replace("/subscription");
     }
   }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified]);
 

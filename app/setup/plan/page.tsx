@@ -13,15 +13,18 @@ interface Plan {
   period:   string;
   features: string[];
   popular?: boolean;
+  isAddOn:  boolean;
 }
 
 export default function SetupPlanPage() {
   const router = useRouter();
   const { activeRole, logout } = useAuth();
 
-  const [plans,   setPlans]   = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [plans,      setPlans]      = useState<Plan[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState<string | null>(null);
+  const [basePlanId, setBasePlanId] = useState<string | null>(null);
+  const [addOnIds,   setAddOnIds]   = useState<string[]>([]);
 
   useEffect(() => {
     if (!activeRole) return;
@@ -34,14 +37,25 @@ export default function SetupPlanPage() {
           period:   '/mo',
           features: Array.isArray(p.features) ? p.features : [],
           popular:  p.popular ?? false,
+          isAddOn:  p.isAddOn ?? false,
         }))
       ))
       .catch(() => setError('Failed to load plans. Please refresh.'))
       .finally(() => setLoading(false));
   }, [activeRole]);
 
-  function handleSelect(planId: string) {
-    router.push(`/payment/checkout?plan=${planId}`);
+  const basePlans = plans.filter((p) => !p.isAddOn);
+  const addOnPlans = plans.filter((p) => p.isAddOn);
+
+  function toggleAddOn(id: string) {
+    setAddOnIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function handleContinue() {
+    if (!basePlanId) return;
+    const params = new URLSearchParams({ plan: basePlanId });
+    if (addOnIds.length > 0) params.set('addOns', addOnIds.join(','));
+    router.push(`/payment/checkout?${params.toString()}`);
   }
 
   async function handleLogout() {
@@ -113,50 +127,95 @@ export default function SetupPlanPage() {
           </div>
         )}
 
-        {/* Plan cards */}
-        {!loading && plans.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, width: '100%', maxWidth: 860 }}>
-            {plans.map((plan) => (
-              <div
-                key={plan.id}
-                className="card-shiftify"
-                style={{ position: 'relative', padding: 28, border: plan.popular ? '2px solid var(--clr-primary)' : undefined, overflow: 'hidden' }}
-              >
-                {plan.popular && (
-                  <div style={{ position: 'absolute', top: 14, right: 14, background: 'var(--clr-primary)', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 100, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Most Popular
+        {/* Base plan cards — pick exactly one */}
+        {!loading && basePlans.length > 0 && (
+          <div style={{ width: '100%', maxWidth: 860 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+              {basePlans.map((plan) => {
+                const selected = basePlanId === plan.id;
+                return (
+                  <div
+                    key={plan.id}
+                    role="button"
+                    onClick={() => setBasePlanId(plan.id)}
+                    className="card-shiftify"
+                    style={{ position: 'relative', padding: 28, cursor: 'pointer', border: selected ? '2px solid var(--clr-primary)' : plan.popular ? '2px solid var(--clr-primary)' : undefined, overflow: 'hidden' }}
+                  >
+                    {plan.popular && !selected && (
+                      <div style={{ position: 'absolute', top: 14, right: 14, background: 'var(--clr-primary)', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 100, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        Most Popular
+                      </div>
+                    )}
+                    {selected && (
+                      <div style={{ position: 'absolute', top: 14, right: 14, color: 'var(--clr-primary)', fontSize: 20 }}>
+                        <i className="bi bi-check-circle-fill" />
+                      </div>
+                    )}
+
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 6 }}>{plan.label}</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 20 }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 800, color: selected || plan.popular ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                        ${plan.price.toFixed(2)}
+                      </span>
+                      <span style={{ fontSize: 13, color: 'var(--clr-muted)' }}>{plan.period}</span>
+                    </div>
+
+                    {!!plan.features.length && (
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {plan.features.map((f) => (
+                          <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--clr-text)' }}>
+                            <i className="bi bi-check-circle-fill" style={{ color: 'var(--clr-primary)', fontSize: 14, marginTop: 1, flexShrink: 0 }} />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                )}
+                );
+              })}
+            </div>
 
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 6 }}>{plan.label}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 20 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 800, color: plan.popular ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
-                    ${plan.price.toFixed(2)}
-                  </span>
-                  <span style={{ fontSize: 13, color: 'var(--clr-muted)' }}>{plan.period}</span>
+            {/* Add-ons — stack any number on top of the base plan */}
+            {addOnPlans.length > 0 && (
+              <div style={{ marginTop: 32 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-muted)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 }}>
+                  Optional add-ons
                 </div>
-
-                {!!plan.features.length && (
-                  <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {plan.features.map((f) => (
-                      <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--clr-text)' }}>
-                        <i className="bi bi-check-circle-fill" style={{ color: 'var(--clr-primary)', fontSize: 14, marginTop: 1, flexShrink: 0 }} />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => handleSelect(plan.id)}
-                  className={plan.popular ? 'btn-shiftify' : 'btn-outline-shiftify'}
-                  style={{ width: '100%', height: 44, fontSize: 14, fontWeight: 700 }}
-                >
-                  Select Plan
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {addOnPlans.map((addOn) => {
+                    const checked = addOnIds.includes(addOn.id);
+                    return (
+                      <label
+                        key={addOn.id}
+                        className="card-shiftify"
+                        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer', border: checked ? '2px solid var(--clr-primary)' : undefined }}
+                      >
+                        <input type="checkbox" checked={checked} onChange={() => toggleAddOn(addOn.id)} style={{ width: 18, height: 18, accentColor: 'var(--clr-primary)', flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--clr-text)' }}>{addOn.label}</div>
+                          {!!addOn.features.length && (
+                            <div style={{ fontSize: 12, color: 'var(--clr-muted)', marginTop: 2 }}>{addOn.features.join(' · ')}</div>
+                          )}
+                        </div>
+                        <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 800, color: 'var(--clr-primary)', flexShrink: 0 }}>
+                          +${addOn.price.toFixed(2)}{addOn.period}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
+            )}
+
+            <button
+              type="button"
+              disabled={!basePlanId}
+              onClick={handleContinue}
+              className="btn-shiftify"
+              style={{ width: '100%', height: 48, fontSize: 15, fontWeight: 700, marginTop: 32, opacity: basePlanId ? 1 : 0.5, cursor: basePlanId ? 'pointer' : 'not-allowed' }}
+            >
+              {basePlanId ? 'Continue to Payment' : 'Select a plan to continue'}
+            </button>
           </div>
         )}
 

@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import api from "@/src/lib/api";
+import { setAccessToken } from "@/src/lib/token-store";
 
 // ── Step schemas ──────────────────────────────────────────────────────────────
 
@@ -263,13 +264,14 @@ export default function CoordinatorRegisterPage() {
     setError(null);
     try {
       // 1. Create account
-      await api.post("/auth/register", {
+      const reg = await api.post<{ accessToken: string }>("/auth/register", {
         name:     merged.name,
         email:    merged.email,
         phone:    merged.phone,
         password: merged.password,
         role:     "COORDINATOR",
       });
+      setAccessToken(reg.accessToken);
       // 2. Save profile (all steps in one patch)
       await api.post("/users/me/profile/coordinator", {
         profileStep:                       9,

@@ -174,6 +174,7 @@ export interface ActivatePlanResponse {
   message:       string;
   status:        UserStatus;
   subscription?: StoredSubscription;
+  addOns?:       { id: string; planKey: string; planName: string; amountAud: string }[];
   _dev_payment?: DevPayment;
 }
 

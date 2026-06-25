@@ -13,6 +13,82 @@ export interface PlanConfig {
 }
 
 export const PLANS_BY_ROLE: Partial<Record<UserRole, PlanConfig[]>> = {
+  SUPPORT_WORKER: [
+    {
+      id:    'FREE',
+      label: 'Worker Free',
+      price: 0,
+      period: '/month',
+      features: [
+        'Basic profile listing',
+        'Apply to open shifts',
+        'Standard support',
+      ],
+    },
+    {
+      id:    'BASIC',
+      label: 'Worker Basic',
+      price: 49.99,
+      period: '/month',
+      features: [
+        'Priority profile placement',
+        'Unlimited shift applications',
+        'Priority support',
+      ],
+    },
+    {
+      id:      'AVAILABLE_NOW',
+      label:   'Available Now',
+      price:   24.99,
+      period:  '/month (add-on)',
+      features: [
+        '"Available Now" badge on profile',
+        'Boosted visibility in urgent searches',
+      ],
+    },
+  ],
+  COORDINATOR: [
+    {
+      id:    'FREE',
+      label: 'Coordinator Free',
+      price: 0,
+      period: '/month',
+      features: [
+        'Basic profile listing',
+        'Standard support',
+      ],
+    },
+    {
+      id:    'BASIC',
+      label: 'Coordinator Basic',
+      price: 49.99,
+      period: '/month',
+      features: [
+        'Priority profile placement',
+        'Priority support',
+      ],
+    },
+    {
+      id:      'GROWTH',
+      label:   'Growth Add-on',
+      price:   29.99,
+      period:  '/month (add-on)',
+      features: [
+        'Advanced analytics dashboard',
+        'Lead generation tools',
+      ],
+    },
+    {
+      id:      'SPEED',
+      label:   'Speed Add-on',
+      price:   19.99,
+      period:  '/month (add-on)',
+      features: [
+        'Faster client matching',
+        'Priority placement boost',
+      ],
+    },
+  ],
   PROVIDER: [
     {
       id:    'BASIC',

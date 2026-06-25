@@ -63,7 +63,8 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
   const onSubmit = async (data: FieldValues) => {
     setSaving(true); setApiErr(null);
     try { await onSave(data as Record<string,unknown>); }
-    catch (err) { setApiErr(err instanceof Error ? err.message : 'Failed to save. Please try again.'); setSaving(false); }
+    catch (err) { setApiErr(err instanceof Error ? err.message : 'Failed to save. Please try again.'); }
+    finally { setSaving(false); }
   };
 
   if (!config || !StepComp) return null;
@@ -116,6 +117,7 @@ interface ApiPlan {
   amountAud?: number|string;           // backend sends `amountAud`
   price?: number;                      // some adapters send `price`
   period?: string; features?: string[]; popular?: boolean;
+  isAddOn?: boolean;
 }
 function planPrice(p: ApiPlan): number { return Number(p.amountAud ?? p.price ?? 0); }
 function planLabel(p: ApiPlan): string { return p.label ?? p.name ?? p.key ?? ''; }
@@ -158,6 +160,7 @@ export default function RegisterPage() {
   const [plansLoading, setPlansLoading] = useState(false);
   const [plansError,   setPlansError]   = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string|null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
 
   // Register submit
   const [submitting, setSubmitting] = useState(false);
@@ -165,6 +168,10 @@ export default function RegisterPage() {
   // Payment
   const [payLoading, setPayLoading] = useState(false);
   const [payError,   setPayError]   = useState<string|null>(null);
+  const [cardName,   setCardName]   = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc,    setCardCvc]    = useState('');
 
   // Wizard
   const [wizardStep, setWizardStep] = useState(0);
@@ -320,10 +327,22 @@ export default function RegisterPage() {
     setPhase('payment');
   }
 
+  function validateCard(): string | null {
+    if (!cardName.trim()) return 'Enter the name on the card.';
+    const digits = cardNumber.replace(/\s/g, '');
+    if (!/^\d{13,19}$/.test(digits)) return 'Enter a valid card number.';
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry.trim())) return 'Expiry must be in MM/YY format.';
+    if (!/^\d{3,4}$/.test(cardCvc.trim())) return 'Enter a valid CVC.';
+    return null;
+  }
+
   async function handlePayment() {
-    setPayError(null); setPayLoading(true);
+    setPayError(null);
+    const cardErr = validateCard();
+    if (cardErr) { setPayError(cardErr); return; }
+    setPayLoading(true);
     try {
-      await api.post('/subscriptions/activate', { planId: selectedPlan });
+      await api.post('/subscriptions/activate', { planId: selectedPlan, addOnPlanIds: selectedAddOns });
       // Directly update store status to ACTIVE.
       // setApiToken(null)+silentInit() doesn't work here: silentInit returns early
       // when store.accessToken is already set, leaving status=PENDING and causing
@@ -371,8 +390,14 @@ export default function RegisterPage() {
 
   function handleWizardSkip() {
     const total = getStepsForRole(role!).length;
-    if (wizardStep >= total-1) { store.resetWizard(); router.replace('/dashboard'); }
-    else setWizardStep(s => s+1);
+    if (wizardStep >= total-1) {
+      store.resetWizard();
+      // Free roles go straight to dashboard; paid roles still need to select a plan.
+      if (FREE_ROLES.has(role!)) router.replace('/dashboard');
+      else setPhase('plan');
+    } else {
+      setWizardStep(s => s+1);
+    }
   }
 
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
@@ -588,7 +613,7 @@ export default function RegisterPage() {
           {!plansLoading && plans.length > 0 && (
             <>
               <div style={{display:'flex',flexDirection:'column',gap:12}}>
-                {plans.map(plan => {
+                {plans.filter(p => !p.isAddOn).map(plan => {
                   const sel = selectedPlan===plan.id;
                   return (
                     <button key={plan.id} type="button" onClick={() => setSelectedPlan(plan.id)}
@@ -612,6 +637,33 @@ export default function RegisterPage() {
                   );
                 })}
               </div>
+
+              {plans.some(p => p.isAddOn) && (
+                <div style={{marginTop:20}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--clr-muted)',textTransform:'uppercase',letterSpacing:0.6,marginBottom:10}}>Optional add-ons</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {plans.filter(p => p.isAddOn).map(addOn => {
+                      const checked = selectedAddOns.includes(addOn.id);
+                      return (
+                        <label key={addOn.id} style={{display:'flex',alignItems:'center',gap:12,width:'100%',padding:14,borderRadius:'var(--card-radius)',border:checked?'2px solid var(--clr-primary)':'1.5px solid var(--clr-border)',background:checked?'rgba(194,24,91,0.04)':'#fff',cursor:'pointer'}}>
+                          <input type="checkbox" checked={checked} onChange={() => setSelectedAddOns(prev => checked ? prev.filter(id => id !== addOn.id) : [...prev, addOn.id])}
+                            style={{width:18,height:18,accentColor:'var(--clr-primary)',flexShrink:0}} />
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13,fontWeight:700,color:'var(--clr-text)'}}>{planLabel(addOn)}</div>
+                            {(addOn.features?.length ?? 0) > 0 && (
+                              <div style={{fontSize:11,color:'var(--clr-muted)',marginTop:2}}>{addOn.features?.join(' · ')}</div>
+                            )}
+                          </div>
+                          <div style={{fontFamily:'var(--font-display)',fontSize:14,fontWeight:800,color:'var(--clr-primary)',flexShrink:0}}>
+                            +${planPrice(addOn).toFixed(2)}{addOn.period ?? '/mo'}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <button type="button" disabled={!selectedPlan} onClick={handlePlanNext} className="btn-shiftify"
                 style={{width:'100%',height:46,fontSize:15,fontWeight:700,marginTop:20,opacity:selectedPlan?1:0.5,cursor:selectedPlan?'pointer':'not-allowed'}}>
                 Continue to Payment
@@ -654,8 +706,51 @@ export default function RegisterPage() {
                   <div style={{fontSize:11,color:'var(--clr-muted)'}}>{selectedPlanData.period ?? '/mo'}</div>
                 </div>
               </div>
+
+              {selectedAddOns.length > 0 && (
+                <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid var(--clr-border)',display:'flex',flexDirection:'column',gap:6}}>
+                  {plans.filter(p => selectedAddOns.includes(p.id)).map(a => (
+                    <div key={a.id} style={{display:'flex',justifyContent:'space-between',fontSize:12}}>
+                      <span style={{color:'var(--clr-text)'}}>+ {planLabel(a)}</span>
+                      <span style={{color:'var(--clr-muted)'}}>${planPrice(a).toFixed(2)}{a.period ?? '/mo'}</span>
+                    </div>
+                  ))}
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:13,fontWeight:700,marginTop:2}}>
+                    <span style={{color:'var(--clr-text)'}}>Total</span>
+                    <span style={{color:'var(--clr-primary)'}}>
+                      ${(planPrice(selectedPlanData) + plans.filter(p => selectedAddOns.includes(p.id)).reduce((sum,a)=>sum+planPrice(a),0)).toFixed(2)}/mo
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Card details (mock — no real gateway yet) */}
+          <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:16}}>
+            <div>
+              <label style={{fontSize:12,fontWeight:600,color:'var(--clr-muted)',display:'block',marginBottom:4}}>Name on card</label>
+              <input type="text" value={cardName} onChange={e=>setCardName(e.target.value)} placeholder="Jane Smith"
+                style={{width:'100%',height:44,borderRadius:10,border:'1.5px solid var(--clr-border)',padding:'0 12px',fontSize:14,outline:'none'}} />
+            </div>
+            <div>
+              <label style={{fontSize:12,fontWeight:600,color:'var(--clr-muted)',display:'block',marginBottom:4}}>Card number</label>
+              <input type="text" inputMode="numeric" value={cardNumber} onChange={e=>setCardNumber(e.target.value)} placeholder="4242 4242 4242 4242"
+                style={{width:'100%',height:44,borderRadius:10,border:'1.5px solid var(--clr-border)',padding:'0 12px',fontSize:14,outline:'none'}} />
+            </div>
+            <div style={{display:'flex',gap:12}}>
+              <div style={{flex:1}}>
+                <label style={{fontSize:12,fontWeight:600,color:'var(--clr-muted)',display:'block',marginBottom:4}}>Expiry (MM/YY)</label>
+                <input type="text" value={cardExpiry} onChange={e=>setCardExpiry(e.target.value)} placeholder="08/27"
+                  style={{width:'100%',height:44,borderRadius:10,border:'1.5px solid var(--clr-border)',padding:'0 12px',fontSize:14,outline:'none'}} />
+              </div>
+              <div style={{flex:1}}>
+                <label style={{fontSize:12,fontWeight:600,color:'var(--clr-muted)',display:'block',marginBottom:4}}>CVC</label>
+                <input type="text" inputMode="numeric" value={cardCvc} onChange={e=>setCardCvc(e.target.value)} placeholder="123"
+                  style={{width:'100%',height:44,borderRadius:10,border:'1.5px solid var(--clr-border)',padding:'0 12px',fontSize:14,outline:'none'}} />
+              </div>
+            </div>
+          </div>
 
           {payError && (
             <div style={{background:'#FFF0F0',border:'1px solid #FFCDD2',borderRadius:10,padding:'10px 14px',fontSize:13,color:'#C62828',marginBottom:14}}>{payError}</div>

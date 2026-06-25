@@ -11,6 +11,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import api from "@/src/lib/api";
+import { setAccessToken } from "@/src/lib/token-store";
 
 // ── Step schemas ──────────────────────────────────────────────────────────────
 
@@ -265,13 +266,14 @@ export default function ProviderRegisterPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.post("/auth/register", {
+      const reg = await api.post<{ accessToken: string }>("/auth/register", {
         name:     merged.name,
         email:    merged.email,
         phone:    merged.phone,
         password: merged.password,
         role:     "PROVIDER",
       });
+      setAccessToken(reg.accessToken);
       await api.post("/users/me/profile/provider", {
         profileStep:                       12,
         businessName:                      merged.businessName,

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/src/lib/api";
 import { useAuthStore } from "@/src/lib/auth-store";
+import { setAccessToken } from "@/src/lib/token-store";
 
 const loginSchema = z.object({
   identifier: z.string().min(1, "Email or phone is required"),
@@ -27,6 +28,7 @@ interface LoginResponse {
     roles: { role: string; isActiveDefault: boolean }[];
   };
   activeRole: string;
+  accessToken: string;
 }
 
 export default function LoginPage() {
@@ -49,6 +51,7 @@ export default function LoginPage() {
         identifier: values.identifier,
         password: values.password,
       });
+      setAccessToken(res.accessToken);
       setUser({
         id: res.user.id,
         name: res.user.name,

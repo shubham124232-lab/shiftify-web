@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import api from "@/src/lib/api";
 import { useAuthStore } from "@/src/lib/auth-store";
+import { setAccessToken } from "@/src/lib/token-store";
 
 // ── Step schemas ──────────────────────────────────────────────────────────────
 
@@ -204,6 +205,7 @@ export default function ParticipantRegisterPage() {
       interface RegisterResp {
         user: { id: string; name: string; email: string | null; phone: string | null; status: string; avatarUrl: string | null; roles: { role: string; isActiveDefault: boolean }[] };
         activeRole: string;
+        accessToken: string;
       }
       const reg = await api.post<RegisterResp>("/auth/register", {
         name:     `${all.firstName} ${all.lastName}`,
@@ -212,6 +214,7 @@ export default function ParticipantRegisterPage() {
         password: all.password,
         role:     "PARTICIPANT",
       });
+      setAccessToken(reg.accessToken);
 
       // 2. Save profile (steps 2–8)
       await api.post("/profiles/participant", {

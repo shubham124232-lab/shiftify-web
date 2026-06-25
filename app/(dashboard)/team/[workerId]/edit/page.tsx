@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useForm, FormProvider } from "react-hook-form";
 import { api } from "@/lib/api";
 import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { UserRole } from "@/lib/types";
 import { AvailabilityGrid, type Slot } from "@/components/registration/fields/AvailabilityGrid";
+import { WorkerStep02_RightToWork } from "@/components/registration/steps/worker/Step02_RightToWork";
+import { WorkerStep03_WorkType } from "@/components/registration/steps/worker/Step03_WorkType";
+import { WorkerStep07_Financials } from "@/components/registration/steps/worker/Step07_Financials";
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
@@ -45,6 +49,50 @@ interface ChildDocument {
   uploadedAt: string;
 }
 
+// Extra profile fields beyond the original condensed form — same schema the
+// self-registration wizard uses (Backend/src/validators/profile-worker.schema.ts),
+// just collected here in one page instead of across 9 wizard steps.
+interface ExtraFormValues {
+  rightToWork?: string;
+  visaType?: string;
+  visaExpiry?: string;
+  workType?: string;
+  abn?: string;
+  gstRegistered?: boolean;
+  publicLiabilityInsurance?: boolean;
+  publicLiabilityPolicyNumber?: string;
+  publicLiabilityExpiry?: string;
+  personalAccidentInsurance?: boolean;
+  personalAccidentPolicyNumber?: string;
+  personalAccidentExpiry?: string;
+  hasDriversLicence?: boolean;
+  driversLicenceType?: string;
+  driversLicenceExpiry?: string;
+  ownVehicle?: boolean;
+  hourlyRate?: number;
+  hourlyRateType?: string;
+  weekendNightRates?: { weekendRate?: number; nightRate?: number; publicHolidayRate?: number };
+  travelCharges?: string;
+  bio?: string;
+  preferences?: string;
+  preferredParticipantType?: string[];
+  genderPreference?: string;
+  languagesSpoken?: string[];
+  isAvailableNow?: boolean;
+  seekingPlanManager?: boolean;
+  ndisScreeningNumber?: string;
+  ndisScreeningExpiry?: string;
+  policeCheckIssueDate?: string;
+  policeCheckExpiry?: string;
+  wwccNumber?: string;
+  wwccExpiry?: string;
+  firstAidCertType?: string;
+  firstAidExpiry?: string;
+  cprExpiry?: string;
+  infectionControlCompleted?: boolean;
+  manualHandlingCompleted?: boolean;
+}
+
 export default function EditWorkerPage() {
   const { workerId } = useParams<{ workerId: string }>();
   const router = useRouter();
@@ -57,7 +105,6 @@ export default function EditWorkerPage() {
   const [name,            setName]            = useState("");
   const [username,        setUsername]        = useState("");
   const [phone,           setPhone]           = useState("");
-  const [bio,             setBio]             = useState("");
   const [suburb,          setSuburb]          = useState("");
   const [servicesOffered, setServicesOffered] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState("");
@@ -80,6 +127,11 @@ export default function EditWorkerPage() {
   const [resetting,    setResetting]    = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
+  // Extended profile fields (right-to-work, employment type, insurance, rates,
+  // compliance metadata, declarations) — same schema as self-registration,
+  // collected via the same field components used in the registration wizard.
+  const extraForm = useForm<ExtraFormValues>({ defaultValues: {} });
+
   function loadDocuments() {
     if (!workerId) return;
     api.get<{ documents: ChildDocument[] }>(`/users/${workerId}/documents`)
@@ -89,7 +141,6 @@ export default function EditWorkerPage() {
 
   useEffect(() => {
     if (activeRole !== UserRole.PROVIDER || !workerId) return;
-    // Load full profile via parent-scoped GET /users/:id
     api.get<{ user: any }>(`/users/${workerId}`)
       .then(r => {
         const u = r.user;
@@ -98,21 +149,61 @@ export default function EditWorkerPage() {
         setUsername(u.username ?? "");
         setPhone(u.phone ?? "");
         setSuburb(u.defaultSuburb ?? "");
-        // Worker profile fields
-        const wp = u.workerProfile;
-        setBio(wp?.bio ?? "");
-        setServicesOffered(wp?.servicesOffered ?? []);
-        setExperienceLevel(wp?.experienceLevel ?? "");
-        setAvailability((wp?.availability ?? []).map((s: any) => ({
+        const wp = u.workerProfile ?? {};
+        setServicesOffered(wp.servicesOffered ?? []);
+        setExperienceLevel(wp.experienceLevel ?? "");
+        setAvailability((wp.availability ?? []).map((s: any) => ({
           dayOfWeek: s.dayOfWeek, startTime: s.startTime, endTime: s.endTime,
         })));
-        setServiceAreaInput((wp?.serviceAreas ?? []).join(", "));
-        setTravelRadiusKm(wp?.travelRadiusKm != null ? String(wp.travelRadiusKm) : "");
+        setServiceAreaInput((wp.serviceAreas ?? []).join(", "));
+        setTravelRadiusKm(wp.travelRadiusKm != null ? String(wp.travelRadiusKm) : "");
+
+        extraForm.reset({
+          rightToWork: wp.rightToWork ?? "",
+          visaType: wp.visaType ?? "",
+          visaExpiry: wp.visaExpiry ? wp.visaExpiry.slice(0, 10) : "",
+          workType: wp.workType ?? "",
+          abn: wp.abn ?? "",
+          gstRegistered: wp.gstRegistered ?? false,
+          publicLiabilityInsurance: wp.publicLiabilityInsurance ?? false,
+          publicLiabilityPolicyNumber: wp.publicLiabilityPolicyNumber ?? "",
+          publicLiabilityExpiry: wp.publicLiabilityExpiry ? wp.publicLiabilityExpiry.slice(0, 10) : "",
+          personalAccidentInsurance: wp.personalAccidentInsurance ?? false,
+          personalAccidentPolicyNumber: wp.personalAccidentPolicyNumber ?? "",
+          personalAccidentExpiry: wp.personalAccidentExpiry ? wp.personalAccidentExpiry.slice(0, 10) : "",
+          hasDriversLicence: !!wp.driversLicenceType,
+          driversLicenceType: wp.driversLicenceType ?? "",
+          driversLicenceExpiry: wp.driversLicenceExpiry ? wp.driversLicenceExpiry.slice(0, 10) : "",
+          ownVehicle: wp.hasVehicle ?? false,
+          hourlyRate: wp.hourlyRate != null ? Number(wp.hourlyRate) : undefined,
+          hourlyRateType: wp.hourlyRateType ?? "",
+          weekendNightRates: wp.weekendNightRates ?? {},
+          travelCharges: wp.travelCharges ?? "",
+          bio: wp.bio ?? "",
+          preferences: wp.preferences ?? "",
+          preferredParticipantType: wp.preferredParticipantType ?? [],
+          genderPreference: wp.genderPreference ?? "",
+          languagesSpoken: wp.languagesSpoken ?? [],
+          isAvailableNow: wp.isAvailableNow ?? false,
+          seekingPlanManager: wp.seekingPlanManager ?? false,
+          ndisScreeningNumber: wp.ndisScreeningNumber ?? "",
+          ndisScreeningExpiry: wp.ndisScreeningExpiry ? wp.ndisScreeningExpiry.slice(0, 10) : "",
+          policeCheckIssueDate: wp.policeCheckIssueDate ? wp.policeCheckIssueDate.slice(0, 10) : "",
+          policeCheckExpiry: wp.policeCheckExpiry ? wp.policeCheckExpiry.slice(0, 10) : "",
+          wwccNumber: wp.wwccNumber ?? "",
+          wwccExpiry: wp.wwccExpiry ? wp.wwccExpiry.slice(0, 10) : "",
+          firstAidCertType: wp.firstAidCertType ?? "",
+          firstAidExpiry: wp.firstAidExpiry ? wp.firstAidExpiry.slice(0, 10) : "",
+          cprExpiry: wp.cprExpiry ? wp.cprExpiry.slice(0, 10) : "",
+          infectionControlCompleted: wp.infectionControlCompleted ?? false,
+          manualHandlingCompleted: wp.manualHandlingCompleted ?? false,
+        });
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
     loadDocuments();
-  }, [workerId, activeRole]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workerId, activeRole]);
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -120,27 +211,33 @@ export default function EditWorkerPage() {
     try {
       const serviceAreas = serviceAreaInput.split(",").map(s => s.trim()).filter(Boolean);
       const radiusNum    = travelRadiusKm.trim() ? Number(travelRadiusKm) : undefined;
+      const extra = extraForm.getValues();
 
-      // Step 1: save base user fields
       await api.patch(`/users/${workerId}`, {
         name:          name.trim()   || undefined,
         phone:         phone.trim()  || undefined,
         defaultSuburb: suburb.trim() || undefined,
       });
-      // Step 2: save worker profile fields (always send, even if empty, so clearing works)
       await api.post(`/users/${workerId}/profile/worker`, {
-        bio:             bio.trim() || undefined,
-        servicesOffered: servicesOffered,
-        experienceLevel: experienceLevel || undefined,
-        availability:    availability,
-        serviceAreas:    serviceAreas.length ? serviceAreas : undefined,
-        travelRadiusKm:  radiusNum,
+        servicesOffered, experienceLevel: experienceLevel || undefined,
+        serviceAreas: serviceAreas.length ? serviceAreas : undefined,
+        travelRadiusKm: radiusNum,
+        ...extra,
+        hasVehicle: extra.ownVehicle,
+        driversLicenceType: extra.hasDriversLicence ? extra.driversLicenceType : undefined,
+        driversLicenceExpiry: extra.hasDriversLicence ? extra.driversLicenceExpiry : undefined,
       }).catch(profileErr => {
-        // Non-fatal — profile save failing doesn't undo the base save
         console.warn("Profile save warning:", profileErr?.message);
+        throw profileErr;
       });
+      // Availability lives in its own table, not the profile schema — saved via
+      // a dedicated parent-scoped endpoint (PUT /users/:id/availability).
+      await api.put(`/users/${workerId}/availability`, { slots: availability })
+        .catch(availErr => {
+          console.warn("Availability save warning:", availErr?.message);
+          throw availErr;
+        });
       setSuccess(true);
-      // Don't auto-redirect — let user see the success and choose when to go back
     } catch (err: any) {
       setError(err?.message ?? "Save failed. Check the console for details.");
     } finally {
@@ -297,14 +394,6 @@ export default function EditWorkerPage() {
                 <label style={lbl}>Suburb</label>
                 <input style={inp} value={suburb} onChange={e => setSuburb(e.target.value)} placeholder="e.g. Parramatta" />
               </div>
-              <div>
-                <label style={lbl}>Bio</label>
-                <textarea
-                  value={bio} onChange={e => setBio(e.target.value)}
-                  rows={4} placeholder="Worker's background and experience..."
-                  style={{ ...inp, height: "auto", padding: "8px 10px", resize: "vertical" }}
-                />
-              </div>
             </CardContent>
           </Card>
 
@@ -366,6 +455,80 @@ export default function EditWorkerPage() {
                   onChange={e => setTravelRadiusKm(e.target.value)} placeholder="25"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Right to work / visa — same fields a self-registered worker fills in Step 2 */}
+          <FormProvider {...extraForm}>
+            <Card>
+              <CardHeader><CardTitle>Right to work</CardTitle></CardHeader>
+              <CardContent><WorkerStep02_RightToWork /></CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Employment type, insurance & vehicle</CardTitle></CardHeader>
+              <CardContent><WorkerStep03_WorkType /></CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Rates, bio & preferences</CardTitle></CardHeader>
+              <CardContent><WorkerStep07_Financials /></CardContent>
+            </Card>
+          </FormProvider>
+
+          {/* Compliance metadata — the numbers/dates that go with the documents below */}
+          <Card>
+            <CardHeader><CardTitle>Compliance details</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={lbl}>NDIS Screening Number</label>
+                  <input style={inp} {...extraForm.register("ndisScreeningNumber")} />
+                </div>
+                <div>
+                  <label style={lbl}>NDIS Screening Expiry</label>
+                  <input style={inp} type="date" {...extraForm.register("ndisScreeningExpiry")} />
+                </div>
+                <div>
+                  <label style={lbl}>Police Check Issue Date</label>
+                  <input style={inp} type="date" {...extraForm.register("policeCheckIssueDate")} />
+                </div>
+                <div>
+                  <label style={lbl}>Police Check Expiry</label>
+                  <input style={inp} type="date" {...extraForm.register("policeCheckExpiry")} />
+                </div>
+                <div>
+                  <label style={lbl}>WWCC Number</label>
+                  <input style={inp} {...extraForm.register("wwccNumber")} />
+                </div>
+                <div>
+                  <label style={lbl}>WWCC Expiry</label>
+                  <input style={inp} type="date" {...extraForm.register("wwccExpiry")} />
+                </div>
+                <div>
+                  <label style={lbl}>First Aid Cert Type</label>
+                  <select style={inp} {...extraForm.register("firstAidCertType")}>
+                    <option value="">Select…</option>
+                    <option value="HLTAID011">HLTAID011 — Provide First Aid</option>
+                    <option value="HLTAID009">HLTAID009 — Provide CPR</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>First Aid Expiry</label>
+                  <input style={inp} type="date" {...extraForm.register("firstAidExpiry")} />
+                </div>
+                <div>
+                  <label style={lbl}>CPR Expiry</label>
+                  <input style={inp} type="date" {...extraForm.register("cprExpiry")} />
+                </div>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+                <input type="checkbox" {...extraForm.register("infectionControlCompleted")} /> Infection Control Training completed
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+                <input type="checkbox" {...extraForm.register("manualHandlingCompleted")} /> Manual Handling Training completed
+              </label>
             </CardContent>
           </Card>
 

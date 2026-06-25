@@ -4,9 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { getPlan } from '@/lib/constants/plans';
+import { api } from '@/lib/api';
 import { UserStatus } from '@/lib/types';
 import type { DevPayment } from '@/lib/types';
+
+interface LivePlan { id: string; name: string; amountAud: number | string; }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -16,26 +18,65 @@ function CheckoutContent() {
   const { user, activeRole, status, activatePlan, error, clearError } = useAuth();
 
   const planId = searchParams.get('plan') ?? '';
+  const addOnIds = (searchParams.get('addOns') ?? '').split(',').filter(Boolean);
 
   // Redirect if no plan in URL or already active
   useEffect(() => {
-    if (!planId) router.replace('/payment');
+    if (!planId) router.replace('/setup/plan');
     if (status === UserStatus.ACTIVE) router.replace('/dashboard');
   }, [planId, status, router]);
 
-  const plan = activeRole ? getPlan(activeRole, planId) : undefined;
+  // Plan ids come from the live /subscriptions/plans API (UUIDs), not the
+  // hardcoded constants file — fetch the real plan so the summary is accurate.
+  const [plan, setPlan] = useState<{ label: string; price: number; period: string } | undefined>(undefined);
+  const [addOns, setAddOns] = useState<{ id: string; label: string; price: number }[]>([]);
+  useEffect(() => {
+    if (!activeRole || !planId) return;
+    api.get<{ plans: LivePlan[] }>(`/subscriptions/plans?role=${activeRole}`)
+      .then(res => {
+        const list = res.plans ?? [];
+        const found = list.find(p => p.id === planId);
+        if (found) setPlan({ label: found.name, price: Number(found.amountAud), period: '/month' });
+        setAddOns(
+          list
+            .filter((p) => addOnIds.includes(p.id))
+            .map((p) => ({ id: p.id, label: p.name, price: Number(p.amountAud) })),
+        );
+      })
+      .catch(() => {});
+  }, [activeRole, planId, addOnIds.join(',')]);
+
+  const addOnsTotal = addOns.reduce((sum, a) => sum + a.price, 0);
+  const grandTotal = (plan?.price ?? 0) + addOnsTotal;
 
   // ── State ───────────────────────────────────────────────────────────────────
   const [processing, setProcessing] = useState(false);
   const [activated,  setActivated]  = useState(false);
   const [receipt,    setReceipt]    = useState<DevPayment | null>(null);
+  const [cardName,   setCardName]   = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc,    setCardCvc]    = useState('');
+  const [cardError,  setCardError]  = useState<string | null>(null);
+
+  function validateCard(): string | null {
+    if (!cardName.trim()) return 'Enter the name on the card.';
+    const digits = cardNumber.replace(/\s/g, '');
+    if (!/^\d{13,19}$/.test(digits)) return 'Enter a valid card number.';
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry.trim())) return 'Expiry must be in MM/YY format.';
+    if (!/^\d{3,4}$/.test(cardCvc.trim())) return 'Enter a valid CVC.';
+    return null;
+  }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   async function handleActivate() {
     clearError();
+    const cardErr = validateCard();
+    if (cardErr) { setCardError(cardErr); return; }
+    setCardError(null);
     setProcessing(true);
     try {
-      const res = await activatePlan(planId);
+      const res = await activatePlan(planId, addOnIds);
       setReceipt(res._dev_payment ?? null);
       setActivated(true);
     } finally {
@@ -98,7 +139,7 @@ function CheckoutContent() {
 
       {/* Header */}
       <header style={{ background: '#fff', borderBottom: '1px solid var(--clr-border)', height: 64, display: 'flex', alignItems: 'center', padding: '0 24px', position: 'sticky', top: 0, zIndex: 99 }}>
-        <Link href="/payment" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--clr-primary)', fontWeight: 700, fontSize: 14 }}>
+        <Link href="/setup/plan" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--clr-primary)', fontWeight: 700, fontSize: 14 }}>
           <i className="bi bi-arrow-left" style={{ fontSize: 16 }} />
           Back to plans
         </Link>
@@ -132,8 +173,53 @@ function CheckoutContent() {
                   <div style={{ fontSize: 11, color: 'var(--clr-muted)' }}>AUD{plan.period}</div>
                 </div>
               </div>
+
+              {addOns.length > 0 && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--clr-border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {addOns.map((a) => (
+                    <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--clr-text)' }}>+ {a.label}</span>
+                      <span style={{ color: 'var(--clr-muted)' }}>${a.price.toFixed(2)}/month</span>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, marginTop: 4 }}>
+                    <span style={{ color: 'var(--clr-text)' }}>Total</span>
+                    <span style={{ color: 'var(--clr-primary)' }}>${grandTotal.toFixed(2)}/month</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
+          {/* Card details (mock — no real gateway yet) */}
+          <div className="card-shiftify" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--clr-muted)' }}>Card Details</div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--clr-muted)', display: 'block', marginBottom: 4 }}>Name on card</label>
+              <input type="text" value={cardName} onChange={e => setCardName(e.target.value)} placeholder="Jane Smith"
+                style={{ width: '100%', height: 44, borderRadius: 10, border: '1.5px solid var(--clr-border)', padding: '0 12px', fontSize: 14, outline: 'none' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--clr-muted)', display: 'block', marginBottom: 4 }}>Card number</label>
+              <input type="text" inputMode="numeric" value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="4242 4242 4242 4242"
+                style={{ width: '100%', height: 44, borderRadius: 10, border: '1.5px solid var(--clr-border)', padding: '0 12px', fontSize: 14, outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--clr-muted)', display: 'block', marginBottom: 4 }}>Expiry (MM/YY)</label>
+                <input type="text" value={cardExpiry} onChange={e => setCardExpiry(e.target.value)} placeholder="08/27"
+                  style={{ width: '100%', height: 44, borderRadius: 10, border: '1.5px solid var(--clr-border)', padding: '0 12px', fontSize: 14, outline: 'none' }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--clr-muted)', display: 'block', marginBottom: 4 }}>CVC</label>
+                <input type="text" inputMode="numeric" value={cardCvc} onChange={e => setCardCvc(e.target.value)} placeholder="123"
+                  style={{ width: '100%', height: 44, borderRadius: 10, border: '1.5px solid var(--clr-border)', padding: '0 12px', fontSize: 14, outline: 'none' }} />
+              </div>
+            </div>
+            {cardError && (
+              <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#C62828' }}>{cardError}</div>
+            )}
+          </div>
 
           {/* Activate */}
           <div className="card-shiftify" style={{ padding: 28 }}>

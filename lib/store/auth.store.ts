@@ -43,7 +43,7 @@ interface AuthState {
   forgotPassword: (payload: ForgotPasswordPayload) => Promise<ForgotPasswordResponse>;
   resetPassword:  (payload: ResetPasswordPayload)  => Promise<void>;
   updateProfile:  (data: Partial<User>)            => void;
-  activatePlan:   (planId: string)                 => Promise<ActivatePlanResponse>;
+  activatePlan:   (planId: string, addOnPlanIds?: string[]) => Promise<ActivatePlanResponse>;
   setTokens:      (accessToken: string, user: User) => void;
   silentInit:     ()                               => Promise<void>;
   clearError:     ()                               => void;
@@ -280,12 +280,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   // ── activatePlan — calls /subscriptions/activate, updates status in store ──
 
-  async activatePlan(planId: string) {
+  async activatePlan(planId: string, addOnPlanIds?: string[]) {
     set({ loading: true, error: null });
     try {
       const data = await api.post<ActivatePlanResponse>(
         '/subscriptions/activate',
-        { plan: planId },
+        { planId, addOnPlanIds: addOnPlanIds ?? [] },
       );
 
       // Update status in store immediately — no need for a full refresh

@@ -3,12 +3,18 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useForm, FormProvider } from "react-hook-form";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
+import { ParticipantStep01_Personal } from "@/components/registration/steps/participant/Step01_Personal";
+import { ParticipantStep02_NDIS } from "@/components/registration/steps/participant/Step02_NDIS";
+import { ParticipantStep03_SupportNeeds } from "@/components/registration/steps/participant/Step03_SupportNeeds";
+import { ParticipantStep04_EmergencyContact } from "@/components/registration/steps/participant/Step04_EmergencyContact";
+import { ParticipantStep05_Declaration } from "@/components/registration/steps/participant/Step05_Declaration";
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
@@ -19,17 +25,56 @@ const lbl: React.CSSProperties = {
   display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4,
 };
 
+// Same field set the self-registration wizard collects across 5 steps
+// (Backend/src/validators/profile-participant.schema.ts), just gathered on
+// one page here instead.
+interface ParticipantFormValues {
+  preferredName?: string;
+  participantType?: string;
+  ageGroup?: string;
+  gender?: string;
+  suburb?: string;
+  postcode?: string;
+  state?: string;
+  fullAddress?: string;
+  ndisNumber?: string;
+  fundingManagementType?: string;
+  supportCoordinationFunding?: string;
+  ndisStartDate?: string;
+  ndisEndDate?: string;
+  primaryDisability?: string;
+  primarySupportNeeds?: string[];
+  mobilitySupportNeeds?: string[];
+  communicationNeeds?: string[];
+  behaviourSensoryNotes?: string[];
+  medicalConsiderations?: string[];
+  riskSafetyNotes?: string;
+  skillsRequired?: string[];
+  supportPreferences?: string[];
+  preferredSupportType?: string;
+  preferredWorkerGender?: string;
+  languagePreference?: string[];
+  culturalPreference?: string[];
+  preferredDays?: string[];
+  preferredTime?: string[];
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelationship?: string;
+  seekingPlanManager?: boolean;
+  termsAccepted?: boolean;
+  privacyPolicyAccepted?: boolean;
+  ndisCodeAccepted?: boolean;
+}
+
 export default function EditParticipantPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { activeRole } = useAuth();
 
-  const [name,        setName]        = useState("");
-  const [username,    setUsername]    = useState("");
-  const [phone,       setPhone]       = useState("");
-  const [bio,         setBio]         = useState("");
-  const [ndisNumber,  setNdisNumber]  = useState("");
-  const [suburb,      setSuburb]      = useState("");
+  const [name,         setName]         = useState("");
+  const [username,     setUsername]     = useState("");
+  const [phone,        setPhone]        = useState("");
+  const [defaultSuburb, setDefaultSuburb] = useState("");
 
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
@@ -40,6 +85,8 @@ export default function EditParticipantPage() {
   const [resetting,    setResetting]    = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
+  const form = useForm<ParticipantFormValues>({ defaultValues: {} });
+
   useEffect(() => {
     if (activeRole !== UserRole.COORDINATOR || !id) return;
     api.get<{ user: any }>(`/users/${id}`)
@@ -48,30 +95,65 @@ export default function EditParticipantPage() {
         setName(u.name ?? "");
         setUsername(u.username ?? "");
         setPhone(u.phone ?? "");
-        setSuburb(u.defaultSuburb ?? "");
-        const pp = u.participantProfile;
-        setNdisNumber(pp?.ndisNumber ?? "");
-        setBio(pp?.riskSafetyNotes ?? "");
+        setDefaultSuburb(u.defaultSuburb ?? "");
+        const pp = u.participantProfile ?? {};
+        form.reset({
+          preferredName: pp.preferredName ?? "",
+          participantType: pp.participantType ?? "",
+          ageGroup: pp.ageGroup ?? "",
+          gender: pp.gender ?? "",
+          suburb: pp.suburb ?? "",
+          postcode: pp.postcode ?? "",
+          state: pp.state ?? "",
+          fullAddress: pp.fullAddress ?? "",
+          ndisNumber: pp.ndisNumber ?? "",
+          fundingManagementType: pp.fundingManagementType ?? "",
+          supportCoordinationFunding: pp.supportCoordinationFunding ?? "",
+          ndisStartDate: pp.ndisStartDate ? pp.ndisStartDate.slice(0, 10) : "",
+          ndisEndDate: pp.ndisEndDate ? pp.ndisEndDate.slice(0, 10) : "",
+          primaryDisability: pp.primaryDisability ?? "",
+          primarySupportNeeds: pp.primarySupportNeeds ?? [],
+          mobilitySupportNeeds: pp.mobilitySupportNeeds ?? [],
+          communicationNeeds: pp.communicationNeeds ?? [],
+          behaviourSensoryNotes: pp.behaviourSensoryNotes ?? [],
+          medicalConsiderations: pp.medicalConsiderations ?? [],
+          riskSafetyNotes: pp.riskSafetyNotes ?? "",
+          skillsRequired: pp.skillsRequired ?? [],
+          supportPreferences: pp.supportPreferences ?? [],
+          preferredSupportType: pp.preferredSupportType ?? "",
+          preferredWorkerGender: pp.preferredWorkerGender ?? "",
+          languagePreference: pp.languagePreference ?? [],
+          culturalPreference: pp.culturalPreference ?? [],
+          preferredDays: pp.preferredDays ?? [],
+          preferredTime: pp.preferredTime ?? [],
+          emergencyContactName: pp.emergencyContactName ?? "",
+          emergencyContactPhone: pp.emergencyContactPhone ?? "",
+          emergencyContactRelationship: pp.emergencyContactRelationship ?? "",
+          seekingPlanManager: pp.seekingPlanManager ?? false,
+          termsAccepted: pp.termsAccepted ?? false,
+          privacyPolicyAccepted: pp.privacyPolicyAccepted ?? false,
+          ndisCodeAccepted: pp.ndisCodeAccepted ?? false,
+        });
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [id, activeRole]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, activeRole]);
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
     setSaving(true); setError(null); setSuccess(false);
     try {
       await api.patch(`/users/${id}`, {
-        name:          name.trim()   || undefined,
-        phone:         phone.trim()  || undefined,
-        defaultSuburb: suburb.trim() || undefined,
+        name:          name.trim()          || undefined,
+        phone:         phone.trim()         || undefined,
+        defaultSuburb: defaultSuburb.trim() || undefined,
       });
-      await api.post(`/users/${id}/profile/participant`, {
-        ndisNumber:      ndisNumber.trim() || undefined,
-        riskSafetyNotes: bio.trim()        || undefined,
-      }).catch(profileErr => {
-        console.warn("Profile save warning:", profileErr?.message);
-      });
+      await api.post(`/users/${id}/profile/participant`, form.getValues())
+        .catch(profileErr => {
+          console.warn("Profile save warning:", profileErr?.message);
+          throw profileErr;
+        });
       setSuccess(true);
     } catch (err: any) {
       setError(err?.message ?? "Save failed. Check the console for details.");
@@ -104,7 +186,7 @@ export default function EditParticipantPage() {
         <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
           <Card>
-            <CardHeader><CardTitle>Personal details</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Account details</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {username && (
                 <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -121,29 +203,39 @@ export default function EditParticipantPage() {
                 <input style={inp} type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+61 4xx xxx xxx" />
               </div>
               <div>
-                <label style={lbl}>Suburb</label>
-                <input style={inp} value={suburb} onChange={e => setSuburb(e.target.value)} placeholder="e.g. Parramatta" />
+                <label style={lbl}>Default suburb</label>
+                <input style={inp} value={defaultSuburb} onChange={e => setDefaultSuburb(e.target.value)} placeholder="e.g. Parramatta" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle>NDIS information</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label style={lbl}>NDIS number</label>
-                <input style={inp} value={ndisNumber} onChange={e => setNdisNumber(e.target.value)} placeholder="43 000 000 00" />
-              </div>
-              <div>
-                <label style={lbl}>Support notes / bio</label>
-                <textarea
-                  value={bio} onChange={e => setBio(e.target.value)}
-                  rows={4} placeholder="Notes about this participant's support needs..."
-                  style={{ ...inp, height: "auto", padding: "8px 10px", resize: "vertical" }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Same fields the self-registration wizard collects across Steps 1-5 */}
+          <FormProvider {...form}>
+            <Card>
+              <CardHeader><CardTitle>Personal details</CardTitle></CardHeader>
+              <CardContent><ParticipantStep01_Personal /></CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>NDIS funding</CardTitle></CardHeader>
+              <CardContent><ParticipantStep02_NDIS /></CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Support needs</CardTitle></CardHeader>
+              <CardContent><ParticipantStep03_SupportNeeds /></CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Emergency contact</CardTitle></CardHeader>
+              <CardContent><ParticipantStep04_EmergencyContact /></CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Declarations</CardTitle></CardHeader>
+              <CardContent><ParticipantStep05_Declaration /></CardContent>
+            </Card>
+          </FormProvider>
 
           {error && (
             <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>

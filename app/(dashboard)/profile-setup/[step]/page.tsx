@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { getProfileProgress, upsertProfile, type ProfileProgress } from '@/lib/api/profile';
+import { sanitiseDates } from '@/lib/utils';
 import { TOTAL_STEPS, WIZARD_START_STEP, ROLE_LABELS } from '@/lib/registration/stepConfig';
 import { getStepsForRole } from '@/lib/registration';
 import { STEP_COMPONENTS } from '@/lib/registration/stepComponents';
@@ -129,14 +130,7 @@ export default function DashboardProfileSetupStepPage() {
     if (!activeRole) return;
     setError(null);
     try {
-      const DATE_FIELDS = ['dob', 'visaExpiry'];
-      const payload: Record<string, unknown> = { ...formData, profileStep: step };
-      for (const field of DATE_FIELDS) {
-        const val = payload[field];
-        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-          payload[field] = new Date(val + 'T00:00:00.000Z').toISOString();
-        }
-      }
+      const payload = sanitiseDates({ ...formData, profileStep: step });
       await upsertProfile(activeRole, payload);
       const totalSteps = TOTAL_STEPS[activeRole] ?? progress?.totalSteps ?? 4;
       if (step < totalSteps) {

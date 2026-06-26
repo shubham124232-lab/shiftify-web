@@ -17,6 +17,7 @@ import { UserRole, UserStatus } from '@/lib/types';
 import { upsertProfile } from '@/lib/api/profile';
 import { getStepsForRole } from '@/lib/registration';
 import { STEP_COMPONENTS }  from '@/lib/registration/stepComponents';
+import { sanitiseDates } from '@/lib/utils';
 
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
@@ -241,7 +242,7 @@ export default function RegisterPage() {
     if (!cleanPhone) {
       errs.phone = 'Phone number is required.';
     } else if (!/^(\+?61[2-9]\d{8}|0[2-9]\d{8})$/.test(cleanPhone)) {
-      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678).';
+      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678 or +61 412 345 678).';
     }
 
     if (!password)            errs.password = 'Password is required.';
@@ -252,7 +253,7 @@ export default function RegisterPage() {
 
     setSubmitting(true);
     try {
-      const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: phone.trim(), username: username.trim() });
+      const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: cleanPhone, username: username.trim() });
       if (res._dev_code) {
         setDevCode(res._dev_code);
         sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
@@ -360,15 +361,7 @@ export default function RegisterPage() {
 
   const handleWizardSave = useCallback(async (data: Record<string,unknown>) => {
     store.mergeFormData(data);
-    // Convert date-only strings (YYYY-MM-DD) to ISO datetime for backend validation
-    const DATE_FIELDS = ["dob", "visaExpiry"];
-    const payload = { ...store.formData, ...data, profileStep: wizardStep+1 };
-    for (const field of DATE_FIELDS) {
-      const val = (payload as Record<string,unknown>)[field];
-      if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) {
-        (payload as Record<string,unknown>)[field] = new Date(val + "T00:00:00.000Z").toISOString();
-      }
-    }
+    const payload = sanitiseDates({ ...store.formData, ...data, profileStep: wizardStep+1 });
     await upsertProfile(role!, payload);
     store.markStepSaved(wizardStep);
     store.setLastSaved();

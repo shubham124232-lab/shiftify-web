@@ -1,97 +1,100 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRegistrationStore } from '@/lib/store/registration.store';
-import { listDocuments }        from '@/lib/api/profile';
-import { FileUploadField }      from '../../fields/FileUploadField';
+import { api } from '@/lib/api';
+import DocumentUploadField, { type ExistingDoc } from '@/components/profile/DocumentUploadField';
+
+// ── PM doc config — matches ROLE_DOC_ALLOWLIST on backend ────────────────────
 
 const PM_DOCS = [
+  { docType: 'ABN_CONFIRMATION',          label: 'ABN Confirmation',                              required: true  },
+  { docType: 'NDIS_REGISTRATION_PROOF',   label: 'NDIS Registration Proof',                       required: true  },
+  { docType: 'BUSINESS_REP_PROOF',        label: 'Authorised Business Representative Evidence',   required: true  },
+  { docType: 'BUSINESS_ADDRESS_EVIDENCE', label: 'Business Address Evidence',                     required: true  },
+  { docType: 'CONTACT_IDENTITY_EVIDENCE', label: 'Primary Contact Identity Evidence',             required: true  },
+  { docType: 'BANK_FINANCE_EVIDENCE',     label: 'Bank / Finance Setup Evidence',                 required: true  },
   {
-    docType: 'PROFESSIONAL_INDEMNITY',
-    label: 'Professional Indemnity Insurance',
-    required: true,
-    helpText: 'Minimum $1M coverage required for NDIS registration.',
-    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
-    showExpiryDate: true,
+    docType: 'PROFESSIONAL_INDEMNITY', label: 'Professional Indemnity Insurance', required: false,
+    metadataFields: [
+      { name: 'referenceNumber', label: 'Policy Number', type: 'text' as const },
+      { name: 'expiryDate',      label: 'Expiry Date',   type: 'date' as const },
+    ],
   },
-  {
-    docType: 'PUBLIC_LIABILITY_INSURANCE',
-    label: 'Public Liability Insurance',
-    required: true,
-    helpText: 'Minimum $10M coverage recommended.',
-    showReferenceNumber: true, referenceNumberLabel: 'Policy Number',
-    showExpiryDate: true,
-  },
-  {
-    docType: 'QUALIFICATION_CERTIFICATE',
-    label: 'Qualification Certificate',
-    required: false,
-    helpText: 'e.g. Cert IV in Financial Services or equivalent.',
-    showExpiryDate: true,
-  },
-  {
-    docType: 'POLICE_CHECK',
-    label: 'Police Check (Authorised Representative)',
-    required: false,
-    showIssueDate: true,
-    showExpiryDate: true,
-  },
+  { docType: 'POLICIES_PROCEDURES', label: 'Policies Document', required: false },
 ] as const;
 
+// ── Step component ────────────────────────────────────────────────────────────
+
 export function PmStep11_Documents() {
-  const store = useRegistrationStore();
-  const [existingDocs, setExistingDocs] = useState<Record<string, boolean>>({});
+  const [docs, setDocs] = useState<ExistingDoc[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    listDocuments()
-      .then(docs => { const map: Record<string, boolean> = {}; docs.forEach(d => { map[d.docType] = true; }); setExistingDocs(map); })
-      .catch(() => null)
+    api.get<{ documents: ExistingDoc[] }>('/upload/document')
+      .then((res) => setDocs(res.documents ?? []))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
+  function docByType(docType: string): ExistingDoc | null {
+    return docs.find((d) => d.docType === docType) ?? null;
+  }
+
+  function handleSaved(saved: ExistingDoc) {
+    setDocs((prev) => {
+      const exists = prev.find((d) => d.id === saved.id);
+      if (exists) return prev.map((d) => (d.id === saved.id ? saved : d));
+      return [...prev, saved];
+    });
+  }
+
+  const mandatoryUploaded = PM_DOCS
+    .filter((d) => d.required)
+    .every((d) => !!docByType(d.docType));
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+        <div style={{ width: 24, height: 24, border: '3px solid var(--clr-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <p style={{ margin: 0, fontSize: 13, color: 'var(--clr-muted)' }}>
-        Upload compliance documents. Professional Indemnity and Public Liability are required to go live on the marketplace.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--clr-muted)' }}>
+        Upload the required proof documents below. You can update these at any time from your Documents page.
       </p>
 
-      {loading ? <p style={{ fontSize: 13, color: 'var(--clr-muted)' }}>Loading…</p> : (
-        PM_DOCS.map(doc => {
-          const uploaded = existingDocs[doc.docType] || !!store.uploadedDocs[doc.docType];
-          return (
-            <div key={doc.docType} style={{ padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 4 }}>
-                {doc.label}
-                {doc.required && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
-                {!doc.required && <span style={{ fontSize: 11, color: 'var(--clr-muted)', marginLeft: 6, fontWeight: 400 }}>Optional</span>}
-              </div>
-              {'helpText' in doc && doc.helpText && (
-                <p style={{ fontSize: 11, color: 'var(--clr-muted)', margin: '0 0 8px' }}>{doc.helpText}</p>
-              )}
-              <FileUploadField
-                label={doc.label}
-                accept=".pdf,.jpg,.jpeg,.png,.heic"
-                maxSizeMb={25}
-                uploadOptions={{ category: 'compliance', docType: doc.docType }}
-                currentValue={uploaded ? 'uploaded' : null}
-                optional={!doc.required}
-                showReferenceNumber={'showReferenceNumber' in doc ? (doc as { showReferenceNumber?: boolean }).showReferenceNumber : false}
-                referenceNumberLabel={'referenceNumberLabel' in doc ? (doc as { referenceNumberLabel?: string }).referenceNumberLabel : undefined}
-                showExpiryDate={'showExpiryDate' in doc ? (doc as { showExpiryDate?: boolean }).showExpiryDate : false}
-                showIssueDate={'showIssueDate' in doc ? (doc as { showIssueDate?: boolean }).showIssueDate : false}
-                onUploaded={(val) => { store.setUploadedDoc(doc.docType, val); setExistingDocs(p => ({ ...p, [doc.docType]: true })); }}
-              />
-            </div>
-          );
-        })
+      {PM_DOCS.map((doc) => (
+        <DocumentUploadField
+          key={doc.docType}
+          docType={doc.docType}
+          label={doc.label}
+          metadataFields={'metadataFields' in doc ? [...doc.metadataFields] : undefined}
+          uploadRequired
+          existingDoc={docByType(doc.docType)}
+          onSaved={handleSaved}
+          optional={!doc.required}
+        />
+      ))}
+
+      {!mandatoryUploaded && (
+        <div style={{ padding: '10px 14px', background: '#FFF8E1', border: '1px solid #FFE082', borderRadius: 10 }}>
+          <p style={{ margin: 0, fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+            <i className="bi bi-exclamation-triangle" style={{ marginRight: 6 }} />
+            Upload all 6 required documents to complete this step. You can click Next to continue and upload later from your profile.
+          </p>
+        </div>
       )}
 
-      <div style={{ padding: '10px 14px', background: 'rgba(79,70,229,0.04)', borderRadius: 10, border: '1px solid rgba(79,70,229,0.15)' }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
-          <i className="bi bi-shield-check" style={{ marginRight: 6 }} />
-          Documents are auto-approved on submission. You can update them at any time from your Documents page.
-        </p>
-      </div>
+      {mandatoryUploaded && (
+        <div style={{ padding: '10px 14px', background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 10 }}>
+          <p style={{ margin: 0, fontSize: 12, color: '#15803d', fontWeight: 600 }}>
+            <i className="bi bi-check-circle-fill" style={{ marginRight: 6 }} />
+            All required documents uploaded. Click Next to continue.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

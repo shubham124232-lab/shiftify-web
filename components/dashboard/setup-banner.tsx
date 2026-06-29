@@ -19,18 +19,20 @@ export function SetupBanner() {
   const profileStep = useAuthStore(selectProfileStep);
   // Participants are free -- never show a subscription lock banner for them.
   const isParticipant = activeRole === 'PARTICIPANT';
-  const [check,      setCheck]      = useState<MarketplaceCheck | null>(null);
-  const [completion, setCompletion] = useState<number | null>(null);
-  const [apiError,   setApiError]   = useState(false);
-  const [dismissed,  setDismissed]  = useState(false);
+  const [check,            setCheck]           = useState<MarketplaceCheck | null>(null);
+  const [completion,       setCompletion]       = useState<number | null>(null);
+  const [completionMissing,setCompletionMissing]= useState<string[]>([]);
+  const [apiError,         setApiError]         = useState(false);
+  const [dismissed,        setDismissed]        = useState(false);
 
   useEffect(() => {
     if (!user) return;
     setApiError(false);
-    api.get<{ user: unknown; marketplace: MarketplaceCheck; profileCompletion: number }>('/users/me')
+    api.get<{ user: unknown; marketplace: MarketplaceCheck; profileCompletion: number; completionMissing: string[] }>('/users/me')
       .then(res => {
         setCheck(res.marketplace ?? null);
         setCompletion(typeof res.profileCompletion === 'number' ? res.profileCompletion : null);
+        setCompletionMissing(Array.isArray(res.completionMissing) ? res.completionMissing : []);
       })
       .catch(() => setApiError(true));
   }, [user]);
@@ -39,7 +41,7 @@ export function SetupBanner() {
 
   const totalWizardSteps = activeRole ? (TOTAL_STEPS[activeRole] ?? 0) : 0;
   const isManaged  = (user as unknown as Record<string, unknown>)?.accountType === 'MANAGED';
-  const hasMissing = (check?.missing?.length ?? 0) > 0;
+  const hasMissing = completionMissing.length > 0 || (check?.missing?.length ?? 0) > 0;
   const pct        = completion ?? 0;
   const userStatus = (user as unknown as Record<string, unknown>)?.status as string | undefined;
 
@@ -62,7 +64,7 @@ export function SetupBanner() {
     profileStep >= 2 && profileStep < totalWizardSteps;
 
   // Nothing to show
-  if (!apiError && !showPendingProfileBanner && !showPendingSubscriptionBanner && !hasMissing && pct >= 100 && !showWizardBanner) return null;
+  if (!apiError && !showPendingProfileBanner && !showPendingSubscriptionBanner && !hasMissing && pct >= 100 && !showWizardBanner && completion !== null) return null;
 
   // API unreachable — minimal nudge (wizard banners don't need API data)
   if (apiError && !showPendingProfileBanner && !showWizardBanner) {
@@ -138,42 +140,35 @@ export function SetupBanner() {
           </>
         )}
 
-        {!showPendingProfileBanner && !showPendingSubscriptionBanner && hasMissing && (
+        {!showPendingProfileBanner && !showPendingSubscriptionBanner && (hasMissing || pct < 100) && !showWizardBanner && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
-                Profile {pct}% complete -- finish to unlock all features
+                Profile {pct}% complete — finish to unlock all features
               </div>
             </div>
             {/* Progress bar */}
             <div style={{ height: 5, background: '#fed7aa', borderRadius: 4, marginBottom: 10, maxWidth: 320 }}>
               <div style={{ height: '100%', width: `${pct}%`, background: '#ea580c', borderRadius: 4, transition: 'width 0.4s' }} />
             </div>
-            {/* Missing items */}
-            <ul style={{ margin: '0 0 10px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {check!.missing.slice(0, 4).map((m, i) => (
-                <li key={i} style={{ fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <i className="bi bi-circle-fill" style={{ fontSize: 5, color: '#f97316' }} />
-                  {m}
-                </li>
-              ))}
-              {check!.missing.length > 4 && (
-                <li style={{ fontSize: 12, color: '#92400e' }}>+{check!.missing.length - 4} more items</li>
-              )}
-            </ul>
-            <Link href="/profile" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
-              Complete Profile Steps <i className="bi bi-arrow-right" />
+            {/* Missing fields from completionMissing */}
+            {completionMissing.length > 0 && (
+              <ul style={{ margin: '0 0 10px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {completionMissing.slice(0, 5).map((m, i) => (
+                  <li key={i} style={{ fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="bi bi-circle-fill" style={{ fontSize: 5, color: '#f97316' }} />
+                    {m}
+                  </li>
+                ))}
+                {completionMissing.length > 5 && (
+                  <li style={{ fontSize: 12, color: '#92400e' }}>+{completionMissing.length - 5} more fields</li>
+                )}
+              </ul>
+            )}
+            <Link href="/profile/edit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
+              Complete Profile <i className="bi bi-arrow-right" />
             </Link>
           </>
-        )}
-
-        {!showPendingProfileBanner && !showPendingSubscriptionBanner && !hasMissing && pct < 100 && !showWizardBanner && (
-          <div style={{ fontSize: 13, color: '#78350f' }}>
-            Your profile is almost complete.{' '}
-            <Link href="/profile" style={{ fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
-              View profile
-            </Link>
-          </div>
         )}
 
         {showWizardBanner && (
@@ -185,7 +180,7 @@ export function SetupBanner() {
               Complete your profile to unlock full marketplace access.
             </div>
             <Link
-              href={`/profile-setup/${profileStep + 1}`}
+              href="/profile/edit"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}
             >
               Continue Setup <i className="bi bi-arrow-right" />
@@ -200,7 +195,7 @@ export function SetupBanner() {
           style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16, padding: 4 }}>
           <i className="bi bi-x-lg" />
         </button>
-      )}
+            )}
     </div>
   );
 }

@@ -65,10 +65,19 @@ export function toTimeString(val: unknown): string | undefined {
 }
 
 const DATE_FIELDS = [
+  // Worker
   'dob', 'visaExpiry',
   'publicLiabilityExpiry', 'personalAccidentExpiry',
   'ndisScreeningExpiry', 'policeCheckIssueDate', 'policeCheckExpiry',
   'wwccExpiry', 'firstAidExpiry', 'cprExpiry', 'driversLicenceExpiry',
+  // Participant
+  'ndisStartDate', 'ndisEndDate',
+  // Provider
+  'publicLiabilityExpiryDate', 'professionalIndemnityExpiryDate', 'workersCompExpiryDate',
+  // Coordinator
+  'professionalIndemnityExpiry',
+  // Plan Manager
+  'registrationExpiryDate',
 ] as const;
 
 /**

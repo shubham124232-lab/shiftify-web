@@ -699,11 +699,7 @@ export default function PostJobWizard() {
         postingAs: data.postingAs,
         participantContext: data.participantContext || undefined,
       };
-      const budget = data.budgetType === "HOURLY" && data.hourlyRate
-        ? { type: "HOURLY", amount: parseFloat(data.hourlyRate) }
-        : data.budgetType === "TOTAL" && data.totalBudget
-        ? { type: "TOTAL", amount: parseFloat(data.totalBudget) }
-        : { type: data.budgetType };
+      // Keys must match createJobSchema — unknown keys are silently stripped by Zod.
       const body: Record<string, unknown> = {
         title: data.title.trim(),
         description: data.description.trim() || data.supportGoal.trim() || undefined,
@@ -715,8 +711,17 @@ export default function PostJobWizard() {
         totalHours: data.totalHours ? parseFloat(data.totalHours) : undefined,
         isRecurring: data.isRecurring, recurrencePattern,
         shiftType: data.shiftType, timeFlexibility: data.timeFlexibility,
-        applicationDeadline: data.applicationDeadline ? new Date(data.applicationDeadline).toISOString() : undefined,
-        fundingType: data.fundingType, budget, workerPreferences, asDraft: data.asDraft,
+        applicationDeadlineAt: data.applicationDeadline ? new Date(data.applicationDeadline).toISOString() : undefined,
+        fundingType: data.fundingType,
+        budgetType: data.budgetType === "HOURLY" ? "FIXED_HOURLY" : data.budgetType === "TOTAL" ? "FIXED_TOTAL" : data.budgetType,
+        budgetPerHour: data.budgetType === "HOURLY" && data.hourlyRate ? parseFloat(data.hourlyRate) : undefined,
+        totalBudget: data.budgetType === "TOTAL" && data.totalBudget ? parseFloat(data.totalBudget) : undefined,
+        visibilityTarget: data.visibleTo === "BOTH" ? "ALL" : data.visibleTo,
+        maxApplicants: data.maxApplicants ? parseInt(data.maxApplicants) : undefined,
+        hideParticipantName: !data.showParticipantName,
+        allowQuotes: data.allowQuotes,
+        allowDirectMessages: data.allowDirectApplications,
+        workerPreferences, asDraft: data.asDraft,
       };
       if (activeRole === "COORDINATOR" && data.participantId) body.forParticipantUserId = data.participantId;
       const res = await api.post<{ job: { id: string } }>("/jobs", body);

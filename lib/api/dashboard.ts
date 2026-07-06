@@ -29,7 +29,7 @@ export interface ShiftSummary {
 
 export interface WorkerDashboard {
   upcomingShifts: ShiftSummary[];
-  nearbyJobs: JobSummary[];
+  matchedJobs: JobSummary[];
   pendingApplications: { applicationId: string; status: string; job: JobSummary }[];
   unreadNotifications?: number;
   unreadMessages?: number;

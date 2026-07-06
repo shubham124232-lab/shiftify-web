@@ -82,7 +82,7 @@ export default function WorkerDashboard() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-8">
           {/* LIVE */}
           <StatCard label="Upcoming Shifts"      value={loading ? "…" : (data?.upcomingShifts?.length      ?? 0)}             />
-          <StatCard label="Open Opportunities"   value={loading ? "…" : (data?.nearbyJobs?.length          ?? 0)} tone="ok"   />
+          <StatCard label="Open Opportunities"   value={loading ? "…" : (data?.matchedJobs?.length          ?? 0)} tone="ok"   />
           <StatCard label="Active Applications"  value={loading ? "…" : (data?.pendingApplications?.length ?? 0)}             />
           <StatCard label="Unread Notifications" value={loading ? "…" : (data?.unreadNotifications         ?? 0)} tone="warn" />
           {/* PLACEHOLDER – TODO: include in WorkerDashboard API response */}
@@ -137,11 +137,11 @@ export default function WorkerDashboard() {
             <CardContent>
               {loading
                 ? <p className="text-sm text-slate-400">Loading…</p>
-                : !data?.nearbyJobs?.length
+                : !data?.matchedJobs?.length
                   ? <p className="text-sm text-slate-500">No nearby jobs right now.</p>
                   : (
                     <ul className="divide-y divide-slate-100 text-sm">
-                      {data.nearbyJobs.slice(0, 5).map((j) => (
+                      {data.matchedJobs.slice(0, 5).map((j) => (
                         <li key={j.id} className="py-2 flex justify-between items-center">
                           <div>
                             <span className="font-medium">{j.title}</span>

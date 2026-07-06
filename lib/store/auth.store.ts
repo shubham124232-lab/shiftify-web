@@ -246,7 +246,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async forgotPassword(payload) {
     set({ loading: true, error: null });
     try {
-      const data = await api.post<ForgotPasswordResponse>('/auth/forgot-password', payload);
+      const data = await api.post<ForgotPasswordResponse>('/auth/password/forgot', payload);
       set({ loading: false });
       return data;
     } catch (err: unknown) {
@@ -261,7 +261,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   async resetPassword(payload) {
     set({ loading: true, error: null });
     try {
-      await api.post('/auth/reset-password', payload);
+      await api.post('/auth/password/reset', payload);
       set({ loading: false });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Reset failed';

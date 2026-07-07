@@ -20,9 +20,12 @@ interface JobDetail {
   scheduledStartAt: string; scheduledEndAt: string | null;
   totalHours: number | null; status: string; postedAt: string;
   poster: { id: string; name: string };
+  selectedApplicant?: { id: string; name: string } | null;
   assignedWorker?: { id: string; name: string } | null;
   applicants?: Applicant[];
 }
+
+interface TeamWorker { id: string; name: string | null; username: string; }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   OPEN:        { bg: "#dbeafe", color: "#1d4ed8" },
@@ -58,6 +61,9 @@ export default function JobDetailPage() {
   const [sending,   setSending]   = useState(false);
   const [acting,    setActing]    = useState(false);
   const [showApply, setShowApply] = useState(false);
+  const [teamWorkers,    setTeamWorkers]    = useState<TeamWorker[]>([]);
+  const [pickedWorkerId, setPickedWorkerId] = useState("");
+  const [assigning,      setAssigning]      = useState(false);
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +90,13 @@ export default function JobDetailPage() {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (activeRole !== "PROVIDER") return;
+    api.get<{ users: TeamWorker[] }>("/linking/workers")
+      .then(r => setTeamWorkers(r.users ?? []))
+      .catch(() => {});
+  }, [activeRole]);
+
   async function sendMessage() {
     if (!msgBody.trim()) return;
     setSending(true);
@@ -93,6 +106,18 @@ export default function JobDetailPage() {
       loadMessages();
     } catch (e: any) { setError(e.message); }
     finally { setSending(false); }
+  }
+
+  // Provider was selected on this job and needs to hand it to one of their team
+  // workers — PATCH /jobs/:id/assign-worker existed on the backend with no UI.
+  async function assignWorker() {
+    if (!pickedWorkerId) return;
+    setAssigning(true);
+    try {
+      await api.patch(`/jobs/${id}/assign-worker`, { workerUserId: pickedWorkerId });
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setAssigning(false); }
   }
 
   async function jobAction(action: string, payload: Record<string, any> = {}) {
@@ -124,6 +149,11 @@ export default function JobDetailPage() {
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status);
   const ownApp = isWorker ? job.applicants?.find(a => a.userId === user?.id) : null;
+  const needsAssignment =
+    activeRole === "PROVIDER" &&
+    job.status === "ASSIGNED" &&
+    job.selectedApplicant?.id === user?.id &&
+    !job.assignedWorker;
 
   return (
     <>
@@ -220,6 +250,36 @@ export default function JobDetailPage() {
               </Button>
             )}
           </div>
+        )}
+
+        {/* Provider: assign a team worker after being selected */}
+        {needsAssignment && (
+          <Card>
+            <CardHeader><CardTitle>Assign a team worker</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              {teamWorkers.length === 0 ? (
+                <span style={{ fontSize: 13, color: "#94a3b8" }}>
+                  No team workers yet — add one from the Team page first.
+                </span>
+              ) : (
+                <>
+                  <select
+                    value={pickedWorkerId}
+                    onChange={e => setPickedWorkerId(e.target.value)}
+                    style={{ height: 36, padding: "0 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13 }}
+                  >
+                    <option value="">Select a worker...</option>
+                    {teamWorkers.map(w => (
+                      <option key={w.id} value={w.id}>{w.name || w.username}</option>
+                    ))}
+                  </select>
+                  <Button size="sm" disabled={!pickedWorkerId || assigning} onClick={assignWorker}>
+                    {assigning ? "Assigning..." : "Assign"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Worker lifecycle actions */}

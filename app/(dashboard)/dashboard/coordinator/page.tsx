@@ -9,15 +9,17 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getDashboard, type CoordinatorDashboard } from "@/lib/api/dashboard";
+import { api } from "@/lib/api";
 
 // ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// TODO: replace each block with a real API call when the backend endpoint is ready.
+// Urgent Requests + Draft Requests below are now wired to real data (derived
+// from the dashboard summary + existing GET /jobs/my). The rest need
+// aggregations the backend doesn't expose yet — still placeholders.
+// TODO: replace remaining blocks with a real API call when the backend endpoint is ready.
 
 const PH_STATS = {
-  urgentRequests:       3,
   unfilledNeeds:        5,
   responses:            8,
-  draftRequests:        2,
   expiringRequests:     1,
   participantsWithGaps: 4,
 };
@@ -42,18 +44,26 @@ const PH_EXPIRING = [
 
 export default function CoordinatorDashboard() {
   const { user } = useAuth();
-  const [data,    setData]    = useState<CoordinatorDashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [data,       setData]       = useState<CoordinatorDashboard | null>(null);
+  const [draftCount, setDraftCount] = useState(0);
+  const [loading,    setLoading]    = useState(true);
+  const [error,      setError]      = useState<string | null>(null);
 
   useEffect(() => {
     getDashboard()
       .then((d) => setData(d as CoordinatorDashboard))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    api.get<{ jobs: unknown[] }>("/jobs/my", { params: { status: "DRAFT" } })
+      .then((r) => setDraftCount(r.jobs?.length ?? 0))
+      .catch(() => {});
   }, []);
 
   if (!user) return null;
+
+  const urgentCount = data?.openJobs?.filter(
+    (j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY",
+  ).length ?? 0;
 
   return (
     <>
@@ -81,11 +91,11 @@ export default function CoordinatorDashboard() {
           <StatCard label="Active Requests"       value={loading ? "…" : (data?.openJobs?.length           ?? 0)}             />
           <StatCard label="Upcoming Shifts"       value={loading ? "…" : (data?.upcomingShifts?.length     ?? 0)}             />
           <StatCard label="Awaiting Confirmation" value={loading ? "…" : (data?.awaitingConfirmation?.length ?? 0)} tone="warn" />
-          {/* PLACEHOLDER – TODO: include in CoordinatorDashboard API response */}
-          <StatCard label="Urgent Requests"       value={PH_STATS.urgentRequests}       tone="danger" />
+          <StatCard label="Urgent Requests"        value={loading ? "…" : urgentCount} tone="danger" />
+          <StatCard label="Draft Requests"         value={loading ? "…" : draftCount}                />
+          {/* PLACEHOLDER – no backing endpoint yet */}
           <StatCard label="Unfilled Needs"        value={PH_STATS.unfilledNeeds}        tone="warn"   />
           <StatCard label="Responses Received"    value={PH_STATS.responses}            tone="ok"     />
-          <StatCard label="Draft Requests"        value={PH_STATS.draftRequests}                      />
           <StatCard label="Expiring Requests"     value={PH_STATS.expiringRequests}     tone="warn"   />
           <StatCard label="Participants w/ Gaps"  value={PH_STATS.participantsWithGaps} tone="danger" />
         </div>

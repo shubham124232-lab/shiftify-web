@@ -14,6 +14,38 @@ interface Job {
   totalHours: number | null; status: string; postedAt: string;
 }
 
+// ── Publish draft (owner only) ──────────────────────────────────────────────
+// PATCH /jobs/:id/publish flips DRAFT → OPEN. Backend endpoint already existed;
+// there was previously no button anywhere in the UI that called it.
+function PublishButton({ jobId, onDone }: { jobId: string; onDone: () => void }) {
+  const [publishing, setPublishing] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function publish(e: any) {
+    e.preventDefault();
+    e.stopPropagation();
+    setPublishing(true);
+    setErr(null);
+    try {
+      await api.patch(`/jobs/${jobId}/publish`, {});
+      onDone();
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {err && <span style={{ fontSize: 11, color: "#b91c1c" }}>{err}</span>}
+      <Button size="sm" disabled={publishing} onClick={publish}>
+        {publishing ? "Publishing..." : "Publish"}
+      </Button>
+    </div>
+  );
+}
+
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   OPEN:      { bg: "#dbeafe", color: "#1d4ed8" },
   ASSIGNED:  { bg: "#dcfce7", color: "#15803d" },
@@ -30,13 +62,15 @@ export default function MyJobsPage() {
   const [error,   setError]   = useState<string | null>(null);
   const [filter,  setFilter]  = useState("");
 
-  useEffect(() => {
+  function load() {
     setLoading(true);
-    api.get<{ jobs: Job[] }>("/jobs/my")
+    return api.get<{ jobs: Job[] }>("/jobs/my")
       .then(r => setJobs(r.jobs ?? []))
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
   const isProvider = activeRole === "PROVIDER";
@@ -114,6 +148,9 @@ export default function MyJobsPage() {
                     <span style={{ padding: "3px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, flexShrink: 0 }}>
                       {job.status.replace("_", " ")}
                     </span>
+                    {canPost && job.status === "DRAFT" && (
+                      <PublishButton jobId={job.id} onDone={load} />
+                    )}
                   </div>
                 </Link>
               );

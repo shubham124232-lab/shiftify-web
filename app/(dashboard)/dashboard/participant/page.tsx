@@ -9,23 +9,18 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getDashboard, type ParticipantDashboard } from "@/lib/api/dashboard";
+import { api } from "@/lib/api";
 
 // ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// TODO: replace each block with a real API call when the backend endpoint is ready.
+// Applications Received + Saved Workers have no backing endpoint yet — still
+// placeholders. Urgent Requests/Draft Posts/Unread Messages/Draft list below
+// are now wired to real data (existing GET /jobs/my + dashboard summary).
+// TODO: replace remaining blocks with a real API call when the backend endpoint is ready.
 
 const PH_STATS = {
   applicationsReceived: 7,
-  urgentRequests:       1,
-  draftPosts:           3,
-  unreadMessages:       4,
   savedWorkers:        12,
 };
-
-const PH_DRAFTS = [
-  { id: "d1", title: "Morning Personal Care Support",  updatedAt: "14 Jun" },
-  { id: "d2", title: "Community Access – Saturday",    updatedAt: "13 Jun" },
-  { id: "d3", title: "Overnight Support – Weekly",     updatedAt: "11 Jun" },
-];
 
 const PH_RECURRING = [
   { id: "r1", title: "Weekly Domestic Assistance",   schedule: "Every Mon 9 am"     },
@@ -44,9 +39,12 @@ const PH_RECOMMENDED = [
 ];
 // ──────────────────────────────────────────────────────────────────────────────
 
+interface DraftJob { id: string; title: string; status: string; category: string; postedAt: string; }
+
 export default function ParticipantDashboard() {
   const { user } = useAuth();
   const [data,    setData]    = useState<ParticipantDashboard | null>(null);
+  const [drafts,  setDrafts]  = useState<DraftJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
@@ -55,9 +53,16 @@ export default function ParticipantDashboard() {
       .then((d) => setData(d as ParticipantDashboard))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    api.get<{ jobs: DraftJob[] }>("/jobs/my", { params: { status: "DRAFT" } })
+      .then((r) => setDrafts(r.jobs ?? []))
+      .catch(() => {});
   }, []);
 
   if (!user) return null;
+
+  const urgentCount = data?.openJobs?.filter(
+    (j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY",
+  ).length ?? 0;
 
   return (
     <>
@@ -86,11 +91,11 @@ export default function ParticipantDashboard() {
           <StatCard label="Active Requests"    value={loading ? "…" : (data?.openJobs?.length            ?? 0)} tone="ok"   />
           <StatCard label="Upcoming Bookings"  value={loading ? "…" : (data?.upcomingShifts?.length      ?? 0)}             />
           <StatCard label="Awaiting Confirm"   value={loading ? "…" : (data?.awaitingConfirmation?.length ?? 0)} tone="warn" />
-          {/* PLACEHOLDER – TODO: include in ParticipantDashboard API response */}
+          <StatCard label="Urgent Requests"    value={loading ? "…" : urgentCount}              tone="danger" />
+          <StatCard label="Draft Posts"        value={loading ? "…" : drafts.length}                          />
+          <StatCard label="Unread Messages"    value={loading ? "…" : (data?.unreadNotifications ?? 0)} tone="warn" />
+          {/* PLACEHOLDER – no backing endpoint yet */}
           <StatCard label="Applications In"    value={PH_STATS.applicationsReceived}               />
-          <StatCard label="Urgent Requests"    value={PH_STATS.urgentRequests}  tone="danger"      />
-          <StatCard label="Draft Posts"        value={PH_STATS.draftPosts}                         />
-          <StatCard label="Unread Messages"    value={PH_STATS.unreadMessages}  tone="warn"        />
           <StatCard label="Saved Workers"      value={PH_STATS.savedWorkers}    tone="ok"          />
         </div>
 
@@ -154,22 +159,27 @@ export default function ParticipantDashboard() {
           </Card>
         </div>
 
-        {/* ── PLACEHOLDER – draft requests ── */}
-        {/* TODO: GET /jobs?status=DRAFT&postedBy=me */}
+        {/* ── LIVE – draft requests ── */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Draft requests</CardTitle>
             <Link href="/jobs/post"><Button variant="ghost" size="sm">New draft</Button></Link>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y divide-slate-100 text-sm">
-              {PH_DRAFTS.map((d) => (
-                <li key={d.id} className="py-2 flex justify-between items-center">
-                  <span className="font-medium">{d.title}</span>
-                  <span className="text-xs text-slate-400">{d.updatedAt}</span>
-                </li>
-              ))}
-            </ul>
+            {drafts.length === 0 ? (
+              <p className="text-sm text-slate-500">No drafts yet.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 text-sm">
+                {drafts.map((d) => (
+                  <li key={d.id} className="py-2 flex justify-between items-center">
+                    <Link href={`/jobs/${d.id}`} className="font-medium hover:underline">{d.title}</Link>
+                    <span className="text-xs text-slate-400">
+                      {new Date(d.postedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 

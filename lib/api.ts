@@ -78,7 +78,10 @@ function friendlyMessage(status: number, code: string, raw: string, details?: un
     case 'UNAUTHORIZED':
       return 'Your session has expired. Please log in again.';
     case 'FORBIDDEN':
-      return 'You don\'t have permission to do that.';
+      // Forbidden messages are already human-readable and specific (e.g. "Complete
+      // your profile before posting: Verify your phone number") — show them raw
+      // instead of a generic line that hides the actual, fixable reason.
+      return raw || 'You don\'t have permission to do that.';
     default:
       // Unknown/unexpected error shape — never show raw internals to the user.
       return status >= 500 || code === 'NETWORK_ERROR'

@@ -27,10 +27,33 @@ export interface ShiftSummary {
 
 // ─── Dashboard feed ───────────────────────────────────────────────────────────
 
+export interface WorkerDashboardStats {
+  upcomingShifts: number;
+  activeApplications: number;
+  matchedJobs: number;
+  hoursThisWeek: number;
+  completedShifts: number;
+  savedJobs: number;
+  unreadMessages: number;
+}
+
+export interface WorkerApplication {
+  applicationId: string;
+  status: string;
+  createdAt?: string;
+  note?: string | null;
+  rateResponse?: string | null;
+  proposedRate?: number | string | null;
+  job: JobSummary;
+}
+
 export interface WorkerDashboard {
+  stats?: WorkerDashboardStats;
   upcomingShifts: ShiftSummary[];
   matchedJobs: JobSummary[];
-  pendingApplications: { applicationId: string; status: string; job: JobSummary }[];
+  pendingApplications: WorkerApplication[];
+  shortlistedApplications?: WorkerApplication[];
+  allApplications?: WorkerApplication[];
   unreadNotifications?: number;
   unreadMessages?: number;
 }

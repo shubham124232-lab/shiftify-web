@@ -15,6 +15,7 @@ const ADMIN_NAV = [
   { href: "/admin/jobs",             label: "Jobs" },
   { href: "/admin/subscriptions",    label: "Subscriptions" },
   { href: "/admin/broadcast",        label: "Notifications" },
+  { href: "/admin/reports",          label: "Reports" },
   { href: "/admin/audit",            label: "Audit Log" },
 ];
 

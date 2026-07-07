@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, FilePlus, Search, Briefcase,
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
-  CreditCard, Building2, Home, Wrench,
+  CreditCard, Building2, Home,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -46,7 +46,6 @@ function navForRole(role: string): NavItem[] {
         { href: "/provider/listings",         label: "My Listings",          icon: ClipboardList },
         { href: "/provider/post-service",     label: "Post Service",         icon: FilePlus },
         { href: "/provider/sil-vacancy",      label: "SIL / SDA Vacancy",   icon: Home },
-        { href: "/provider/workforce",        label: "Workforce Requests",   icon: Wrench },
         { href: "/jobs/my",                   label: "Enquiries",            icon: Briefcase },
         { href: "/team",                      label: "My Team",              icon: Users },
         { href: "/invoices",                  label: "Invoices",             icon: Receipt },
@@ -67,9 +66,10 @@ function navForRole(role: string): NavItem[] {
     case "PLAN_MANAGER":
       return [
         dash,
+        { href: "/load-board",   label: "Load Board",     icon: Search },
+        { href: "/referrals",    label: "My Referrals",   icon: ClipboardList },
         { href: "/connections",  label: "Connections",    icon: Link2 },
         { href: "/invoices",     label: "Invoices",       icon: Receipt },
-        { href: "/jobs",         label: "Marketplace",    icon: BarChart2 },
         { href: "/documents",    label: "Documents",      icon: FileText },
         { href: "/messages",     label: "Messages",       icon: MessageSquare },
       ];

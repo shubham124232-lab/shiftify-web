@@ -37,10 +37,17 @@ const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
   SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
   SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
 };
+const APP_STATUS_COLOR: Record<string, string> = {
+  INTERESTED:  "#854d0e",
+  SHORTLISTED: "#1d4ed8",
+  SELECTED:    "#15803d",
+  DECLINED:    "#b91c1c",
+  WITHDRAWN:   "#94a3b8",
+};
 
 export default function JobDetailPage() {
-  const { id }         = useParams<{ id: string }>();
-  const router         = useRouter();
+  const { id }           = useParams<{ id: string }>();
+  const router           = useRouter();
   const { user, activeRole } = useAuth();
 
   const [job,       setJob]       = useState<JobDetail | null>(null);
@@ -51,7 +58,7 @@ export default function JobDetailPage() {
   const [sending,   setSending]   = useState(false);
   const [acting,    setActing]    = useState(false);
   const [showApply, setShowApply] = useState(false);
-  const pollRef      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   function loadJob() {
@@ -66,7 +73,6 @@ export default function JobDetailPage() {
       .catch(() => {});
   }
 
-  // Scroll to bottom whenever messages update (covers initial load + new messages)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -98,10 +104,10 @@ export default function JobDetailPage() {
     finally { setActing(false); }
   }
 
-  async function selectApplicant(applicationId: string) {
+  async function appAction(applicationId: string, action: "select" | "shortlist" | "decline" | "withdraw") {
     setActing(true);
     try {
-      await api.patch(`/jobs/${id}/applications/${applicationId}/select`, {});
+      await api.patch(`/jobs/${id}/applications/${applicationId}/${action}`, {});
       await loadJob();
     } catch (e: any) { setError(e.message); }
     finally { setActing(false); }
@@ -111,37 +117,56 @@ export default function JobDetailPage() {
   if (error && !job) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}</div>;
   if (!job) return null;
 
-  const isOwner   = user?.id === job.poster.id;
-  const isWorker  = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
+  const isOwner  = user?.id === job.poster.id;
+  const isWorker = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
   const sta = STATUS_STYLE[job.status]  ?? { bg: "#f1f5f9", color: "#475569" };
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status);
+  const ownApp = isWorker ? job.applicants?.find(a => a.userId === user?.id) : null;
 
   return (
     <>
       <PageHeader title={job.title} description={`Posted by ${job.poster.name}`} />
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>{error}</div>}
+        {error && (
+          <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+            {error}
+          </div>
+        )}
 
         {/* Status + badges */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: sta.bg, color: sta.color }}>{job.status.replace("_", " ")}</span>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: urg.bg, color: urg.color }}>{job.urgency.replace("_", " ")}</span>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#f1f5f9", color: "#64748b" }}>{catLabel}</span>
+          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: sta.bg, color: sta.color }}>
+            {job.status.replace("_", " ")}
+          </span>
+          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: urg.bg, color: urg.color }}>
+            {job.urgency.replace("_", " ")}
+          </span>
+          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#f1f5f9", color: "#64748b" }}>
+            {catLabel}
+          </span>
         </div>
 
         {/* Main info */}
         <Card>
           <CardContent style={{ paddingTop: 20 }}>
-            {job.description && <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>{job.description}</p>}
+            {job.description && (
+              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>{job.description}</p>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13 }}>
               <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Location:</span> {job.suburb}, {job.state}</div>
               <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Start:</span> {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
-              {job.scheduledEndAt && <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>End:</span> {new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>}
-              {job.totalHours && <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Hours:</span> {job.totalHours}h</div>}
-              {job.assignedWorker && <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Assigned to:</span> {job.assignedWorker.name}</div>}
+              {job.scheduledEndAt && (
+                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>End:</span> {new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
+              )}
+              {job.totalHours && (
+                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Hours:</span> {job.totalHours}h</div>
+              )}
+              {job.assignedWorker && (
+                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Assigned to:</span> {job.assignedWorker.name}</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -151,15 +176,21 @@ export default function JobDetailPage() {
           <Card>
             <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {job.status === "IN_PROGRESS" && <Button variant="outline" disabled={acting} onClick={() => jobAction("confirm")}>Confirm Completion</Button>}
-              {["OPEN", "ASSIGNED"].includes(job.status) && <Button variant="outline" disabled={acting} onClick={() => jobAction("cancel")}>Cancel Job</Button>}
-              {canInvoice && <Button variant="outline" onClick={() => router.push(`/jobs/${id}/invoice`)}>Create Invoice</Button>}
+              {job.status === "IN_PROGRESS" && (
+                <Button variant="outline" disabled={acting} onClick={() => jobAction("confirm")}>Confirm Completion</Button>
+              )}
+              {["OPEN", "ASSIGNED"].includes(job.status) && (
+                <Button variant="outline" disabled={acting} onClick={() => jobAction("cancel")}>Cancel Job</Button>
+              )}
+              {canInvoice && (
+                <Button variant="outline" onClick={() => router.push(`/jobs/${id}/invoice`)}>Create Invoice</Button>
+              )}
             </CardContent>
           </Card>
         )}
 
-        {/* Worker: Apply button → structured modal */}
-        {isWorker && job.status === "OPEN" && !job.applicants?.some(a => a.userId === user?.id) && (
+        {/* Worker: apply or show own application status */}
+        {isWorker && !ownApp && job.status === "OPEN" && (
           <Card>
             <CardHeader><CardTitle>Apply for this support request</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -169,14 +200,29 @@ export default function JobDetailPage() {
           </Card>
         )}
 
-        {/* Worker: already applied */}
-        {isWorker && job.applicants?.some(a => a.userId === user?.id) && (
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#166534" }}>
-            ✓ You have applied for this support request.
+        {isWorker && ownApp && (
+          <div style={{
+            background: ownApp.status === "WITHDRAWN" ? "#fff7ed" : ownApp.status === "DECLINED" ? "#fef2f2" : "#f0fdf4",
+            border: `1px solid ${ownApp.status === "WITHDRAWN" ? "#fed7aa" : ownApp.status === "DECLINED" ? "#fecaca" : "#bbf7d0"}`,
+            borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12,
+          }}>
+            <span style={{ fontSize: 13, color: APP_STATUS_COLOR[ownApp.status] ?? "#374151", flex: 1 }}>
+              {ownApp.status === "WITHDRAWN" ? "You withdrew your application."
+                : ownApp.status === "DECLINED" ? "Your application was declined."
+                : ownApp.status === "SELECTED" ? "You have been selected for this job."
+                : `Application submitted — status: ${ownApp.status}`}
+            </span>
+            {!["SELECTED", "WITHDRAWN", "DECLINED"].includes(ownApp.status) && (
+              <Button size="sm" variant="outline" disabled={acting}
+                onClick={() => appAction(ownApp.id, "withdraw")}
+                style={{ borderColor: "#ef4444", color: "#ef4444" }}>
+                Withdraw
+              </Button>
+            )}
           </div>
         )}
 
-        {/* Worker actions — assigned */}
+        {/* Worker lifecycle actions */}
         {isWorker && job.assignedWorker?.id === user?.id && job.status === "ASSIGNED" && (
           <Card>
             <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
@@ -208,9 +254,27 @@ export default function JobDetailPage() {
                       </Link>
                       <div style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: app.status === "INTERESTED" ? "#854d0e" : "#15803d" }}>{app.status}</span>
-                    {job.status === "OPEN" && app.status === "INTERESTED" && (
-                      <Button size="sm" disabled={acting} onClick={() => selectApplicant(app.id)}>Select</Button>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "#94a3b8" }}>
+                      {app.status}
+                    </span>
+                    {job.status === "OPEN" && ["INTERESTED", "SHORTLISTED"].includes(app.status) && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {app.status === "INTERESTED" && (
+                          <Button size="sm" variant="outline" disabled={acting}
+                            onClick={() => appAction(app.id, "shortlist")}
+                            style={{ borderColor: "#3b82f6", color: "#3b82f6" }}>
+                            Shortlist
+                          </Button>
+                        )}
+                        <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>
+                          Select
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={acting}
+                          onClick={() => appAction(app.id, "decline")}
+                          style={{ borderColor: "#ef4444", color: "#ef4444" }}>
+                          Decline
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -250,28 +314,20 @@ export default function JobDetailPage() {
             </div>
           </CardContent>
         </Card>
+
       </div>
 
       {showApply && (
         <ApplyModal
           job={{
-            id: job.id,
-            title: job.title,
-            suburb: job.suburb,
-            state: job.state,
-            scheduledStartAt: job.scheduledStartAt,
-            scheduledEndAt: job.scheduledEndAt,
-            totalHours: job.totalHours,
-            urgency: job.urgency,
+            id: job.id, title: job.title, suburb: job.suburb, state: job.state,
+            scheduledStartAt: job.scheduledStartAt, scheduledEndAt: job.scheduledEndAt,
+            totalHours: job.totalHours, urgency: job.urgency,
           }}
           onClose={() => setShowApply(false)}
-          onSuccess={() => {
-            setShowApply(false);
-            loadJob();
-          }}
+          onSuccess={() => { setShowApply(false); loadJob(); }}
         />
       )}
     </>
   );
 }
-

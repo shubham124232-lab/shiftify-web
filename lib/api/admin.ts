@@ -179,3 +179,26 @@ export function listAdminSubscriptions(params?: { status?: string; page?: number
 export function cancelAdminSubscription(id: string, reason?: string) {
   return api.patch(`/admin/subscriptions/${id}/cancel`, { reason });
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+export interface PlatformReports {
+  users: {
+    newLast30Days: number;
+    newLast7Days: number;
+    flagged: number;
+    suspended: number;
+    byRole: Record<string, number>;
+  };
+  listings: {
+    active: number;
+    urgentOpenCases: number;
+    topCategories: { category: string; count: number }[];
+  };
+  invoices: { last30Days: number };
+  planManager: { totalConnections: number; acceptedConnections: number };
+}
+
+export function getReports() {
+  return api.get<PlatformReports>("/admin/reports");
+}

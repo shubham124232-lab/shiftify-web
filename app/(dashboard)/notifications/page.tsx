@@ -36,8 +36,8 @@ export default function NotificationsPage() {
   }
 
   async function markAllRead() {
-    const unread = notifs.filter(n => !n.read);
-    await Promise.all(unread.map(n => api.patch(`/notifications/${n.id}/read`, {}).catch(() => {})));
+    // Single dedicated endpoint instead of N per-item calls.
+    await api.patch("/notifications/read-all", {}).catch(() => {});
     setNotifs(prev => prev.map(n => ({ ...n, read: true })));
   }
 

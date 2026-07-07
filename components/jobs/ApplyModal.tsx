@@ -293,15 +293,37 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
         `Availability: ${data.availabilityConfirmed}`,
         data.availabilityNote ? `Availability note: ${data.availabilityNote}` : null,
         data.relevantSkills.length > 0 ? `Skills: ${data.relevantSkills.join(", ")}` : null,
-        data.suitabilityNote ? `Suitability: ${data.suitabilityNote}` : null,
         `Rate: ${data.rateType}${data.rateType === "AGREED_RATE" ? ` $${data.proposedRate}/hr` : ""}`,
         data.rateNote ? `Rate note: ${data.rateNote}` : null,
-        data.introduction.trim() ? `Introduction: ${data.introduction.trim()}` : null,
         data.additionalNotes.trim() ? `Notes: ${data.additionalNotes.trim()}` : null,
         data.hasDocuments ? "Documents: Confirmed up to date" : null,
-      ].filter(Boolean).join("\n\n");
+      ].filter(Boolean).join("\n\n").slice(0, 1000);
 
-      await api.post(`/jobs/${job.id}/apply`, { note });
+      // Structured proposal fields — backend stores these on JobApplication and
+      // dashboards render rateResponse/proposedRate, so send them properly.
+      const availabilityMap: Record<string, string> = {
+        EXACT: "YES_EXACT",
+        ADJUSTED: "YES_ADJUSTED",
+        PARTIAL: "PARTIAL",
+      };
+
+      await api.post(`/jobs/${job.id}/apply`, {
+        note,
+        availabilityType: availabilityMap[data.availabilityConfirmed] ?? "DISCUSS",
+        rateResponse: data.rateType === "AGREED_RATE" ? "OFFER_OWN" : "ACCEPT",
+        proposedRate:
+          data.rateType === "AGREED_RATE" && data.proposedRate
+            ? parseFloat(data.proposedRate)
+            : undefined,
+        introduction: data.introduction.trim() || undefined,
+        applicationData: {
+          relevantSkills: data.relevantSkills,
+          suitabilityNote: data.suitabilityNote || undefined,
+          availabilityNote: data.availabilityNote || undefined,
+          rateNote: data.rateNote || undefined,
+          documentsConfirmed: data.hasDocuments,
+        },
+      });
       onSuccess();
     } catch (err: unknown) {
       setError((err as { message?: string })?.message ?? "Failed to submit application.");

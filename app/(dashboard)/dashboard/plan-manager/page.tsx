@@ -43,7 +43,8 @@ export default function PlanManagerDashboardPage() {
         description="Your participant cases, referrals, and invoices."
         actions={
           <div className="flex gap-2">
-            <Link href="/jobs"><Button>Browse Requests</Button></Link>
+            <Link href="/load-board"><Button>Browse Load Board</Button></Link>
+            <Link href="/referrals"><Button variant="outline" size="sm">My Referrals</Button></Link>
           </div>
         }
       />
@@ -66,9 +67,11 @@ export default function PlanManagerDashboardPage() {
 
         {/* ── Quick actions ── */}
         <div className="flex flex-wrap gap-2">
-          <Link href="/jobs">     <Button variant="outline" size="sm">Browse Requests</Button></Link>
-          <Link href="/messages"> <Button variant="outline" size="sm">Message Providers</Button></Link>
-          <Link href="/invoices"> <Button variant="outline" size="sm">Invoices</Button></Link>
+          <Link href="/load-board">  <Button variant="outline" size="sm">Browse Load Board</Button></Link>
+          <Link href="/referrals">   <Button variant="outline" size="sm">My Referrals</Button></Link>
+          <Link href="/connections"> <Button variant="outline" size="sm">Connections</Button></Link>
+          <Link href="/messages">    <Button variant="outline" size="sm">Message Providers</Button></Link>
+          <Link href="/invoices">    <Button variant="outline" size="sm">Invoices</Button></Link>
         </div>
 
         {/* ── LIVE: recent invoices ── */}

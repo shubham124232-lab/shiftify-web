@@ -12,29 +12,17 @@ import { getDashboard, type CoordinatorDashboard } from "@/lib/api/dashboard";
 import { api } from "@/lib/api";
 
 // ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// Urgent Requests + Draft Requests below are now wired to real data (derived
-// from the dashboard summary + existing GET /jobs/my). The rest need
-// aggregations the backend doesn't expose yet — still placeholders.
-// TODO: replace remaining blocks with a real API call when the backend endpoint is ready.
+// "Requests expiring soon" needs applicationDeadlineAt, which /jobs/my doesn't
+// currently select — genuinely not exposed, still a placeholder. Same for
+// "Participants w/ Gaps" (needs a per-participant join /jobs/my doesn't have).
+// Everything else on this page is now live — including Unfilled Needs and
+// Responses Received, which turned out to already be in the /jobs/my response
+// (_count.applications) — just unused until now.
 
 const PH_STATS = {
-  unfilledNeeds:        5,
-  responses:            8,
   expiringRequests:     1,
   participantsWithGaps: 4,
 };
-
-const PH_URGENT = [
-  { id: "u1", participant: "James K.",  title: "Emergency Overnight – Castle Hill",  due: "Today 6 pm"   },
-  { id: "u2", participant: "Ayesha P.", title: "Replacement Worker – Morning Shift", due: "Today 8 am"   },
-  { id: "u3", participant: "Marcus T.", title: "Hospital Discharge Support",          due: "Tomorrow 10am" },
-];
-
-const PH_GAPS = [
-  { id: "g1", participant: "Linda W.", service: "Personal Care",     status: "No applicants" },
-  { id: "g2", participant: "Raj S.",   service: "Community Access",  status: "1 pending"     },
-  { id: "g3", participant: "Omar F.",  service: "Overnight Support", status: "No applicants" },
-];
 
 const PH_EXPIRING = [
   { id: "e1", title: "Weekly Domestic – Linda W.", expiresIn: "2 days" },
@@ -42,21 +30,28 @@ const PH_EXPIRING = [
 ];
 // ──────────────────────────────────────────────────────────────────────────────
 
+interface MyJob {
+  id: string; title: string; status: string; urgency: string; suburb: string;
+  _count: { applications: number };
+}
+
 export default function CoordinatorDashboard() {
   const { user } = useAuth();
-  const [data,       setData]       = useState<CoordinatorDashboard | null>(null);
-  const [draftCount, setDraftCount] = useState(0);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState<string | null>(null);
+  const [data,        setData]        = useState<CoordinatorDashboard | null>(null);
+  const [myJobs,       setMyJobs]      = useState<MyJob[]>([]);
+  const [loading,      setLoading]     = useState(true);
+  const [jobsLoading,  setJobsLoading] = useState(true);
+  const [error,        setError]       = useState<string | null>(null);
 
   useEffect(() => {
     getDashboard()
       .then((d) => setData(d as CoordinatorDashboard))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-    api.get<{ jobs: unknown[] }>("/jobs/my", { params: { status: "DRAFT" } })
-      .then((r) => setDraftCount(r.jobs?.length ?? 0))
-      .catch(() => {});
+    api.get<{ jobs: MyJob[] }>("/jobs/my")
+      .then((r) => setMyJobs(r.jobs ?? []))
+      .catch(() => {})
+      .finally(() => setJobsLoading(false));
   }, []);
 
   if (!user) return null;
@@ -64,6 +59,11 @@ export default function CoordinatorDashboard() {
   const urgentCount = data?.openJobs?.filter(
     (j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY",
   ).length ?? 0;
+  const draftCount    = myJobs.filter((j) => j.status === "DRAFT").length;
+  const openJobs      = myJobs.filter((j) => j.status === "OPEN");
+  const unfilledJobs  = openJobs.filter((j) => j._count.applications === 0);
+  const responseCount = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
+  const urgentJobs    = openJobs.filter((j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY");
 
   return (
     <>
@@ -92,10 +92,10 @@ export default function CoordinatorDashboard() {
           <StatCard label="Upcoming Shifts"       value={loading ? "…" : (data?.upcomingShifts?.length     ?? 0)}             />
           <StatCard label="Awaiting Confirmation" value={loading ? "…" : (data?.awaitingConfirmation?.length ?? 0)} tone="warn" />
           <StatCard label="Urgent Requests"        value={loading ? "…" : urgentCount} tone="danger" />
-          <StatCard label="Draft Requests"         value={loading ? "…" : draftCount}                />
+          <StatCard label="Draft Requests"         value={jobsLoading ? "…" : draftCount}            />
+          <StatCard label="Unfilled Needs"        value={jobsLoading ? "…" : unfilledJobs.length} tone="warn" />
+          <StatCard label="Responses Received"    value={jobsLoading ? "…" : responseCount}       tone="ok"   />
           {/* PLACEHOLDER – no backing endpoint yet */}
-          <StatCard label="Unfilled Needs"        value={PH_STATS.unfilledNeeds}        tone="warn"   />
-          <StatCard label="Responses Received"    value={PH_STATS.responses}            tone="ok"     />
           <StatCard label="Expiring Requests"     value={PH_STATS.expiringRequests}     tone="warn"   />
           <StatCard label="Participants w/ Gaps"  value={PH_STATS.participantsWithGaps} tone="danger" />
         </div>
@@ -149,50 +149,57 @@ export default function CoordinatorDashboard() {
           </Card>
         </div>
 
-        {/* ── PLACEHOLDER – urgent / priority requests ── */}
-        {/* TODO: GET /jobs?urgency=URGENT&postedBy=me */}
+        {/* ── LIVE – urgent / priority requests ── */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-red-700">Urgent / priority requests</CardTitle>
             <Link href="/jobs/my"><Button variant="ghost" size="sm">View all</Button></Link>
           </CardHeader>
           <CardContent>
-            <ul className="divide-y divide-slate-100 text-sm">
-              {PH_URGENT.map((u) => (
-                <li key={u.id} className="py-2 flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">{u.title}</span>
-                    <span className="ml-2 text-xs text-slate-400">— {u.participant}</span>
-                  </div>
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">{u.due}</span>
-                </li>
-              ))}
-            </ul>
+            {jobsLoading ? (
+              <p className="text-sm text-slate-400">Loading…</p>
+            ) : !urgentJobs.length ? (
+              <p className="text-sm text-slate-500">No urgent requests right now.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100 text-sm">
+                {urgentJobs.slice(0, 5).map((u) => (
+                  <li key={u.id} className="py-2 flex justify-between items-center">
+                    <div>
+                      <Link href={`/jobs/${u.id}`} className="font-medium hover:underline">{u.title}</Link>
+                      <span className="ml-2 text-xs text-slate-400">{u.suburb}</span>
+                    </div>
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">{u.urgency.replace("_", " ")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
-        {/* ── Row 2: PLACEHOLDER – service gaps + expiring ── */}
-        {/* TODO: GET /jobs?status=OPEN&applications=0  |  GET /jobs?expiresIn=7days */}
+        {/* ── Row 2: LIVE service gaps, PLACEHOLDER expiring ── */}
+        {/* TODO: expiring needs applicationDeadlineAt exposed on /jobs/my */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Service gaps / unfilled needs</CardTitle>
-              <Button variant="ghost" size="sm">View all</Button>
+              <Link href="/jobs/my"><Button variant="ghost" size="sm">View all</Button></Link>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-slate-100 text-sm">
-                {PH_GAPS.map((g) => (
-                  <li key={g.id} className="py-2 flex justify-between items-center">
-                    <div>
-                      <span className="font-medium">{g.participant}</span>
-                      <span className="ml-2 text-xs text-slate-400">{g.service}</span>
-                    </div>
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${
-                      g.status === "No applicants" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
-                    }`}>{g.status}</span>
-                  </li>
-                ))}
-              </ul>
+              {jobsLoading ? (
+                <p className="text-sm text-slate-400">Loading…</p>
+              ) : !unfilledJobs.length ? (
+                <p className="text-sm text-slate-500">No open requests without applicants.</p>
+              ) : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {unfilledJobs.slice(0, 5).map((g) => (
+                    <li key={g.id} className="py-2 flex justify-between items-center">
+                      <Link href={`/jobs/${g.id}`} className="font-medium hover:underline">{g.title}</Link>
+                      <span className="ml-2 text-xs text-slate-400">{g.suburb}</span>
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">No applicants</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
 

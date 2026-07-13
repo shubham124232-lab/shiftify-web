@@ -172,5 +172,5 @@ export interface AvailabilitySlotPayload {
 export async function replaceAvailabilitySlots(
   slots: AvailabilitySlotPayload[],
 ): Promise<void> {
-  await api.put('/users/me/availability/slots', { slots });
+  await api.put('/users/me/availability', { slots });
 }

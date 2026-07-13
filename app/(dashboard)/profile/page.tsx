@@ -462,9 +462,9 @@ export default function ProfilePage() {
                   <Field label="Funding management type">
                     <select style={inp} value={fundingType} onChange={e => setFundingType(e.target.value)}>
                       <option value="">Select…</option>
-                      <option value="SELF">Self-managed</option>
-                      <option value="PLAN">Plan-managed</option>
-                      <option value="NDIA">NDIA-managed</option>
+                      <option value="SELF_MANAGED">Self-managed</option>
+                      <option value="PLAN_MANAGED">Plan-managed</option>
+                      <option value="NDIA_MANAGED">NDIA-managed</option>
                     </select>
                   </Field>
                 </CardContent>

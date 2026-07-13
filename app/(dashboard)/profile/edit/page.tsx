@@ -7,18 +7,28 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import { upsertProfile } from '@/lib/api/profile';
+import { upsertProfile, replaceAvailabilitySlots, type AvailabilitySlotPayload } from '@/lib/api/profile';
 import { getStepsForRole, type StepConfig } from '@/lib/registration';
 import { STEP_COMPONENTS } from '@/lib/registration/stepComponents';
 import { ROLE_LABELS } from '@/lib/registration/stepConfig';
 import { UserRole } from '@/lib/types';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { sanitiseDates } from '@/lib/utils';
+import { sanitisePayload } from '@/lib/utils';
 import DocumentUploadField, { type ExistingDoc, type MetadataFieldConfig } from '@/components/profile/DocumentUploadField';
 
 // ── Roles that get the Documents tab ─────────────────────────────────────────
 
 const DOC_TAB_ROLES: string[] = ['SUPPORT_WORKER', 'COORDINATOR', 'PROVIDER', 'PLAN_MANAGER'];
+
+// ── Role -> profile relation key on the /users/me response ──────────────────
+
+const ROLE_PROFILE_KEY: Record<string, string> = {
+  SUPPORT_WORKER: 'workerProfile',
+  PROVIDER:       'providerProfile',
+  COORDINATOR:    'coordinatorProfile',
+  PARTICIPANT:    'participantProfile',
+  PLAN_MANAGER:   'planManagerProfile',
+};
 
 // ── Per-role document rows config ─────────────────────────────────────────────
 
@@ -194,6 +204,9 @@ const ROLE_DOC_ROWS: Record<string, DocRowConfig[]> = {
           ] },
       ],
     },
+    {
+      docType: 'NDIS_AUDIT', label: 'NDIS Provider Registration Certificate', uploadRequired: true,
+    },
   ],
 
   PLAN_MANAGER: [
@@ -352,10 +365,16 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
   const [err,    setErr]    = useState<string | null>(null);
   const [saved,  setSaved]  = useState(false);
 
+  const hasAvailabilityField = !!(step.schema as unknown as { shape?: Record<string, unknown> })?.shape?.availability;
+
   async function onSubmit(data: FieldValues) {
     setSaving(true); setErr(null); setSaved(false);
     try {
-      await upsertProfile(role, sanitiseDates(data as Record<string, unknown>));
+      const { availability, ...profileFields } = data as Record<string, unknown>;
+      await upsertProfile(role, sanitisePayload(profileFields));
+      if (hasAvailabilityField && Array.isArray(availability)) {
+        await replaceAvailabilitySlots(availability as AvailabilitySlotPayload[]);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
@@ -366,6 +385,8 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
   }
 
   if (!StepComp) return null;
+
+  const hasBlockingErrors = Object.keys(form.formState.errors).length > 0;
 
   return (
     <FormProvider {...form}>
@@ -385,6 +406,12 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
         {err && (
           <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C62828', marginTop: 20 }}>
             {err}
+          </div>
+        )}
+
+        {!err && hasBlockingErrors && (
+          <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C62828', marginTop: 20 }}>
+            Some fields need attention — check the highlighted fields above.
           </div>
         )}
 
@@ -433,22 +460,19 @@ export default function ProfileEditPage() {
   const isDocTab    = hasDocTab && activeIndex === docTabIndex;
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !role) return;
     api.get<{ user: Record<string, unknown> }>('/users/me')
       .then(res => {
         const u = res.user as Record<string, unknown>;
+        const profileKey = ROLE_PROFILE_KEY[role];
         setDefaultValues({
           ...u,
-          ...((u.workerProfile      as Record<string, unknown>) ?? {}),
-          ...((u.providerProfile    as Record<string, unknown>) ?? {}),
-          ...((u.coordinatorProfile as Record<string, unknown>) ?? {}),
-          ...((u.participantProfile as Record<string, unknown>) ?? {}),
-          ...((u.planManagerProfile as Record<string, unknown>) ?? {}),
+          ...((u[profileKey] as Record<string, unknown>) ?? {}),
         });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, role]);
 
   function setTab(index: number) {
     const p = new URLSearchParams(searchParams.toString());

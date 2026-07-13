@@ -96,8 +96,8 @@ export default function MyJobsPage() {
         {/* Status filter pills */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
           {(canPost
-            ? ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "DRAFT"]
-            : ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"]
+            ? ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED", "CANCELLED", "DRAFT"]
+            : ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED", "CANCELLED"]
           ).map(s => (
             <button
               key={s}
@@ -110,7 +110,7 @@ export default function MyJobsPage() {
                 color: filter === s ? "#c2185b" : "#64748b",
               }}
             >
-              {s || "All"}
+              {s ? s.replace("_", " ") : "All"}
             </button>
           ))}
         </div>
@@ -155,7 +155,7 @@ export default function MyJobsPage() {
                 </Link>
               );
             })}
-          </div>
+           </div>
         )}
       </div>
     </>

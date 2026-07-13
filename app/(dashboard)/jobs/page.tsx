@@ -39,14 +39,15 @@ interface Job {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY: { bg: "#fee2e2", color: "#b91c1c" },
-  SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
-  SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
+  EMERGENCY:   { bg: "#fee2e2", color: "#b91c1c" },
+  REPLACEMENT: { bg: "#fee2e2", color: "#b91c1c" },
+  SAME_DAY:    { bg: "#ffedd5", color: "#c2410c" },
+  SCHEDULED:   { bg: "#f1f5f9", color: "#475569" },
 };
 
 const SHIFT_TYPE_LABELS: Record<string, string> = {
-  STANDARD: "Standard", OVERNIGHT: "Overnight", SLEEPOVER: "Sleepover",
-  "24_HOUR": "24-Hour", DROP_IN: "Drop-in",
+  STANDARD: "Standard", ACTIVE_OVERNIGHT: "Overnight", SLEEPOVER: "Sleepover",
+  TWENTY_FOUR_HOUR: "24-Hour", DROP_IN: "Drop-in",
 };
 
 const FUNDING_LABELS: Record<string, string> = {

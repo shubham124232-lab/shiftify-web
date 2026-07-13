@@ -5,7 +5,7 @@ import { TagInput } from '../../fields/TagInput';
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
 
-export function ProviderStep05_Logo() {
+export function ProviderStep05_ServiceCoverage() {
   const { register, control, watch, formState: { errors } } = useFormContext();
   const mode = watch('serviceMode') as string;
 

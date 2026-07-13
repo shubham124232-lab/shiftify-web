@@ -33,7 +33,7 @@ const COMPLIANCE_DOCS = [
   { docType: 'POLICIES_PROCEDURES',       label: 'Policies & Procedures (Incident / Risk / Safeguarding)' },
 ] as const;
 
-export function ProviderStep03_PrimaryContact() {
+export function ProviderStep03_ComplianceLegal() {
   const store = useRegistrationStore();
   const { register, watch, formState: { errors } } = useFormContext();
   const ndisRegistered = watch('ndisRegistered') as boolean;

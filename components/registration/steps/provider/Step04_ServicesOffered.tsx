@@ -1,6 +1,7 @@
 'use client';
 import { useFormContext, Controller } from 'react-hook-form';
 import { ServiceMultiSelect } from '../../fields/ServiceMultiSelect';
+import { TagInput } from '../../fields/TagInput';
 
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
@@ -46,7 +47,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
   );
 }
 
-export function ProviderStep04_AccountsContact() {
+export function ProviderStep04_ServicesOffered() {
   const { control, watch, register, formState: { errors } } = useFormContext();
   const offersSil = watch('offersSil') as boolean;
   const offersSda = watch('offersSda') as boolean;
@@ -111,7 +112,9 @@ export function ProviderStep04_AccountsContact() {
             </div>
             <div>
               <label style={labelStyle}>Location(s)</label>
-              <input {...register('sdaLocations.0')} placeholder="e.g. Parramatta NSW" style={inputStyle} />
+              <Controller name="sdaLocations" control={control} defaultValue={[]} render={({ field }) => (
+                <TagInput value={field.value ?? []} onChange={field.onChange} placeholder="e.g. Parramatta NSW" />
+              )} />
             </div>
           </div>
         </div>

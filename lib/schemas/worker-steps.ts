@@ -7,7 +7,7 @@ export const workerStep1Schema = z.object({
   postcode: z.string().optional(),
   state:    z.string().min(2, 'State is required'),
   dob:      z.string().optional(),
-  gender:   z.string().optional(),
+  gender:   z.string().nullable().optional(),
 });
 
 export const workerStep2Schema = z.object({

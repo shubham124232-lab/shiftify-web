@@ -19,7 +19,8 @@ const PERSONAL_CARE_LEVELS = ['None', 'Basic assistance', 'Moderate assistance',
 const LANGUAGES = ['English', 'Mandarin', 'Cantonese', 'Arabic', 'Vietnamese', 'Greek', 'Italian', 'Hindi', 'Korean', 'Tagalog', 'Spanish', 'Other'];
 
 function ChipPicker({ name, options, label }: { name: string; options: string[]; label: string }) {
-  const { control } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
+  const err = (errors[name]?.message) as string | undefined;
   return (
     <div>
       <label style={labelStyle}>{label}</label>
@@ -39,6 +40,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
           })}
         </div>
       )} />
+      {err && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{err}</p>}
     </div>
   );
 }

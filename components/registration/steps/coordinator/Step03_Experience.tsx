@@ -63,19 +63,19 @@ export function CoordStep03_Experience() {
       <div>
         <label style={labelStyle}>Support Coordination Level(s) Offered <span style={{ color: '#ef4444' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select all service types you are qualified to provide.</p>
-        <ChipGroup name="coordinationLevels" options={COORD_LEVELS} />
+        <ChipGroup name="supportCoordinationLevel" options={COORD_LEVELS} />
       </div>
 
       <div>
         <label style={labelStyle}>Participant Complexity Experience <span style={{ color: '#ef4444' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select the disability and complexity types you are experienced with.</p>
-        <ChipGroup name="participantComplexity" options={COMPLEXITY} />
+        <ChipGroup name="participantComplexityExperience" options={COMPLEXITY} />
       </div>
 
       <div>
         <label style={labelStyle}>Services Offered Beyond Coordination</label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Optional — select any additional services you provide.</p>
-        <ChipGroup name="additionalServices" options={EXTRA_SERVICES} />
+        <ChipGroup name="servicesOfferedBeyondCoordination" options={EXTRA_SERVICES} />
       </div>
 
     </div>

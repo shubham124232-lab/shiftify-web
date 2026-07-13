@@ -12,20 +12,15 @@ import { getDashboard, type ParticipantDashboard } from "@/lib/api/dashboard";
 import { api } from "@/lib/api";
 
 // ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// Applications Received + Saved Workers have no backing endpoint yet — still
-// placeholders. Urgent Requests/Draft Posts/Unread Messages/Draft list below
-// are now wired to real data (existing GET /jobs/my + dashboard summary).
-// TODO: replace remaining blocks with a real API call when the backend endpoint is ready.
+// Saved Workers and Recommended-for-you have NO backend feature behind them at
+// all (no favorites model, no matching engine) — genuinely still placeholders.
+// Everything else on this page is now live, including Applications Received
+// and Recurring Supports, which turned out to already be in the /jobs/my
+// response (_count.applications, isRecurring) — just unused until now.
 
 const PH_STATS = {
-  applicationsReceived: 7,
-  savedWorkers:        12,
+  savedWorkers: 12,
 };
-
-const PH_RECURRING = [
-  { id: "r1", title: "Weekly Domestic Assistance",   schedule: "Every Mon 9 am"     },
-  { id: "r2", title: "Fortnightly Community Access", schedule: "Every 2nd Fri 1 pm" },
-];
 
 const PH_SAVED_WORKERS = [
   { id: "w1", name: "Sarah M.", service: "Personal Care",       rating: 4.9 },
@@ -39,13 +34,18 @@ const PH_RECOMMENDED = [
 ];
 // ──────────────────────────────────────────────────────────────────────────────
 
-interface DraftJob { id: string; title: string; status: string; category: string; postedAt: string; }
+interface MyJob {
+  id: string; title: string; status: string; category: string; postedAt: string;
+  isRecurring: boolean; scheduledStartAt: string;
+  _count: { applications: number };
+}
 
 export default function ParticipantDashboard() {
   const { user } = useAuth();
   const [data,    setData]    = useState<ParticipantDashboard | null>(null);
-  const [drafts,  setDrafts]  = useState<DraftJob[]>([]);
+  const [myJobs,  setMyJobs]  = useState<MyJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jobsLoading, setJobsLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,9 +53,10 @@ export default function ParticipantDashboard() {
       .then((d) => setData(d as ParticipantDashboard))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-    api.get<{ jobs: DraftJob[] }>("/jobs/my", { params: { status: "DRAFT" } })
-      .then((r) => setDrafts(r.jobs ?? []))
-      .catch(() => {});
+    api.get<{ jobs: MyJob[] }>("/jobs/my")
+      .then((r) => setMyJobs(r.jobs ?? []))
+      .catch(() => {})
+      .finally(() => setJobsLoading(false));
   }, []);
 
   if (!user) return null;
@@ -63,6 +64,9 @@ export default function ParticipantDashboard() {
   const urgentCount = data?.openJobs?.filter(
     (j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY",
   ).length ?? 0;
+  const drafts    = myJobs.filter((j) => j.status === "DRAFT");
+  const recurring = myJobs.filter((j) => j.isRecurring && j.status !== "DRAFT" && j.status !== "CANCELLED");
+  const applicationsReceived = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
 
   return (
     <>
@@ -92,10 +96,10 @@ export default function ParticipantDashboard() {
           <StatCard label="Upcoming Bookings"  value={loading ? "…" : (data?.upcomingShifts?.length      ?? 0)}             />
           <StatCard label="Awaiting Confirm"   value={loading ? "…" : (data?.awaitingConfirmation?.length ?? 0)} tone="warn" />
           <StatCard label="Urgent Requests"    value={loading ? "…" : urgentCount}              tone="danger" />
-          <StatCard label="Draft Posts"        value={loading ? "…" : drafts.length}                          />
+          <StatCard label="Draft Posts"        value={jobsLoading ? "…" : drafts.length}                      />
           <StatCard label="Unread Messages"    value={loading ? "…" : (data?.unreadNotifications ?? 0)} tone="warn" />
-          {/* PLACEHOLDER – no backing endpoint yet */}
-          <StatCard label="Applications In"    value={PH_STATS.applicationsReceived}               />
+          <StatCard label="Applications In"    value={jobsLoading ? "…" : applicationsReceived}   tone="ok"   />
+          {/* PLACEHOLDER – no backing feature yet (no favorites model) */}
           <StatCard label="Saved Workers"      value={PH_STATS.savedWorkers}    tone="ok"          />
         </div>
 
@@ -183,23 +187,31 @@ export default function ParticipantDashboard() {
           </CardContent>
         </Card>
 
-        {/* ── Row 2: PLACEHOLDER – recurring + saved workers ── */}
-        {/* TODO: GET /jobs?recurring=true&postedBy=me  |  GET /users/me/saved-workers */}
+        {/* ── Row 2: LIVE recurring, PLACEHOLDER saved workers ── */}
+        {/* TODO: GET /users/me/saved-workers (no favorites feature exists yet) */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recurring supports</CardTitle>
-              <Button variant="ghost" size="sm">View all</Button>
+              <Link href="/jobs/my"><Button variant="ghost" size="sm">View all</Button></Link>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-slate-100 text-sm">
-                {PH_RECURRING.map((r) => (
-                  <li key={r.id} className="py-2 flex justify-between items-center">
-                    <span className="font-medium">{r.title}</span>
-                    <span className="text-xs text-slate-400">{r.schedule}</span>
-                  </li>
-                ))}
-              </ul>
+              {jobsLoading ? (
+                <p className="text-sm text-slate-400">Loading…</p>
+              ) : !recurring.length ? (
+                <p className="text-sm text-slate-500">No recurring supports set up.</p>
+              ) : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {recurring.slice(0, 5).map((r) => (
+                    <li key={r.id} className="py-2 flex justify-between items-center">
+                      <Link href={`/jobs/${r.id}`} className="font-medium hover:underline">{r.title}</Link>
+                      <span className="text-xs text-slate-400">
+                        {new Date(r.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
 

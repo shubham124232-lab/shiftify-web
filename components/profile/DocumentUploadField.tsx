@@ -154,14 +154,11 @@ export default function DocumentUploadField({
         });
         onSaved(saved);
       } else {
-        // Metadata-only (no file required, or re-saving metadata without re-uploading)
+        // Metadata-only (no file required, or re-saving metadata without re-uploading) —
+        // the stored file must not be touched, so the request carries no file fields at all.
         const { document: saved } = await api.post<{ document: ExistingDoc }>('/upload/document/confirm', {
-          key: existingDoc?.id ?? '',
-          publicUrl: existingDoc?.publicUrl ?? '',
+          metadataOnly: true,
           docType,
-          fileName: existingDoc?.fileName ?? 'metadata',
-          mimeType: 'application/octet-stream',
-          sizeBytes: 0,
           ...meta,
         });
         onSaved(saved);

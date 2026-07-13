@@ -5,7 +5,7 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 const sectionLabel: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 10 };
 
-export function ProviderStep02_ABN() {
+export function ProviderStep02_KeyContacts() {
   const { register, formState: { errors } } = useFormContext();
 
   return (

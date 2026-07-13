@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
 
-interface Applicant { id: string; userId: string; userName: string; status: string; createdAt: string; }
+interface Applicant { id: string; applicantUserId: string; applicant: { id: string; name: string }; status: string; createdAt: string; }
 interface Message   { id: string; senderId: string; senderName: string; body: string; createdAt: string; }
 
 interface JobDetail {
@@ -19,10 +19,10 @@ interface JobDetail {
   category: string; urgency: string; suburb: string; state: string;
   scheduledStartAt: string; scheduledEndAt: string | null;
   totalHours: number | null; status: string; postedAt: string;
-  poster: { id: string; name: string };
+  postedBy: { id: string; name: string };
   selectedApplicant?: { id: string; name: string } | null;
   assignedWorker?: { id: string; name: string } | null;
-  applicants?: Applicant[];
+  applications?: Applicant[];
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
@@ -142,13 +142,13 @@ export default function JobDetailPage() {
   if (error && !job) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}</div>;
   if (!job) return null;
 
-  const isOwner  = user?.id === job.poster.id;
+  const isOwner  = user?.id === job.postedBy.id;
   const isWorker = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
   const sta = STATUS_STYLE[job.status]  ?? { bg: "#f1f5f9", color: "#475569" };
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status);
-  const ownApp = isWorker ? job.applicants?.find(a => a.userId === user?.id) : null;
+  const ownApp = isWorker ? job.applications?.find(a => a.applicantUserId === user?.id) : null;
   const needsAssignment =
     activeRole === "PROVIDER" &&
     job.status === "ASSIGNED" &&
@@ -157,7 +157,7 @@ export default function JobDetailPage() {
 
   return (
     <>
-      <PageHeader title={job.title} description={`Posted by ${job.poster.name}`} />
+      <PageHeader title={job.title} description={`Posted by ${job.postedBy.name}`} />
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
         {error && (
@@ -283,7 +283,7 @@ export default function JobDetailPage() {
         )}
 
         {/* Worker lifecycle actions */}
-        {isWorker && job.assignedWorker?.id === user?.id && job.status === "ASSIGNED" && (
+        {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && (
           <Card>
             <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10 }}>
@@ -291,7 +291,7 @@ export default function JobDetailPage() {
             </CardContent>
           </Card>
         )}
-        {isWorker && job.assignedWorker?.id === user?.id && job.status === "IN_PROGRESS" && (
+        {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "IN_PROGRESS" && (
           <Card>
             <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10 }}>
@@ -301,16 +301,16 @@ export default function JobDetailPage() {
         )}
 
         {/* Applicants (owner only) */}
-        {isOwner && job.applicants && job.applicants.length > 0 && (
+        {isOwner && job.applications && job.applications.length > 0 && (
           <Card>
-            <CardHeader><CardTitle>Applicants ({job.applicants.length})</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Applicants ({job.applications.length})</CardTitle></CardHeader>
             <CardContent>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {job.applicants.map(app => (
+                {job.applications.map(app => (
                   <div key={app.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
                     <div style={{ flex: 1 }}>
-                      <Link href={`/profile/${app.userId}`} style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", textDecoration: "none" }} className="hover:underline">
-                        {app.userName}
+                      <Link href={`/profile/${app.applicantUserId}`} style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", textDecoration: "none" }} className="hover:underline">
+                        {app.applicant.name}
                       </Link>
                       <div style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</div>
                     </div>

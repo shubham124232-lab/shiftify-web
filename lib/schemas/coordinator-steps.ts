@@ -68,7 +68,7 @@ export const coordStep7Schema = z.object({
 export const coordStep8Schema = z.object({
   bio:                z.string().max(2000).optional(),
   languages:          z.array(z.string()).optional(),
-  gender:             z.string().optional(),
+  gender:             z.string().nullable().optional(),
   profilePhoto:       z.string().optional(),
   seekingPlanManager: z.boolean().optional(),
 });

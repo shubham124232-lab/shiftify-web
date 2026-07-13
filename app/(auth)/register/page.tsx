@@ -14,10 +14,10 @@ import { useRegistrationStore } from '@/lib/store/registration.store';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { api, setApiToken } from '@/lib/api';
 import { UserRole, UserStatus } from '@/lib/types';
-import { upsertProfile } from '@/lib/api/profile';
+import { upsertProfile, replaceAvailabilitySlots, type AvailabilitySlotPayload } from '@/lib/api/profile';
 import { getStepsForRole } from '@/lib/registration';
 import { STEP_COMPONENTS }  from '@/lib/registration/stepComponents';
-import { sanitiseDates } from '@/lib/utils';
+import { sanitisePayload } from '@/lib/utils';
 
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
@@ -70,6 +70,8 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
 
   if (!config || !StepComp) return null;
 
+  const hasBlockingErrors = Object.keys(form.formState.errors).length > 0;
+
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
@@ -86,6 +88,12 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
         {apiErr && (
           <div style={{background:'#FFF0F0',border:'1px solid #FFCDD2',borderRadius:8,padding:'10px 14px',marginBottom:14,fontSize:13,color:'#C62828'}}>
             <i className="bi bi-exclamation-circle" style={{marginRight:6}} />{apiErr}
+          </div>
+        )}
+
+        {!apiErr && hasBlockingErrors && (
+          <div style={{background:'#FFF0F0',border:'1px solid #FFCDD2',borderRadius:8,padding:'10px 14px',marginBottom:14,fontSize:13,color:'#C62828'}}>
+            <i className="bi bi-exclamation-circle" style={{marginRight:6}} />Some fields need attention — check the highlighted fields below.
           </div>
         )}
 
@@ -361,8 +369,14 @@ export default function RegisterPage() {
 
   const handleWizardSave = useCallback(async (data: Record<string,unknown>) => {
     store.mergeFormData(data);
-    const payload = sanitiseDates({ ...store.formData, ...data, profileStep: wizardStep+1 });
+    const merged = { ...store.formData, ...data, profileStep: wizardStep+1 } as Record<string, unknown>;
+    const { availability, ...profileFields } = merged;
+    const payload = sanitisePayload(profileFields);
     await upsertProfile(role!, payload);
+    const stepSchema = getStepsForRole(role!)[wizardStep]?.schema as unknown as { shape?: Record<string, unknown> };
+    if (stepSchema?.shape?.availability && Array.isArray(availability)) {
+      await replaceAvailabilitySlots(availability as AvailabilitySlotPayload[]);
+    }
     store.markStepSaved(wizardStep);
     store.setLastSaved();
     const total = getStepsForRole(role!).length;

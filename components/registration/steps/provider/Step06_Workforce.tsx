@@ -54,7 +54,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
   );
 }
 
-export function ProviderStep06_Services() {
+export function ProviderStep06_Workforce() {
   const { register } = useFormContext();
 
   return (

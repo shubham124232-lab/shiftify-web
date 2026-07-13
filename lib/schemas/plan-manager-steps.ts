@@ -1,4 +1,4 @@
-// Per-step Zod schemas for Plan Manager profile wizard (14 steps).
+// Per-step Zod schemas for Plan Manager profile wizard (15 steps).
 
 import { z } from 'zod';
 
@@ -22,6 +22,11 @@ export const pmStep1Schema = z.object({
   financeTeamEmail:    z.string().email().optional().or(z.literal('')),
   accountsPayablePhone: z.string().optional(),
   yearsInOperation:    z.string().optional(),
+});
+
+// Step — Role Type (aligns config with the existing PmStep02_RoleType component)
+export const pmStepRoleTypeSchema = z.object({
+  pmRoleType: z.enum(['PLAN_MANAGER', 'PM_ORG_ADMIN', 'PM_STAFF_MEMBER']).optional(),
 });
 
 // Step 2 — NDIS Registration Status
@@ -143,6 +148,7 @@ export const pmStep14Schema = z.object({
   consentToInvoiceRoutingRules:       z.boolean().refine(v => v === true, { message: 'You must consent to invoice routing rules' }),
 });
 
+export type PmStepRoleType = z.infer<typeof pmStepRoleTypeSchema>;
 export type PmStep1  = z.infer<typeof pmStep1Schema>;
 export type PmStep2  = z.infer<typeof pmStep2Schema>;
 export type PmStep3  = z.infer<typeof pmStep3Schema>;

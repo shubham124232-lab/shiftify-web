@@ -28,7 +28,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
   );
 }
 
-export function ProviderStep08_Workforce() {
+export function ProviderStep08_ParticipantHandling() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 

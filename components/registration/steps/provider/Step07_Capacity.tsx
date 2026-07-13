@@ -23,7 +23,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
   );
 }
 
-export function ProviderStep07_ServiceAreas() {
+export function ProviderStep07_Capacity() {
   const { register } = useFormContext();
 
   return (

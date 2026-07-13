@@ -31,9 +31,9 @@ const SUBCATEGORIES: Record<string, string[]> = {
 
 const SHIFT_TYPES = [
   { value: "STANDARD", label: "Standard", desc: "Regular daytime shift" },
-  { value: "OVERNIGHT", label: "Overnight", desc: "Night-time active support" },
+  { value: "ACTIVE_OVERNIGHT", label: "Overnight", desc: "Night-time active support" },
   { value: "SLEEPOVER", label: "Sleepover", desc: "Sleep on-site, available if needed" },
-  { value: "24_HOUR", label: "24-Hour", desc: "Full 24-hour care" },
+  { value: "TWENTY_FOUR_HOUR", label: "24-Hour", desc: "Full 24-hour care" },
   { value: "DROP_IN", label: "Drop-in", desc: "Short visit / check-in" },
 ];
 
@@ -120,6 +120,9 @@ interface WizardData {
   behaviourNotes: string;
   medicalNotes: string;
   riskSafetyNotes: string;
+  // Step 4 — Coordinator-only
+  internalNote: string;
+  caseReference: string;
   // Step 5
   workerType: string;
   requiredQualifications: string[];
@@ -140,6 +143,13 @@ interface WizardData {
   showParticipantName: boolean;
   acceptBackupWorker: boolean;
   asDraft: boolean;
+  // Step 8 — Review consents
+  consentAccurate: boolean;
+  consentAuthorised: boolean;
+  consentApplicantsRely: boolean;
+  consentSafetyDisclosed: boolean;
+  consentPlatformTerms: boolean;
+  consentCancellationTerms: boolean;
 }
 
 const defaultData: WizardData = {
@@ -148,9 +158,11 @@ const defaultData: WizardData = {
   recurringDays: [], recurringFrequency: "WEEKLY", applicationDeadline: "", urgency: "SCHEDULED",
   suburb: "", state: "NSW", postcode: "", serviceDeliveryMode: "AT_HOME",
   participantId: "", postingAs: "SELF", participantContext: "", complexityLevel: "LOW", personalCareSupportLevel: "", mobilityNeeds: "", behaviourNotes: "", medicalNotes: "", riskSafetyNotes: "",
+  internalNote: "", caseReference: "",
   workerType: "EITHER", requiredQualifications: [], genderPreference: "", languagePreference: "", experienceLevel: "ANY",
   budgetType: "HOURLY", hourlyRate: "", totalBudget: "", fundingType: "PLAN_MANAGED",
   visibleTo: "BOTH", geographicRadius: "25", allowDirectApplications: true, allowQuotes: true, maxApplicants: "", showParticipantName: true, acceptBackupWorker: false, asDraft: false,
+  consentAccurate: false, consentAuthorised: false, consentApplicantsRely: false, consentSafetyDisclosed: false, consentPlatformTerms: false, consentCancellationTerms: false,
 };
 
 // ─── Step components ──────────────────────────────────────────────────────────
@@ -250,7 +262,7 @@ function Step2({ data, onChange }: { data: WizardData; onChange: (f: Partial<Wiz
       <div>
         <label className={lbl}>Time flexibility</label>
         <div className="flex gap-3">
-          {[{ v: "EXACT", l: "Exact time" }, { v: "FLEXIBLE_AM", l: "Flexible AM" }, { v: "FLEXIBLE_PM", l: "Flexible PM" }, { v: "FLEXIBLE", l: "Fully flexible" }].map(({ v, l }) => (
+          {[{ v: "EXACT", l: "Exact time" }, { v: "FLEXIBLE_MORNING", l: "Flexible AM" }, { v: "FLEXIBLE_AFTERNOON", l: "Flexible PM" }, { v: "FLEXIBLE_ANYTIME", l: "Fully flexible" }].map(({ v, l }) => (
             <label key={v} className={cn("flex items-center gap-2 cursor-pointer border rounded-lg px-3 py-2 text-sm transition-colors", data.timeFlexibility === v ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
               <input type="radio" className="sr-only" checked={data.timeFlexibility === v} onChange={() => onChange({ timeFlexibility: v })} />{l}
             </label>
@@ -354,6 +366,20 @@ function Step4({ data, onChange, participants }: { data: WizardData; onChange: (
             <option value="">posting as myself</option>
             {participants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+        </div>
+      )}
+
+      {participants.length > 0 && (
+        <div className="space-y-4 border border-slate-100 rounded-xl p-4 bg-slate-50">
+          <p className="text-xs font-semibold text-slate-700">Coordinator-only fields</p>
+          <div>
+            <label className={lbl}>Internal note (not visible to applicants)</label>
+            <textarea className={`${inp} h-auto py-2`} rows={2} value={data.internalNote} onChange={e => onChange({ internalNote: e.target.value })} placeholder="Notes for your own team's reference only" />
+          </div>
+          <div>
+            <label className={lbl}>Case reference (optional)</label>
+            <input className={inp} value={data.caseReference} onChange={e => onChange({ caseReference: e.target.value })} placeholder="e.g. internal case/file number" />
+          </div>
         </div>
       )}
       <div>
@@ -588,7 +614,16 @@ function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) 
   );
 }
 
-function Step8({ data }: { data: WizardData }) {
+const REVIEW_CONSENTS: { key: keyof WizardData; label: string }[] = [
+  { key: "consentAccurate",           label: "I confirm the information provided is accurate" },
+  { key: "consentAuthorised",         label: "I am authorised to post this request" },
+  { key: "consentApplicantsRely",     label: "I understand applicants will rely on this information" },
+  { key: "consentSafetyDisclosed",    label: "I acknowledge safety-sensitive details have been disclosed accurately" },
+  { key: "consentPlatformTerms",      label: "I agree to the platform terms" },
+  { key: "consentCancellationTerms",  label: "I acknowledge the cancellation and booking terms" },
+];
+
+function Step8({ data, onChange }: { data: WizardData; onChange: (f: Partial<WizardData>) => void }) {
   const catLabel = JOB_CATEGORIES.find(c => c.value === data.category)?.label ?? data.category;
   const shiftLabel = SHIFT_TYPES.find(s => s.value === data.shiftType)?.label ?? data.shiftType;
   const modeLabel = DELIVERY_MODES.find(m => m.value === data.serviceDeliveryMode)?.label ?? data.serviceDeliveryMode;
@@ -625,15 +660,16 @@ function Step8({ data }: { data: WizardData }) {
       </div>
       <div className="mt-4 space-y-2 border border-slate-100 rounded-xl p-4 bg-slate-50">
         <p className="text-xs font-semibold text-slate-700 mb-3">Before submitting, confirm:</p>
-        {[
-          "I confirm the information provided is accurate",
-          "I am authorised to post this request",
-          "I understand applicants will rely on this information",
-          "I acknowledge safety-sensitive details have been disclosed accurately",
-        ].map((txt) => (
-          <div key={txt} className="flex items-start gap-2 text-xs text-slate-600">
-            <span className="text-emerald-500 mt-0.5 shrink-0">✓</span>{txt}
-          </div>
+        {REVIEW_CONSENTS.map(({ key, label }) => (
+          <label key={key} className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 shrink-0"
+              checked={data[key] as boolean}
+              onChange={e => onChange({ [key]: e.target.checked } as Partial<WizardData>)}
+            />
+            {label}
+          </label>
         ))}
       </div>
     </div>
@@ -703,6 +739,7 @@ export default function PostJobWizard() {
       const body: Record<string, unknown> = {
         title: data.title.trim(),
         description: data.description.trim() || data.supportGoal.trim() || undefined,
+        supportGoal: data.supportGoal.trim() || undefined,
         category: data.category, subcategory: data.subcategory || undefined, urgency: data.urgency,
         suburb: data.suburb.trim(), state: data.state, postcode: data.postcode.trim() || undefined,
         serviceDeliveryMode: data.serviceDeliveryMode,
@@ -713,7 +750,7 @@ export default function PostJobWizard() {
         shiftType: data.shiftType, timeFlexibility: data.timeFlexibility,
         applicationDeadlineAt: data.applicationDeadline ? new Date(data.applicationDeadline).toISOString() : undefined,
         fundingType: data.fundingType,
-        budgetType: data.budgetType === "HOURLY" ? "FIXED_HOURLY" : data.budgetType === "TOTAL" ? "FIXED_TOTAL" : data.budgetType,
+        budgetType: data.budgetType === "HOURLY" ? "FIXED_HOURLY" : data.budgetType === "TOTAL" ? "FIXED_TOTAL" : data.budgetType === "NDIS_RATE" ? "NDIS" : data.budgetType,
         budgetPerHour: data.budgetType === "HOURLY" && data.hourlyRate ? parseFloat(data.hourlyRate) : undefined,
         totalBudget: data.budgetType === "TOTAL" && data.totalBudget ? parseFloat(data.totalBudget) : undefined,
         visibilityTarget: data.visibleTo === "BOTH" ? "ALL" : data.visibleTo,
@@ -721,9 +758,17 @@ export default function PostJobWizard() {
         hideParticipantName: !data.showParticipantName,
         allowQuotes: data.allowQuotes,
         allowDirectMessages: data.allowDirectApplications,
+        participantPostedAs: data.postingAs,
+        riskSafetyNotes: data.riskSafetyNotes || undefined,
+        medicalNotes: data.medicalNotes || undefined,
+        behaviourNotes: data.behaviourNotes || undefined,
         workerPreferences, asDraft: data.asDraft,
       };
       if (activeRole === "COORDINATOR" && data.participantId) body.forParticipantUserId = data.participantId;
+      if (activeRole === "COORDINATOR") {
+        body.internalNote = data.internalNote.trim() || undefined;
+        body.caseReference = data.caseReference.trim() || undefined;
+      }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
       setSubmittedJobId(res.job.id);
     } catch (err: unknown) {
@@ -780,8 +825,10 @@ export default function PostJobWizard() {
     <Step5 key={4} data={data} onChange={change} />,
     <Step6 key={5} data={data} onChange={change} />,
     <Step7 key={6} data={data} onChange={change} />,
-    <Step8 key={7} data={data} />,
+    <Step8 key={7} data={data} onChange={change} />,
   ];
+
+  const allConsentsChecked = REVIEW_CONSENTS.every(({ key }) => data[key]);
 
   return (
     <>
@@ -816,7 +863,7 @@ export default function PostJobWizard() {
           {step < STEPS.length - 1 ? (
             <Button onClick={next}>Continue</Button>
           ) : (
-            <Button onClick={submit} disabled={saving}>
+            <Button onClick={submit} disabled={saving || !allConsentsChecked} title={!allConsentsChecked ? "Confirm all items above before submitting" : undefined}>
               {saving ? "Publishing..." : data.asDraft ? "Save Draft" : "Publish Request"}
             </Button>
           )}

@@ -25,7 +25,8 @@ interface JobDetail {
   scheduledEndAt: string | null;
   totalHours: number | null;
   status: string;
-  poster: { id: string; name: string };
+  postedBy: { id: string; name: string };
+  forParticipant: { id: string; name: string } | null;
   assignedWorker: { id: string; name: string } | null;
 }
 
@@ -74,8 +75,9 @@ export default function CreateInvoicePage() {
         setJob(r.job);
         // Pre-fill hours from job if available
         if (r.job.totalHours) setHours(String(r.job.totalHours));
-        // Pre-fill participant if poster is participant
-        setParticipantUserId(r.job.poster.id);
+        // Pre-fill the actual participant (not the poster — for coordinator-posted
+        // jobs the poster is the coordinator, not the participant).
+        if (r.job.forParticipant) setParticipantUserId(r.job.forParticipant.id);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -156,7 +158,7 @@ export default function CreateInvoicePage() {
               <DetailRow label="Scheduled end" value={new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "full", timeStyle: "short" })} />
             )}
             <DetailRow label="Total hours"    value={job.totalHours ? `${job.totalHours} hours` : <span style={{ color: "#94a3b8" }}>Not specified</span>} />
-            <DetailRow label="Posted by"      value={job.poster.name} />
+            <DetailRow label="Posted by"      value={job.postedBy.name} />
             <DetailRow label="Performed by"   value={job.assignedWorker?.name ?? <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Not yet assigned</span>} />
             <DetailRow label="Job status"     value={
               <span style={{

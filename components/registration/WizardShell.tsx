@@ -12,6 +12,7 @@ import { StepIndicator }         from './StepIndicator';
 import { WizardNavigation }      from './WizardNavigation';
 import { useRegistrationStore }  from '@/lib/store/registration.store';
 import { upsertProfile }         from '@/lib/api/profile';
+import { sanitisePayload }       from '@/lib/utils';
 import type { StepConfig }       from '@/lib/registration/types';
 import type { UserRole }         from '@/lib/types';
 
@@ -69,7 +70,10 @@ export function WizardShell({ role, steps, stepComponents }: Props) {
 
     try {
       // Save this step's data to backend — always send profileStep
-      await upsertProfile(role, { ...store.formData, ...(data as Record<string, unknown>), profileStep: currentStep + 1 });
+      await upsertProfile(
+        role,
+        sanitisePayload({ ...store.formData, ...(data as Record<string, unknown>), profileStep: currentStep + 1 }),
+      );
 
       store.markStepSaved(currentStep);
       store.setLastSaved();

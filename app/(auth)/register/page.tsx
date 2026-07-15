@@ -246,11 +246,11 @@ export default function RegisterPage() {
     else if (username.trim().length < 3) errs.username = 'Username must be at least 3 characters.';
     else if (usernameStatus === 'taken') errs.username = 'That username is already taken. Please choose another.';
 
-    const cleanPhone = phone.trim().replace(/[\s\-()]/g, '');
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
     if (!cleanPhone) {
       errs.phone = 'Phone number is required.';
-    } else if (!/^(\+?61[2-9]\d{8}|0[2-9]\d{8})$/.test(cleanPhone)) {
-      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678 or +61 412 345 678).';
+    } else if (!/^(?:(?:\+?61|0)[23478]\d{8}|1300\d{6}|1800\d{6}|13\d{4})$/.test(cleanPhone)) {
+      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678, 02 9876 5432, or 1300 776 246).';
     }
 
     if (!password)            errs.password = 'Password is required.';

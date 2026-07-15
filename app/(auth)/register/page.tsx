@@ -246,11 +246,11 @@ export default function RegisterPage() {
     else if (username.trim().length < 3) errs.username = 'Username must be at least 3 characters.';
     else if (usernameStatus === 'taken') errs.username = 'That username is already taken. Please choose another.';
 
-    const cleanPhone = phone.trim().replace(/[\s\-()]/g, '');
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
     if (!cleanPhone) {
       errs.phone = 'Phone number is required.';
-    } else if (!/^(\+?61[2-9]\d{8}|0[2-9]\d{8})$/.test(cleanPhone)) {
-      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678 or +61 412 345 678).';
+    } else if (!/^(?:(?:\+?61|0)[23478]\d{8}|1300\d{6}|1800\d{6}|13\d{4})$/.test(cleanPhone)) {
+      errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678, 02 9876 5432, or 1300 776 246).';
     }
 
     if (!password)            errs.password = 'Password is required.';
@@ -505,17 +505,19 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   value={username}
-                  onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
+                  onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); setFieldErrors(p=>({...p,username:''})); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
                   onBlur={handleUsernameBlur}
                   placeholder="e.g. jane.smith"
-                  style={inp}
+                  style={{...inp,borderColor:fieldErrors.username?'#ef4444':undefined}}
                   autoComplete="username"
                 />
                 {usernameStatus === 'checking' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#64748b'}}>Checking…</span>}
                 {usernameStatus === 'available' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#16a34a',fontWeight:700}}>✓ Available</span>}
                 {usernameStatus === 'taken'     && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#dc2626',fontWeight:700}}>✗ Taken</span>}
               </div>
-              <p style={{fontSize:11,color:'var(--clr-muted)',marginTop:3}}>Lowercase letters, numbers, dots and underscores only</p>
+              {fieldErrors.username
+                ? <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.username}</p>
+                : <p style={{fontSize:11,color:'var(--clr-muted)',marginTop:3}}>Lowercase letters, numbers, dots and underscores only</p>}
             </div>
 
             <div>
@@ -526,14 +528,15 @@ export default function RegisterPage() {
 
             <div>
               <label style={lbl}>Email <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>
-              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" style={inp} autoComplete="email" />
+              <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder="you@example.com" style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
+              {fieldErrors.email && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.email}</p>}
             </div>
 
             <div>
               <label style={lbl}>Password</label>
               <div style={{position:'relative'}}>
-                <input type={showPw?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)}
-                  placeholder="Min. 8 characters" style={{...inp,paddingRight:42}} autoComplete="new-password" />
+                <input type={showPw?'text':'password'} value={password} onChange={e=>{setPassword(e.target.value);setFieldErrors(p=>({...p,password:''}));}}
+                  placeholder="Min. 8 characters" style={{...inp,paddingRight:42,borderColor:fieldErrors.password?'#ef4444':undefined}} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPw(v=>!v)}
                   style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:16,padding:0}}>
                   <i className={`bi ${showPw?'bi-eye-slash':'bi-eye'}`} />
@@ -553,8 +556,8 @@ export default function RegisterPage() {
             <div>
               <label style={lbl}>Confirm Password</label>
               <div style={{position:'relative'}}>
-                <input type={showCf?'text':'password'} value={confirm} onChange={e=>setConfirm(e.target.value)}
-                  placeholder="Repeat password" style={{...inp,paddingRight:42}} autoComplete="new-password" />
+                <input type={showCf?'text':'password'} value={confirm} onChange={e=>{setConfirm(e.target.value);setFieldErrors(p=>({...p,confirm:''}));}}
+                  placeholder="Repeat password" style={{...inp,paddingRight:42,borderColor:fieldErrors.confirm?'#ef4444':undefined}} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowCf(v=>!v)}
                   style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:16,padding:0}}>
                   <i className={`bi ${showCf?'bi-eye-slash':'bi-eye'}`} />

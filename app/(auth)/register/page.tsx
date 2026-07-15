@@ -505,17 +505,19 @@ export default function RegisterPage() {
                 <input
                   type="text"
                   value={username}
-                  onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
+                  onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); setFieldErrors(p=>({...p,username:''})); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
                   onBlur={handleUsernameBlur}
                   placeholder="e.g. jane.smith"
-                  style={inp}
+                  style={{...inp,borderColor:fieldErrors.username?'#ef4444':undefined}}
                   autoComplete="username"
                 />
                 {usernameStatus === 'checking' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#64748b'}}>Checking…</span>}
                 {usernameStatus === 'available' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#16a34a',fontWeight:700}}>✓ Available</span>}
                 {usernameStatus === 'taken'     && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#dc2626',fontWeight:700}}>✗ Taken</span>}
               </div>
-              <p style={{fontSize:11,color:'var(--clr-muted)',marginTop:3}}>Lowercase letters, numbers, dots and underscores only</p>
+              {fieldErrors.username
+                ? <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.username}</p>
+                : <p style={{fontSize:11,color:'var(--clr-muted)',marginTop:3}}>Lowercase letters, numbers, dots and underscores only</p>}
             </div>
 
             <div>
@@ -526,7 +528,8 @@ export default function RegisterPage() {
 
             <div>
               <label style={lbl}>Email <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>
-              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" style={inp} autoComplete="email" />
+              <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder="you@example.com" style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
+              {fieldErrors.email && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.email}</p>}
             </div>
 
             <div>

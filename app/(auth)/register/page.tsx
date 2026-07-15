@@ -535,8 +535,8 @@ export default function RegisterPage() {
             <div>
               <label style={lbl}>Password</label>
               <div style={{position:'relative'}}>
-                <input type={showPw?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)}
-                  placeholder="Min. 8 characters" style={{...inp,paddingRight:42}} autoComplete="new-password" />
+                <input type={showPw?'text':'password'} value={password} onChange={e=>{setPassword(e.target.value);setFieldErrors(p=>({...p,password:''}));}}
+                  placeholder="Min. 8 characters" style={{...inp,paddingRight:42,borderColor:fieldErrors.password?'#ef4444':undefined}} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowPw(v=>!v)}
                   style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:16,padding:0}}>
                   <i className={`bi ${showPw?'bi-eye-slash':'bi-eye'}`} />
@@ -556,8 +556,8 @@ export default function RegisterPage() {
             <div>
               <label style={lbl}>Confirm Password</label>
               <div style={{position:'relative'}}>
-                <input type={showCf?'text':'password'} value={confirm} onChange={e=>setConfirm(e.target.value)}
-                  placeholder="Repeat password" style={{...inp,paddingRight:42}} autoComplete="new-password" />
+                <input type={showCf?'text':'password'} value={confirm} onChange={e=>{setConfirm(e.target.value);setFieldErrors(p=>({...p,confirm:''}));}}
+                  placeholder="Repeat password" style={{...inp,paddingRight:42,borderColor:fieldErrors.confirm?'#ef4444':undefined}} autoComplete="new-password" />
                 <button type="button" onClick={() => setShowCf(v=>!v)}
                   style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:16,padding:0}}>
                   <i className={`bi ${showCf?'bi-eye-slash':'bi-eye'}`} />

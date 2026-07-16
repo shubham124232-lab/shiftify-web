@@ -253,6 +253,10 @@ export default function RegisterPage() {
       errs.phone = 'Please enter a valid Australian phone number (e.g. 0412 345 678, 02 9876 5432, or 1300 776 246).';
     }
 
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      errs.email = 'Please enter a valid email address.';
+    }
+
     if (!password)            errs.password = 'Password is required.';
     else if (password.length < 8) errs.password = 'Password must be at least 8 characters.';
     if (password && password !== confirm) errs.confirm = 'Passwords do not match.';
@@ -485,7 +489,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <form onSubmit={handleRegister} style={{display:'flex',flexDirection:'column',gap:14}}>
+          <form onSubmit={handleRegister} noValidate style={{display:'flex',flexDirection:'column',gap:14}}>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div>
                 <label style={lbl}>First Name</label>

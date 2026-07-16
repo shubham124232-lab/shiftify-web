@@ -19,7 +19,7 @@ const AVAILABILITY_TYPES = [
 
 export function CoordStep05_Capacity() {
   const { register, watch, formState: { errors } } = useFormContext();
-  const status = watch('capacityStatus') as string;
+  const status = watch('currentCapacityStatus') as string;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -33,7 +33,7 @@ export function CoordStep05_Capacity() {
               padding: '12px 14px', borderRadius: 10,
               border: `1.5px solid ${status === cs.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
               background: status === cs.value ? 'rgba(79,70,229,0.05)' : '#fff' }}>
-              <input type="radio" value={cs.value} {...register('capacityStatus')} style={{ marginTop: 2, accentColor: 'var(--clr-primary)' }} />
+              <input type="radio" value={cs.value} {...register('currentCapacityStatus')} style={{ marginTop: 2, accentColor: 'var(--clr-primary)' }} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-text)' }}>{cs.label}</div>
                 <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2 }}>{cs.desc}</div>
@@ -41,7 +41,7 @@ export function CoordStep05_Capacity() {
             </label>
           ))}
         </div>
-        {errors.capacityStatus && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.capacityStatus.message as string}</p>}
+        {errors.currentCapacityStatus && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.currentCapacityStatus.message as string}</p>}
       </div>
 
       {/* Max participant load */}

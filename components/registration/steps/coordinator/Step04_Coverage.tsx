@@ -7,8 +7,8 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0
 
 const SERVICE_MODES = [
   { value: 'IN_PERSON',  label: 'In-Person',  desc: 'Face-to-face coordination at participant location' },
-  { value: 'TELEHEALTH', label: 'Telehealth',  desc: 'Remote sessions via video or phone' },
-  { value: 'HYBRID',     label: 'Hybrid',      desc: 'Mix of in-person and remote coordination' },
+  { value: 'TELEHEALTH', label: 'Telehealth', desc: 'Remote sessions via video or phone' },
+  { value: 'HYBRID',     label: 'Hybrid',     desc: 'Mix of in-person and remote coordination' },
 ];
 
 function TagInput({ name }: { name: string }) {
@@ -48,7 +48,7 @@ function TagInput({ name }: { name: string }) {
 }
 
 export function CoordStep04_Coverage() {
-  const { register, watch } = useFormContext();
+  const { register, watch, formState: { errors } } = useFormContext();
   const mode = watch('serviceMode') as string;
 
   return (
@@ -79,6 +79,7 @@ export function CoordStep04_Coverage() {
             </label>
           ))}
         </div>
+        {errors.serviceMode && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.serviceMode.message as string}</p>}
       </div>
 
     </div>

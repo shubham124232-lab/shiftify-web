@@ -24,7 +24,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 }
 
 export function PmStep13_Commercial() {
-  const { register } = useFormContext();
+  const { register, formState: { errors } } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -55,7 +55,11 @@ export function PmStep13_Commercial() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Billing Contact Name</label><input {...register('billingContactName')} placeholder="Full name" style={inputStyle} /></div>
-            <div><label style={labelStyle}>Billing Contact Email</label><input {...register('billingContactEmail')} type="email" placeholder="billing@planmanager.com.au" style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Billing Contact Email</label>
+              <input {...register('billingContactEmail')} type="email" placeholder="billing@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.billingContactEmail ? '#ef4444' : undefined }} />
+              {errors.billingContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.billingContactEmail.message as string}</p>}
+            </div>
           </div>
           <div><label style={labelStyle}>Billing Address</label><input {...register('billingAddress')} placeholder="Street, Suburb, State, Postcode" style={inputStyle} /></div>
         </div>

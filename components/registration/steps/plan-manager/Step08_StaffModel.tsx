@@ -5,7 +5,7 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 export function PmStep08_StaffModel() {
-  const { register, watch } = useFormContext();
+  const { register, watch, formState: { errors } } = useFormContext();
   const model = watch('organisationUserModel') as string;
 
   return (
@@ -35,7 +35,11 @@ export function PmStep08_StaffModel() {
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Primary Admin Name</label><input {...register('staffAdminName')} placeholder="Full name" style={inputStyle} /></div>
-            <div><label style={labelStyle}>Primary Admin Email</label><input {...register('staffAdminEmail')} type="email" placeholder="admin@planmanager.com.au" style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Primary Admin Email</label>
+              <input {...register('staffAdminEmail')} type="email" placeholder="admin@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.staffAdminEmail ? '#ef4444' : undefined }} />
+              {errors.staffAdminEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.staffAdminEmail.message as string}</p>}
+            </div>
           </div>
           <div>
             <label style={labelStyle}>Staff Seats Required</label>

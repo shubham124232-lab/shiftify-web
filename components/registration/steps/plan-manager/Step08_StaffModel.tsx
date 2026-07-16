@@ -43,7 +43,9 @@ export function PmStep08_StaffModel() {
           </div>
           <div>
             <label style={labelStyle}>Staff Seats Required</label>
-            <input type="number" min={1} max={500} {...register('staffSeatsRequired', { valueAsNumber: true })} placeholder="e.g. 5" style={inputStyle} />
+            <input type="number" min={1} max={500} {...register('staffSeatsRequired', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+              placeholder="e.g. 5" style={{ ...inputStyle, borderColor: errors.staffSeatsRequired ? '#ef4444' : undefined }} />
+            {errors.staffSeatsRequired && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{errors.staffSeatsRequired.message as string}</p>}
             <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Number of staff who need platform access. Determines your subscription tier.</p>
           </div>
         </>

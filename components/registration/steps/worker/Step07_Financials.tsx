@@ -61,7 +61,7 @@ export function WorkerStep07_Financials() {
         <label htmlFor="hourlyRate" style={labelStyle}>Hourly Rate <span style={{ color: '#ef4444' }}>*</span></label>
         <div style={{ position: 'relative' }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 600, color: 'var(--clr-muted)' }}>$</span>
-          <input id="hourlyRate" type="number" step="0.50" min="1" max="9999" {...register('hourlyRate', { valueAsNumber: true })}
+          <input id="hourlyRate" type="number" step="0.50" min="1" max="9999" {...register('hourlyRate', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
             placeholder="35.00" style={{ ...inputStyle, paddingLeft: 28, borderColor: errors.hourlyRate ? '#ef4444' : undefined }} />
           <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--clr-muted)' }}>/hr</span>
         </div>
@@ -83,13 +83,17 @@ export function WorkerStep07_Financials() {
       <div>
         <label style={labelStyle}>Weekend & Night Rates (optional)</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          {[['weekendNightRates.weekendRate', 'Weekend $/hr'], ['weekendNightRates.nightRate', 'Night $/hr'], ['weekendNightRates.publicHolidayRate', 'Public Holiday $/hr']].map(([field, ph]) => (
-            <div key={field} style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--clr-muted)' }}>$</span>
-              <input type="number" step="0.50" min="0" {...register(field, { valueAsNumber: true })}
-                placeholder={ph} style={{ ...inputStyle, paddingLeft: 22, fontSize: 12 }} />
-            </div>
-          ))}
+          {[['weekendNightRates.weekendRate', 'Weekend $/hr'], ['weekendNightRates.nightRate', 'Night $/hr'], ['weekendNightRates.publicHolidayRate', 'Public Holiday $/hr']].map(([field, ph]) => {
+            const err = field.split('.').reduce((o: any, k) => o?.[k], errors) as { message?: string } | undefined;
+            return (
+              <div key={field} style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--clr-muted)' }}>$</span>
+                <input type="number" step="0.50" min="0" {...register(field, { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+                  placeholder={ph} style={{ ...inputStyle, paddingLeft: 22, fontSize: 12, borderColor: err ? '#ef4444' : undefined }} />
+                {err && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{err.message}</p>}
+              </div>
+            );
+          })}
         </div>
       </div>
 

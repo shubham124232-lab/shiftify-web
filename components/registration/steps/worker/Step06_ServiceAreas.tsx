@@ -116,7 +116,11 @@ export function WorkerStep06_ServiceAreas() {
             </div>
             <div>
               <label style={labelStyle}>Year</label>
-              <input type="number" {...register('vehicleDetails.year', { valueAsNumber: true })} placeholder="e.g. 2020" style={inputStyle} />
+              <input type="number" {...register('vehicleDetails.year', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+                placeholder="e.g. 2020" style={{ ...inputStyle, borderColor: (errors.vehicleDetails as any)?.year ? '#ef4444' : undefined }} />
+              {(errors.vehicleDetails as any)?.year && (
+                <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{(errors.vehicleDetails as any).year.message}</p>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Colour</label>

@@ -48,8 +48,10 @@ export function CoordStep05_Capacity() {
       <div>
         <label style={labelStyle}>Maximum Participant Load</label>
         <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--clr-muted)' }}>How many active participants can you support at once?</p>
-        <input type="number" min={1} max={200} {...register('maxParticipantLoad', { valueAsNumber: true })}
-          placeholder="e.g. 20" style={{ ...inputStyle, width: 160 }} />
+        <input type="number" min={1} max={200}
+          {...register('maxParticipantLoad', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+          placeholder="e.g. 20" style={{ ...inputStyle, width: 160, borderColor: errors.maxParticipantLoad ? '#ef4444' : undefined }} />
+        {errors.maxParticipantLoad && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.maxParticipantLoad.message as string}</p>}
       </div>
 
       {/* Availability type */}

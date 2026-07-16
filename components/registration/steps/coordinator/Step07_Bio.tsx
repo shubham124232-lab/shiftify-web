@@ -22,7 +22,7 @@ export function CoordStep07_Bio() {
         <div style={{ position: 'relative', width: 200 }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 600, color: 'var(--clr-muted)' }}>$</span>
           <input type="number" step="0.50" min="0"
-            {...register('hourlyRate', { valueAsNumber: true })}
+            {...register('hourlyRate', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
             placeholder="100.00"
             style={{ ...inputStyle, paddingLeft: 28 }} />
           <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--clr-muted)' }}>/hr</span>

@@ -30,8 +30,11 @@ const SERVICES = [
 
 const PLAN_TYPES = ['Plan-managed', 'Agency-managed (NDIA)', 'Self-managed'];
 
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+
 export function PmStep03_Capability() {
-  const { control } = useFormContext();
+  const { control, register, watch } = useFormContext();
+  const providesStatements = watch('providesBudgetStatements') as boolean;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
@@ -91,6 +94,13 @@ export function PmStep03_Capability() {
         <Toggle label="Provides Budget Statements to Participants" name="providesBudgetStatements"
           desc="Sends regular budget utilisation statements to participants or their nominees" />
       </div>
+
+      {providesStatements && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={labelStyle}>Statement Contact Name</label><input {...register('statementContactName')} placeholder="Who prepares/sends statements" style={inputStyle} /></div>
+          <div><label style={labelStyle}>Statement Contact Email</label><input {...register('statementContactEmail')} type="email" placeholder="statements@planmanager.com.au" style={inputStyle} /></div>
+        </div>
+      )}
     </div>
   );
 }

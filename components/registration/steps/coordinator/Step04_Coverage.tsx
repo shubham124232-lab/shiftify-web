@@ -50,6 +50,7 @@ function TagInput({ name }: { name: string }) {
 export function CoordStep04_Coverage() {
   const { register, watch, formState: { errors } } = useFormContext();
   const mode = watch('serviceMode') as string;
+  const radius = (watch('serviceRadius') as number) ?? 10;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -59,6 +60,17 @@ export function CoordStep04_Coverage() {
         <label style={labelStyle}>Service Area(s) <span style={{ color: '#ef4444' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Add the suburbs, regions, or LGAs you cover. Press Enter or comma to add each one.</p>
         <TagInput name="serviceAreas" />
+      </div>
+
+      {/* Service radius */}
+      <div>
+        <label style={labelStyle}>Travel Radius: <strong style={{ color: 'var(--clr-primary)' }}>{radius} km</strong></label>
+        <input type="range" min={0} max={200} step={5}
+          {...register('serviceRadius', { valueAsNumber: true })}
+          style={{ width: '100%', accentColor: 'var(--clr-primary)' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--clr-muted)', marginTop: 2 }}>
+          <span>0 km</span><span>100 km</span><span>200 km</span>
+        </div>
       </div>
 
       {/* Service mode */}

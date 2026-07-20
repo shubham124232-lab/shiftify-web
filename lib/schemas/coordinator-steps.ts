@@ -41,19 +41,19 @@ export const coordStep3Schema = z.object({
 // Step 4 — Service Coverage
 export const coordStep4Schema = z.object({
   serviceAreas:  z.array(z.string()).min(1, 'Add at least one service area'),
+  serviceRadius: z.number().int().min(0).max(500).optional(),
   serviceMode:   z.enum(['IN_PERSON', 'TELEHEALTH', 'HYBRID'], { required_error: 'Service mode is required' }),
 });
 
 // Step 5 — Availability & Capacity
 export const coordStep5Schema = z.object({
   currentCapacityStatus: z.string().optional(),
-  maxParticipantLoad:    z.number().int().min(0).max(500).optional(),
+  maxParticipantLoad:    z.number().int().min(0).max(200).optional(),
   availabilityType:      z.string().optional(),
 });
 
 // Step 6 — Plan Management Handling
 export const coordStep6Schema = z.object({
-  participantTypesAccepted: z.array(z.string()).optional(),
   fundingTypeCompatibility: z.array(z.string()).optional(),
   billingMethodPreference:  z.string().optional(),
 });

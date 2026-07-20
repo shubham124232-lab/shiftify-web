@@ -12,9 +12,9 @@ const CAPACITY_STATUSES = [
 ];
 
 const AVAILABILITY_TYPES = [
-  { value: 'FULL_TIME',  label: 'Full-Time' },
-  { value: 'PART_TIME',  label: 'Part-Time' },
-  { value: 'CASUAL',     label: 'Casual / Flexible' },
+  { value: 'BUSINESS_HOURS',       label: 'Business Hours' },
+  { value: 'FLEXIBLE',             label: 'Flexible' },
+  { value: 'EMERGENCY_AVAILABLE',  label: 'Emergency Availability' },
 ];
 
 export function CoordStep05_Capacity() {

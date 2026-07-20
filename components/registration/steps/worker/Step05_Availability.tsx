@@ -75,6 +75,20 @@ export function WorkerStep05_Availability() {
         desc="You may be contacted for urgent or same-day jobs in your area"
       />
 
+      {/* Minimum shift length */}
+      <div>
+        <label style={labelStyle}>Minimum Shift Length (hours)</label>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 8, marginTop: 0 }}>
+          The shortest shift you're willing to accept.
+        </p>
+        <input type="number" min={0} max={24} step={0.5}
+          {...register('minimumShiftHours', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+          placeholder="e.g. 2" style={{
+            width: 160, height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)',
+            border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box',
+          }} />
+      </div>
+
       {/* Weekly slots */}
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>

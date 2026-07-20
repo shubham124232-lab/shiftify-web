@@ -48,7 +48,7 @@ export const workerStep5Schema = z.object({
     required_error: 'Availability type is required',
   }),
   emergencyAvailability: z.boolean().optional(),
-  sleeperAvailability:   z.boolean().optional(),
+  minimumShiftHours:     z.number().min(0).max(24).optional(),
   availability:          z.array(z.object({
     dayOfWeek: z.enum(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']),
     startTime: z.string().regex(/^\d{2}:\d{2}$/),
@@ -60,6 +60,7 @@ export const workerStep6Schema = z.object({
   serviceAreas:           z.array(z.string()).min(1, 'Add at least one service area'),
   travelRadiusKm:         z.number().int().min(0).max(500).optional(),
   hasVehicle:             z.boolean().optional(),
+  insuranceValid:         z.boolean().optional(),
   canTransportParticipants: z.boolean().optional(),
   vehicleDetails:         z.object({
     make:   z.string().optional(),
@@ -93,9 +94,10 @@ export const workerStep7Schema = z.object({
 });
 
 export const workerStep8Schema = z.object({
-  manualHandlingCompleted: z.boolean().optional(),
-  firstAidCertType:        z.string().optional(),
-  docsAcknowledged:        z.boolean().optional(),
+  manualHandlingCompleted:   z.boolean().optional(),
+  infectionControlCompleted: z.boolean().optional(),
+  firstAidCertType:          z.string().optional(),
+  docsAcknowledged:          z.boolean().optional(),
 });
 
 export const workerStep9Schema = z.object({

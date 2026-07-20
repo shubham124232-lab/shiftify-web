@@ -60,6 +60,12 @@ export function PmStep10_ProviderInteraction() {
           desc="Process invoices on a regular schedule from providers with ongoing arrangements" />
         <Toggle label="Accept Once-Off Claims" name="acceptsOnceOffClaims"
           desc="Process individual one-time invoices from providers" />
+        <Toggle label="Accept Transport Claims" name="acceptsTransportClaims"
+          desc="Process transport-related claims from providers" />
+        <Toggle label="Accept Allied Health Invoices" name="acceptsAlliedHealthInvoices"
+          desc="Process invoices from allied health providers (physio, OT, etc.)" />
+        <Toggle label="Require Docs for High-Value Invoices" name="requiresDocsForHighValueInvoices"
+          desc="Require extra supporting documents before paying a large invoice" />
         <Toggle label="Allow Provider Portal Messaging" name="allowsProviderPortalMessaging"
           desc="Providers can message you directly through the Shiftify platform about invoices and payments" />
       </div>

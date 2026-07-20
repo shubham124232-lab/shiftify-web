@@ -102,10 +102,14 @@ export function PmStep06_PaymentOps() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Toggle label="Registered Providers Only" name="acceptsRegisteredProvidersOnly"
           desc="Only accept invoices from NDIS-registered providers" />
+        <Toggle label="Accept Unregistered Providers" name="acceptsUnregisteredProviders"
+          desc="Also accept invoices from providers who are not NDIS-registered" />
         <Toggle label="Require Service Dates on Invoices" name="requiresServiceDatesOnInvoices"
           desc="All invoices must include the dates services were delivered" />
         <Toggle label="Require Support Category Code" name="requiresSupportCategoryCode"
           desc="Invoices must include the NDIS support category / line item code" />
+        <Toggle label="Require Participant Consent Confirmation" name="requiresParticipantConsentConfirmation"
+          desc="Participant must formally confirm consent before you start managing their plan" />
       </div>
     </div>
   );

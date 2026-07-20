@@ -58,6 +58,7 @@ export const providerStep4Schema = z.object({
 // Step 5 — Service Coverage
 export const providerStep5Schema = z.object({
   serviceAreas:      z.array(z.string()).min(1, 'Add at least one service area'),
+  stateCoverage:     z.array(z.string()).optional(),
   serviceMode:       z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { required_error: 'Service mode is required' }),
   multipleLocations: z.array(z.string()).optional(),
 });

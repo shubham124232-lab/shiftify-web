@@ -13,7 +13,19 @@ interface Doc {
   fileName: string;
   status: "PENDING" | "UPLOADED" | "VERIFIED" | "REJECTED";
   uploadedAt: string;
+  issueDate: string | null;
+  expiryDate: string | null;
   rejectionReason: string | null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function expiryInfo(expiryDate: string | null): { label: string; bg: string; color: string } | null {
+  if (!expiryDate) return null;
+  const daysLeft = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / DAY_MS);
+  if (daysLeft < 0) return { label: "Expired", bg: "#fee2e2", color: "#b91c1c" };
+  if (daysLeft <= 30) return { label: `Expires in ${daysLeft}d`, bg: "#fef9c3", color: "#854d0e" };
+  return null;
 }
 
 const DOC_TYPES = [
@@ -41,6 +53,7 @@ export default function DocumentsPage() {
   const [error,    setError]    = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selType,  setSelType]  = useState(DOC_TYPES[0].value);
+  const [expiryDate, setExpiryDate] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -69,6 +82,7 @@ export default function DocumentsPage() {
         await api.post("/upload/register-document", {
           docType: selType, fileName: file.name, mimeType: file.type,
           fileKey: presign.fileKey, sizeBytes: file.size,
+          expiryDate: expiryDate || undefined,
         });
         presignOk = true;
       } catch {
@@ -78,10 +92,12 @@ export default function DocumentsPage() {
         const form = new FormData();
         form.append("file", file);
         form.append("docType", selType);
+        if (expiryDate) form.append("expiryDate", expiryDate);
         await http.post("/users/me/documents", form, {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
+      setExpiryDate("");
       load();
     } catch (err: any) {
       setError(err?.message ?? "Upload failed.");
@@ -121,6 +137,15 @@ export default function DocumentsPage() {
                   {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
+              <div style={{ minWidth: 160 }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Expiry date (optional)</label>
+                <input
+                  type="date"
+                  value={expiryDate}
+                  onChange={e => setExpiryDate(e.target.value)}
+                  style={{ width: "100%", height: 40, padding: "0 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, background: "#fff" }}
+                />
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -158,6 +183,7 @@ export default function DocumentsPage() {
                 {docs.map(doc => {
                   const s = STATUS_STYLE[doc.status] ?? STATUS_STYLE.PENDING;
                   const typeLabel = DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType;
+                  const expiry = expiryInfo(doc.expiryDate);
                   return (
                     <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
@@ -166,14 +192,24 @@ export default function DocumentsPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{typeLabel}</div>
                         <div style={{ fontSize: 12, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.fileName}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{new Date(doc.uploadedAt).toLocaleDateString("en-AU")}</div>
+                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                          Uploaded {new Date(doc.uploadedAt).toLocaleDateString("en-AU")}
+                          {doc.expiryDate && ` · Expires ${new Date(doc.expiryDate).toLocaleDateString("en-AU")}`}
+                        </div>
                         {doc.rejectionReason && (
                           <div style={{ fontSize: 12, color: "#b91c1c", marginTop: 4 }}>Rejected: {doc.rejectionReason}</div>
                         )}
                       </div>
-                      <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, flexShrink: 0 }}>
-                        {s.label}
-                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+                        <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: s.bg, color: s.color }}>
+                          {s.label}
+                        </span>
+                        {expiry && (
+                          <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: expiry.bg, color: expiry.color }}>
+                            {expiry.label}
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => handleDelete(doc.id)}
@@ -195,12 +231,16 @@ export default function DocumentsPage() {
           <CardHeader><CardTitle>Required for support workers</CardTitle></CardHeader>
           <CardContent>
             {["NDIS_SCREENING", "POLICE_CHECK", "WWCC", "FIRST_AID"].map(req => {
-              const have = docs.some(d => d.docType === req && d.status !== "REJECTED");
+              const match = docs.find(d => d.docType === req && d.status !== "REJECTED");
+              const isExpired = match?.expiryDate ? new Date(match.expiryDate).getTime() < Date.now() : false;
+              const have = !!match && !isExpired;
               const label = DOC_TYPES.find(t => t.value === req)?.label ?? req;
               return (
                 <div key={req} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
-                  <span style={{ fontSize: 16 }}>{have ? "✅" : "⭕"}</span>
-                  <span style={{ fontSize: 13, color: have ? "#15803d" : "#64748b", fontWeight: have ? 600 : 400 }}>{label}</span>
+                  <span style={{ fontSize: 16 }}>{have ? "✅" : isExpired ? "⚠" : "⭕"}</span>
+                  <span style={{ fontSize: 13, color: have ? "#15803d" : isExpired ? "#b91c1c" : "#64748b", fontWeight: have || isExpired ? 600 : 400 }}>
+                    {label}{isExpired ? " (expired — re-upload needed)" : ""}
+                  </span>
                 </div>
               );
             })}

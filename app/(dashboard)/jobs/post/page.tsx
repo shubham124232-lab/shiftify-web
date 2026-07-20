@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,7 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { JOB_CATEGORIES } from "@/lib/constants/categories";
+import { JOB_CATEGORIES, CATEGORY_GROUPS } from "@/lib/constants/categories";
+import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -19,14 +20,18 @@ import Link from "next/link";
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
 const SUBCATEGORIES: Record<string, string[]> = {
-  PERSONAL_CARE: ["Morning Routine", "Evening Routine", "Showering / Grooming", "Continence Care", "Dressing Assistance"],
+  PERSONAL_CARE: ["Morning Routine", "Evening Routine", "Showering / Grooming", "Continence Care", "Dressing Assistance", "Toileting", "Hoist and Transfer", "Light Massage", "Manual Handling and Mobility", "Exercise Assistance"],
   COMMUNITY_ACCESS: ["Shopping Trips", "Social Outings", "Recreational Activities", "Appointments"],
-  DOMESTIC_ASSISTANCE: ["Cleaning", "Laundry", "Meal Prep", "Gardening"],
+  DOMESTIC_ASSISTANCE: ["Cleaning", "Bathroom / Kitchen Cleaning", "Laundry", "Meal Prep", "Gardening", "House Maintenance", "Personal Admin", "Tidying and Decluttering", "Outdoor Area Cleaning"],
+  MEAL_PREPARATION: ["Cooking to Dietary Needs", "Meal Delivery"],
   TRANSPORT: ["Medical Appointments", "School / Day Program", "Community Activities", "General Transport"],
   OVERNIGHT_SUPPORT: ["Sleepover", "Active Overnight", "Drop-in Check"],
   SIL_SUPPORT: ["24/7 Support", "Shared Living", "Individual SIL"],
   BEHAVIOUR_SUPPORT: ["PBS Implementation", "Crisis Support", "Skill Building"],
-  NURSING_COMPLEX_CARE: ["Wound Care", "Medication Management", "Complex Health Needs"],
+  NURSING_COMPLEX_CARE: ["Wound Care", "Medication Management", "Complex Health Needs", "Pre / Post-Acute Hospital Care", "Continence Assessment and Management", "Respiratory Care", "Catheter Care", "Vital Signs Monitoring"],
+  THERAPY_ASSISTANCE: ["Occupational Therapy", "Physiotherapy", "Psychology", "Speech Pathology"],
+  SOCIAL_RECREATIONAL: ["Community Outings", "Sport and Exercise", "Hobbies and Interests"],
+  COMPANIONSHIP: ["Companionship at Home", "Family Contact Support"],
 };
 
 const SHIFT_TYPES = [
@@ -52,6 +57,8 @@ const FUNDING_TYPES = [
   { value: "MIXED",         label: "Mixed" },
   { value: "DISCUSS",       label: "To be discussed" },
 ];
+
+const LANGUAGES = ["English", "Mandarin", "Cantonese", "Arabic", "Vietnamese", "Greek", "Italian", "Hindi", "Korean", "Tagalog", "Spanish", "Other"];
 
 const QUALIFICATIONS = [
   "NDIS Worker Screening",
@@ -119,7 +126,11 @@ interface WizardData {
   mobilityNeeds: string;
   behaviourNotes: string;
   medicalNotes: string;
+  safetyFlags: Record<string, boolean>;
   riskSafetyNotes: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  emergencyContactRelationship: string;
   // Step 4 — Coordinator-only
   internalNote: string;
   caseReference: string;
@@ -127,7 +138,7 @@ interface WizardData {
   workerType: string;
   requiredQualifications: string[];
   genderPreference: string;
-  languagePreference: string;
+  languagePreference: string[];
   experienceLevel: string;
   // Step 6
   budgetType: string;
@@ -157,13 +168,55 @@ const defaultData: WizardData = {
   shiftType: "STANDARD", scheduledStartAt: "", scheduledEndAt: "", totalHours: "", timeFlexibility: "EXACT",
   recurringDays: [], recurringFrequency: "WEEKLY", applicationDeadline: "", urgency: "SCHEDULED",
   suburb: "", state: "NSW", postcode: "", serviceDeliveryMode: "AT_HOME",
-  participantId: "", postingAs: "SELF", participantContext: "", complexityLevel: "LOW", personalCareSupportLevel: "", mobilityNeeds: "", behaviourNotes: "", medicalNotes: "", riskSafetyNotes: "",
+  participantId: "", postingAs: "SELF", participantContext: "", complexityLevel: "LOW", personalCareSupportLevel: "", mobilityNeeds: "", behaviourNotes: "", medicalNotes: "", safetyFlags: {}, riskSafetyNotes: "",
+  emergencyContactName: "", emergencyContactPhone: "", emergencyContactRelationship: "",
   internalNote: "", caseReference: "",
-  workerType: "EITHER", requiredQualifications: [], genderPreference: "", languagePreference: "", experienceLevel: "ANY",
+  workerType: "EITHER", requiredQualifications: [], genderPreference: "", languagePreference: [], experienceLevel: "ANY",
   budgetType: "HOURLY", hourlyRate: "", totalBudget: "", fundingType: "PLAN_MANAGED",
   visibleTo: "BOTH", geographicRadius: "25", allowDirectApplications: true, allowQuotes: true, maxApplicants: "", showParticipantName: true, acceptBackupWorker: false, asDraft: false,
   consentAccurate: false, consentAuthorised: false, consentApplicantsRely: false, consentSafetyDisclosed: false, consentPlatformTerms: false, consentCancellationTerms: false,
 };
+
+// ─── Participant-profile prefill ──────────────────────────────────────────────
+// Only fills fields the user hasn't already touched — never overwrites input.
+
+interface ParticipantProfilePrefill {
+  suburb?: string | null;
+  state?: string | null;
+  postcode?: string | null;
+  mobilitySupportNeeds?: string[] | null;
+  behaviourSensoryNotes?: string[] | null;
+  medicalConsiderations?: string[] | null;
+  riskSafetyNotes?: string | null;
+  personalCareSupportLevel?: string | null;
+  preferredWorkerGender?: string | null;
+  languagePreference?: string[] | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelationship?: string | null;
+}
+
+function buildPrefillPatch(current: WizardData, profile: ParticipantProfilePrefill | null | undefined): Partial<WizardData> {
+  if (!profile) return {};
+  const patch: Partial<WizardData> = {};
+  if (!current.suburb && profile.suburb) patch.suburb = profile.suburb;
+  if (current.state === defaultData.state && profile.state) patch.state = profile.state;
+  if (!current.postcode && profile.postcode) patch.postcode = profile.postcode;
+  if (!current.mobilityNeeds && profile.mobilitySupportNeeds?.length) patch.mobilityNeeds = profile.mobilitySupportNeeds.join(", ");
+  if (!current.behaviourNotes && profile.behaviourSensoryNotes?.length) patch.behaviourNotes = profile.behaviourSensoryNotes.join(", ");
+  if (!current.medicalNotes && profile.medicalConsiderations?.length) patch.medicalNotes = profile.medicalConsiderations.join(", ");
+  if (!current.riskSafetyNotes && profile.riskSafetyNotes) patch.riskSafetyNotes = profile.riskSafetyNotes;
+  if (!current.personalCareSupportLevel && profile.personalCareSupportLevel) patch.personalCareSupportLevel = profile.personalCareSupportLevel;
+  if (!current.genderPreference && profile.preferredWorkerGender) patch.genderPreference = profile.preferredWorkerGender;
+  if (current.languagePreference.length === 0 && profile.languagePreference?.length) {
+    const known = profile.languagePreference.filter(l => LANGUAGES.includes(l));
+    if (known.length) patch.languagePreference = known;
+  }
+  if (!current.emergencyContactName && profile.emergencyContactName) patch.emergencyContactName = profile.emergencyContactName;
+  if (!current.emergencyContactPhone && profile.emergencyContactPhone) patch.emergencyContactPhone = profile.emergencyContactPhone;
+  if (!current.emergencyContactRelationship && profile.emergencyContactRelationship) patch.emergencyContactRelationship = profile.emergencyContactRelationship;
+  return patch;
+}
 
 // ─── Step components ──────────────────────────────────────────────────────────
 
@@ -179,7 +232,15 @@ function Step1({ data, onChange }: { data: WizardData; onChange: (f: Partial<Wiz
         <div>
           <label className={lbl}>Support category *</label>
           <select className={inp} value={data.category} onChange={e => onChange({ category: e.target.value, subcategory: "" })}>
-            {JOB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {CATEGORY_GROUPS.map(group => {
+              const cats = JOB_CATEGORIES.filter(c => c.group === group);
+              if (cats.length === 0) return null;
+              return (
+                <optgroup key={group} label={group}>
+                  {cats.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </optgroup>
+              );
+            })}
           </select>
         </div>
         {subs.length > 0 && (
@@ -421,8 +482,34 @@ function Step4({ data, onChange, participants }: { data: WizardData; onChange: (
         <textarea className={`${inp} h-auto py-2`} rows={2} value={data.medicalNotes} onChange={e => onChange({ medicalNotes: e.target.value })} placeholder="Medication prompting, epilepsy awareness, diabetes care, allergies..." />
       </div>
       <div>
+        <label className={lbl}>Safety &amp; property checklist</label>
+        <div className="space-y-2 mt-1">
+          {SAFETY_CHECKLIST.map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 accent-brand-600"
+                checked={!!data.safetyFlags[key]}
+                onChange={e => onChange({ safetyFlags: { ...data.safetyFlags, [key]: e.target.checked } })}
+              />
+              <span className="text-sm text-slate-700">{label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+      <div>
         <label className={lbl}>Risk &amp; safety notes</label>
-        <textarea className={`${inp} h-auto py-2`} rows={2} value={data.riskSafetyNotes} onChange={e => onChange({ riskSafetyNotes: e.target.value })} placeholder="Falls risk, seizure risk, behaviour escalation triggers, lone support not suitable, female worker only for personal care..." />
+        <p className="text-xs text-slate-400 mb-2">Anything not covered by the checklist above — falls risk, seizure risk, behaviour escalation triggers, lone support not suitable, female worker only for personal care...</p>
+        <textarea className={`${inp} h-auto py-2`} rows={2} value={data.riskSafetyNotes} onChange={e => onChange({ riskSafetyNotes: e.target.value })} placeholder="Additional risk & safety details" />
+      </div>
+      <div>
+        <label className={lbl}>Emergency contact for this shift (optional)</label>
+        <p className="text-xs text-slate-400 mb-2">Leave blank to use the participant's default emergency contact on file.</p>
+        <div className="grid grid-cols-3 gap-3">
+          <input className={inp} value={data.emergencyContactName} onChange={e => onChange({ emergencyContactName: e.target.value })} placeholder="Name" />
+          <input className={inp} type="tel" value={data.emergencyContactPhone} onChange={e => onChange({ emergencyContactPhone: e.target.value })} placeholder="Phone" />
+          <input className={inp} value={data.emergencyContactRelationship} onChange={e => onChange({ emergencyContactRelationship: e.target.value })} placeholder="Relationship" />
+        </div>
       </div>
     </div>
   );
@@ -434,6 +521,12 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (f: Partial<Wiz
       ? data.requiredQualifications.filter(x => x !== q)
       : [...data.requiredQualifications, q];
     onChange({ requiredQualifications: list });
+  }
+  function toggleLanguage(l: string) {
+    const list = data.languagePreference.includes(l)
+      ? data.languagePreference.filter(x => x !== l)
+      : [...data.languagePreference, l];
+    onChange({ languagePreference: list });
   }
   return (
     <div className="space-y-5">
@@ -480,8 +573,15 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (f: Partial<Wiz
         </div>
       </div>
       <div>
-        <label className={lbl}>Language / cultural preference (optional)</label>
-        <input className={inp} value={data.languagePreference} onChange={e => onChange({ languagePreference: e.target.value })} placeholder="e.g. Mandarin-speaking, culturally sensitive to..." />
+        <label className={lbl}>Language preference (optional)</label>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {LANGUAGES.map(l => (
+            <button key={l} type="button" onClick={() => toggleLanguage(l)}
+              className={cn("h-8 px-3 rounded-full border text-xs font-medium transition-colors", data.languagePreference.includes(l) ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+              {l}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -645,6 +745,9 @@ function Step8({ data, onChange }: { data: WizardData; onChange: (f: Partial<Wiz
         <ReviewRow label="Delivery mode" value={modeLabel} />
         <ReviewRow label="Posted by" value={data.postingAs} />
         <ReviewRow label="Complexity" value={data.complexityLevel} />
+        {Object.keys(data.safetyFlags).some(k => data.safetyFlags[k]) && (
+          <ReviewRow label="Safety checklist" value={SAFETY_CHECKLIST.filter(f => data.safetyFlags[f.key]).map(f => f.label).join(", ")} />
+        )}
         {data.personalCareSupportLevel && <ReviewRow label="Personal care level" value={data.personalCareSupportLevel} />}
         <ReviewRow label="Worker type" value={data.workerType} />
         <ReviewRow label="Experience" value={data.experienceLevel} />
@@ -676,11 +779,19 @@ function Step8({ data, onChange }: { data: WizardData; onChange: (f: Partial<Wiz
   );
 }
 
+const QUICK_URGENCY_VALUES = ["EMERGENCY", "SAME_DAY", "REPLACEMENT"];
+
 export default function PostJobWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { activeRole } = useAuth();
   const [step, setStep] = useState(0);
-  const [data, setData] = useState<WizardData>(defaultData);
+  const [data, setData] = useState<WizardData>(() => {
+    const urgencyParam = searchParams.get("urgency");
+    return QUICK_URGENCY_VALUES.includes(urgencyParam ?? "")
+      ? { ...defaultData, urgency: urgencyParam! }
+      : defaultData;
+  });
   const [participants, setParticipants] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -693,6 +804,25 @@ export default function PostJobWizard() {
         .catch(() => {});
     }
   }, [activeRole]);
+
+  // Participant posting for themselves — prefill from their own profile.
+  useEffect(() => {
+    if (activeRole === "PARTICIPANT") {
+      api.get<{ profile: ParticipantProfilePrefill | null }>("/users/me/profile/participant")
+        .then(r => { if (r.profile) setData(prev => ({ ...prev, ...buildPrefillPatch(prev, r.profile) })); })
+        .catch(() => {});
+    }
+  }, [activeRole]);
+
+  // Coordinator posting on behalf of a managed participant — prefill from that participant's profile.
+  useEffect(() => {
+    if (activeRole === "COORDINATOR" && data.participantId) {
+      api.get<{ profile: ParticipantProfilePrefill | null }>(`/linking/participants/${data.participantId}/profile`)
+        .then(r => { if (r.profile) setData(prev => ({ ...prev, ...buildPrefillPatch(prev, r.profile) })); })
+        .catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole, data.participantId]);
 
   function change(fields: Partial<WizardData>) { setData(prev => ({ ...prev, ...fields })); }
 
@@ -721,7 +851,7 @@ export default function PostJobWizard() {
       const recurrencePattern = data.isRecurring ? { frequency: data.recurringFrequency, days: data.recurringDays } : undefined;
       const workerPreferences = {
         workerType: data.workerType, requiredQualifications: data.requiredQualifications,
-        genderPreference: data.genderPreference || undefined, languagePreference: data.languagePreference || undefined,
+        genderPreference: data.genderPreference || undefined, languagePreference: data.languagePreference.length ? data.languagePreference : undefined,
         experienceLevel: data.experienceLevel, visibleTo: data.visibleTo,
         geographicRadius: data.geographicRadius || undefined,
         allowDirectApplications: data.allowDirectApplications, allowQuotes: data.allowQuotes,
@@ -732,6 +862,7 @@ export default function PostJobWizard() {
         mobilityNeeds: data.mobilityNeeds || undefined,
         behaviourNotes: data.behaviourNotes || undefined, medicalNotes: data.medicalNotes || undefined,
         riskSafetyNotes: data.riskSafetyNotes || undefined,
+        safetyFlags: Object.keys(data.safetyFlags).some(k => data.safetyFlags[k]) ? data.safetyFlags : undefined,
         postingAs: data.postingAs,
         participantContext: data.participantContext || undefined,
       };
@@ -762,6 +893,9 @@ export default function PostJobWizard() {
         riskSafetyNotes: data.riskSafetyNotes || undefined,
         medicalNotes: data.medicalNotes || undefined,
         behaviourNotes: data.behaviourNotes || undefined,
+        emergencyContactName: data.emergencyContactName.trim() || undefined,
+        emergencyContactPhone: data.emergencyContactPhone.trim() || undefined,
+        emergencyContactRelationship: data.emergencyContactRelationship.trim() || undefined,
         workerPreferences, asDraft: data.asDraft,
       };
       if (activeRole === "COORDINATOR" && data.participantId) body.forParticipantUserId = data.participantId;

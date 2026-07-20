@@ -10,8 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
+import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
 
-interface Applicant { id: string; applicantUserId: string; applicant: { id: string; name: string }; status: string; createdAt: string; }
+interface Applicant {
+  id: string; applicantUserId: string; status: string; createdAt: string;
+  applicant: {
+    id: string; name: string; avatarUrl?: string | null;
+    workerProfile?: { rating: number; totalReviews: number; hourlyRate: number | string | null; servicesOffered: string[] | null; experienceLevel: string | null; suburb: string | null; state: string | null; travelRadiusKm: number | null } | null;
+    providerProfile?: { averageRating: number; totalRatings: number; coreServices: string[] | null } | null;
+  };
+}
 interface Message   { id: string; senderId: string; senderName: string; body: string; createdAt: string; }
 
 interface JobDetail {
@@ -23,6 +31,14 @@ interface JobDetail {
   selectedApplicant?: { id: string; name: string } | null;
   assignedWorker?: { id: string; name: string } | null;
   applications?: Applicant[];
+  locationNotes?: string | null;
+  riskSafetyNotes?: string | null;
+  medicalNotes?: string | null;
+  behaviourNotes?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelationship?: string | null;
+  workerPreferences?: { safetyFlags?: Record<string, boolean> } | null;
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
@@ -201,6 +217,61 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Care & Safety Notes — visible to poster and worker, shown only if any note was provided */}
+        {(() => {
+          const checkedFlags = SAFETY_CHECKLIST.filter(f => job.workerPreferences?.safetyFlags?.[f.key]);
+          if (!(job.riskSafetyNotes || job.medicalNotes || job.behaviourNotes || job.locationNotes || job.emergencyContactName || checkedFlags.length > 0)) return null;
+          return (
+          <Card style={{ borderColor: "#fde68a", background: "#fffbeb" }}>
+            <CardHeader><CardTitle style={{ color: "#92400e" }}>⚠ Care & Safety Notes</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {checkedFlags.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Safety & Property Checklist</div>
+                  <ul style={{ fontSize: 13, color: "#374151", margin: 0, paddingLeft: 18 }}>
+                    {checkedFlags.map(f => <li key={f.key}>{f.label}</li>)}
+                  </ul>
+                </div>
+              )}
+              {job.riskSafetyNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Risk & Safety</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.riskSafetyNotes}</p>
+                </div>
+              )}
+              {job.medicalNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Medical Considerations</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.medicalNotes}</p>
+                </div>
+              )}
+              {job.behaviourNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Behaviour Notes</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.behaviourNotes}</p>
+                </div>
+              )}
+              {job.locationNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Access & Location Notes</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.locationNotes}</p>
+                </div>
+              )}
+              {job.emergencyContactName && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Emergency Contact (this shift)</div>
+                  <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>
+                    {job.emergencyContactName}
+                    {job.emergencyContactRelationship && ` (${job.emergencyContactRelationship})`}
+                    {job.emergencyContactPhone && ` — ${job.emergencyContactPhone}`}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          );
+        })()}
+
         {/* Owner actions */}
         {isOwner && (
           <Card>
@@ -306,13 +377,53 @@ export default function JobDetailPage() {
             <CardHeader><CardTitle>Applicants ({job.applications.length})</CardTitle></CardHeader>
             <CardContent>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {job.applications.map(app => (
+                {job.applications.map(app => {
+                  const wp = app.applicant.workerProfile;
+                  const pp = app.applicant.providerProfile;
+                  const rating = wp?.rating ?? pp?.averageRating ?? 0;
+                  const reviews = wp?.totalReviews ?? pp?.totalRatings ?? 0;
+                  const rate = wp?.hourlyRate;
+                  const services = (wp?.servicesOffered ?? pp?.coreServices ?? []) as string[];
+                  const skillLabels = services
+                    .map(s => JOB_CATEGORIES.find(c => c.value === s)?.label ?? s)
+                    .slice(0, 3);
+                  // Simple coverage label — derived from home suburb/state + travel radius,
+                  // no geocoding or real distance matching yet.
+                  const coverage = wp?.state
+                    ? `Covers ${wp.state}${wp.suburb ? ` (${wp.suburb}` : ""}${wp.travelRadiusKm ? `${wp.suburb ? ", " : " ("}${wp.travelRadiusKm}km radius)` : wp.suburb ? ")" : ""}`
+                    : null;
+                  return (
                   <div key={app.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                    <div style={{ flex: 1 }}>
+                    {app.applicant.avatarUrl ? (
+                      <img src={app.applicant.avatarUrl} alt={app.applicant.name} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#e2e8f0", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                        {app.applicant.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <Link href={`/profile/${app.applicantUserId}`} style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", textDecoration: "none" }} className="hover:underline">
                         {app.applicant.name}
                       </Link>
-                      <div style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                        {reviews > 0 && (
+                          <span style={{ fontSize: 12, color: "#b45309", fontWeight: 600 }}>★ {rating.toFixed(1)} ({reviews})</span>
+                        )}
+                        {rate != null && (
+                          <span style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>${Number(rate).toFixed(0)}/hr</span>
+                        )}
+                        <span style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</span>
+                      </div>
+                      {coverage && (
+                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>📍 {coverage}</div>
+                      )}
+                      {skillLabels.length > 0 && (
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 4 }}>
+                          {skillLabels.map(label => (
+                            <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: "#f1f5f9", color: "#475569" }}>{label}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "#94a3b8" }}>
                       {app.status}
@@ -337,7 +448,8 @@ export default function JobDetailPage() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

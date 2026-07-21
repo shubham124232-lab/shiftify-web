@@ -1,14 +1,29 @@
 // components/landing/MarketplaceSection.tsx
+'use client';
+
+import { useState } from 'react';
+
 const listings = [
-  { type: 'emergency', title: 'Emergency — Personal Care',     location: 'Melbourne, VIC', time: 'Needed ASAP',          rate: '$45/hr', tags: ['Urgent', 'NDIS Funded'], initials: 'TW', color: '#DC2626', name: 'Thomas W.' },
-  { type: 'regular',   title: 'Daily Living Assistance',       location: 'Sydney, NSW',    time: 'Mon–Fri, 9am–1pm',    rate: '$38/hr', tags: ['Ongoing', 'NDIS Funded'], initials: 'LA', color: '#7C3AED', name: 'Laura A.'  },
-  { type: 'regular',   title: 'Overnight Support Worker',      location: 'Brisbane, QLD',  time: 'Fri & Sat nights',    rate: '$52/hr', tags: ['Sleepover', 'Complex Care'], initials: 'MK', color: '#0D9488', name: 'Michael K.' },
-  { type: 'emergency', title: 'Emergency — Community Access',  location: 'Perth, WA',      time: 'Today, 2pm–6pm',      rate: '$44/hr', tags: ['Urgent', 'Community'],   initials: 'SR', color: '#DC2626', name: 'Susan R.'  },
-  { type: 'regular',   title: 'Disability Transport',          location: 'Adelaide, SA',   time: 'Tue & Thu mornings',  rate: '$35/hr', tags: ['Transport', 'Ongoing'],  initials: 'JP', color: '#C2185B', name: 'James P.'  },
-  { type: 'regular',   title: 'Therapy Support — OT',          location: 'Canberra, ACT',  time: 'Flexible schedule',   rate: '$65/hr', tags: ['Allied Health', 'NDIS'], initials: 'AH', color: '#1D4ED8', name: 'Aisha H.'  },
+  { type: 'emergency', title: 'Emergency — Personal Care',           location: 'Melbourne, VIC', time: 'Needed ASAP',            rate: '$45/hr', tags: ['Urgent', 'NDIS Funded'],   initials: 'TW', color: '#DC2626', name: 'Thomas W.' },
+  { type: 'regular',   title: 'Daily Living Assistance',             location: 'Sydney, NSW',    time: 'Mon–Fri, 9am–1pm',       rate: '$38/hr', tags: ['Ongoing', 'NDIS Funded'],   initials: 'LA', color: '#7C3AED', name: 'Laura A.'  },
+  { type: 'regular',   title: 'Overnight Support Worker',            location: 'Brisbane, QLD',  time: 'Fri & Sat nights',       rate: '$52/hr', tags: ['Sleepover', 'Complex Care'], initials: 'MK', color: '#0D9488', name: 'Michael K.' },
+  { type: 'emergency', title: 'Emergency — Community Access',        location: 'Perth, WA',      time: 'Today, 2pm–6pm',         rate: '$44/hr', tags: ['Urgent', 'Community'],      initials: 'SR', color: '#DC2626', name: 'Susan R.'  },
+  { type: 'regular',   title: 'Disability Transport',                location: 'Adelaide, SA',   time: 'Tue & Thu mornings',     rate: '$35/hr', tags: ['Transport', 'Ongoing'],     initials: 'JP', color: '#C2185B', name: 'James P.'  },
+  { type: 'regular',   title: 'Therapy Support — OT',                location: 'Canberra, ACT',  time: 'Flexible schedule',      rate: '$65/hr', tags: ['Allied Health', 'NDIS'],    initials: 'AH', color: '#1D4ED8', name: 'Aisha H.'  },
+  { type: 'urgent',    title: 'Urgent — Same-Day Personal Care',     location: 'Newcastle, NSW', time: 'Today, 4pm start',       rate: '$42/hr', tags: ['Urgent', 'Same-Day'],       initials: 'RK', color: '#7C3AED', name: 'Ravi K.'   },
+  { type: 'lastmin',   title: 'Last-Min Cancellation — Domestic',    location: 'Geelong, VIC',   time: 'Cancelled · rebook ASAP', rate: '$36/hr', tags: ['Cancellation', 'Rebook'],   initials: 'EN', color: '#EA580C', name: 'Ella N.'   },
+] as const;
+
+const filters = [
+  { key: 'all',       label: 'All',                     icon: 'bi-grid-fill',              color: '#1A1A2E' },
+  { key: 'emergency', label: 'Emergency',                icon: 'bi-lightning-charge-fill',  color: '#DC2626' },
+  { key: 'urgent',    label: 'Urgent',                   icon: 'bi-alarm-fill',             color: '#7C3AED' },
+  { key: 'lastmin',   label: 'Last-min cancellation',    icon: 'bi-arrow-repeat',           color: '#EA580C' },
 ] as const;
 
 export default function MarketplaceSection() {
+  const [activeFilter, setActiveFilter] = useState<typeof filters[number]['key']>('all');
+
   return (
     <section id="marketplace" className="section-py market-section-bg" aria-labelledby="market-heading">
       <div className="container-xl">
@@ -52,10 +67,37 @@ export default function MarketplaceSection() {
           </div>
         </div>
 
+        {/* Urgency Filters */}
+        <div className="market-filter-row fade-up mb-6" role="group" aria-label="Filter by urgency">
+          {filters.map((f) => {
+            const isActive = activeFilter === f.key;
+            return (
+              <button
+                key={f.key}
+                type="button"
+                className={`market-filter-btn${isActive ? ' active' : ''}`}
+                style={{
+                  background: isActive ? f.color : `${f.color}14`,
+                  borderColor: isActive ? f.color : `${f.color}33`,
+                  color: isActive ? '#fff' : f.color,
+                }}
+                onClick={() => setActiveFilter(f.key)}
+              >
+                <i className={`bi ${f.icon}`} aria-hidden="true" />
+                {f.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Listings Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {listings.map((item) => (
-            <div key={item.title} className="fade-up">
+            <div
+              key={item.title}
+              className="fade-up"
+              style={{ display: activeFilter === 'all' || item.type === activeFilter ? undefined : 'none' }}
+            >
               <div
                 className={`market-card${item.type === 'emergency' ? ' emergency' : ''}`}
                 role="article"
@@ -97,7 +139,7 @@ export default function MarketplaceSection() {
                   ))}
                 </div>
                 <button
-                  className={`w-full ${item.type === 'emergency' ? 'btn-emergency' : 'btn-shiftify'}`}
+                  className={`w-full mt-auto ${item.type === 'emergency' ? 'btn-emergency' : 'btn-shiftify'}`}
                   style={{ fontSize: 13, padding: '10px 0', justifyContent: 'center' }}
                   aria-label={`Apply for ${item.title}`}
                 >

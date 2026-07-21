@@ -96,7 +96,8 @@ export default function StoryboardSection() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image} alt={p.imageAlt} className="story-image" loading="lazy" />
                   <div className="story-image-tint" style={{ background: p.color }} aria-hidden="true" />
-                  <span className="story-tag-pill" style={{ background: '#fff', color: p.color }}>{p.tag}</span>
+                  <div className="story-image-scrim" aria-hidden="true" />
+                  <span className="story-tag-pill" style={{ background: 'rgba(255,255,255,0.9)', color: p.color }}>{p.tag}</span>
                 </div>
 
                 <div className="story-body">

@@ -17,7 +17,7 @@ const stats = [
 
 export default function TrustSection() {
   return (
-    <section id="trust" className="section-py" aria-labelledby="trust-heading">
+    <section id="trust" className="section-py trust-section-bg" aria-labelledby="trust-heading">
       <div className="container-xl">
         <div className="grid lg:grid-cols-12 gap-10 items-center">
 

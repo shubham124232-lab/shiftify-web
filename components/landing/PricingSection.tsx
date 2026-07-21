@@ -87,12 +87,12 @@ export default function PricingSection() {
     <section id="pricing" className="section-py master-pricing-bg" aria-labelledby="pricing-heading">
       <div className="container-xl">
 
-        <div className="mb-6 fade-up">
+        <div className="text-center mb-6 fade-up">
           <span className="section-label">Master Pricing · All Roles</span>
           <h2 id="pricing-heading" className="section-title">
             Free to <em style={{ fontStyle: 'italic', color: 'var(--clr-primary)' }}>enter</em>. Pay only for reach and speed.
           </h2>
-          <p className="section-sub text-left" style={{ maxWidth: 640, margin: '0 0 20px' }}>
+          <p className="section-sub" style={{ maxWidth: 640, margin: '0 auto 20px' }}>
             Four levers: <strong>Free</strong> to enter, <strong>Basic</strong> to operate,{' '}
             <strong>Growth</strong> to access the network, <strong>Speed</strong> to jump the urgent queue.
           </p>
@@ -116,31 +116,28 @@ export default function PricingSection() {
           ))}
         </div>
 
-        <div className="fade-up" key={active.key}>
+        <div key={active.key}>
           <div className="mp-tier-grid">
-            {active.tiers.map((t) => (
-              <div key={t.label} className={`mp-tier-card${t.isPrimary ? ' primary' : ''}`}>
-                <span className="mp-tier-label" style={{ color: t.isPrimary ? '#fff' : t.color, background: t.isPrimary ? `${t.color}33` : `${t.color}14` }}>
-                  {t.label}
-                </span>
-                <div className="flex items-end gap-1 my-3">
-                  <span className="mp-tier-price">{t.price}</span>
-                  <span className="mp-tier-period">{t.period}</span>
+            {active.tiers.map((t) => {
+              const tagInfo = legend.find((l) => l.tag === t.label.replace('+ ', '').toUpperCase());
+              return (
+                <div key={t.label} className={`mp-tier-card${t.isPrimary ? ' primary' : ''}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="mp-tier-label" style={{ color: t.isPrimary ? '#fff' : t.color, background: t.isPrimary ? `${t.color}33` : `${t.color}14` }}>
+                      {t.label}
+                    </span>
+                    {tagInfo && <span className="mp-tier-tagline">{tagInfo.label}</span>}
+                  </div>
+                  <div className="flex items-end gap-1 my-3">
+                    <span className="mp-tier-price">{t.price}</span>
+                    <span className="mp-tier-period">{t.period}</span>
+                  </div>
+                  <p className="mp-tier-desc">{t.desc}</p>
                 </div>
-                <p className="mp-tier-desc">{t.desc}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <p className="mp-footnote">{active.footnote}</p>
-        </div>
-
-        <div className="mp-legend fade-up">
-          {legend.map((l) => (
-            <div key={l.tag} className="mp-legend-item">
-              <span className="mp-legend-tag" style={{ color: l.color }}>{l.tag}</span>
-              <span className="mp-legend-label">{l.label}</span>
-            </div>
-          ))}
         </div>
 
       </div>

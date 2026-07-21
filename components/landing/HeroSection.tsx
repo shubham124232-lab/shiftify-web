@@ -4,23 +4,22 @@
 import { useEffect, useState } from 'react';
 
 const trustBadges = [
-  { icon: 'bi-shield-check', text: 'NDIS Registered' },
-  { icon: 'bi-patch-check',  text: 'Police Checked'  },
-  { icon: 'bi-clock',        text: '24/7 Support'    },
-  { icon: 'bi-star-fill',    text: '4.9★ Rated'      },
+  { icon: 'bi-shield-check', text: 'NDIS Registered', color: '#16A34A' },
+  { icon: 'bi-patch-check',  text: 'Police Checked',  color: '#2563EB' },
+  { icon: 'bi-clock',        text: '24/7 Support',    color: '#7C3AED' },
 ] as const;
 
 const dispatchCategories = [
-  { key: 'emergency', pillLabel: 'RIGHT NOW · < 60 MIN',            pillTitle: 'Emergency',              color: '#F87171', bgActive: 'rgba(239,68,68,0.14)',  glow: 'rgba(239,68,68,0.4)'  },
-  { key: 'urgent',    pillLabel: 'TODAY · SAME-DAY FILL',           pillTitle: 'Urgent',                 color: '#F472B6', bgActive: 'rgba(236,72,153,0.14)', glow: 'rgba(236,72,153,0.4)' },
-  { key: 'lastmin',   pillLabel: 'CANCELLED SHIFT · REASSIGN FAST', pillTitle: 'Last-min cancellation',  color: '#FBBF24', bgActive: 'rgba(245,158,11,0.14)', glow: 'rgba(245,158,11,0.4)' },
+  { key: 'emergency', icon: 'bi-lightning-charge-fill', pillLabel: 'RIGHT NOW · < 60 MIN',            pillTitle: 'Emergency',              blurb: 'Immediate response',              color: '#C2185B', bgActive: 'rgba(194,24,91,0.08)',  glow: 'rgba(194,24,91,0.3)'  },
+  { key: 'urgent',    icon: 'bi-alarm-fill',            pillLabel: 'TODAY · SAME-DAY FILL',           pillTitle: 'Urgent',                 blurb: 'Quick support',                   color: '#7C3AED', bgActive: 'rgba(124,58,237,0.08)', glow: 'rgba(124,58,237,0.3)' },
+  { key: 'lastmin',   icon: 'bi-arrow-repeat',          pillLabel: 'CANCELLED SHIFT · REASSIGN FAST', pillTitle: 'Last-min cancellation',  blurb: "We'll find a replacement — fast", color: '#EA580C', bgActive: 'rgba(234,88,12,0.08)',  glow: 'rgba(234,88,12,0.3)'  },
 ] as const;
 
 const tagColors = {
-  emergency: { accent: '#EF4444', chipBg: 'rgba(239,68,68,0.16)',  chipText: '#FCA5A5', glow: 'rgba(239,68,68,0.35)'  },
-  urgent:    { accent: '#EC4899', chipBg: 'rgba(236,72,153,0.16)', chipText: '#F9A8D4', glow: 'rgba(236,72,153,0.35)' },
-  lastmin:   { accent: '#F59E0B', chipBg: 'rgba(245,158,11,0.16)', chipText: '#FCD34D', glow: 'rgba(245,158,11,0.35)' },
-  live:      { accent: '#10B981', chipBg: 'rgba(16,185,129,0.16)', chipText: '#6EE7B7', glow: 'rgba(16,185,129,0.35)' },
+  emergency: { accent: '#EF4444', chipBg: 'rgba(239,68,68,0.14)',  chipText: '#B91C1C', glow: 'rgba(239,68,68,0.35)'  },
+  urgent:    { accent: '#7C3AED', chipBg: 'rgba(124,58,237,0.14)', chipText: '#6D28D9', glow: 'rgba(124,58,237,0.35)' },
+  lastmin:   { accent: '#EC4899', chipBg: 'rgba(236,72,153,0.14)', chipText: '#C2185B', glow: 'rgba(236,72,153,0.35)' },
+  live:      { accent: '#22C55E', chipBg: 'rgba(34,197,94,0.14)',  chipText: '#15803D', glow: 'rgba(34,197,94,0.35)'  },
 } as const;
 
 const tickets = [
@@ -55,11 +54,10 @@ export default function HeroSection() {
   const activeCategory = dispatchCategories[activeIdx];
   const visibleTickets = tickets.filter((t) => t.tag === activeCategory.key);
   const liveTickets = tickets.filter((t) => t.tag === 'live');
+  const cancelCategory = dispatchCategories[2];
 
   return (
     <section id="main-content" className="hero-section bg-hero" aria-labelledby="hero-heading">
-      <span className="hero-orb hero-orb-a" aria-hidden="true" />
-      <span className="hero-orb hero-orb-b" aria-hidden="true" />
       <div className="container-xl">
         <div className="grid lg:grid-cols-2 gap-5 lg:gap-12 items-center">
 
@@ -71,62 +69,69 @@ export default function HeroSection() {
             </div>
 
             <h1 id="hero-heading" className="hero-title fade-up">
-              Disability Support,<br />
-              <span className="highlight">When Every</span><br />
-              Minute Matters
+              Australia&apos;s Crisis—<br />
+              first <span className="highlight">NDIS Exchange</span>
             </h1>
+            <span className="hero-title-underline" aria-hidden="true" />
 
             <p className="hero-sub fade-up">
-              Australia&apos;s trusted NDIS marketplace connecting participants with
-              verified support workers, providers, and coordinators — instantly.
-              Emergency help available 24/7.
+              Real-time shifts. Verified workers.<br />
+              Faster support for communities that need it most.
             </p>
 
-            <div className="flex flex-wrap gap-3 mb-5 fade-up" role="group" aria-label="Live shift categories">
-              {dispatchCategories.map((cat, idx) => {
+            <div className="grid grid-cols-2 gap-3 mb-3 fade-up" role="group" aria-label="Live shift categories">
+              {dispatchCategories.slice(0, 2).map((cat, idx) => {
                 const isActive = idx === activeIdx;
                 return (
-                  <div
-                    key={cat.key}
-                    className={`stat-pill${isActive ? ' active' : ''}`}
-                    style={{
-                      borderColor: isActive ? cat.color : 'rgba(248,250,252,0.14)',
-                      background: isActive ? cat.bgActive : 'rgba(248,250,252,0.04)',
-                      boxShadow: isActive ? `0 10px 28px -6px ${cat.glow}` : 'none',
-                      ...({ '--pulse-glow': cat.glow } as React.CSSProperties),
-                    }}
-                  >
-                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: isActive ? cat.color : 'var(--clr-muted)' }}>
-                      {cat.pillLabel}
+                  <div key={cat.key} className={`hero-cat-card${isActive ? ' active' : ''}`}>
+                    <div className="hero-cat-card-top">
+                      <span className="hero-cat-card-icon" style={{ background: `${cat.color}1A`, color: cat.color }}>
+                        <i className={`bi ${cat.icon}`} aria-hidden="true" />
+                      </span>
+                      <span className="hero-cat-card-label">{cat.pillLabel}</span>
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginTop: 2, color: isActive ? cat.color : 'var(--clr-text)' }}>
-                      {cat.pillTitle}
-                    </div>
+                    <h3 className="hero-cat-card-title" style={{ color: isActive ? cat.color : undefined }}>{cat.pillTitle}</h3>
+                    <p className="hero-cat-card-sub">{cat.blurb}</p>
+                    <span className="hero-cat-card-bar" style={{ background: cat.color }} />
                   </div>
                 );
               })}
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-4 fade-up">
-              <a href="#marketplace" className="btn-shiftify" style={{ padding: '14px 28px', fontSize: 16 }}>
-                <i className="bi bi-search mr-2" aria-hidden="true" />
-                Find Support Now
-              </a>
-              <a href="#emergency" className="btn-emergency" style={{ padding: '14px 28px', fontSize: 16 }}>
-                <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
-                Post Emergency Shift
-              </a>
-            </div>
+            <a
+              href="#emergency"
+              className="hero-cancel-card fade-up"
+              style={
+                activeIdx === 2
+                  ? { transform: 'translateY(-2px)', boxShadow: 'var(--shadow-md)', borderColor: 'rgba(234,88,12,0.35)' }
+                  : undefined
+              }
+            >
+              <span className="hero-cancel-card-icon" style={{ background: cancelCategory.color }}>
+                <i className={`bi ${cancelCategory.icon}`} aria-hidden="true" />
+              </span>
+              <div className="hero-cancel-card-body">
+                <span className="hero-cancel-card-label" style={{ color: cancelCategory.color }}>{cancelCategory.pillLabel}</span>
+                <h3 className="hero-cancel-card-title" style={{ color: activeIdx === 2 ? cancelCategory.color : undefined }}>{cancelCategory.pillTitle}</h3>
+                <p className="hero-cancel-card-sub">{cancelCategory.blurb}</p>
+              </div>
+              <i className="bi bi-chevron-right hero-cancel-card-arrow" aria-hidden="true" />
+            </a>
 
-            <div className="flex flex-wrap gap-3 mt-2 fade-up">
-              {trustBadges.map(({ icon, text }) => (
-                <div key={text} className="trust-chip" style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-text)' }}>
-                  <span className="trust-chip-icon">
+            <div className="grid grid-cols-3 gap-2 mt-4 fade-up">
+              {trustBadges.map(({ icon, text, color }) => (
+                <div key={text} className="hero-trust-card">
+                  <span className="hero-trust-card-icon" style={{ background: `${color}1A`, color }}>
                     <i className={icon} aria-hidden="true" />
                   </span>
                   {text}
                 </div>
               ))}
+            </div>
+
+            <div className="hero-rating-card fade-up">
+              <span className="hero-rating-icon"><i className="bi bi-star-fill" aria-hidden="true" /></span>
+              <span><strong>4.9</strong>&nbsp;Rated by Providers</span>
             </div>
           </div>
 
@@ -136,13 +141,8 @@ export default function HeroSection() {
             <div className="dispatch-panel">
               <div className="dispatch-header">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5" aria-hidden="true">
-                    <span className="dispatch-dot" style={{ background: '#D32F2F' }} />
-                    <span className="dispatch-dot" style={{ background: '#D97706' }} />
-                    <span className="dispatch-dot" style={{ background: '#16A34A' }} />
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: 'var(--clr-muted)', textTransform: 'uppercase' }}>
-                    Shiftify · Live Dispatch
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 21, fontWeight: 800, letterSpacing: 0, color: 'var(--clr-text)', textTransform: 'uppercase' }}>
+                    Live shift
                   </span>
                 </div>
                 <span className="dispatch-live-badge" role="status">
@@ -171,8 +171,8 @@ export default function HeroSection() {
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 800 }}>{t.title}</div>
-                          <div style={{ fontSize: 12, color: 'var(--clr-muted)' }}>{t.sub}</div>
+                          <div style={{ fontSize: 16.5, fontWeight: 800 }}>{t.title}</div>
+                          <div style={{ fontSize: 13, color: 'var(--clr-muted)' }}>{t.sub}</div>
                         </div>
                         <button className="dispatch-open-btn" type="button">
                           OPEN <i className="bi bi-arrow-right" aria-hidden="true" />

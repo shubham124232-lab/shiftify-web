@@ -1,70 +1,148 @@
 // components/landing/PricingSection.tsx
-const plans = [
+'use client';
+
+import { useState } from 'react';
+import { FiCheckCircle } from 'react-icons/fi';
+
+interface Tier {
+  label: string;
+  price: string;
+  period: string;
+  desc: string;
+  color: string;
+  isPrimary?: boolean;
+}
+
+interface Plan {
+  key: string;
+  tabLabel: string;
+  tiers: Tier[];
+  footnote: string;
+}
+
+const plans: Plan[] = [
   {
-    name: 'Participant', price: 'Free', period: '', featured: false, cta: 'Get Started Free', href: '/register',
-    desc: 'For NDIS participants finding support.',
-    features: ['Browse all support workers', 'Unlimited shift requests', 'Emergency shift access', 'Secure in-app messaging', 'NDIS budget tracking', 'Ratings & reviews'],
+    key: 'participants',
+    tabLabel: 'Participants',
+    tiers: [
+      { label: 'Free', price: '$0', period: 'forever', desc: 'Post jobs, search providers & workers, view SIL / SDA. 0% platform fee.', color: '#DB2777', isPrimary: true },
+    ],
+    footnote: 'Participants never pay to post or confirm.',
   },
   {
-    name: 'Worker Pro', price: '$29', period: '/month', featured: true, badge: 'Most Popular', cta: 'Start Free Trial', href: '/register',
-    desc: 'For support workers who want to grow fast.',
-    features: ['Everything in Free', 'Priority listing in search', 'Urgent shift push notifications', 'NDIS-compliant invoicing', 'Earnings dashboard & analytics', 'Profile verification badge', 'Early access to new shifts', 'Dedicated support chat'],
+    key: 'coordinators',
+    tabLabel: 'Support Coordinators',
+    tiers: [
+      { label: 'Free', price: '$0', period: '5 posts / month', desc: 'Profile + 5 posts per month to get started.', color: '#059669' },
+      { label: 'Basic', price: '$49.99', period: '/month', desc: 'Unlimited jobs. Manage your whole caseload.', color: '#F97316', isPrimary: true },
+      { label: '+ Growth', price: '$29.99', period: 'add-on', desc: 'Full network access across all providers & workers.', color: '#2563EB' },
+      { label: '+ Speed', price: '$19.99', period: 'add-on', desc: 'Filter and jump straight to Available Now.', color: '#DB2777' },
+    ],
+    footnote: 'Add-ons stack onto Basic. No commission per job.',
   },
   {
-    name: 'Provider', price: '$149', period: '/month', featured: false, cta: 'Contact Sales', href: '/register',
-    desc: 'For NDIS-registered organisations and agencies.',
-    features: ['Everything in Worker Pro', 'Verified Provider badge', 'Team management (unlimited workers)', 'Bulk shift publishing', 'Advanced analytics & reports', 'Compliance documentation', 'Branded provider profile', 'Dedicated account manager'],
+    key: 'providers',
+    tabLabel: 'Providers',
+    tiers: [
+      { label: 'Free', price: '$0', period: 'browse only', desc: 'View fill-rate benchmarks before you commit.', color: '#059669' },
+      { label: 'Basic', price: '$99.99', period: '/month', desc: 'Post shifts, apply, receive apps, SIL/SDA listings.', color: '#0D9488', isPrimary: true },
+      { label: '+ Growth', price: '$39.99', period: 'add-on', desc: 'Full network access to every worker on the platform.', color: '#2563EB' },
+      { label: '+ Speed', price: '$29.99', period: 'add-on', desc: 'Urgent replacement filling when a shift falls through.', color: '#DB2777' },
+      { label: 'Platinum', price: '$399–599', period: '/ 30 days', desc: 'Featured tile placement. Only 3 spots per surface.', color: '#7C3AED' },
+    ],
+    footnote: 'No per-job commission on any tier.',
   },
+  {
+    key: 'workers',
+    tabLabel: 'Support Workers',
+    tiers: [
+      { label: 'Free', price: '$0', period: '5 applications / month', desc: 'Profile + 5 applications per month.', color: '#059669' },
+      { label: 'Basic', price: '$49.99', period: '/month', desc: 'Unlimited applications & messaging.', color: '#059669', isPrimary: true },
+      { label: '+ Available Now', price: '$24.99', period: 'add-on', desc: 'Priority placement on urgent jobs nearby.', color: '#DB2777' },
+    ],
+    footnote: 'Free tier stays free forever. You keep 100% of your rate.',
+  },
+  {
+    key: 'planmanagers',
+    tabLabel: 'Plan Managers',
+    tiers: [
+      { label: 'Flat', price: '$19.99', period: '/month', desc: 'Profile + visibility. Receive connection requests. Connect with SC & providers. View providers & SIL/SDA.', color: '#EC4899', isPrimary: true },
+    ],
+    footnote: 'No job posting, no database access.',
+  },
+];
+
+const legend = [
+  { tag: 'FREE',  label: 'Entry',          color: '#059669' },
+  { tag: 'BASIC', label: 'Operate',        color: '#F97316' },
+  { tag: 'GROWTH',label: 'Access network', color: '#2563EB' },
+  { tag: 'SPEED', label: 'Urgent action',  color: '#DB2777' },
 ] as const;
 
 export default function PricingSection() {
+  const [activeKey, setActiveKey] = useState('providers');
+  const active = plans.find((p) => p.key === activeKey) ?? plans[0];
+
   return (
-    <section id="pricing" className="section-py" aria-labelledby="pricing-heading">
+    <section id="pricing" className="section-py master-pricing-bg" aria-labelledby="pricing-heading">
       <div className="container-xl">
-        <div className="text-center mb-10 fade-up">
-          <span className="section-label">Pricing</span>
-          <h2 id="pricing-heading" className="section-title">Simple, Transparent Pricing</h2>
-          <p className="section-sub">
-            No hidden fees. No surprises. Participants always free — workers and providers pay only for premium tools.
+
+        <div className="mb-6 fade-up">
+          <span className="section-label">Master Pricing · All Roles</span>
+          <h2 id="pricing-heading" className="section-title">
+            Free to <em style={{ fontStyle: 'italic', color: 'var(--clr-primary)' }}>enter</em>. Pay only for reach and speed.
+          </h2>
+          <p className="section-sub text-left" style={{ maxWidth: 640, margin: '0 0 20px' }}>
+            Four levers: <strong>Free</strong> to enter, <strong>Basic</strong> to operate,{' '}
+            <strong>Growth</strong> to access the network, <strong>Speed</strong> to jump the urgent queue.
           </p>
+          <span className="mp-note-pill">
+            <FiCheckCircle size={13} aria-hidden="true" />
+            0% commission per post / job — subscription only
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start justify-center">
-          {plans.map((plan) => (
-            <div key={plan.name} className="fade-up">
-              <div className={`pricing-card${plan.featured ? ' featured' : ''}`}>
-                {'badge' in plan && plan.badge && (
-                  <div style={{ background: 'var(--clr-primary)', color: '#fff', fontSize: 12, fontWeight: 800, padding: '5px 16px', borderRadius: 100, display: 'inline-block', marginBottom: 18, letterSpacing: 0.5 }} aria-label="Most popular plan">
-                    {plan.badge}
-                  </div>
-                )}
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--clr-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-                  {plan.name}
-                </h3>
-                <div className="flex items-end gap-1 mb-2">
-                  <div className="pricing-price" style={{ color: plan.featured ? 'var(--clr-primary)' : 'var(--clr-text)' }}>{plan.price}</div>
-                  {plan.period && <span style={{ fontSize: 16, color: 'var(--clr-muted)', fontWeight: 600, marginBottom: 8 }}>{plan.period}</span>}
+        <div className="mp-tabs fade-up" role="tablist" aria-label="Pricing by role">
+          {plans.map((p) => (
+            <button
+              key={p.key}
+              role="tab"
+              aria-selected={activeKey === p.key}
+              onClick={() => setActiveKey(p.key)}
+              className={`mp-tab-btn${activeKey === p.key ? ' active' : ''}`}
+            >
+              {p.tabLabel} <span className="mp-tab-count">{plans.find((pl) => pl.key === p.key)!.tiers.length}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="fade-up" key={active.key}>
+          <div className="mp-tier-grid">
+            {active.tiers.map((t) => (
+              <div key={t.label} className={`mp-tier-card${t.isPrimary ? ' primary' : ''}`}>
+                <span className="mp-tier-label" style={{ color: t.isPrimary ? '#fff' : t.color, background: t.isPrimary ? `${t.color}33` : `${t.color}14` }}>
+                  {t.label}
+                </span>
+                <div className="flex items-end gap-1 my-3">
+                  <span className="mp-tier-price">{t.price}</span>
+                  <span className="mp-tier-period">{t.period}</span>
                 </div>
-                <p style={{ fontSize: 14, color: 'var(--clr-muted)', marginBottom: 24, lineHeight: 1.65 }}>{plan.desc}</p>
-                <a href={plan.href} className={`w-full mb-4 ${plan.featured ? 'btn-shiftify' : 'btn-outline-shiftify'}`} style={{ fontSize: 15, padding: '13px 0', justifyContent: 'center', display: 'flex' }}>
-                  {plan.cta}
-                </a>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {plan.features.map((f) => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 14, color: 'var(--clr-text)' }}>
-                      <i className="bi bi-check-circle-fill feature-check" style={{ color: plan.featured ? 'var(--clr-primary)' : '#16A34A', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                <p className="mp-tier-desc">{t.desc}</p>
               </div>
+            ))}
+          </div>
+          <p className="mp-footnote">{active.footnote}</p>
+        </div>
+
+        <div className="mp-legend fade-up">
+          {legend.map((l) => (
+            <div key={l.tag} className="mp-legend-item">
+              <span className="mp-legend-tag" style={{ color: l.color }}>{l.tag}</span>
+              <span className="mp-legend-label">{l.label}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-center mt-4 fade-up" style={{ fontSize: 13, color: 'var(--clr-muted)' }}>
-          All plans include a 14-day free trial. No credit card required. Cancel anytime.
-        </p>
       </div>
     </section>
   );

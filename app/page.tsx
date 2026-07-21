@@ -1,5 +1,9 @@
 import Header             from '@/components/landing/Header';
 import HeroSection         from '@/components/landing/HeroSection';
+import UrgencyLanesSection from '@/components/landing/UrgencyLanesSection';
+import DispatchEngineSection from '@/components/landing/DispatchEngineSection';
+import StoryboardSection   from '@/components/landing/StoryboardSection';
+import EcosystemRolesSection from '@/components/landing/EcosystemRolesSection';
 import QuickActionSection  from '@/components/landing/QuickActionSection';
 import ServicesSection     from '@/components/landing/ServicesSection';
 import HowItWorksSection   from '@/components/landing/HowItWorksSection';
@@ -17,6 +21,10 @@ export default function HomePage() {
     <>
       <Header />
       <HeroSection />
+      <UrgencyLanesSection />
+      <DispatchEngineSection />
+      <StoryboardSection />
+      <EcosystemRolesSection />
       <QuickActionSection />
       <ServicesSection />
       <HowItWorksSection />

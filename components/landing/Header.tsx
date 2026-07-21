@@ -46,7 +46,7 @@ export default function Header() {
               Get Started
             </a>
             <a href="#emergency" className="btn-emergency ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Emergency Support — Get help immediately">
-              <span className="dot" aria-hidden="true" />
+              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
               Emergency
             </a>
           </div>

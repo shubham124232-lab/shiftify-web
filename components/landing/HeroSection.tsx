@@ -10,9 +10,9 @@ const trustBadges = [
 ] as const;
 
 const dispatchCategories = [
-  { key: 'emergency', icon: 'bi-lightning-charge-fill', pillLabel: 'RIGHT NOW · < 60 MIN',            pillTitle: 'Emergency',              blurb: 'Immediate response',              color: '#C2185B', bgActive: 'rgba(194,24,91,0.08)',  glow: 'rgba(194,24,91,0.3)'  },
-  { key: 'urgent',    icon: 'bi-alarm-fill',            pillLabel: 'TODAY · SAME-DAY FILL',           pillTitle: 'Urgent',                 blurb: 'Quick support',                   color: '#7C3AED', bgActive: 'rgba(124,58,237,0.08)', glow: 'rgba(124,58,237,0.3)' },
-  { key: 'lastmin',   icon: 'bi-arrow-repeat',          pillLabel: 'CANCELLED SHIFT · REASSIGN FAST', pillTitle: 'Last-min cancellation',  blurb: "We'll find a replacement — fast", color: '#EA580C', bgActive: 'rgba(234,88,12,0.08)',  glow: 'rgba(234,88,12,0.3)'  },
+  { key: 'emergency', icon: 'bi-exclamation-triangle-fill', pillLabel: 'RIGHT NOW · < 60 MIN',        pillTitle: 'Emergency',              blurb: 'Immediate response',              href: '#emergency',   color: '#DC2626', bgActive: 'rgba(220,38,38,0.08)',  glow: 'rgba(220,38,38,0.3)'  },
+  { key: 'urgent',    icon: 'bi-alarm-fill',            pillLabel: 'TODAY · SAME-DAY FILL',           pillTitle: 'Urgent',                 blurb: 'Quick support',                   href: '#marketplace', color: '#7C3AED', bgActive: 'rgba(124,58,237,0.08)', glow: 'rgba(124,58,237,0.3)' },
+  { key: 'lastmin',   icon: 'bi-arrow-repeat',          pillLabel: 'CANCELLED SHIFT · REASSIGN FAST', pillTitle: 'Last-min cancellation',  blurb: "We'll find a replacement — fast", href: '#emergency',   color: '#EA580C', bgActive: 'rgba(234,88,12,0.08)',  glow: 'rgba(234,88,12,0.3)'  },
 ] as const;
 
 const tagColors = {
@@ -32,7 +32,7 @@ const tickets = [
   { tag: 'live',      tagLabel: 'LIVE',      time: '9 min',    title: 'SIL room opened · Ryde',         sub: 'High-intensity ready',           stat: '2 ROOMS'       },
 ] as const;
 
-const CYCLE_SECONDS = 8;
+const CYCLE_SECONDS = 4;
 
 export default function HeroSection() {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -54,7 +54,6 @@ export default function HeroSection() {
   const activeCategory = dispatchCategories[activeIdx];
   const visibleTickets = tickets.filter((t) => t.tag === activeCategory.key);
   const liveTickets = tickets.filter((t) => t.tag === 'live');
-  const cancelCategory = dispatchCategories[2];
 
   return (
     <section id="main-content" className="hero-section bg-hero" aria-labelledby="hero-heading">
@@ -79,44 +78,36 @@ export default function HeroSection() {
               Faster support for communities that need it most.
             </p>
 
-            <div className="grid grid-cols-2 gap-3 mb-3 fade-up" role="group" aria-label="Live shift categories">
-              {dispatchCategories.slice(0, 2).map((cat, idx) => {
+            <div className="grid grid-cols-3 gap-3 mb-4 fade-up" role="group" aria-label="Live shift categories">
+              {dispatchCategories.map((cat, idx) => {
                 const isActive = idx === activeIdx;
                 return (
-                  <div key={cat.key} className={`hero-cat-card${isActive ? ' active' : ''}`}>
-                    <div className="hero-cat-card-top">
-                      <span className="hero-cat-card-icon" style={{ background: `${cat.color}1A`, color: cat.color }}>
-                        <i className={`bi ${cat.icon}`} aria-hidden="true" />
-                      </span>
-                      <span className="hero-cat-card-label">{cat.pillLabel}</span>
-                    </div>
-                    <h3 className="hero-cat-card-title" style={{ color: isActive ? cat.color : undefined }}>{cat.pillTitle}</h3>
-                    <p className="hero-cat-card-sub">{cat.blurb}</p>
-                    <span className="hero-cat-card-bar" style={{ background: cat.color }} />
-                  </div>
+                  <a
+                    key={cat.key}
+                    href={cat.href}
+                    className={`hero-cat-card${isActive ? ' active' : ''}`}
+                    style={{
+                      borderColor: cat.color,
+                      background: isActive ? cat.color : undefined,
+                      ...({ '--pulse-glow': cat.glow } as React.CSSProperties),
+                    }}
+                  >
+                    <i className={`bi ${cat.icon} hero-cat-card-bg-icon`} aria-hidden="true" style={{ color: isActive ? '#fff' : cat.color }} />
+                    <span className="hero-cat-card-dot" style={{ background: isActive ? '#fff' : cat.color }} aria-hidden="true" />
+                    <span
+                      className={`hero-cat-card-icon-big${cat.key === 'lastmin' ? ' spin' : ' pulse'}`}
+                      style={{ background: isActive ? 'rgba(255,255,255,0.2)' : `${cat.color}1A`, color: isActive ? '#fff' : cat.color }}
+                    >
+                      <i className={`bi ${cat.icon}`} aria-hidden="true" />
+                    </span>
+                    <span className="hero-cat-card-label" style={{ color: isActive ? 'rgba(255,255,255,0.85)' : undefined }}>{cat.pillLabel}</span>
+                    <h3 className="hero-cat-card-title" style={{ color: isActive ? '#fff' : undefined }}>{cat.pillTitle}</h3>
+                    <p className="hero-cat-card-sub" style={{ color: isActive ? 'rgba(255,255,255,0.8)' : undefined }}>{cat.blurb}</p>
+                    <i className="bi bi-arrow-right hero-cat-card-cta" aria-hidden="true" style={{ color: isActive ? '#fff' : cat.color }} />
+                  </a>
                 );
               })}
             </div>
-
-            <a
-              href="#emergency"
-              className="hero-cancel-card fade-up"
-              style={
-                activeIdx === 2
-                  ? { transform: 'translateY(-2px)', boxShadow: 'var(--shadow-md)', borderColor: 'rgba(234,88,12,0.35)' }
-                  : undefined
-              }
-            >
-              <span className="hero-cancel-card-icon" style={{ background: cancelCategory.color }}>
-                <i className={`bi ${cancelCategory.icon}`} aria-hidden="true" />
-              </span>
-              <div className="hero-cancel-card-body">
-                <span className="hero-cancel-card-label" style={{ color: cancelCategory.color }}>{cancelCategory.pillLabel}</span>
-                <h3 className="hero-cancel-card-title" style={{ color: activeIdx === 2 ? cancelCategory.color : undefined }}>{cancelCategory.pillTitle}</h3>
-                <p className="hero-cancel-card-sub">{cancelCategory.blurb}</p>
-              </div>
-              <i className="bi bi-chevron-right hero-cancel-card-arrow" aria-hidden="true" />
-            </a>
 
             <div className="grid grid-cols-3 gap-2 mt-4 fade-up">
               {trustBadges.map(({ icon, text, color }) => (

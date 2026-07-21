@@ -452,122 +452,119 @@ h1, h2, h3, h4, h5, h6 {
 /* ---- Category cards (hero) ---- */
 .hero-cat-card {
   position: relative;
+  display: block;
   overflow: hidden;
   background: #fff;
   border: 1.5px solid var(--clr-border);
   border-radius: 16px;
-  padding: 16px 16px 14px;
+  padding: 12px 14px 10px;
   box-shadow: var(--shadow-sm);
+  text-decoration: none;
   transition: all var(--transition);
+  height: 193px !important;
 }
 .hero-cat-card.active {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  animation: catCardBlink 1.4s ease-in-out infinite;
 }
-.hero-cat-card-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+@keyframes catCardBlink {
+  0%, 100% { box-shadow: var(--shadow-lg); }
+  50%      { box-shadow: 0 0 0 8px var(--pulse-glow, rgba(0,0,0,0.1)), var(--shadow-lg); }
 }
-.hero-cat-card-icon {
+@media (prefers-reduced-motion: reduce) {
+  .hero-cat-card.active { animation: none; box-shadow: var(--shadow-lg); }
+}
+.hero-cat-card-bg-icon {
+  position: absolute;
+  right: -12px;
+  bottom: -14px;
+  font-size: 56px;
+  opacity: 0.06;
+  transform: rotate(-8deg);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: bgIconBlink 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes bgIconBlink {
+  0%, 100% { opacity: 0.06; }
+  50%      { opacity: 0.18; }
+}
+@keyframes bgIconBlinkActive {
+  0%, 100% { opacity: 0.14; }
+  50%      { opacity: 0.34; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-cat-card-bg-icon { animation: none; }
+}
+.hero-cat-card.active .hero-cat-card-bg-icon {
+  animation: bgIconBlinkActive 1.2s ease-in-out infinite;
+  transform: rotate(-8deg) translate(-8px, -8px) scale(1.08);
+}
+.hero-cat-card-dot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: blink 1.6s infinite;
+}
+.hero-cat-card-icon-big {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  font-size: 13px;
-  flex-shrink: 0;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.hero-cat-card-icon-big.pulse { animation: catIconPulse 2.2s ease-in-out infinite; }
+.hero-cat-card-icon-big.spin  { animation: catIconSpin 4s linear infinite; }
+@keyframes catIconPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
+@keyframes catIconSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-cat-card-icon-big.pulse, .hero-cat-card-icon-big.spin { animation: none; }
+  .hero-cat-card-dot { animation: none; }
 }
 .hero-cat-card-label {
-  font-size: 10.5px;
+  display: block;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--clr-muted);
+  margin-bottom: 4px;
 }
 .hero-cat-card-title {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--clr-text);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 .hero-cat-card-sub {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--clr-muted);
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
-.hero-cat-card-bar {
-  display: block;
-  height: 3px;
-  border-radius: 2px;
-  opacity: 0.4;
-  transition: opacity var(--transition);
-}
-.hero-cat-card.active .hero-cat-card-bar {
-  opacity: 1;
-}
-
-/* ---- Last-minute cancellation card (hero) ---- */
-.hero-cancel-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: linear-gradient(135deg, rgba(234,88,12,0.07), rgba(234,88,12,0.02));
-  border: 1.5px solid rgba(234,88,12,0.16);
-  border-radius: 16px;
-  padding: 16px 18px;
-  margin-bottom: 20px;
-  text-decoration: none;
-  box-shadow: var(--shadow-sm);
+.hero-cat-card-cta {
+  font-size: 13px;
+  opacity: 0;
+  transform: translateX(-4px);
   transition: all var(--transition);
 }
-.hero-cancel-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: rgba(234,88,12,0.35);
-}
-.hero-cancel-card-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 17px;
-  flex-shrink: 0;
-}
-.hero-cancel-card-body {
-  flex: 1;
-  min-width: 0;
-}
-.hero-cancel-card-label {
-  display: block;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-.hero-cancel-card-title {
-  font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 800;
-  color: var(--clr-text);
-  margin-bottom: 2px;
-}
-.hero-cancel-card-sub {
-  font-size: 13px;
-  color: var(--clr-muted);
-}
-.hero-cancel-card-arrow {
-  font-size: 18px;
-  color: var(--clr-muted);
-  flex-shrink: 0;
+.hero-cat-card.active .hero-cat-card-cta,
+.hero-cat-card:hover .hero-cat-card-cta {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ---- Trust + rating cards (hero) ---- */

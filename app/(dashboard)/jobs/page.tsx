@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ interface Job {
   suburb: string;
   state: string;
   scheduledStartAt: string;
-  totalHours: number | null;
+  estimatedHours: number | null;
   postedAt: string;
   status: string;
   isRecurring?: boolean;
@@ -50,8 +51,9 @@ const SHIFT_TYPE_LABELS: Record<string, string> = {
   TWENTY_FOUR_HOUR: "24-Hour", DROP_IN: "Drop-in",
 };
 
+// Values must match Prisma's FundingType enum (SELF_MANAGED | PLAN_MANAGED | NDIA_MANAGED | ...)
 const FUNDING_LABELS: Record<string, string> = {
-  SELF: "Self-managed", PLAN: "Plan-managed", NDIA: "NDIA-managed",
+  SELF_MANAGED: "Self-managed", PLAN_MANAGED: "Plan-managed", NDIA_MANAGED: "NDIA-managed",
 };
 
 const POSTED_WITHIN_OPTIONS = [
@@ -61,10 +63,11 @@ const POSTED_WITHIN_OPTIONS = [
   { value: "30", label: "Last 30 days" },
 ];
 
+// Values must match the backend's jobFiltersSchema sortBy enum (newest | urgency | startDate | bestMatch)
 const SORT_OPTIONS = [
-  { value: "recent", label: "Most recent" },
+  { value: "newest", label: "Most recent" },
   { value: "urgency", label: "Urgency" },
-  { value: "start_date", label: "Start date" },
+  { value: "startDate", label: "Start date" },
 ];
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
@@ -87,7 +90,7 @@ interface Filters {
 const defaultFilters: Filters = {
   suburb: "", category: "", urgency: "", shiftType: "", fundingType: "",
   isRecurring: "", workerType: "", experienceLevel: "", postedWithin: "",
-  dateFrom: "", dateTo: "", sortBy: "recent",
+  dateFrom: "", dateTo: "", sortBy: "urgency",
 };
 
 const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
@@ -167,9 +170,9 @@ function FilterSidebar({
       <div>
         <label className={lbl}>Funding type</label>
         <div className="flex flex-col gap-1.5">
-          {([ ["", "Any"], ["SELF", "Self-managed"], ["PLAN", "Plan-managed"], ["NDIA", "NDIA-managed"] ] as [string, string][]).map(([v, l]) => (
+          {([ ["", "Any"], ["SELF_MANAGED", "Self-managed"], ["PLAN_MANAGED", "Plan-managed"], ["NDIA_MANAGED", "NDIA-managed"] ] as [string, string][]).map(([v, l]) => (
             <label key={v} className={cn("flex items-center gap-2 cursor-pointer text-xs px-2.5 py-2 rounded-lg border transition-colors", filters.fundingType === v ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
-              <input type="radiod" onChange={() => onChange({ fundingType: v })} />{l}
+              <input type="radio" className="sr-only" checked={filters.fundingType === v} onChange={() => onChange({ fundingType: v })} />{l}
             </label>
           ))}
         </div>
@@ -270,7 +273,7 @@ function JobCard({ job, canApply, applying, onApply, onView }: {
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
         <span>{job.suburb}, {job.state}</span>
-        {job.totalHours && <span>{job.totalHours}h</span>}
+        {job.estimatedHours && <span>{job.estimatedHours}h</span>}
         <span>{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
         {budgetStr && <span className="font-semibold text-emerald-700">{budgetStr}</span>}
       </div>
@@ -296,18 +299,27 @@ function JobCard({ job, canApply, applying, onApply, onView }: {
   );
 }
 
+function urgencyFiltersFromParams(searchParams: URLSearchParams): Filters {
+  const urgencyParam = searchParams.get("urgency");
+  return urgencyParam && Object.prototype.hasOwnProperty.call(URGENCY_STYLE, urgencyParam)
+    ? { ...defaultFilters, urgency: urgencyParam, sortBy: "urgency" }
+    : defaultFilters;
+}
+
 export default function JobsBrowsePage() {
   const { activeRole } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [jobs,    setJobs]    = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [total,   setTotal]   = useState(0);
   const [page,    setPage]    = useState(1);
   const [error,   setError]   = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
 
   const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
@@ -315,30 +327,23 @@ export default function JobsBrowsePage() {
   const load = useCallback((f: Filters, p: number) => {
     setLoading(true);
     const params = new URLSearchParams({ status: "OPEN", page: String(p), limit: "20" });
-    if (f.suburb)   params.set("suburb", f.suburb);
-    if (f.category) params.set("category", f.category);
-    if (f.urgency)  params.set("urgency", f.urgency);
+    if (f.suburb)      params.set("suburb", f.suburb);
+    if (f.category)    params.set("category", f.category);
+    if (f.urgency)     params.set("urgency", f.urgency);
     if (f.isRecurring !== "") params.set("isRecurring", f.isRecurring);
+    if (f.shiftType)   params.set("shiftType", f.shiftType);
+    if (f.fundingType) params.set("fundingType", f.fundingType);
+    if (f.dateFrom)    params.set("startFrom", new Date(f.dateFrom).toISOString());
+    if (f.dateTo)      params.set("startTo", new Date(f.dateTo + "T23:59:59").toISOString());
+    if (f.postedWithin) params.set("postedWithinHours", String(parseInt(f.postedWithin) * 24));
+    if (f.sortBy)      params.set("sortBy", f.sortBy);
 
     api.get<{ jobs: Job[]; total: number }>(`/jobs?${params}`)
       .then(r => {
         let result = r.jobs ?? [];
-        if (f.shiftType)       result = result.filter(j => j.shiftType === f.shiftType);
-        if (f.fundingType)     result = result.filter(j => j.fundingType === f.fundingType);
+        // workerType / experienceLevel aren't backend-filterable (live in a JSON blob) — filtered client-side only.
         if (f.workerType)      result = result.filter(j => j.workerPreferences?.workerType === f.workerType);
         if (f.experienceLevel) result = result.filter(j => j.workerPreferences?.experienceLevel === f.experienceLevel);
-        if (f.dateFrom) result = result.filter(j => new Date(j.scheduledStartAt) >= new Date(f.dateFrom));
-        if (f.dateTo)   result = result.filter(j => new Date(j.scheduledStartAt) <= new Date(f.dateTo + "T23:59:59"));
-        if (f.postedWithin) {
-          const cutoff = new Date(Date.now() - parseInt(f.postedWithin) * 24 * 60 * 60 * 1000);
-          result = result.filter(j => new Date(j.postedAt) >= cutoff);
-        }
-        if (f.sortBy === "urgency") {
-          const urgOrder: Record<string, number> = { EMERGENCY: 0, SAME_DAY: 1, SCHEDULED: 2 };
-          result = [...result].sort((a, b) => (urgOrder[a.urgency] ?? 3) - (urgOrder[b.urgency] ?? 3));
-        } else if (f.sortBy === "start_date") {
-          result = [...result].sort((a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime());
-        }
         setJobs(result);
         setTotal(r.total ?? result.length);
       })
@@ -353,10 +358,17 @@ export default function JobsBrowsePage() {
 
   async function handleApply(id: string) {
     setApplying(id);
+    setUpgradeMessage(null);
     try {
       await api.post(`/jobs/${id}/apply`, {});
       load(appliedFilters, page);
-    } catch (e: unknown) { setError((e as { message?: string })?.message ?? "Apply failed."); }
+    } catch (e: unknown) {
+      if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
+        setUpgradeMessage(e.message);
+      } else {
+        setError((e as { message?: string })?.message ?? "Apply failed.");
+      }
+    }
     finally { setApplying(null); }
   }
 
@@ -372,6 +384,7 @@ export default function JobsBrowsePage() {
         actions={canPost ? <Link href="/jobs/post"><Button>+ Post a Request</Button></Link> : undefined}
       />
       <div className="mx-auto max-w-6xl px-5 py-6">
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex gap-8">
           <div className="hidden lg:block">

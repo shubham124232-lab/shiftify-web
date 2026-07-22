@@ -139,8 +139,8 @@ export default function AdminPage() {
           <Link href="/admin/audit">         <Button variant="outline" size="sm">📜 Audit Logs</Button></Link>
           <Link href="/admin/broadcast">     <Button variant="outline" size="sm">📢 Broadcast</Button></Link>
           <Link href="/admin/subscriptions"> <Button variant="outline" size="sm">💳 Subscriptions</Button></Link>
+          <Link href="/admin/reports"><Button variant="outline" size="sm">📊 Reports</Button></Link>
           <Button variant="outline" size="sm" disabled>🚨 Complaints</Button>
-          <Button variant="outline" size="sm" disabled>📊 Reports</Button>
           <Button variant="outline" size="sm" disabled>⚙ Platform Settings</Button>
         </div>
 
@@ -218,6 +218,7 @@ export default function AdminPage() {
             { href: "/admin/jobs",          icon: "📋", label: "Listings",      desc: "All load board posts"    },
             { href: "/admin/verification",  icon: "✅", label: "Verifications", desc: "Document review queue"   },
             { href: "/admin/subscriptions", icon: "💳", label: "Subscriptions", desc: "Manage billing & plans"  },
+            { href: "/admin/reports",       icon: "📊", label: "Reports",       desc: "Platform analytics & activity" },
             { href: "/admin/audit",         icon: "📜", label: "Audit Log",     desc: "Platform activity trail" },
             { href: "/admin/broadcast",     icon: "📢", label: "Broadcast",     desc: "Send platform notices"   },
           ].map((item) => (

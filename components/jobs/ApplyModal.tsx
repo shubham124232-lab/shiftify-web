@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { JOB_CATEGORIES } from "@/lib/constants/categories";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,33 @@ const SKILL_OPTIONS = [
   "Medication Assistance", "Personal Care", "Behaviour Support",
   "Community Access", "Transport", "Overnight / Sleepover", "High Intensity Skills",
 ];
+
+// Maps a worker/provider's own profile (GET /users/me) onto ApplyModal's prefillable
+// fields, so applicants don't retype what's already on their profile.
+function buildPrefillFromProfile(me: any): Partial<ApplyData> {
+  const wp = me?.workerProfile;
+  const pp = me?.providerProfile;
+  const servicesOffered: string[] = wp?.servicesOffered ?? pp?.coreServices ?? [];
+  const serviceLabels = servicesOffered
+    .map((v: string) => JOB_CATEGORIES.find(c => c.value === v)?.label)
+    .filter(Boolean) as string[];
+
+  const skills = new Set<string>();
+  for (const s of SKILL_OPTIONS) {
+    if (serviceLabels.includes(s)) skills.add(s);
+  }
+  if (wp?.ndisScreeningNumber) skills.add("NDIS Worker Screening");
+  if (wp?.firstAidExpiry || wp?.cprExpiry) skills.add("First Aid / CPR");
+  if (wp?.manualHandlingCompleted) skills.add("Manual Handling");
+  if (Array.isArray(wp?.highIntensitySkills) && wp.highIntensitySkills.length > 0) skills.add("High Intensity Skills");
+
+  const prefill: Partial<ApplyData> = { relevantSkills: Array.from(skills) };
+  if (wp?.hourlyRate != null) {
+    prefill.rateType = "AGREED_RATE";
+    prefill.proposedRate = String(wp.hourlyRate);
+  }
+  return prefill;
+}
 
 const STEPS = [
   "Availability",
@@ -268,6 +296,12 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
   const [data, setData] = useState<ApplyData>(defaultData);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.get<{ user: any }>("/users/me")
+      .then(r => setData(prev => ({ ...prev, ...buildPrefillFromProfile(r.user) })))
+      .catch(() => {}); // profile fetch is a convenience prefill — apply flow still works without it
+  }, []);
 
   function change(fields: Partial<ApplyData>) {
     setData(prev => ({ ...prev, ...fields }));

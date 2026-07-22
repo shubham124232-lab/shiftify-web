@@ -24,7 +24,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 }
 
 export function ProviderStep01_Business() {
-  const { register, watch, formState: { errors } } = useFormContext();
+  const { register, watch, setValue, formState: { errors } } = useFormContext();
   const ndisReg = watch('ndisRegistered') as boolean;
 
   return (
@@ -76,25 +76,18 @@ export function ProviderStep01_Business() {
           ].map(opt => {
             const sel = ndisReg === opt.value;
             return (
-              <label key={String(opt.value)} style={{
-                flex: 1, padding: '10px 8px', borderRadius: 10, textAlign: 'center', cursor: 'pointer',
-                border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                background: sel ? 'rgba(79,70,229,0.05)' : '#fff',
-                fontSize: 12, fontWeight: 500,
-              }}>
-                <input type="checkbox" {...register('ndisRegistered')}
-                  checked={ndisReg === opt.value}
-                  onChange={() => {}}
-                  onClick={() => {}}
-                  style={{ display: 'none' }} />
+              <label key={String(opt.value)}
+                onClick={() => setValue('ndisRegistered', opt.value, { shouldValidate: true, shouldDirty: true })}
+                style={{
+                  flex: 1, padding: '10px 8px', borderRadius: 10, textAlign: 'center', cursor: 'pointer',
+                  border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                  background: sel ? 'rgba(79,70,229,0.05)' : '#fff',
+                  fontSize: 12, fontWeight: 500,
+                }}>
                 {opt.label}
               </label>
             );
           })}
-        </div>
-        {/* Use a hidden real toggle for the actual value */}
-        <div style={{ display: 'none' }}>
-          <Toggle label="" name="ndisRegistered" />
         </div>
       </div>
 

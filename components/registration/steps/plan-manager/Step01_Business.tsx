@@ -70,9 +70,17 @@ export function PmStep01_Business() {
         <div style={sectionTitle}>Business Contact</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label style={labelStyle}>Business Phone</label><input {...register('businessPhone')} type="tel" placeholder="(02) 0000 0000" style={inputStyle} /></div>
-          <div><label style={labelStyle}>Business Email</label><input {...register('businessEmail')} type="email" placeholder="info@planmanager.com.au" style={inputStyle} /></div>
+          <div>
+            <label style={labelStyle}>Business Email</label>
+            <input {...register('businessEmail')} type="email" placeholder="info@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.businessEmail ? '#ef4444' : undefined }} />
+            {errors.businessEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.businessEmail.message as string}</p>}
+          </div>
           <div><label style={labelStyle}>Website</label><input {...register('websiteUrl')} type="url" placeholder="https://yoursite.com.au" style={inputStyle} /></div>
-          <div><label style={labelStyle}>Finance Team Email</label><input {...register('financeTeamEmail')} type="email" placeholder="finance@planmanager.com.au" style={inputStyle} /></div>
+          <div>
+            <label style={labelStyle}>Finance Team Email</label>
+            <input {...register('financeTeamEmail')} type="email" placeholder="finance@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.financeTeamEmail ? '#ef4444' : undefined }} />
+            {errors.financeTeamEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.financeTeamEmail.message as string}</p>}
+          </div>
         </div>
         <div style={{ marginTop: 10 }}>
           <label style={labelStyle}>Accounts Payable Phone</label>

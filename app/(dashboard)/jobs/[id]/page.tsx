@@ -10,8 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
+import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
 
-interface Applicant { id: string; applicantUserId: string; applicant: { id: string; name: string }; status: string; createdAt: string; }
+interface Applicant {
+  id: string; applicantUserId: string; status: string; createdAt: string;
+  applicant: {
+    id: string; name: string; avatarUrl?: string | null;
+    workerProfile?: { rating: number; totalReviews: number; hourlyRate: number | string | null; servicesOffered: string[] | null; experienceLevel: string | null; suburb: string | null; state: string | null; travelRadiusKm: number | null } | null;
+    providerProfile?: { averageRating: number; totalRatings: number; coreServices: string[] | null } | null;
+  };
+}
 interface Message   { id: string; senderId: string; senderName: string; body: string; createdAt: string; }
 
 interface JobDetail {
@@ -23,9 +31,28 @@ interface JobDetail {
   selectedApplicant?: { id: string; name: string } | null;
   assignedWorker?: { id: string; name: string } | null;
   applications?: Applicant[];
+  locationNotes?: string | null;
+  riskSafetyNotes?: string | null;
+  medicalNotes?: string | null;
+  behaviourNotes?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+  emergencyContactRelationship?: string | null;
+  workerPreferences?: { safetyFlags?: Record<string, boolean> } | null;
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
+interface Review {
+  id: string; raterUserId: string; revieweeUserId: string;
+  rating: number; comment: string | null; createdAt: string;
+  rater: { id: string; name: string; avatarUrl?: string | null };
+  reviewee: { id: string; name: string; avatarUrl?: string | null };
+}
+interface Assignment {
+  id: string; requestId: string; workerUserId: string;
+  status: "ASSIGNED" | "COMPLETED" | "CANCELLED"; assignedAt: string;
+  workerUser: { id: string; name: string; avatarUrl?: string | null };
+}
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   OPEN:        { bg: "#dbeafe", color: "#1d4ed8" },
@@ -64,6 +91,17 @@ export default function JobDetailPage() {
   const [teamWorkers,    setTeamWorkers]    = useState<TeamWorker[]>([]);
   const [pickedWorkerId, setPickedWorkerId] = useState("");
   const [assigning,      setAssigning]      = useState(false);
+  const [reviews,        setReviews]        = useState<Review[]>([]);
+  const [reviewRating,   setReviewRating]   = useState(0);
+  const [reviewComment,  setReviewComment]  = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [assignments,    setAssignments]    = useState<Assignment[]>([]);
+  const [rosterActing,   setRosterActing]   = useState(false);
+  const [showFlagForm,   setShowFlagForm]   = useState(false);
+  const [flagCategory,   setFlagCategory]   = useState("SAFETY");
+  const [flagDescription, setFlagDescription] = useState("");
+  const [flagging,       setFlagging]       = useState(false);
+  const [flagSent,       setFlagSent]       = useState(false);
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +117,19 @@ export default function JobDetailPage() {
       .catch(() => {});
   }
 
+  function loadReviews() {
+    api.get<{ reviews: Review[] }>(`/jobs/${id}/reviews`)
+      .then(r => setReviews(r.reviews ?? []))
+      .catch(() => {});
+  }
+
+  function loadAssignments() {
+    // 403s for users with no roster access (not the poster, not on the roster) — ignore silently.
+    api.get<{ assignments: Assignment[] }>(`/jobs/${id}/assignments`)
+      .then(r => setAssignments(r.assignments ?? []))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -86,6 +137,8 @@ export default function JobDetailPage() {
   useEffect(() => {
     loadJob().finally(() => setLoading(false));
     loadMessages();
+    loadReviews();
+    loadAssignments();
     pollRef.current = setInterval(loadMessages, 30_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -108,6 +161,17 @@ export default function JobDetailPage() {
     finally { setSending(false); }
   }
 
+  async function submitFlag() {
+    setFlagging(true);
+    try {
+      await api.post(`/jobs/${id}/incidents`, { category: flagCategory, description: flagDescription.trim() || undefined });
+      setFlagSent(true);
+      setShowFlagForm(false);
+      setFlagDescription("");
+    } catch (e: any) { setError(e.message); }
+    finally { setFlagging(false); }
+  }
+
   // Provider was selected on this job and needs to hand it to one of their team
   // workers — PATCH /jobs/:id/assign-worker existed on the backend with no UI.
   async function assignWorker() {
@@ -127,6 +191,36 @@ export default function JobDetailPage() {
       await loadJob();
     } catch (e: any) { setError(e.message); }
     finally { setActing(false); }
+  }
+
+  async function submitReview() {
+    if (!reviewRating) return;
+    setSubmittingReview(true);
+    try {
+      await api.post(`/jobs/${id}/reviews`, { rating: reviewRating, comment: reviewComment.trim() || undefined });
+      setReviewRating(0);
+      setReviewComment("");
+      loadReviews();
+    } catch (e: any) { setError(e.message); }
+    finally { setSubmittingReview(false); }
+  }
+
+  async function addToRoster(workerUserId: string) {
+    setRosterActing(true);
+    try {
+      await api.post(`/jobs/${id}/assignments`, { workerUserId });
+      loadAssignments();
+    } catch (e: any) { setError(e.message); }
+    finally { setRosterActing(false); }
+  }
+
+  async function updateAssignment(assignmentId: string, status: "COMPLETED" | "CANCELLED") {
+    setRosterActing(true);
+    try {
+      await api.patch(`/jobs/${id}/assignments/${assignmentId}/status`, { status });
+      loadAssignments();
+    } catch (e: any) { setError(e.message); }
+    finally { setRosterActing(false); }
   }
 
   async function appAction(applicationId: string, action: "select" | "shortlist" | "decline" | "withdraw") {
@@ -154,6 +248,9 @@ export default function JobDetailPage() {
     job.status === "ASSIGNED" &&
     job.selectedApplicant?.id === user?.id &&
     !job.assignedWorker;
+  const workerPartyId = job.assignedWorker?.id ?? job.selectedApplicant?.id;
+  const isReviewParty = job.status === "CONFIRMED" && (user?.id === job.postedBy.id || user?.id === workerPartyId);
+  const myReview = reviews.find(r => r.raterUserId === user?.id);
 
   return (
     <>
@@ -200,6 +297,61 @@ export default function JobDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Care & Safety Notes — visible to poster and worker, shown only if any note was provided */}
+        {(() => {
+          const checkedFlags = SAFETY_CHECKLIST.filter(f => job.workerPreferences?.safetyFlags?.[f.key]);
+          if (!(job.riskSafetyNotes || job.medicalNotes || job.behaviourNotes || job.locationNotes || job.emergencyContactName || checkedFlags.length > 0)) return null;
+          return (
+          <Card style={{ borderColor: "#fde68a", background: "#fffbeb" }}>
+            <CardHeader><CardTitle style={{ color: "#92400e" }}>⚠ Care & Safety Notes</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {checkedFlags.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Safety & Property Checklist</div>
+                  <ul style={{ fontSize: 13, color: "#374151", margin: 0, paddingLeft: 18 }}>
+                    {checkedFlags.map(f => <li key={f.key}>{f.label}</li>)}
+                  </ul>
+                </div>
+              )}
+              {job.riskSafetyNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Risk & Safety</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.riskSafetyNotes}</p>
+                </div>
+              )}
+              {job.medicalNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Medical Considerations</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.medicalNotes}</p>
+                </div>
+              )}
+              {job.behaviourNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Behaviour Notes</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.behaviourNotes}</p>
+                </div>
+              )}
+              {job.locationNotes && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Access & Location Notes</div>
+                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.locationNotes}</p>
+                </div>
+              )}
+              {job.emergencyContactName && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Emergency Contact (this shift)</div>
+                  <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>
+                    {job.emergencyContactName}
+                    {job.emergencyContactRelationship && ` (${job.emergencyContactRelationship})`}
+                    {job.emergencyContactPhone && ` — ${job.emergencyContactPhone}`}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          );
+        })()}
 
         {/* Owner actions */}
         {isOwner && (
@@ -300,19 +452,130 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        {/* Job Roster — additional workers beyond the single assigned-worker flow */}
+        {(isOwner || assignments.some(a => a.workerUserId === user?.id)) && assignments.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Job Roster</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {assignments.map(a => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 12px", border: "1px solid #f1f5f9", borderRadius: 8 }}>
+                  <span style={{ fontSize: 13, color: "#374151" }}>{a.workerUser.name}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color:
+                      a.status === "COMPLETED" ? "#15803d" : a.status === "CANCELLED" ? "#b91c1c" : "#854d0e" }}>
+                      {a.status}
+                    </span>
+                    {a.status === "ASSIGNED" && a.workerUserId === user?.id && (
+                      <Button size="sm" variant="outline" disabled={rosterActing} onClick={() => updateAssignment(a.id, "COMPLETED")}>Mark Complete</Button>
+                    )}
+                    {a.status === "ASSIGNED" && isOwner && (
+                      <Button size="sm" variant="outline" disabled={rosterActing} onClick={() => updateAssignment(a.id, "CANCELLED")}>Remove</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Reviews — visible once the job is confirmed complete */}
+        {job.status === "CONFIRMED" && (
+          <Card>
+            <CardHeader><CardTitle>Reviews</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {isReviewParty && !myReview && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Leave a review</div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} onClick={() => setReviewRating(n)}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 0,
+                          color: n <= reviewRating ? "#f59e0b" : "#e2e8f0" }}>
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                    placeholder="Optional comment..." maxLength={1000} rows={3}
+                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+                  <Button size="sm" disabled={!reviewRating || submittingReview} onClick={submitReview}>
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </div>
+              )}
+              {reviews.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>No reviews yet.</p>
+              ) : (
+                reviews.map(r => (
+                  <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 10, borderBottom: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+                        {r.rater.name} → {r.reviewee.name}
+                      </span>
+                      <span style={{ color: "#f59e0b", fontSize: 13 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                    </div>
+                    {r.comment && <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>{r.comment}</p>}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Applicants (owner only) */}
         {isOwner && job.applications && job.applications.length > 0 && (
           <Card>
             <CardHeader><CardTitle>Applicants ({job.applications.length})</CardTitle></CardHeader>
             <CardContent>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {job.applications.map(app => (
+                {job.applications.map(app => {
+                  const wp = app.applicant.workerProfile;
+                  const pp = app.applicant.providerProfile;
+                  const rating = wp?.rating ?? pp?.averageRating ?? 0;
+                  const reviews = wp?.totalReviews ?? pp?.totalRatings ?? 0;
+                  const rate = wp?.hourlyRate;
+                  const services = (wp?.servicesOffered ?? pp?.coreServices ?? []) as string[];
+                  const skillLabels = services
+                    .map(s => JOB_CATEGORIES.find(c => c.value === s)?.label ?? s)
+                    .slice(0, 3);
+                  // Simple coverage label — derived from home suburb/state + travel radius,
+                  // no geocoding or real distance matching yet.
+                  const coverage = wp?.state
+                    ? `Covers ${wp.state}${wp.suburb ? ` (${wp.suburb}` : ""}${wp.travelRadiusKm ? `${wp.suburb ? ", " : " ("}${wp.travelRadiusKm}km radius)` : wp.suburb ? ")" : ""}`
+                    : null;
+                  return (
                   <div key={app.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                    <div style={{ flex: 1 }}>
+                    {app.applicant.avatarUrl ? (
+                      <img src={app.applicant.avatarUrl} alt={app.applicant.name} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#e2e8f0", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                        {app.applicant.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <Link href={`/profile/${app.applicantUserId}`} style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", textDecoration: "none" }} className="hover:underline">
                         {app.applicant.name}
                       </Link>
-                      <div style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                        {reviews > 0 && (
+                          <span style={{ fontSize: 12, color: "#b45309", fontWeight: 600 }}>★ {rating.toFixed(1)} ({reviews})</span>
+                        )}
+                        {rate != null && (
+                          <span style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>${Number(rate).toFixed(0)}/hr</span>
+                        )}
+                        <span style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</span>
+                      </div>
+                      {coverage && (
+                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>📍 {coverage}</div>
+                      )}
+                      {skillLabels.length > 0 && (
+                        <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 4 }}>
+                          {skillLabels.map(label => (
+                            <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: "#f1f5f9", color: "#475569" }}>{label}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "#94a3b8" }}>
                       {app.status}
@@ -336,8 +599,16 @@ export default function JobDetailPage() {
                         </Button>
                       </div>
                     )}
+                    {wp && !["DRAFT", "CANCELLED", "CONFIRMED"].includes(job.status) &&
+                      !assignments.some(a => a.workerUserId === app.applicantUserId) && (
+                      <Button size="sm" variant="outline" disabled={rosterActing}
+                        onClick={() => addToRoster(app.applicantUserId)}>
+                        + Add to Roster
+                      </Button>
+                    )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
@@ -372,6 +643,46 @@ export default function JobDetailPage() {
                 {sending ? "..." : "Send"}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Incident report — pilot safety gate */}
+        <Card>
+          <CardHeader><CardTitle>Report an issue</CardTitle></CardHeader>
+          <CardContent>
+            {flagSent ? (
+              <p style={{ fontSize: 13, color: "#16a34a" }}>Reported — an admin has been notified.</p>
+            ) : !showFlagForm ? (
+              <Button variant="ghost" onClick={() => setShowFlagForm(true)}>
+                🚩 Flag an incident
+              </Button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <select
+                  value={flagCategory}
+                  onChange={e => setFlagCategory(e.target.value)}
+                  style={{ height: 40, padding: "0 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14 }}
+                >
+                  <option value="SAFETY">Safety concern</option>
+                  <option value="NO_SHOW">No-show</option>
+                  <option value="MISCONDUCT">Misconduct</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                <textarea
+                  value={flagDescription}
+                  onChange={e => setFlagDescription(e.target.value)}
+                  placeholder="What happened? (optional)"
+                  rows={3}
+                  style={{ padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, resize: "vertical" }}
+                />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <Button onClick={submitFlag} disabled={flagging}>
+                    {flagging ? "Reporting..." : "Submit report"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setShowFlagForm(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

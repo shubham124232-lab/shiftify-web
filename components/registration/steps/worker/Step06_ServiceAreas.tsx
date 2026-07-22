@@ -105,6 +105,14 @@ export function WorkerStep06_ServiceAreas() {
             <i className="bi bi-car-front-fill" style={{ marginRight: 6 }} />
             Vehicle Details
           </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--clr-text)' }}>My vehicle has valid, current insurance</div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" {...register('insuranceValid')} style={{ width: 16, height: 16 }} />
+            </label>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={labelStyle}>Make</label>
@@ -116,7 +124,11 @@ export function WorkerStep06_ServiceAreas() {
             </div>
             <div>
               <label style={labelStyle}>Year</label>
-              <input type="number" {...register('vehicleDetails.year', { valueAsNumber: true })} placeholder="e.g. 2020" style={inputStyle} />
+              <input type="number" {...register('vehicleDetails.year', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+                placeholder="e.g. 2020" style={{ ...inputStyle, borderColor: (errors.vehicleDetails as any)?.year ? '#ef4444' : undefined }} />
+              {(errors.vehicleDetails as any)?.year && (
+                <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{(errors.vehicleDetails as any).year.message}</p>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Colour</label>

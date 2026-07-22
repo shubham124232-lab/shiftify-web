@@ -13,15 +13,18 @@ function CheckboxDeclaration({ name, label, required }: { name: string; label: s
   const checked = watch(name) as boolean;
   const error = errors[name];
   return (
-    <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
-      padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${error ? '#ef4444' : checked ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-      background: checked ? 'rgba(79,70,229,0.04)' : '#fff', transition: 'all 0.15s' }}>
-      <input type="checkbox" {...register(name)} style={{ marginTop: 2, accentColor: 'var(--clr-primary)', width: 16, height: 16, flexShrink: 0 }} />
-      <span style={{ fontSize: 13, color: 'var(--clr-text)', lineHeight: 1.5 }}>
-        {label}
-        {required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
-      </span>
-    </label>
+    <div>
+      <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
+        padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${error ? '#ef4444' : checked ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+        background: checked ? 'rgba(79,70,229,0.04)' : '#fff', transition: 'all 0.15s' }}>
+        <input type="checkbox" {...register(name)} style={{ marginTop: 2, accentColor: 'var(--clr-primary)', width: 16, height: 16, flexShrink: 0 }} />
+        <span style={{ fontSize: 13, color: 'var(--clr-text)', lineHeight: 1.5 }}>
+          {label}
+          {required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
+        </span>
+      </label>
+      {error && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 4, marginLeft: 2 }}>{error.message as string}</p>}
+    </div>
   );
 }
 

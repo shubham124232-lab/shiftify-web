@@ -60,8 +60,12 @@ export function WorkerStep08_Documents() {
 
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>Training Completed</label>
-        <Toggle label="Manual Handling Training" name="manualHandlingCompleted"
-          desc="Have you completed a manual handling / safe patient handling course?" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Toggle label="Manual Handling Training" name="manualHandlingCompleted"
+            desc="Have you completed a manual handling / safe patient handling course?" />
+          <Toggle label="Infection Control Training" name="infectionControlCompleted"
+            desc="Have you completed an infection control / prevention course?" />
+        </div>
       </div>
 
       <div>

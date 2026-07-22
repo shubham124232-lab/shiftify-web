@@ -76,6 +76,11 @@ export function PmStep05_ServiceCoverage() {
       </div>
 
       <div>
+        <label style={labelStyle}>Phone Support Hours</label>
+        <input {...register('phoneSupportHours')} placeholder="e.g. Mon–Fri 9am–5pm AEST" style={inputStyle} />
+      </div>
+
+      <div>
         <label style={labelStyle}>Operating Hours</label>
         <select {...register('operatingHours')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>

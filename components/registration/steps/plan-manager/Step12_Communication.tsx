@@ -24,16 +24,18 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 }
 
 export function PmStep12_Communication() {
-  const { register } = useFormContext();
+  const { register, formState: { errors } } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
         <label style={labelStyle}>Invoice Notification Email</label>
-        <input {...register('invoiceNotificationEmail')} type="email" placeholder="Receives alerts when invoices arrive" style={inputStyle} />
+        <input {...register('invoiceNotificationEmail')} type="email" placeholder="Receives alerts when invoices arrive" style={{ ...inputStyle, borderColor: errors.invoiceNotificationEmail ? '#ef4444' : undefined }} />
+        {errors.invoiceNotificationEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.invoiceNotificationEmail.message as string}</p>}
       </div>
       <div>
         <label style={labelStyle}>Compliance Notices Email</label>
-        <input {...register('complianceNoticesEmail')} type="email" placeholder="Receives NDIS Commission notices and audits" style={inputStyle} />
+        <input {...register('complianceNoticesEmail')} type="email" placeholder="Receives NDIS Commission notices and audits" style={{ ...inputStyle, borderColor: errors.complianceNoticesEmail ? '#ef4444' : undefined }} />
+        {errors.complianceNoticesEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.complianceNoticesEmail.message as string}</p>}
       </div>
       <div>
         <label style={labelStyle}>Escalation Contact for Failed Payments</label>

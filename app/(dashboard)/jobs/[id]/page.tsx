@@ -97,6 +97,11 @@ export default function JobDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [assignments,    setAssignments]    = useState<Assignment[]>([]);
   const [rosterActing,   setRosterActing]   = useState(false);
+  const [showFlagForm,   setShowFlagForm]   = useState(false);
+  const [flagCategory,   setFlagCategory]   = useState("SAFETY");
+  const [flagDescription, setFlagDescription] = useState("");
+  const [flagging,       setFlagging]       = useState(false);
+  const [flagSent,       setFlagSent]       = useState(false);
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +159,17 @@ export default function JobDetailPage() {
       loadMessages();
     } catch (e: any) { setError(e.message); }
     finally { setSending(false); }
+  }
+
+  async function submitFlag() {
+    setFlagging(true);
+    try {
+      await api.post(`/jobs/${id}/incidents`, { category: flagCategory, description: flagDescription.trim() || undefined });
+      setFlagSent(true);
+      setShowFlagForm(false);
+      setFlagDescription("");
+    } catch (e: any) { setError(e.message); }
+    finally { setFlagging(false); }
   }
 
   // Provider was selected on this job and needs to hand it to one of their team
@@ -627,6 +643,46 @@ export default function JobDetailPage() {
                 {sending ? "..." : "Send"}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Incident report — pilot safety gate */}
+        <Card>
+          <CardHeader><CardTitle>Report an issue</CardTitle></CardHeader>
+          <CardContent>
+            {flagSent ? (
+              <p style={{ fontSize: 13, color: "#16a34a" }}>Reported — an admin has been notified.</p>
+            ) : !showFlagForm ? (
+              <Button variant="ghost" onClick={() => setShowFlagForm(true)}>
+                🚩 Flag an incident
+              </Button>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <select
+                  value={flagCategory}
+                  onChange={e => setFlagCategory(e.target.value)}
+                  style={{ height: 40, padding: "0 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14 }}
+                >
+                  <option value="SAFETY">Safety concern</option>
+                  <option value="NO_SHOW">No-show</option>
+                  <option value="MISCONDUCT">Misconduct</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                <textarea
+                  value={flagDescription}
+                  onChange={e => setFlagDescription(e.target.value)}
+                  placeholder="What happened? (optional)"
+                  rows={3}
+                  style={{ padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, resize: "vertical" }}
+                />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <Button onClick={submitFlag} disabled={flagging}>
+                    {flagging ? "Reporting..." : "Submit report"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setShowFlagForm(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

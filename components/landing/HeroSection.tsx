@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 const trustBadges = [
+  { icon: 'bi-percent',      text: '0% Commission',   color: '#B45309' },
   { icon: 'bi-shield-check', text: 'NDIS Registered', color: '#16A34A' },
   { icon: 'bi-patch-check',  text: 'Police Checked',  color: '#2563EB' },
   { icon: 'bi-clock',        text: '24/7 Support',    color: '#7C3AED' },
@@ -118,11 +119,10 @@ export default function HeroSection() {
                   {text}
                 </div>
               ))}
-            </div>
-
-            <div className="hero-rating-card fade-up">
-              <span className="hero-rating-icon"><i className="bi bi-star-fill" aria-hidden="true" /></span>
-              <span><strong>4.9</strong>&nbsp;Rated by Providers</span>
+              <div className="hero-rating-card">
+                <span className="hero-rating-icon"><i className="bi bi-star-fill" aria-hidden="true" /></span>
+                <span><strong>4.9</strong>&nbsp;Rated by Providers</span>
+              </div>
             </div>
           </div>
 

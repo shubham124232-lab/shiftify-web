@@ -13,10 +13,6 @@ const navLinks = [
 export default function Header() {
   return (
     <>
-      <div className="topbar-announce" role="note">
-        <span className="topbar-announce-badge">0% Commission</span>
-        <span>No platform fees for your first 90 days — every dollar goes straight to your support workers.</span>
-      </div>
       <header className="site-header" role="banner">
         <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="container-xl">

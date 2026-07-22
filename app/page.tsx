@@ -9,6 +9,7 @@ import TrustSection        from '@/components/landing/TrustSection';
 import MarketplaceSection  from '@/components/landing/MarketplaceSection';
 import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import PricingSection      from '@/components/landing/PricingSection';
+import WorkerCommissionCtaSection from '@/components/landing/WorkerCommissionCtaSection';
 import FinalCTASection     from '@/components/landing/FinalCTASection';
 import Footer              from '@/components/landing/Footer';
 import EmergencyFAB        from '@/components/landing/EmergencyFAB';
@@ -21,6 +22,7 @@ export default function HomePage() {
       <UrgencyLanesSection />
       <DispatchEngineSection />
       <StoryboardSection />
+      <WorkerCommissionCtaSection />
       <EcosystemRolesSection />
       <ServicesSection />
       <TrustSection />

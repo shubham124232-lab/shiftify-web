@@ -97,7 +97,7 @@ export default function PricingSection() {
             <strong>Growth</strong> to access the network, <strong>Speed</strong> to jump the urgent queue.
           </p>
           <span className="mp-note-pill">
-            <FiCheckCircle size={13} aria-hidden="true" />
+            <FiCheckCircle size={16} aria-hidden="true" />
             0% commission per post / job — subscription only
           </span>
         </div>

@@ -28,29 +28,6 @@ export function PmStep13_Commercial() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label style={labelStyle}>Subscription Plan</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {[
-            { value: 'STARTER', label: 'Starter', desc: 'Up to 25 participants · 1 user · Basic reporting' },
-            { value: 'PROFESSIONAL', label: 'Professional', desc: 'Up to 100 participants · 5 users · Full reporting + integrations' },
-            { value: 'ENTERPRISE', label: 'Enterprise', desc: 'Unlimited participants · Unlimited users · Dedicated support' },
-          ].map(plan => {
-            return (
-              <label key={plan.value} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
-                border: `1.5px solid var(--clr-border)`, background: '#fff' }}>
-                <input type="radio" value={plan.value} {...register('subscriptionPlan')} style={{ marginTop: 3, accentColor: 'var(--clr-primary)' }} />
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{plan.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{plan.desc}</div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 6 }}>Subscription pricing confirmed on account activation. You can change plans anytime.</p>
-      </div>
-
-      <div>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 10 }}>Billing Contact</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

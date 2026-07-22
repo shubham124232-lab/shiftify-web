@@ -109,7 +109,7 @@ export default function SetupPlanPage() {
           Choose your plan
         </h1>
         <p style={{ fontSize: 14, color: 'var(--clr-muted)', textAlign: 'center', marginBottom: 40 }}>
-          All plans include a 14-day free trial. Cancel anytime.
+          Cancel anytime.
         </p>
 
         {/* Loading */}

@@ -11,9 +11,9 @@ const trustBadges = [
 ] as const;
 
 const dispatchCategories = [
-  { key: 'emergency', icon: 'bi-exclamation-triangle-fill', pillLabel: 'RIGHT NOW · < 60 MIN',        pillTitle: 'Emergency',              blurb: 'Immediate response',              href: '#emergency',   color: '#DC2626', bgActive: 'rgba(220,38,38,0.08)',  glow: 'rgba(220,38,38,0.3)'  },
-  { key: 'urgent',    icon: 'bi-alarm-fill',            pillLabel: 'TODAY · SAME-DAY FILL',           pillTitle: 'Urgent',                 blurb: 'Quick support',                   href: '#marketplace', color: '#7C3AED', bgActive: 'rgba(124,58,237,0.08)', glow: 'rgba(124,58,237,0.3)' },
-  { key: 'lastmin',   icon: 'bi-arrow-repeat',          pillLabel: 'CANCELLED SHIFT · REASSIGN FAST', pillTitle: 'Last-min cancellation',  blurb: "We'll find a replacement — fast", href: '#emergency',   color: '#EA580C', bgActive: 'rgba(234,88,12,0.08)',  glow: 'rgba(234,88,12,0.3)'  },
+  { key: 'emergency', icon: 'bi-exclamation-triangle-fill', pillLabel: 'RIGHT NOW · < 60 MIN',        pillTitle: 'Emergency Shift',              blurb: 'Immediate response',              href: '#emergency',   color: '#DC2626', bgActive: 'rgba(220,38,38,0.08)',  glow: 'rgba(220,38,38,0.3)'  },
+  { key: 'urgent',    icon: 'bi-alarm-fill',            pillLabel: 'TODAY · SAME-DAY FILL',           pillTitle: 'Urgent Shift',                 blurb: 'Quick support',                   href: '#marketplace', color: '#7C3AED', bgActive: 'rgba(124,58,237,0.08)', glow: 'rgba(124,58,237,0.3)' },
+  { key: 'lastmin',   icon: 'bi-arrow-repeat',          pillLabel: 'CANCELLED SHIFT · REASSIGN FAST', pillTitle: 'Last-min cancellation Shift',  blurb: "We'll find a replacement — fast", href: '#emergency',   color: '#EA580C', bgActive: 'rgba(234,88,12,0.08)',  glow: 'rgba(234,88,12,0.3)'  },
 ] as const;
 
 const tagColors = {

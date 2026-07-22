@@ -8,7 +8,7 @@ interface Tier {
   label: string;
   price: string;
   period: string;
-  desc: string;
+  features: string[];
   color: string;
   isPrimary?: boolean;
 }
@@ -25,18 +25,37 @@ const plans: Plan[] = [
     key: 'participants',
     tabLabel: 'Participants',
     tiers: [
-      { label: 'Free', price: '$0', period: 'forever', desc: 'Post jobs, search providers & workers, view SIL / SDA. 0% platform fee.', color: '#DB2777', isPrimary: true },
+      {
+        label: 'Free', price: '$0', period: 'always', color: '#DB2777', isPrimary: true,
+        features: [
+          'Post jobs, search providers & workers',
+          'View SIL / SDA listings',
+          'No plan or payment step, ever',
+        ],
+      },
     ],
-    footnote: 'Participants never pay to post or confirm.',
+    footnote: 'Participants are never charged — no plan, no payment step, ever.',
   },
   {
     key: 'coordinators',
     tabLabel: 'Support Coordinators',
     tiers: [
-      { label: 'Free', price: '$0', period: '5 posts / month', desc: 'Profile + 5 posts per month to get started.', color: '#059669' },
-      { label: 'Basic', price: '$49.99', period: '/month', desc: 'Unlimited jobs. Manage your whole caseload.', color: '#F97316', isPrimary: true },
-      { label: '+ Growth', price: '$29.99', period: 'add-on', desc: 'Full network access across all providers & workers.', color: '#2563EB' },
-      { label: '+ Speed', price: '$19.99', period: 'add-on', desc: 'Filter and jump straight to Available Now.', color: '#DB2777' },
+      {
+        label: 'Free', price: '$0', period: '5 posts / month', color: '#059669',
+        features: ['Profile creation', 'Registration', '5 job posts per month'],
+      },
+      {
+        label: 'Basic', price: '$49.99', period: '/month', color: '#F97316', isPrimary: true,
+        features: ['Post unlimited jobs', 'Manage participants', 'Receive applications', 'Live availability of SW and Providers'],
+      },
+      {
+        label: '+ Growth', price: '$29.99', period: 'add-on', color: '#2563EB',
+        features: ['Access to participant opportunities', 'Access to provider list', 'Access to support worker list', 'Access to plan manager list', 'View SIL / SDA listings'],
+      },
+      {
+        label: '+ Speed', price: '$19.99', period: 'add-on', color: '#DB2777',
+        features: ['Filter "Available Now" workers', 'Faster response on urgent jobs'],
+      },
     ],
     footnote: 'Add-ons stack onto Basic. No commission per job.',
   },
@@ -44,31 +63,63 @@ const plans: Plan[] = [
     key: 'providers',
     tabLabel: 'Providers',
     tiers: [
-      { label: 'Free', price: '$0', period: 'browse only', desc: 'View fill-rate benchmarks before you commit.', color: '#059669' },
-      { label: 'Basic', price: '$99.99', period: '/month', desc: 'Post shifts, apply, receive apps, SIL/SDA listings.', color: '#0D9488', isPrimary: true },
-      { label: '+ Growth', price: '$39.99', period: 'add-on', desc: 'Full network access to every worker on the platform.', color: '#2563EB' },
-      { label: '+ Speed', price: '$29.99', period: 'add-on', desc: 'Urgent replacement filling when a shift falls through.', color: '#DB2777' },
-      { label: 'Platinum', price: '$399–599', period: '/ 30 days', desc: 'Featured tile placement. Only 3 spots per surface.', color: '#7C3AED' },
+      {
+        label: 'Basic', price: '$99.99', period: '/month', color: '#0D9488', isPrimary: true,
+        features: ['Access listings', 'Post jobs (replacement staff / shifts)', 'Be visible on platform (SC / PM / Participants)', 'Show Live Availability'],
+      },
+      {
+        label: '+ Growth', price: '$39.99', period: 'add-on', color: '#2563EB',
+        features: ['Access to participant opportunities', 'Access to support worker list', 'Access to support coordinator list', 'Access to plan manager list'],
+      },
+      {
+        label: '+ Speed', price: '$29.99', period: 'add-on', color: '#DB2777',
+        features: ['Access to "Available Now" support workers and participants', 'Faster replacement staff filling', 'Priority in urgent staffing'],
+      },
+      {
+        label: 'SIL / SDA Listing', price: '$99–199', period: '/ 30 days', color: '#7C3AED',
+        features: ['Post vacancy'],
+      },
+      {
+        label: 'Platinum Tile', price: '$399–599', period: '/ 30 days', color: '#DC2626',
+        features: ['Top placement on SDA/SIL board', 'Top placement on main page', 'Only first 3 listings shown'],
+      },
     ],
-    footnote: 'No per-job commission on any tier.',
+    footnote: 'No per-job commission on any tier. Only the first 3 Platinum Tile listings are shown at any time.',
   },
   {
     key: 'workers',
     tabLabel: 'Support Workers',
     tiers: [
-      { label: 'Free', price: '$0', period: '5 applications / month', desc: 'Profile + 5 applications per month.', color: '#059669' },
-      { label: 'Basic', price: '$49.99', period: '/month', desc: 'Unlimited applications & messaging.', color: '#059669', isPrimary: true },
-      { label: '+ Available Now', price: '$24.99', period: 'add-on', desc: 'Priority placement on urgent jobs nearby.', color: '#DB2777' },
+      {
+        label: 'Free', price: '$0', period: '5 applications / month', color: '#059669',
+        features: ['Profile creation', 'Registration', 'Visible on platform', 'Receive job invites', 'Apply to 5 jobs per month'],
+      },
+      {
+        label: 'Basic', price: '$49.99', period: '/month', color: '#059669', isPrimary: true,
+        features: ['Apply to unlimited jobs', 'Access all job postings', 'Messaging access', 'Show live availability (normal schedule)'],
+      },
+      {
+        label: '+ Available Now', price: '$24.99', period: 'add-on', color: '#DB2777',
+        features: ['Mark themselves as "Available Now"', 'Priority in urgent jobs', 'Higher chance of being selected for last-minute shifts'],
+      },
     ],
-    footnote: 'Free tier stays free forever. You keep 100% of your rate.',
+    footnote: 'Free tier stays free forever. 0% commission — you keep 100% of your pay.',
   },
   {
     key: 'planmanagers',
     tabLabel: 'Plan Managers',
     tiers: [
-      { label: 'Flat', price: '$19.99', period: '/month', desc: 'Profile + visibility. Receive connection requests. Connect with SC & providers. View providers & SIL/SDA.', color: '#EC4899', isPrimary: true },
+      {
+        label: 'Basic', price: '$19.99', period: '/month', color: '#EC4899', isPrimary: true,
+        features: [
+          'Create profile',
+          'Be visible to Support Coordinators, Providers & Participants',
+          'Receive connection / enquiry requests',
+          'Accept / reject connection requests',
+        ],
+      },
     ],
-    footnote: 'No job posting, no database access.',
+    footnote: 'Limited, connection-based visibility only — no open browsing or database access.',
   },
 ];
 
@@ -132,7 +183,14 @@ export default function PricingSection() {
                     <span className="mp-tier-price">{t.price}</span>
                     <span className="mp-tier-period">{t.period}</span>
                   </div>
-                  <p className="mp-tier-desc">{t.desc}</p>
+                  <ul className="mp-tier-features">
+                    {t.features.map((f) => (
+                      <li key={f}>
+                        <FiCheckCircle size={14} style={{ color: t.color, flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               );
             })}

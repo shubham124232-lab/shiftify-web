@@ -16,9 +16,9 @@ const listings = [
 
 const filters = [
   { key: 'all',       label: 'All',                     icon: 'bi-grid-fill',              color: '#1A1A2E' },
-  { key: 'emergency', label: 'Emergency',                icon: 'bi-lightning-charge-fill',  color: '#DC2626' },
-  { key: 'urgent',    label: 'Urgent',                   icon: 'bi-alarm-fill',             color: '#7C3AED' },
-  { key: 'lastmin',   label: 'Last-min cancellation',    icon: 'bi-arrow-repeat',           color: '#EA580C' },
+  { key: 'emergency', label: 'Emergency Shift',          icon: 'bi-lightning-charge-fill',  color: '#DC2626' },
+  { key: 'urgent',    label: 'Urgent Shift',             icon: 'bi-alarm-fill',             color: '#7C3AED' },
+  { key: 'lastmin',   label: 'Last-min cancellation Shift', icon: 'bi-arrow-repeat',        color: '#EA580C' },
 ] as const;
 
 export default function MarketplaceSection() {
@@ -107,7 +107,7 @@ export default function MarketplaceSection() {
                 {item.type === 'emergency' && (
                   <div className="badge-emergency mb-3" role="status">
                     <span style={{ width: 6, height: 6, background: '#B91C1C', borderRadius: '50%', animation: 'blink 1s infinite' }} aria-hidden="true" />
-                    Emergency
+                    Emergency Shift
                   </div>
                 )}
                 <div className="flex items-start justify-between mb-3">

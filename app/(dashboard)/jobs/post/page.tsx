@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { JOB_CATEGORIES, CATEGORY_GROUPS } from "@/lib/constants/categories";
 import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
 import { cn } from "@/lib/utils";
@@ -795,6 +796,7 @@ export default function PostJobWizard() {
   const [participants, setParticipants] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [submittedJobId, setSubmittedJobId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -906,7 +908,11 @@ export default function PostJobWizard() {
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
       setSubmittedJobId(res.job.id);
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message ?? "Failed to post request.");
+      if (err instanceof ApiError && (err.code === "SUBSCRIPTION_LIMIT" || err.code === "SUBSCRIPTION_REQUIRED")) {
+        setUpgradeMessage(err.message);
+      } else {
+        setError((err as { message?: string })?.message ?? "Failed to post request.");
+      }
     } finally { setSaving(false); }
   }
 
@@ -982,6 +988,7 @@ export default function PostJobWizard() {
           ))}
         </div>
 
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
         )}

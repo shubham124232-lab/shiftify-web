@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -314,6 +315,7 @@ export default function JobsBrowsePage() {
   const [total,   setTotal]   = useState(0);
   const [page,    setPage]    = useState(1);
   const [error,   setError]   = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
@@ -356,10 +358,17 @@ export default function JobsBrowsePage() {
 
   async function handleApply(id: string) {
     setApplying(id);
+    setUpgradeMessage(null);
     try {
       await api.post(`/jobs/${id}/apply`, {});
       load(appliedFilters, page);
-    } catch (e: unknown) { setError((e as { message?: string })?.message ?? "Apply failed."); }
+    } catch (e: unknown) {
+      if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
+        setUpgradeMessage(e.message);
+      } else {
+        setError((e as { message?: string })?.message ?? "Apply failed.");
+      }
+    }
     finally { setApplying(null); }
   }
 
@@ -375,6 +384,7 @@ export default function JobsBrowsePage() {
         actions={canPost ? <Link href="/jobs/post"><Button>+ Post a Request</Button></Link> : undefined}
       />
       <div className="mx-auto max-w-6xl px-5 py-6">
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex gap-8">
           <div className="hidden lg:block">

@@ -1,70 +1,203 @@
 // components/landing/PricingSection.tsx
-const plans = [
+'use client';
+
+import { useState } from 'react';
+import { FiCheckCircle } from 'react-icons/fi';
+
+interface Tier {
+  label: string;
+  price: string;
+  period: string;
+  features: string[];
+  color: string;
+  isPrimary?: boolean;
+}
+
+interface Plan {
+  key: string;
+  tabLabel: string;
+  tiers: Tier[];
+  footnote: string;
+}
+
+const plans: Plan[] = [
   {
-    name: 'Participant', price: 'Free', period: '', featured: false, cta: 'Get Started Free', href: '/register',
-    desc: 'For NDIS participants finding support.',
-    features: ['Browse all support workers', 'Unlimited shift requests', 'Emergency shift access', 'Secure in-app messaging', 'NDIS budget tracking', 'Ratings & reviews'],
+    key: 'participants',
+    tabLabel: 'Participants',
+    tiers: [
+      {
+        label: 'Free', price: '$0', period: 'always', color: '#DB2777', isPrimary: true,
+        features: [
+          'Post jobs, search providers & workers',
+          'View SIL / SDA listings',
+          'No plan or payment step, ever',
+        ],
+      },
+    ],
+    footnote: 'Participants are never charged — no plan, no payment step, ever.',
   },
   {
-    name: 'Worker Pro', price: '$29', period: '/month', featured: true, badge: 'Most Popular', cta: 'Start Free Trial', href: '/register',
-    desc: 'For support workers who want to grow fast.',
-    features: ['Everything in Free', 'Priority listing in search', 'Urgent shift push notifications', 'NDIS-compliant invoicing', 'Earnings dashboard & analytics', 'Profile verification badge', 'Early access to new shifts', 'Dedicated support chat'],
+    key: 'coordinators',
+    tabLabel: 'Support Coordinators',
+    tiers: [
+      {
+        label: 'Free', price: '$0', period: '5 posts / month', color: '#059669',
+        features: ['Profile creation', 'Registration', '5 job posts per month'],
+      },
+      {
+        label: 'Basic', price: '$49.99', period: '/month', color: '#F97316', isPrimary: true,
+        features: ['Post unlimited jobs', 'Manage participants', 'Receive applications', 'Live availability of SW and Providers'],
+      },
+      {
+        label: '+ Growth', price: '$29.99', period: 'add-on', color: '#2563EB',
+        features: ['Access to participant opportunities', 'Access to provider list', 'Access to support worker list', 'Access to plan manager list', 'View SIL / SDA listings'],
+      },
+      {
+        label: '+ Speed', price: '$19.99', period: 'add-on', color: '#DB2777',
+        features: ['Filter "Available Now" workers', 'Faster response on urgent jobs'],
+      },
+    ],
+    footnote: 'Add-ons stack onto Basic. No commission per job.',
   },
   {
-    name: 'Provider', price: '$149', period: '/month', featured: false, cta: 'Contact Sales', href: '/register',
-    desc: 'For NDIS-registered organisations and agencies.',
-    features: ['Everything in Worker Pro', 'Verified Provider badge', 'Team management (unlimited workers)', 'Bulk shift publishing', 'Advanced analytics & reports', 'Compliance documentation', 'Branded provider profile', 'Dedicated account manager'],
+    key: 'providers',
+    tabLabel: 'Providers',
+    tiers: [
+      {
+        label: 'Basic', price: '$99.99', period: '/month', color: '#0D9488', isPrimary: true,
+        features: ['Access listings', 'Post jobs (replacement staff / shifts)', 'Be visible on platform (SC / PM / Participants)', 'Show Live Availability'],
+      },
+      {
+        label: '+ Growth', price: '$39.99', period: 'add-on', color: '#2563EB',
+        features: ['Access to participant opportunities', 'Access to support worker list', 'Access to support coordinator list', 'Access to plan manager list'],
+      },
+      {
+        label: '+ Speed', price: '$29.99', period: 'add-on', color: '#DB2777',
+        features: ['Access to "Available Now" support workers and participants', 'Faster replacement staff filling', 'Priority in urgent staffing'],
+      },
+      {
+        label: 'SIL / SDA Listing', price: '$99–199', period: '/ 30 days', color: '#7C3AED',
+        features: ['Post vacancy'],
+      },
+      {
+        label: 'Platinum Tile', price: '$399–599', period: '/ 30 days', color: '#DC2626',
+        features: ['Top placement on SDA/SIL board', 'Top placement on main page', 'Only first 3 listings shown'],
+      },
+    ],
+    footnote: 'No per-job commission on any tier. Only the first 3 Platinum Tile listings are shown at any time.',
   },
+  {
+    key: 'workers',
+    tabLabel: 'Support Workers',
+    tiers: [
+      {
+        label: 'Free', price: '$0', period: '5 applications / month', color: '#059669',
+        features: ['Profile creation', 'Registration', 'Visible on platform', 'Receive job invites', 'Apply to 5 jobs per month'],
+      },
+      {
+        label: 'Basic', price: '$49.99', period: '/month', color: '#059669', isPrimary: true,
+        features: ['Apply to unlimited jobs', 'Access all job postings', 'Messaging access', 'Show live availability (normal schedule)'],
+      },
+      {
+        label: '+ Available Now', price: '$24.99', period: 'add-on', color: '#DB2777',
+        features: ['Mark themselves as "Available Now"', 'Priority in urgent jobs', 'Higher chance of being selected for last-minute shifts'],
+      },
+    ],
+    footnote: 'Free tier stays free forever. 0% commission — you keep 100% of your pay.',
+  },
+  {
+    key: 'planmanagers',
+    tabLabel: 'Plan Managers',
+    tiers: [
+      {
+        label: 'Basic', price: '$19.99', period: '/month', color: '#EC4899', isPrimary: true,
+        features: [
+          'Create profile',
+          'Be visible to Support Coordinators, Providers & Participants',
+          'Receive connection / enquiry requests',
+          'Accept / reject connection requests',
+        ],
+      },
+    ],
+    footnote: 'Limited, connection-based visibility only — no open browsing or database access.',
+  },
+];
+
+const legend = [
+  { tag: 'FREE',  label: 'Entry',          color: '#059669' },
+  { tag: 'BASIC', label: 'Operate',        color: '#F97316' },
+  { tag: 'GROWTH',label: 'Access network', color: '#2563EB' },
+  { tag: 'SPEED', label: 'Urgent action',  color: '#DB2777' },
 ] as const;
 
 export default function PricingSection() {
+  const [activeKey, setActiveKey] = useState('providers');
+  const active = plans.find((p) => p.key === activeKey) ?? plans[0];
+
   return (
-    <section id="pricing" className="section-py" aria-labelledby="pricing-heading">
+    <section id="pricing" className="section-py master-pricing-bg" aria-labelledby="pricing-heading">
       <div className="container-xl">
-        <div className="text-center mb-10 fade-up">
-          <span className="section-label">Pricing</span>
-          <h2 id="pricing-heading" className="section-title">Simple, Transparent Pricing</h2>
-          <p className="section-sub">
-            No hidden fees. No surprises. Participants always free — workers and providers pay only for premium tools.
+
+        <div className="text-center mb-6 fade-up">
+          <span className="section-label">Master Pricing · All Roles</span>
+          <h2 id="pricing-heading" className="section-title">
+            Free to <em style={{ fontStyle: 'italic', color: 'var(--clr-primary)' }}>enter</em>. Pay only for reach and speed.
+          </h2>
+          <p className="section-sub" style={{ maxWidth: 640, margin: '0 auto 20px' }}>
+            Four levers: <strong>Free</strong> to enter, <strong>Basic</strong> to operate,{' '}
+            <strong>Growth</strong> to access the network, <strong>Speed</strong> to jump the urgent queue.
           </p>
+          <span className="mp-note-pill">
+            <FiCheckCircle size={16} aria-hidden="true" />
+            0% commission per post / job — subscription only
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start justify-center">
-          {plans.map((plan) => (
-            <div key={plan.name} className="fade-up">
-              <div className={`pricing-card${plan.featured ? ' featured' : ''}`}>
-                {'badge' in plan && plan.badge && (
-                  <div style={{ background: 'var(--clr-primary)', color: '#fff', fontSize: 12, fontWeight: 800, padding: '5px 16px', borderRadius: 100, display: 'inline-block', marginBottom: 18, letterSpacing: 0.5 }} aria-label="Most popular plan">
-                    {plan.badge}
-                  </div>
-                )}
-                <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--clr-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-                  {plan.name}
-                </h3>
-                <div className="flex items-end gap-1 mb-2">
-                  <div className="pricing-price" style={{ color: plan.featured ? 'var(--clr-primary)' : 'var(--clr-text)' }}>{plan.price}</div>
-                  {plan.period && <span style={{ fontSize: 16, color: 'var(--clr-muted)', fontWeight: 600, marginBottom: 8 }}>{plan.period}</span>}
-                </div>
-                <p style={{ fontSize: 14, color: 'var(--clr-muted)', marginBottom: 24, lineHeight: 1.65 }}>{plan.desc}</p>
-                <a href={plan.href} className={`w-full mb-4 ${plan.featured ? 'btn-shiftify' : 'btn-outline-shiftify'}`} style={{ fontSize: 15, padding: '13px 0', justifyContent: 'center', display: 'flex' }}>
-                  {plan.cta}
-                </a>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {plan.features.map((f) => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10, fontSize: 14, color: 'var(--clr-text)' }}>
-                      <i className="bi bi-check-circle-fill feature-check" style={{ color: plan.featured ? 'var(--clr-primary)' : '#16A34A', flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+        <div className="mp-tabs fade-up" role="tablist" aria-label="Pricing by role">
+          {plans.map((p) => (
+            <button
+              key={p.key}
+              role="tab"
+              aria-selected={activeKey === p.key}
+              onClick={() => setActiveKey(p.key)}
+              className={`mp-tab-btn${activeKey === p.key ? ' active' : ''}`}
+            >
+              {p.tabLabel} <span className="mp-tab-count">{plans.find((pl) => pl.key === p.key)!.tiers.length}</span>
+            </button>
           ))}
         </div>
 
-        <p className="text-center mt-4 fade-up" style={{ fontSize: 13, color: 'var(--clr-muted)' }}>
-          All plans include a 14-day free trial. No credit card required. Cancel anytime.
-        </p>
+        <div key={active.key}>
+          <div className="mp-tier-grid">
+            {active.tiers.map((t) => {
+              const tagInfo = legend.find((l) => l.tag === t.label.replace('+ ', '').toUpperCase());
+              return (
+                <div key={t.label} className={`mp-tier-card${t.isPrimary ? ' primary' : ''}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="mp-tier-label" style={{ color: t.isPrimary ? '#fff' : t.color, background: t.isPrimary ? `${t.color}33` : `${t.color}14` }}>
+                      {t.label}
+                    </span>
+                    {tagInfo && <span className="mp-tier-tagline">{tagInfo.label}</span>}
+                  </div>
+                  <div className="flex items-end gap-1 my-3">
+                    <span className="mp-tier-price">{t.price}</span>
+                    <span className="mp-tier-period">{t.period}</span>
+                  </div>
+                  <ul className="mp-tier-features">
+                    {t.features.map((f) => (
+                      <li key={f}>
+                        <FiCheckCircle size={14} style={{ color: t.color, flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mp-footnote">{active.footnote}</p>
+        </div>
+
       </div>
     </section>
   );

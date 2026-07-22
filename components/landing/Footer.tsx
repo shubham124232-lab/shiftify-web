@@ -99,7 +99,7 @@ export default function Footer() {
                 <p style={{ margin: 0 }}>
                   © {new Date().getFullYear()} Shiftify Pty Ltd. All rights reserved. ABN: 12 345 678 901
                 </p>
-                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+                <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'rgba(26,26,46,0.4)' }}>
                   Shiftify connects participants with registered providers and workers.
                 </p>
               </div>

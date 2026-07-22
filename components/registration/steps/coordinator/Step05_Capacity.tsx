@@ -17,6 +17,32 @@ const AVAILABILITY_TYPES = [
   { value: 'EMERGENCY_AVAILABLE',  label: 'Emergency Availability' },
 ];
 
+function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {
+  const { register, watch } = useFormContext();
+  const val = watch(name) as boolean;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px',
+      border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
+        {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
+        <div style={{
+          width: 42, height: 24, borderRadius: 12, transition: 'background 0.2s',
+          background: val ? '#DC2626' : 'var(--clr-border)', position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18,
+            borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          }} />
+        </div>
+      </label>
+    </div>
+  );
+}
+
 export function CoordStep05_Capacity() {
   const { register, watch, formState: { errors } } = useFormContext();
   const status = watch('currentCapacityStatus') as string;
@@ -63,6 +89,13 @@ export function CoordStep05_Capacity() {
         </select>
         {errors.availabilityType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.availabilityType.message as string}</p>}
       </div>
+
+      {/* Public listing */}
+      <Toggle
+        label="Post my profile publicly"
+        name="isPubliclyListed"
+        desc="Let participants browse and reach out to you directly"
+      />
 
     </div>
   );

@@ -99,6 +99,7 @@ export default function ProfilePage() {
   const [success,    setSuccess]    = useState(false);
   const [profile,    setProfile]    = useState<any>(null);
   const [completion, setCompletion] = useState<number>(0);
+  const [completionMissing, setCompletionMissing] = useState<string[]>([]);
 
   useEffect(() => {
     // Guard lives inside the effect — fires on every mount and activeRole change,
@@ -112,7 +113,7 @@ export default function ProfilePage() {
     setPhoneVerified(!!(user as any).phoneVerified);
 
     // Load full user (includes embedded role profile)
-    api.get<{ user: any; profileCompletion: number }>("/users/me")
+    api.get<{ user: any; profileCompletion: number; completionMissing: string[] }>("/users/me")
       .then(res => {
         const u = res.user;
         if (
@@ -129,6 +130,7 @@ export default function ProfilePage() {
         setPhone(u.phone ?? "");
         setAvatarUrl(u.avatarUrl ?? null);
         setCompletion(res.profileCompletion ?? 0);
+        setCompletionMissing(res.completionMissing ?? []);
         setPhoneVerified(!!u.phoneVerified);
         // Pick profile for the current active role only (multi-role users have multiple profiles)
         const profileByRole: Record<string, any> = {
@@ -323,6 +325,16 @@ export default function ProfilePage() {
               <div style={{ height: 6, borderRadius: 6, background: "#e2e8f0" }}>
                 <div style={{ height: 6, borderRadius: 6, width: `${completion}%`, background: completion >= 80 ? "#16a34a" : "#f59e0b", transition: "width 0.3s" }} />
               </div>
+              {completionMissing.length > 0 && (
+                <ul style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {completionMissing.map((label) => (
+                    <li key={label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#64748b" }}>
+                      <span style={{ width: 14, height: 14, borderRadius: 4, border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 

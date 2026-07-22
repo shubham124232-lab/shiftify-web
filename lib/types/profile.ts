@@ -62,6 +62,10 @@ export interface WorkerProfileData {
   disabilityExperience?:      string[];
   availabilityType?:          AvailabilityType;
   emergencyAvailability?:     boolean;
+  acceptsSleepoverShifts?:    boolean;
+  acceptsActiveOvernightShifts?: boolean;
+  isPubliclyListed?:          boolean;
+  listingHeadline?:           string;
   serviceAreas?:              string[];
   travelRadiusKm?:            number;
   hasVehicle?:                boolean;

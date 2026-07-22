@@ -42,6 +42,17 @@ interface JobDetail {
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
+interface Review {
+  id: string; raterUserId: string; revieweeUserId: string;
+  rating: number; comment: string | null; createdAt: string;
+  rater: { id: string; name: string; avatarUrl?: string | null };
+  reviewee: { id: string; name: string; avatarUrl?: string | null };
+}
+interface Assignment {
+  id: string; requestId: string; workerUserId: string;
+  status: "ASSIGNED" | "COMPLETED" | "CANCELLED"; assignedAt: string;
+  workerUser: { id: string; name: string; avatarUrl?: string | null };
+}
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   OPEN:        { bg: "#dbeafe", color: "#1d4ed8" },
@@ -80,6 +91,12 @@ export default function JobDetailPage() {
   const [teamWorkers,    setTeamWorkers]    = useState<TeamWorker[]>([]);
   const [pickedWorkerId, setPickedWorkerId] = useState("");
   const [assigning,      setAssigning]      = useState(false);
+  const [reviews,        setReviews]        = useState<Review[]>([]);
+  const [reviewRating,   setReviewRating]   = useState(0);
+  const [reviewComment,  setReviewComment]  = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [assignments,    setAssignments]    = useState<Assignment[]>([]);
+  const [rosterActing,   setRosterActing]   = useState(false);
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +112,19 @@ export default function JobDetailPage() {
       .catch(() => {});
   }
 
+  function loadReviews() {
+    api.get<{ reviews: Review[] }>(`/jobs/${id}/reviews`)
+      .then(r => setReviews(r.reviews ?? []))
+      .catch(() => {});
+  }
+
+  function loadAssignments() {
+    // 403s for users with no roster access (not the poster, not on the roster) — ignore silently.
+    api.get<{ assignments: Assignment[] }>(`/jobs/${id}/assignments`)
+      .then(r => setAssignments(r.assignments ?? []))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -102,6 +132,8 @@ export default function JobDetailPage() {
   useEffect(() => {
     loadJob().finally(() => setLoading(false));
     loadMessages();
+    loadReviews();
+    loadAssignments();
     pollRef.current = setInterval(loadMessages, 30_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -145,6 +177,36 @@ export default function JobDetailPage() {
     finally { setActing(false); }
   }
 
+  async function submitReview() {
+    if (!reviewRating) return;
+    setSubmittingReview(true);
+    try {
+      await api.post(`/jobs/${id}/reviews`, { rating: reviewRating, comment: reviewComment.trim() || undefined });
+      setReviewRating(0);
+      setReviewComment("");
+      loadReviews();
+    } catch (e: any) { setError(e.message); }
+    finally { setSubmittingReview(false); }
+  }
+
+  async function addToRoster(workerUserId: string) {
+    setRosterActing(true);
+    try {
+      await api.post(`/jobs/${id}/assignments`, { workerUserId });
+      loadAssignments();
+    } catch (e: any) { setError(e.message); }
+    finally { setRosterActing(false); }
+  }
+
+  async function updateAssignment(assignmentId: string, status: "COMPLETED" | "CANCELLED") {
+    setRosterActing(true);
+    try {
+      await api.patch(`/jobs/${id}/assignments/${assignmentId}/status`, { status });
+      loadAssignments();
+    } catch (e: any) { setError(e.message); }
+    finally { setRosterActing(false); }
+  }
+
   async function appAction(applicationId: string, action: "select" | "shortlist" | "decline" | "withdraw") {
     setActing(true);
     try {
@@ -170,6 +232,9 @@ export default function JobDetailPage() {
     job.status === "ASSIGNED" &&
     job.selectedApplicant?.id === user?.id &&
     !job.assignedWorker;
+  const workerPartyId = job.assignedWorker?.id ?? job.selectedApplicant?.id;
+  const isReviewParty = job.status === "CONFIRMED" && (user?.id === job.postedBy.id || user?.id === workerPartyId);
+  const myReview = reviews.find(r => r.raterUserId === user?.id);
 
   return (
     <>
@@ -371,6 +436,77 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        {/* Job Roster — additional workers beyond the single assigned-worker flow */}
+        {(isOwner || assignments.some(a => a.workerUserId === user?.id)) && assignments.length > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Job Roster</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {assignments.map(a => (
+                <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 12px", border: "1px solid #f1f5f9", borderRadius: 8 }}>
+                  <span style={{ fontSize: 13, color: "#374151" }}>{a.workerUser.name}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color:
+                      a.status === "COMPLETED" ? "#15803d" : a.status === "CANCELLED" ? "#b91c1c" : "#854d0e" }}>
+                      {a.status}
+                    </span>
+                    {a.status === "ASSIGNED" && a.workerUserId === user?.id && (
+                      <Button size="sm" variant="outline" disabled={rosterActing} onClick={() => updateAssignment(a.id, "COMPLETED")}>Mark Complete</Button>
+                    )}
+                    {a.status === "ASSIGNED" && isOwner && (
+                      <Button size="sm" variant="outline" disabled={rosterActing} onClick={() => updateAssignment(a.id, "CANCELLED")}>Remove</Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Reviews — visible once the job is confirmed complete */}
+        {job.status === "CONFIRMED" && (
+          <Card>
+            <CardHeader><CardTitle>Reviews</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {isReviewParty && !myReview && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Leave a review</div>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} onClick={() => setReviewRating(n)}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 0,
+                          color: n <= reviewRating ? "#f59e0b" : "#e2e8f0" }}>
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
+                    placeholder="Optional comment..." maxLength={1000} rows={3}
+                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+                  <Button size="sm" disabled={!reviewRating || submittingReview} onClick={submitReview}>
+                    {submittingReview ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </div>
+              )}
+              {reviews.length === 0 ? (
+                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>No reviews yet.</p>
+              ) : (
+                reviews.map(r => (
+                  <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 10, borderBottom: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+                        {r.rater.name} → {r.reviewee.name}
+                      </span>
+                      <span style={{ color: "#f59e0b", fontSize: 13 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                    </div>
+                    {r.comment && <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>{r.comment}</p>}
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Applicants (owner only) */}
         {isOwner && job.applications && job.applications.length > 0 && (
           <Card>
@@ -446,6 +582,13 @@ export default function JobDetailPage() {
                           Decline
                         </Button>
                       </div>
+                    )}
+                    {wp && !["DRAFT", "CANCELLED", "CONFIRMED"].includes(job.status) &&
+                      !assignments.some(a => a.workerUserId === app.applicantUserId) && (
+                      <Button size="sm" variant="outline" disabled={rosterActing}
+                        onClick={() => addToRoster(app.applicantUserId)}>
+                        + Add to Roster
+                      </Button>
                     )}
                   </div>
                   );

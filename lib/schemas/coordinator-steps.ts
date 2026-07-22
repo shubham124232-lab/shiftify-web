@@ -50,6 +50,7 @@ export const coordStep5Schema = z.object({
   currentCapacityStatus: z.string().optional(),
   maxParticipantLoad:    z.number().int().min(0).max(200).optional(),
   availabilityType:      z.string().optional(),
+  isPubliclyListed:      z.boolean().optional(),
 });
 
 // Step 6 — Plan Management Handling
@@ -60,8 +61,9 @@ export const coordStep6Schema = z.object({
 
 // Step 7 — Rates & Commercials
 export const coordStep7Schema = z.object({
-  hourlyRate:    z.number().min(0).max(9999).optional(),
-  travelCharges: z.string().optional(),
+  hourlyRate:       z.number().min(0).max(9999).optional(),
+  travelCharges:    z.string().optional(),
+  showRatePublicly: z.boolean().optional(),
 });
 
 // Step 8 — Profile & Trust Layer

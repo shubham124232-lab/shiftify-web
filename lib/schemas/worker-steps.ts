@@ -48,6 +48,10 @@ export const workerStep5Schema = z.object({
     required_error: 'Availability type is required',
   }),
   emergencyAvailability: z.boolean().optional(),
+  acceptsSleepoverShifts: z.boolean().optional(),
+  acceptsActiveOvernightShifts: z.boolean().optional(),
+  isPubliclyListed:      z.boolean().optional(),
+  listingHeadline:       z.string().max(140).optional(),
   minimumShiftHours:     z.number().min(0).max(24).optional(),
   availability:          z.array(z.object({
     dayOfWeek: z.enum(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']),

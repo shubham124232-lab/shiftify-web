@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { UserRole } from "@/lib/types";
 
 interface Connection {
@@ -19,6 +20,7 @@ export default function ConnectionsPage() {
   const [conns,   setConns]   = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [userId,  setUserId]  = useState("");
   const [sending, setSending] = useState(false);
   const [acting,  setActing]  = useState<string | null>(null);
@@ -46,12 +48,19 @@ export default function ConnectionsPage() {
     finally { setSending(false); }
   }
 
-  async function respond(id: string, action: "accept" | "decline") {
+  async function respond(id: string, action: "ACCEPT" | "DECLINE") {
     setActing(id);
+    setError(null); setUpgradeMessage(null);
     try {
       await api.patch(`/pm/connections/${id}/respond`, { action });
       load();
-    } catch (err: any) { setError(err?.message); }
+    } catch (err: unknown) {
+      if (err instanceof ApiError && (err.code === "SUBSCRIPTION_LIMIT" || err.code === "SUBSCRIPTION_REQUIRED")) {
+        setUpgradeMessage(err.message);
+      } else {
+        setError((err as { message?: string })?.message ?? "Action failed.");
+      }
+    }
     finally { setActing(null); }
   }
 
@@ -91,6 +100,7 @@ export default function ConnectionsPage() {
           </CardContent>
         </Card>
 
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>{error}</div>}
 
         {/* Pending */}
@@ -104,8 +114,8 @@ export default function ConnectionsPage() {
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{c.participant.name}</div>
                     <div style={{ fontSize: 12, color: "#94a3b8" }}>{c.participant.email ?? "No email"}</div>
                   </div>
-                  <Button size="sm" disabled={acting === c.id} onClick={() => respond(c.id, "accept")}>Accept</Button>
-                  <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respond(c.id, "decline")}>Decline</Button>
+                  <Button size="sm" disabled={acting === c.id} onClick={() => respond(c.id, "ACCEPT")}>Accept</Button>
+                  <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respond(c.id, "DECLINE")}>Decline</Button>
                 </div>
               ))}
             </CardContent>

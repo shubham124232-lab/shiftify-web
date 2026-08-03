@@ -11,6 +11,7 @@ import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { createSavedSearch, type SavedSearchFilters } from "@/lib/api/saved-searches";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,13 +97,26 @@ const defaultFilters: Filters = {
 const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
 const lbl = "block text-xs font-semibold text-slate-600 mb-1";
 
+function toSavedSearchFilters(f: Filters): SavedSearchFilters {
+  const out: SavedSearchFilters = {};
+  if (f.suburb)      out.suburb = f.suburb;
+  if (f.category)    out.category = f.category;
+  if (f.urgency)     out.urgency = f.urgency;
+  if (f.shiftType)   out.shiftType = f.shiftType;
+  if (f.fundingType) out.fundingType = f.fundingType;
+  if (f.isRecurring !== "") out.isRecurring = f.isRecurring === "true";
+  return out;
+}
+
 function FilterSidebar({
-  filters, onChange, onReset, onApply,
+  filters, onChange, onReset, onApply, onSave, saving,
 }: {
   filters: Filters;
   onChange: (f: Partial<Filters>) => void;
   onReset: () => void;
   onApply: () => void;
+  onSave?: () => void;
+  saving?: boolean;
 }) {
   return (
     <aside className="w-full lg:w-64 shrink-0 space-y-4">
@@ -220,6 +234,11 @@ function FilterSidebar({
       </div>
 
       <Button className="w-full" onClick={onApply}>Apply Filters</Button>
+      {onSave && (
+        <Button className="w-full" variant="outline" onClick={onSave} disabled={saving}>
+          {saving ? "Saving…" : "🔔 Save this search"}
+        </Button>
+      )}
     </aside>
   );
 }
@@ -320,6 +339,8 @@ export default function JobsBrowsePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
   const [appliedFilters, setAppliedFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
+  const [savingSearch, setSavingSearch] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
@@ -356,6 +377,19 @@ export default function JobsBrowsePage() {
   function applyFilters() { setAppliedFilters({ ...filters }); setPage(1); setShowFilters(false); }
   function resetFilters()  { setFilters(defaultFilters); setAppliedFilters(defaultFilters); setPage(1); }
 
+  async function handleSaveSearch() {
+    setSavingSearch(true);
+    setSaveMessage(null);
+    try {
+      await createSavedSearch(undefined, toSavedSearchFilters(appliedFilters));
+      setSaveMessage("Saved — we'll notify you when a matching job is posted.");
+    } catch (e: unknown) {
+      setSaveMessage((e as { message?: string })?.message ?? "Could not save this search.");
+    } finally {
+      setSavingSearch(false);
+    }
+  }
+
   async function handleApply(id: string) {
     setApplying(id);
     setUpgradeMessage(null);
@@ -381,17 +415,24 @@ export default function JobsBrowsePage() {
       <PageHeader
         title="Browse Jobs"
         description={`${total} open support request${total !== 1 ? "s" : ""}`}
-        actions={canPost ? <Link href="/jobs/post"><Button>+ Post a Request</Button></Link> : undefined}
+        actions={
+          <div className="flex gap-2">
+            {canApply && <Link href="/jobs/alerts"><Button variant="outline">🔔 My Alerts</Button></Link>}
+            {canPost && <Link href="/jobs/post"><Button>+ Post a Request</Button></Link>}
+          </div>
+        }
       />
       <div className="mx-auto max-w-6xl px-5 py-6">
         {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
+        {saveMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">{saveMessage}</div>}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
         <div className="flex gap-8">
           <div className="hidden lg:block">
             <div className="sticky top-6">
               <Card>
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
+                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                    onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>
             </div>
@@ -406,7 +447,8 @@ export default function JobsBrowsePage() {
             {showFilters && (
               <Card className="mb-4 lg:hidden">
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
+                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                    onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>
             )}

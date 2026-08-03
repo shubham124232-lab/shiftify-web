@@ -7,34 +7,13 @@ import Link from 'next/link';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getStats, listUsers, type PlatformStats, type AdminUser } from '@/lib/api/admin';
-
-// ─── Placeholder data (sections without a backend endpoint yet) ────────────────
-// TODO: GET /admin/summary once built — replace PH_STATS fields below
-
-const PH_STATS = {
-  confirmedConnections: 204,
-  urgentFlags:            5,
-  openComplaints:         3,
-  revenueSnapshot:  '$24,800',
-  failedPayments:         2,
-  unreadAdminAlerts:      8,
-};
-
-const PH_URGENT_FLAGS = [
-  { id: "f1", type: "Complaint",    description: "Inappropriate message reported by participant",    time: "12 min ago" },
-  { id: "f2", type: "Suspicious",   description: "Multiple accounts from same IP",                   time: "1 hr ago"   },
-  { id: "f3", type: "Risk",         description: "Worker posted without valid NDIS screening",        time: "2 hr ago"   },
-  { id: "f4", type: "Cancellation", description: "Worker cancelled 3 confirmed shifts this week",    time: "3 hr ago"   },
-  { id: "f5", type: "Listing",      description: "High-risk listing needs review before publishing",  time: "4 hr ago"   },
-];
+import { getStats, listUsers, getFlags, type PlatformStats, type AdminUser, type UrgentFlag } from '@/lib/api/admin';
 
 const FLAG_COLOR: Record<string, string> = {
-  Complaint:    "bg-red-100 text-red-700",
-  Suspicious:   "bg-red-100 text-red-700",
-  Risk:         "bg-orange-100 text-orange-700",
-  Cancellation: "bg-amber-100 text-amber-700",
-  Listing:      "bg-amber-100 text-amber-700",
+  SAFETY:     "bg-red-100 text-red-700",
+  MISCONDUCT: "bg-red-100 text-red-700",
+  NO_SHOW:    "bg-amber-100 text-amber-700",
+  OTHER:      "bg-slate-100 text-slate-600",
 };
 
 const ROLE_BADGE: Record<string, string> = {
@@ -52,6 +31,7 @@ export default function AdminPage() {
 
   const [stats,       setStats]       = useState<PlatformStats | null>(null);
   const [recentUsers, setRecentUsers] = useState<AdminUser[]>([]);
+  const [flags,       setFlags]       = useState<UrgentFlag[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError,   setDataError]   = useState<string | null>(null);
 
@@ -64,10 +44,12 @@ export default function AdminPage() {
     Promise.all([
       getStats(),
       listUsers({ page: 1, limit: 5 }),
+      getFlags(5),
     ])
-      .then(([statsRes, usersRes]) => {
+      .then(([statsRes, usersRes, flagsRes]) => {
         setStats(statsRes);
         setRecentUsers(usersRes.users);
+        setFlags(flagsRes.flags);
       })
       .catch((e) => setDataError(e.message))
       .finally(() => setDataLoading(false));
@@ -86,7 +68,8 @@ export default function AdminPage() {
           </div>
           <div className="flex gap-2">
             <Link href="/admin/users"><Button variant="outline" size="sm">Review New Users</Button></Link>
-            <Link href="/admin/jobs"> <Button variant="outline" size="sm">Review Listings</Button></Link>
+            <Link href="/admin/jobs"> <Button variant="outline" size="sm">Review Jobs</Button></Link>
+            <Link href="/admin/listings"> <Button variant="outline" size="sm">Review Listings</Button></Link>
             <Link href="/admin/broadcast"><Button size="sm">Post Notice</Button></Link>
           </div>
         </div>
@@ -117,18 +100,17 @@ export default function AdminPage() {
           <StatCard label="Providers"      value={dataLoading ? "…" : (stats?.roleBreakdown?.PROVIDER       ?? 0)}               />
           <StatCard label="Coordinators"   value={dataLoading ? "…" : (stats?.roleBreakdown?.COORDINATOR    ?? 0)}               />
           <StatCard label="Plan Managers"  value={dataLoading ? "…" : (stats?.roleBreakdown?.PLAN_MANAGER   ?? 0)}               />
-          {/* PLACEHOLDER – TODO: GET /admin/summary */}
-          <StatCard label="Urgent Flags"   value={PH_STATS.urgentFlags} tone="danger" />
+          <StatCard label="Urgent Flags"   value={dataLoading ? "…" : (stats?.openComplaints ?? 0)} tone="danger" />
         </div>
 
-        {/* ── Stat cards row 3: placeholder ── */}
-        {/* TODO: GET /admin/summary once built */}
+        {/* ── Stat cards row 3: LIVE ── */}
+        {/* GET /admin/stats — no "Failed Payments" figure: Phase 1 mock payments
+            never fail, so there is nothing real to show for it. */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Confirmed Bookings"  value={PH_STATS.confirmedConnections} tone="ok"     />
-          <StatCard label="Open Complaints"     value={PH_STATS.openComplaints}       tone="danger" />
-          <StatCard label="Monthly Revenue"     value={PH_STATS.revenueSnapshot}      tone="ok"     />
-          <StatCard label="Failed Payments"     value={PH_STATS.failedPayments}       tone="danger" />
-          <StatCard label="Unread Admin Alerts" value={PH_STATS.unreadAdminAlerts}    tone="warn"   />
+          <StatCard label="Confirmed Bookings"  value={dataLoading ? "…" : (stats?.confirmedBookings ?? 0)} tone="ok"     />
+          <StatCard label="Open Complaints"     value={dataLoading ? "…" : (stats?.openComplaints ?? 0)}    tone="danger" />
+          <StatCard label="Monthly Revenue"     value={dataLoading ? "…" : `$${(stats?.monthlyRevenueAud ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`} tone="ok" />
+          <StatCard label="Unread Admin Alerts" value={dataLoading ? "…" : (stats?.unreadAdminAlerts ?? 0)} tone="warn"   />
         </div>
 
         {/* ── Quick actions ── */}
@@ -145,28 +127,36 @@ export default function AdminPage() {
         </div>
 
         {/* ── Row 1: urgent flags (placeholder) + recent registrations (LIVE) ── */}
-        {/* Flags: TODO GET /admin/flags?severity=high  |  Users: GET /admin/users?limit=5 */}
+        {/* Flags: GET /admin/flags (open incident reports)  |  Users: GET /admin/users?limit=5 */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="text-red-700">Urgent flags</CardTitle>
-              {/* TODO: link to /admin/flags once built */}
-              <Button variant="ghost" size="sm" disabled>View all</Button>
             </CardHeader>
             <CardContent>
-              <ul className="divide-y divide-slate-100 text-sm">
-                {PH_URGENT_FLAGS.map((f) => (
-                  <li key={f.id} className="py-2 flex justify-between items-start gap-2">
-                    <div className="flex-1">
-                      <span className={`mr-2 rounded-full px-2 py-0.5 text-xs font-medium ${FLAG_COLOR[f.type] ?? "bg-slate-100 text-slate-500"}`}>
-                        {f.type}
+              {dataLoading ? (
+                <p className="text-sm text-slate-400">Loading…</p>
+              ) : flags.length === 0 ? (
+                <p className="text-sm text-slate-500">No open incident reports.</p>
+              ) : (
+                <ul className="divide-y divide-slate-100 text-sm">
+                  {flags.map((f) => (
+                    <li key={f.id} className="py-2 flex justify-between items-start gap-2">
+                      <div className="flex-1">
+                        <span className={`mr-2 rounded-full px-2 py-0.5 text-xs font-medium ${FLAG_COLOR[f.category] ?? "bg-slate-100 text-slate-500"}`}>
+                          {f.category.replace("_", " ")}
+                        </span>
+                        <span className="text-slate-700">{f.job.title}</span>
+                        {f.description && <span className="text-slate-500"> — {f.description}</span>}
+                        <span className="text-xs text-slate-400"> (reported by {f.reporter.name})</span>
+                      </div>
+                      <span className="shrink-0 text-xs text-slate-400">
+                        {new Date(f.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
                       </span>
-                      <span className="text-slate-700">{f.description}</span>
-                    </div>
-                    <span className="shrink-0 text-xs text-slate-400">{f.time}</span>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
 
@@ -215,7 +205,8 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {[
             { href: "/admin/users",         icon: "👤", label: "Users",         desc: "Manage all accounts"     },
-            { href: "/admin/jobs",          icon: "📋", label: "Listings",      desc: "All load board posts"    },
+            { href: "/admin/jobs",          icon: "📋", label: "Jobs",          desc: "All load board posts"    },
+            { href: "/admin/listings",      icon: "🏠", label: "Listings",      desc: "Provider service/SIL-SDA listings" },
             { href: "/admin/verification",  icon: "✅", label: "Verifications", desc: "Document review queue"   },
             { href: "/admin/subscriptions", icon: "💳", label: "Subscriptions", desc: "Manage billing & plans"  },
             { href: "/admin/reports",       icon: "📊", label: "Reports",       desc: "Platform analytics & activity" },

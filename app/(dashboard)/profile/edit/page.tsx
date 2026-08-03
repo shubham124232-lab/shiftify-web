@@ -6,7 +6,8 @@ import { useForm, FormProvider, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
+import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
 import { upsertProfile, replaceAvailabilitySlots, type AvailabilitySlotPayload } from '@/lib/api/profile';
 import { getStepsForRole, type StepConfig } from '@/lib/registration';
 import { STEP_COMPONENTS } from '@/lib/registration/stepComponents';
@@ -363,12 +364,13 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
 
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState<string | null>(null);
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
   const [saved,  setSaved]  = useState(false);
 
   const hasAvailabilityField = !!(step.schema as unknown as { shape?: Record<string, unknown> })?.shape?.availability;
 
   async function onSubmit(data: FieldValues) {
-    setSaving(true); setErr(null); setSaved(false);
+    setSaving(true); setErr(null); setUpgradeMsg(null); setSaved(false);
     try {
       const { availability, ...profileFields } = data as Record<string, unknown>;
       await upsertProfile(role, sanitisePayload(profileFields));
@@ -378,7 +380,11 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Save failed. Please try again.');
+      if (e instanceof ApiError && (e.code === 'SUBSCRIPTION_LIMIT' || e.code === 'SUBSCRIPTION_REQUIRED')) {
+        setUpgradeMsg(e.message);
+      } else {
+        setErr(e instanceof Error ? e.message : 'Save failed. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -403,6 +409,7 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
 
         <StepComp />
 
+        {upgradeMsg && <div style={{ marginTop: 20 }}><UpgradePrompt message={upgradeMsg} /></div>}
         {err && (
           <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C62828', marginTop: 20 }}>
             {err}

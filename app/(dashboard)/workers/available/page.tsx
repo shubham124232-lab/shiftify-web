@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -90,11 +91,13 @@ export default function BrowseWorkersPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
 
   const load = useCallback((f: Filters, p: number) => {
     setLoading(true);
+    setUpgradeMessage(null);
     const params = new URLSearchParams({ page: String(p), limit: String(PAGE_SIZE) });
     if (f.suburb) params.set("suburb", f.suburb);
     if (f.state)  params.set("state", f.state);
@@ -104,7 +107,13 @@ export default function BrowseWorkersPage() {
         setWorkers(r.items ?? []);
         setTotal(r.total ?? 0);
       })
-      .catch(e => setError(e.message))
+      .catch(e => {
+        if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
+          setUpgradeMessage(e.message);
+        } else {
+          setError(e.message);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -120,6 +129,7 @@ export default function BrowseWorkersPage() {
         description={`${total} worker${total !== 1 ? "s" : ""} publicly listing their availability`}
       />
       <div className="mx-auto max-w-6xl px-5 py-6">
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 
         <Card className="mb-4">

@@ -12,12 +12,13 @@ import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useRegistrationStore } from '@/lib/store/registration.store';
 import { useAuthStore } from '@/lib/store/auth.store';
-import { api, setApiToken } from '@/lib/api';
+import { api, setApiToken, ApiError } from '@/lib/api';
 import { UserRole, UserStatus } from '@/lib/types';
 import { upsertProfile, replaceAvailabilitySlots, type AvailabilitySlotPayload } from '@/lib/api/profile';
 import { getStepsForRole } from '@/lib/registration';
 import { STEP_COMPONENTS }  from '@/lib/registration/stepComponents';
 import { sanitisePayload } from '@/lib/utils';
+import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
 
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
@@ -53,6 +54,7 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
   const StepComp = STEP_COMPONENTS[role]?.[stepIndex];
   const [saving, setSaving]     = useState(false);
   const [apiErr, setApiErr]     = useState<string|null>(null);
+  const [upgradeMsg, setUpgradeMsg] = useState<string|null>(null);
   const isFinal = config?.isFinal ?? stepIndex === totalSteps - 1;
 
   const form = useForm({
@@ -62,9 +64,15 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
   });
 
   const onSubmit = async (data: FieldValues) => {
-    setSaving(true); setApiErr(null);
+    setSaving(true); setApiErr(null); setUpgradeMsg(null);
     try { await onSave(data as Record<string,unknown>); }
-    catch (err) { setApiErr(err instanceof Error ? err.message : 'Failed to save. Please try again.'); }
+    catch (err) {
+      if (err instanceof ApiError && (err.code === 'SUBSCRIPTION_LIMIT' || err.code === 'SUBSCRIPTION_REQUIRED')) {
+        setUpgradeMsg(err.message);
+      } else {
+        setApiErr(err instanceof Error ? err.message : 'Failed to save. Please try again.');
+      }
+    }
     finally { setSaving(false); }
   };
 
@@ -85,6 +93,7 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
           </div>
         </div>
 
+        {upgradeMsg && <UpgradePrompt message={upgradeMsg} />}
         {apiErr && (
           <div style={{background:'#FFF0F0',border:'1px solid #FFCDD2',borderRadius:8,padding:'10px 14px',marginBottom:14,fontSize:13,color:'#C62828'}}>
             <i className="bi bi-exclamation-circle" style={{marginRight:6}} />{apiErr}

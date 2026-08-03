@@ -95,6 +95,9 @@ export const workerStep7Schema = z.object({
   preferences:             z.string().max(1000).optional(),
   isAvailableNow:          z.boolean().optional(),
   seekingPlanManager:      z.boolean().optional(),
+  maxWeeklyHours:          z.number().int().min(0).max(168).optional(),
+  maxConcurrentJobs:       z.number().int().min(0).max(50).optional(),
+  currentCapacityStatus:   z.string().optional(),
 });
 
 export const workerStep8Schema = z.object({

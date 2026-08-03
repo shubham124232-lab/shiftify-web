@@ -112,9 +112,9 @@ export default function ParticipantDashboard() {
           {/* TODO: repeat-past flow */}
           <Button variant="outline" size="sm" disabled>↩ Repeat Past</Button>
           <Link href="/jobs/my">        <Button variant="outline" size="sm">📋 View Applications</Button></Link>
-          <Link href="/shifts">         <Button variant="outline" size="sm">📅 View Bookings</Button></Link>
+          <Link href="/jobs/my">        <Button variant="outline" size="sm">📅 View Bookings</Button></Link>
           <Link href="/messages">       <Button variant="outline" size="sm">💬 Message Applicants</Button></Link>
-          <Link href="/profile/preferences"><Button variant="outline" size="sm">⚙ Update Preferences</Button></Link>
+          <Link href="/profile/edit">   <Button variant="outline" size="sm">⚙ Update Preferences</Button></Link>
         </div>
 
         {/* ── Row 1: LIVE ── */}

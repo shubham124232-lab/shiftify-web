@@ -146,6 +146,30 @@ export function WorkerStep07_Financials() {
         <Toggle label="Mark as Available Now" name="isAvailableNow" desc="You'll appear with an 'Available Now' badge. Auto-clears after 24 hours." />
         <Toggle label="Seeking a Plan Manager" name="seekingPlanManager" desc="Plan Managers in your area can reach out to you" />
       </div>
+
+      {/* Capacity */}
+      <div>
+        <label style={labelStyle}>Capacity</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <div>
+            <label htmlFor="maxWeeklyHours" style={{ ...labelStyle, fontWeight: 400, fontSize: 11 }}>Max hours per week</label>
+            <input id="maxWeeklyHours" type="number" min="0" max="168" {...register('maxWeeklyHours', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+              placeholder="e.g. 30" style={inputStyle} />
+          </div>
+          <div>
+            <label htmlFor="maxConcurrentJobs" style={{ ...labelStyle, fontWeight: 400, fontSize: 11 }}>Max concurrent jobs</label>
+            <input id="maxConcurrentJobs" type="number" min="0" max="50" {...register('maxConcurrentJobs', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+              placeholder="e.g. 3" style={inputStyle} />
+          </div>
+        </div>
+        <label htmlFor="currentCapacityStatus" style={{ ...labelStyle, fontWeight: 400, fontSize: 11 }}>Current status</label>
+        <select id="currentCapacityStatus" {...register('currentCapacityStatus')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="OPEN">Open to work</option>
+          <option value="LIMITED">Limited availability</option>
+          <option value="FULL">Fully booked</option>
+        </select>
+      </div>
     </div>
   );
 }

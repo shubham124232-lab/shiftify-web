@@ -323,9 +323,11 @@ export default function RegisterPage() {
         if (current) useAuthStore.setState({ user: { ...current, status: UserStatus.ACTIVE } });
       }
       setShowOtp(false);
-      // All roles go through wizard first, then plan/payment for paid roles
-      store.setRole(role!, STEP_COMPONENTS[role!].length);
-      setPhase('wizard');
+      // Registration ends here — role/details/OTP only. Push straight to /profile
+      // for every role (including Participant, who is already ACTIVE by this point
+      // and would otherwise skip the dashboard-layout gate entirely). Remaining
+      // profile fields, plan selection, and payment happen post-registration.
+      router.replace('/profile');
     } catch (err: unknown) {
       setOtpError(err instanceof Error ? err.message : 'Invalid or expired code.');
     } finally { setOtpLoading(false); }

@@ -75,6 +75,32 @@ export function WorkerStep05_Availability() {
         desc="You may be contacted for urgent or same-day jobs in your area"
       />
 
+      {/* Sleepover / overnight shifts */}
+      <Toggle
+        label="Accepts sleepover shifts"
+        name="acceptsSleepoverShifts"
+        desc="Overnight shifts where you sleep on-site and are available if needed"
+      />
+      <Toggle
+        label="Accepts active overnight shifts"
+        name="acceptsActiveOvernightShifts"
+        desc="Overnight shifts where you remain awake and actively supporting the participant"
+      />
+
+      {/* Minimum shift length */}
+      <div>
+        <label style={labelStyle}>Minimum Shift Length (hours)</label>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 8, marginTop: 0 }}>
+          The shortest shift you're willing to accept.
+        </p>
+        <input type="number" min={0} max={24} step={0.5}
+          {...register('minimumShiftHours', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+          placeholder="e.g. 2" style={{
+            width: 160, height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)',
+            border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box',
+          }} />
+      </div>
+
       {/* Weekly slots */}
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>
@@ -96,6 +122,27 @@ export function WorkerStep05_Availability() {
           )}
         />
       </div>
+
+      {/* Post My Availability — public listing */}
+      <Toggle
+        label="Post my availability publicly"
+        name="isPubliclyListed"
+        desc="Let participants, coordinators and providers browse and reach out to you directly"
+      />
+      {watch('isPubliclyListed') && (
+        <div>
+          <label style={labelStyle}>Listing Headline</label>
+          <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 8, marginTop: 0 }}>
+            A short line shown on your public listing card (optional).
+          </p>
+          <input type="text" maxLength={140}
+            {...register('listingHeadline')}
+            placeholder="e.g. Available for immediate start in Parramatta" style={{
+              width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)',
+              border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box',
+            }} />
+        </div>
+      )}
     </div>
   );
 }

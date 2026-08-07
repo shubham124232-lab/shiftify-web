@@ -14,9 +14,9 @@ const ADMIN_NAV = [
   { href: "/admin/verification",     label: "Suspended Users" },
   { href: "/admin/jobs",             label: "Jobs" },
   { href: "/admin/subscriptions",    label: "Subscriptions" },
-  { href: "/admin/broadcast",        label: "Notifications" },
+  { href: "/admin/broadcast",        label: "Notifications", superAdminOnly: true },
   { href: "/admin/reports",          label: "Reports" },
-  { href: "/admin/audit",            label: "Audit Log" },
+  { href: "/admin/audit",            label: "Audit Log",     superAdminOnly: true },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -54,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <nav className="flex-1 p-3">
           <ul className="space-y-1">
-            {ADMIN_NAV.map(item => (
+            {ADMIN_NAV.filter(item => !item.superAdminOnly || user.adminTier === "SUPER_ADMIN").map(item => (
               <li key={item.href}>
                 <Link
                   href={item.href}

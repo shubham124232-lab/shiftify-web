@@ -63,7 +63,7 @@ export default function VerificationQueuePage() {
                     <tr key={u.id}>
                       <td className="px-4 py-3 font-medium">{u.name}</td>
                       <td className="px-4 py-3 text-slate-500">{u.email ?? u.phone ?? "—"}</td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{(u.roles ?? []).join(", ")}</td>
+                      <td className="px-4 py-3 text-slate-500 text-xs">{(u.roles ?? []).map(r => r.role).join(", ")}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" disabled={actionId === u.id}

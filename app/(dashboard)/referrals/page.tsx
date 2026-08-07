@@ -40,7 +40,12 @@ export default function PmReferralsPage() {
       <PageHeader
         title="My Referrals"
         description="Support requests you have posted on behalf of participants."
-        actions={<Link href="/load-board"><Button variant="outline" size="sm">Browse Load Board</Button></Link>}
+        actions={
+          <div className="flex gap-2">
+            <Link href="/referrals/post"><Button size="sm">Post Referral</Button></Link>
+            <Link href="/load-board"><Button variant="outline" size="sm">Browse Load Board</Button></Link>
+          </div>
+        }
       />
       <div className="container-page py-8 space-y-6">
         {error && (

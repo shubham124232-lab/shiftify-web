@@ -41,7 +41,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 }
 
 export function WorkerStep03_WorkType() {
-  const { register, watch, setValue, formState: { errors } } = useFormContext();
+  const { register, watch, formState: { errors } } = useFormContext();
   const workType = watch('workType') as string;
   const hasPL    = watch('publicLiabilityInsurance') as boolean;
   const hasPA    = watch('personalAccidentInsurance') as boolean;
@@ -117,8 +117,8 @@ export function WorkerStep03_WorkType() {
             </div>
           </div>
           <FileUploadField label="Upload Policy Document" accept=".pdf,.jpg,.png" maxSizeMb={10}
-            uploadOptions={{ category: 'documents', docType: 'PUBLIC_LIABILITY' }}
-            onUploaded={(url) => setValue('publicLiabilityDocUrl', url, { shouldDirty: true })} />
+            uploadOptions={{ category: 'documents', docType: 'PUBLIC_LIABILITY_INSURANCE' }}
+            onUploaded={() => {}} />
         </div>
       )}
 
@@ -137,32 +137,11 @@ export function WorkerStep03_WorkType() {
             </div>
           </div>
           <FileUploadField label="Upload Policy Document" accept=".pdf,.jpg,.png" maxSizeMb={10}
-            uploadOptions={{ category: 'documents', docType: 'PERSONAL_ACCIDENT' }}
-            onUploaded={(url) => setValue('personalAccidentDocUrl', url, { shouldDirty: true })} />
+            uploadOptions={{ category: 'documents', docType: 'PERSONAL_ACCIDENT_INSURANCE' }}
+            onUploaded={() => {}} />
         </div>
       )}
 
-      {/* Driving */}
-      <div>
-        <label style={{ ...labelStyle, marginBottom: 10 }}>Driving</label>
-        <Toggle label="I have a valid Australian driver's licence" name="hasDriversLicence" />
-      </div>
-
-      {watch('hasDriversLicence') && (
-        <div>
-          <label style={labelStyle}>Licence Class</label>
-          <select {...register('driversLicenceType')} style={{ ...inputStyle, cursor: 'pointer' }}>
-            <option value="">Select class…</option>
-            <option value="C">C — Car</option>
-            <option value="R">R — Motorcycle</option>
-            <option value="MR">MR — Medium Rigid</option>
-            <option value="HR">HR — Heavy Rigid</option>
-            <option value="HC">HC — Heavy Combination</option>
-          </select>
-        </div>
-      )}
-
-      <Toggle label="I have my own vehicle for client transport" name="ownVehicle" />
     </div>
   );
 }

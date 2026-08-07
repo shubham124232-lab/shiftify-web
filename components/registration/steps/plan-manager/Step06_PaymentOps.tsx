@@ -26,7 +26,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 const INTAKE_METHODS = ['Email', 'Portal Upload', 'Post / Mail', 'Fax', 'EDI', 'Xero / MYOB integration'];
 
 export function PmStep06_PaymentOps() {
-  const { register, control } = useFormContext();
+  const { register, control, formState: { errors } } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -51,7 +51,8 @@ export function PmStep06_PaymentOps() {
 
       <div>
         <label style={labelStyle}>Primary Invoice Contact Email</label>
-        <input {...register('primaryInvoiceContactEmail')} type="email" placeholder="invoices@planmanager.com.au" style={inputStyle} />
+        <input {...register('primaryInvoiceContactEmail')} type="email" placeholder="invoices@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.primaryInvoiceContactEmail ? '#ef4444' : undefined }} />
+        {errors.primaryInvoiceContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.primaryInvoiceContactEmail.message as string}</p>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -64,7 +65,11 @@ export function PmStep06_PaymentOps() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Name</label><input {...register('paymentEnquiryContactName')} placeholder="Full name" style={inputStyle} /></div>
-            <div><label style={labelStyle}>Email</label><input {...register('paymentEnquiryContactEmail')} type="email" placeholder="payments@planmanager.com.au" style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input {...register('paymentEnquiryContactEmail')} type="email" placeholder="payments@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.paymentEnquiryContactEmail ? '#ef4444' : undefined }} />
+              {errors.paymentEnquiryContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.paymentEnquiryContactEmail.message as string}</p>}
+            </div>
           </div>
           <div><label style={labelStyle}>Phone</label><input {...register('paymentEnquiryContactPhone')} type="tel" placeholder="0400 000 000" style={inputStyle} /></div>
         </div>
@@ -97,10 +102,14 @@ export function PmStep06_PaymentOps() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Toggle label="Registered Providers Only" name="acceptsRegisteredProvidersOnly"
           desc="Only accept invoices from NDIS-registered providers" />
+        <Toggle label="Accept Unregistered Providers" name="acceptsUnregisteredProviders"
+          desc="Also accept invoices from providers who are not NDIS-registered" />
         <Toggle label="Require Service Dates on Invoices" name="requiresServiceDatesOnInvoices"
           desc="All invoices must include the dates services were delivered" />
         <Toggle label="Require Support Category Code" name="requiresSupportCategoryCode"
           desc="Invoices must include the NDIS support category / line item code" />
+        <Toggle label="Require Participant Consent Confirmation" name="requiresParticipantConsentConfirmation"
+          desc="Participant must formally confirm consent before you start managing their plan" />
       </div>
     </div>
   );

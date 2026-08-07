@@ -62,6 +62,10 @@ export interface WorkerProfileData {
   disabilityExperience?:      string[];
   availabilityType?:          AvailabilityType;
   emergencyAvailability?:     boolean;
+  acceptsSleepoverShifts?:    boolean;
+  acceptsActiveOvernightShifts?: boolean;
+  isPubliclyListed?:          boolean;
+  listingHeadline?:           string;
   serviceAreas?:              string[];
   travelRadiusKm?:            number;
   hasVehicle?:                boolean;
@@ -104,6 +108,7 @@ export interface ProviderProfileData {
   silDetails?:          Record<string, unknown>;
   sdaDetails?:          Record<string, unknown>;
   serviceAreas?:        string[];
+  stateCoverage?:       string[];
   serviceMode?:         'IN_PERSON' | 'REMOTE' | 'BOTH';
   workforceSize?:       string;
   participantTypes?:    string[];
@@ -131,7 +136,6 @@ export interface CoordinatorProfileData {
   serviceMode?:                       'IN_PERSON' | 'REMOTE' | 'BOTH';
   currentCapacityStatus?:             string;
   maxParticipantLoad?:                number;
-  participantTypesAccepted?:          string[];
   billingMethodPreference?:           string;
   hourlyRate?:                        number;
   bio?:                               string;
@@ -171,6 +175,5 @@ export interface PlanManagerProfileData {
   ndisRegistered?:   boolean;
   ndisProviderNumber?: string;
   yearsInOperation?: string;
-  serviceAreas?:     string[];
   acceptingClients?: boolean;
 }

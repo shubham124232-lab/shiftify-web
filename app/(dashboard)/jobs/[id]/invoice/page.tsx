@@ -30,6 +30,13 @@ interface JobDetail {
   assignedWorker: { id: string; name: string } | null;
 }
 
+interface PlanManagerOption {
+  id: string;
+  name: string;
+  email: string | null;
+  businessName: string | null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
@@ -69,6 +76,12 @@ export default function CreateInvoicePage() {
   const [note,               setNote]               = useState("");
   const [saving,             setSaving]             = useState(false);
 
+  // Recipient picker — real plan managers connected to this job's participant,
+  // replacing the old raw "type in any user ID" text field.
+  const [planManagers,        setPlanManagers]        = useState<PlanManagerOption[]>([]);
+  const [recipientsLoading,   setRecipientsLoading]   = useState(true);
+  const [recipientsError,     setRecipientsError]     = useState<string | null>(null);
+
   useEffect(() => {
     api.get<{ job: JobDetail }>(`/jobs/${id}`)
       .then(r => {
@@ -81,11 +94,16 @@ export default function CreateInvoicePage() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
+
+    api.get<{ participant: { id: string; name: string } | null; planManagers: PlanManagerOption[] }>(`/jobs/${id}/invoice-recipients`)
+      .then(r => setPlanManagers(r.planManagers))
+      .catch(e => setRecipientsError(e.message))
+      .finally(() => setRecipientsLoading(false));
   }, [id]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!planManagerUserId.trim()) { setError("Plan Manager user ID is required."); return; }
+    if (!planManagerUserId.trim()) { setError("Choose a plan manager."); return; }
     if (!participantUserId.trim()) { setError("Participant user ID is required."); return; }
     setSaving(true); setError(null);
     try {
@@ -179,29 +197,42 @@ export default function CreateInvoicePage() {
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
               <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#475569" }}>
-                <strong>How this works:</strong> Enter the plan manager's user ID and confirm the participant. The plan manager will be notified immediately and can see every job detail above.
+                <strong>How this works:</strong> Pick the participant's plan manager below. They'll be notified immediately and can see every job detail above.
               </div>
 
               <div>
-                <label style={lbl}>Plan Manager user ID <span style={{ color: "#ef4444" }}>*</span></label>
-                <input
-                  style={inp}
-                  value={planManagerUserId}
-                  onChange={e => setPlanManagerUserId(e.target.value)}
-                  placeholder="e.g. cm123abc..."
-                />
-                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Ask the participant's plan manager for their Shiftify user ID.</p>
+                <label style={lbl}>Participant</label>
+                <div style={{ ...inp, height: "auto", padding: "10px 12px", display: "flex", alignItems: "center", background: "#f8fafc", color: "#475569" }}>
+                  {job.forParticipant?.name ?? <span style={{ color: "#94a3b8", fontStyle: "italic" }}>No participant on this job</span>}
+                </div>
               </div>
 
               <div>
-                <label style={lbl}>Participant user ID <span style={{ color: "#ef4444" }}>*</span></label>
-                <input
-                  style={inp}
-                  value={participantUserId}
-                  onChange={e => setParticipantUserId(e.target.value)}
-                  placeholder="e.g. cm456def..."
-                />
-                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Pre-filled from the job poster. Edit only if different.</p>
+                <label style={lbl}>Plan Manager <span style={{ color: "#ef4444" }}>*</span></label>
+                {recipientsLoading ? (
+                  <p style={{ fontSize: 13, color: "#94a3b8" }}>Loading connected plan managers...</p>
+                ) : recipientsError ? (
+                  <p style={{ fontSize: 13, color: "#b91c1c" }}>{recipientsError}</p>
+                ) : planManagers.length === 0 ? (
+                  <div style={{ background: "#FFF9C4", border: "1px solid #F59E0B", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#78350f" }}>
+                    No plan manager is connected to this participant yet.{" "}
+                    <Link href="/connections" style={{ color: "#78350f", textDecoration: "underline", fontWeight: 600 }}>Connect one</Link>{" "}
+                    before sending an invoice.
+                  </div>
+                ) : (
+                  <select
+                    style={inp}
+                    value={planManagerUserId}
+                    onChange={e => setPlanManagerUserId(e.target.value)}
+                  >
+                    <option value="">Select a plan manager...</option>
+                    {planManagers.map(pm => (
+                      <option key={pm.id} value={pm.id}>
+                        {pm.name}{pm.businessName ? ` — ${pm.businessName}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>

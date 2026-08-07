@@ -18,7 +18,7 @@ function CheckboxDeclaration({ name, label }: { name: string; label: string }) {
 }
 
 export function PmStep07_Compliance() {
-  const { register } = useFormContext();
+  const { register, formState: { errors } } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <p style={{ margin: 0, fontSize: 13, color: 'var(--clr-muted)' }}>
@@ -43,7 +43,11 @@ export function PmStep07_Compliance() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Complaints Contact Name</label><input {...register('complaintsContactName')} placeholder="Full name" style={inputStyle} /></div>
-            <div><label style={labelStyle}>Complaints Contact Email</label><input {...register('complaintsContactEmail')} type="email" placeholder="complaints@planmanager.com.au" style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Complaints Contact Email</label>
+              <input {...register('complaintsContactEmail')} type="email" placeholder="complaints@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.complaintsContactEmail ? '#ef4444' : undefined }} />
+              {errors.complaintsContactEmail && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.complaintsContactEmail.message as string}</p>}
+            </div>
           </div>
           <div><label style={labelStyle}>Incident Escalation Contact</label><input {...register('incidentEscalationContact')} placeholder="Name or email" style={inputStyle} /></div>
           <div><label style={labelStyle}>Privacy Contact</label><input {...register('privacyContact')} placeholder="Name or email for privacy enquiries" style={inputStyle} /></div>

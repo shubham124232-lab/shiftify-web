@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 
 // ── Schema ─────────────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -56,6 +57,7 @@ export default function PostServicePage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -70,13 +72,18 @@ export default function PostServicePage() {
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     setError(null);
+    setUpgradeMessage(null);
     try {
       // TODO: POST /provider/listings when backend endpoint exists
       // For now, show success placeholder
       await api.post("/provider/listings", { ...data, listingCategory: "SERVICE" });
       router.push("/provider/listings");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to post listing. Please try again.");
+      if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
+        setUpgradeMessage(e.message);
+      } else {
+        setError(e instanceof Error ? e.message : "Failed to post listing. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -92,6 +99,7 @@ export default function PostServicePage() {
         <FormProvider {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
+            {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
             {error && (
               <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
             )}

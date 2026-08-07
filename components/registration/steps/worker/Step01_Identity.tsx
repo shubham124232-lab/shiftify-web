@@ -24,7 +24,7 @@ export function WorkerStep01_Identity() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Profile Photo */}
       <div>
-        <label style={labelStyle}>Profile Photo <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Profile Photo</label>
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 0, marginBottom: 8 }}>
           A clear, professional photo helps participants recognise you. Max 5 MB.
         </p>

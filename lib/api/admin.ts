@@ -11,6 +11,30 @@ export interface PlatformStats {
   activeJobs: number;
   completedToday: number;
   totalJobs: number;
+  confirmedBookings: number;
+  openComplaints: number;
+  monthlyRevenueAud: number;
+  unreadAdminAlerts: number;
+}
+
+export interface UrgentFlag {
+  id: string;
+  category: string;
+  description: string | null;
+  createdAt: string;
+  job: { id: string; title: string };
+  reporter: { id: string; name: string };
+}
+
+export interface AdminListing {
+  id: string;
+  title: string;
+  listingCategory: string;
+  status: string;
+  suburb: string;
+  state: string | null;
+  createdAt: string;
+  provider: { id: string; name: string; email: string | null };
 }
 
 export interface AdminUser {
@@ -72,6 +96,10 @@ export function getStats() {
   return api.get<PlatformStats>("/admin/stats");
 }
 
+export function getFlags(limit = 10) {
+  return api.get<{ flags: UrgentFlag[] }>("/admin/flags", { params: { limit } });
+}
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export function listUsers(params?: { status?: string; role?: string; page?: number; limit?: number }) {
@@ -121,6 +149,19 @@ export function listAdminJobs(params?: {
 
 export function cancelJob(id: string, reason?: string) {
   return api.patch(`/admin/jobs/${id}/cancel`, { reason });
+}
+
+// ─── Listings (provider service + SIL/SDA) moderation ───────────────────────
+
+export function listAdminListings(params?: { status?: string; listingCategory?: string; page?: number; limit?: number }) {
+  return api.get<{ listings: AdminListing[]; total: number; page: number; limit: number }>(
+    "/admin/listings",
+    { params },
+  );
+}
+
+export function updateListingStatus(id: string, status: string, reason?: string) {
+  return api.patch(`/admin/listings/${id}/status`, { status, reason });
 }
 
 // ─── Documents ────────────────────────────────────────────────────────────────

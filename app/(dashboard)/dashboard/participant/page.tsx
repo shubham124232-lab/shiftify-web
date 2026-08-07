@@ -74,11 +74,11 @@ export default function ParticipantDashboard() {
         title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
         description="Your support requests and upcoming shifts."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href="/jobs/post"><Button>Post New Request</Button></Link>
-            <Link href="/jobs/post?urgent=true">
-              <Button variant="outline" size="sm">⚡ Post Urgent</Button>
-            </Link>
+            <Link href="/jobs/post?urgency=EMERGENCY"><Button variant="danger" size="sm">🔴 Emergency</Button></Link>
+            <Link href="/jobs/post?urgency=SAME_DAY"><Button variant="outline" size="sm">⚡ Same Day</Button></Link>
+            <Link href="/jobs/post?urgency=REPLACEMENT"><Button variant="outline" size="sm">🔁 Replacement</Button></Link>
           </div>
         }
       />
@@ -106,13 +106,15 @@ export default function ParticipantDashboard() {
         {/* ── Quick actions ── */}
         <div className="flex flex-wrap gap-2">
           <Link href="/jobs/post">      <Button variant="outline" size="sm">＋ Post Request</Button></Link>
-          <Link href="/jobs/post?urgent=true"><Button variant="outline" size="sm">⚡ Post Urgent</Button></Link>
+          <Link href="/jobs/post?urgency=EMERGENCY"><Button variant="danger" size="sm">🔴 Emergency</Button></Link>
+          <Link href="/jobs/post?urgency=SAME_DAY"><Button variant="outline" size="sm">⚡ Same Day</Button></Link>
+          <Link href="/jobs/post?urgency=REPLACEMENT"><Button variant="outline" size="sm">🔁 Replacement</Button></Link>
           {/* TODO: repeat-past flow */}
           <Button variant="outline" size="sm" disabled>↩ Repeat Past</Button>
           <Link href="/jobs/my">        <Button variant="outline" size="sm">📋 View Applications</Button></Link>
-          <Link href="/shifts">         <Button variant="outline" size="sm">📅 View Bookings</Button></Link>
+          <Link href="/jobs/my">        <Button variant="outline" size="sm">📅 View Bookings</Button></Link>
           <Link href="/messages">       <Button variant="outline" size="sm">💬 Message Applicants</Button></Link>
-          <Link href="/profile/preferences"><Button variant="outline" size="sm">⚙ Update Preferences</Button></Link>
+          <Link href="/profile/edit">   <Button variant="outline" size="sm">⚙ Update Preferences</Button></Link>
         </div>
 
         {/* ── Row 1: LIVE ── */}

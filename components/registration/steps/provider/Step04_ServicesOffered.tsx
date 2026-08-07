@@ -108,7 +108,9 @@ export function ProviderStep04_ServicesOffered() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={labelStyle}>Number of Vacancies</label>
-              <input type="number" min={0} {...register('sdaVacancyCount', { valueAsNumber: true })} placeholder="0" style={inputStyle} />
+              <input type="number" min={0} {...register('sdaVacancyCount', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+                placeholder="0" style={{ ...inputStyle, borderColor: errors.sdaVacancyCount ? '#ef4444' : undefined }} />
+              {errors.sdaVacancyCount && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{errors.sdaVacancyCount.message as string}</p>}
             </div>
             <div>
               <label style={labelStyle}>Location(s)</label>

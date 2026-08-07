@@ -50,14 +50,31 @@ export default function ProviderListingsPage() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [tab, setTab]           = useState<(typeof TABS)[number]["key"]>("ALL");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
+  function loadListings() {
+    return api
       .get<{ listings: Listing[] }>("/provider/listings")
       .then((r) => setListings(r.listings))
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load listings"))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadListings();
   }, []);
+
+  async function changeStatus(id: string, status: Listing["status"]) {
+    setUpdatingId(id);
+    try {
+      await api.patch(`/provider/listings/${id}`, { status });
+      await loadListings();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update listing");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   const visible = useMemo(
     () => (tab === "ALL" ? listings : listings.filter((l) => l.listingCategory === tab)),
@@ -127,9 +144,35 @@ export default function ProviderListingsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="text-right text-xs text-slate-400 shrink-0">
+                  <div className="text-right text-xs text-slate-400 shrink-0 space-y-2">
                     <p>{l.suburb}{l.state ? `, ${l.state}` : ""}</p>
                     <p>{new Date(l.createdAt).toLocaleDateString("en-AU")}</p>
+                    <div className="flex gap-1 justify-end">
+                      {l.status !== "PAUSED" && l.status !== "CLOSED" && (
+                        <Button
+                          size="sm" variant="outline" disabled={updatingId === l.id}
+                          onClick={() => changeStatus(l.id, "PAUSED")}
+                        >
+                          Pause
+                        </Button>
+                      )}
+                      {l.status === "PAUSED" && (
+                        <Button
+                          size="sm" variant="outline" disabled={updatingId === l.id}
+                          onClick={() => changeStatus(l.id, "ACTIVE")}
+                        >
+                          Reactivate
+                        </Button>
+                      )}
+                      {l.status !== "CLOSED" && (
+                        <Button
+                          size="sm" variant="outline" disabled={updatingId === l.id}
+                          onClick={() => changeStatus(l.id, "CLOSED")}
+                        >
+                          Close
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}

@@ -2,6 +2,7 @@
 import { useFormContext, Controller } from 'react-hook-form';
 
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
 
 function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {
   const { register, watch } = useFormContext();
@@ -25,9 +26,15 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 const LINKING_METHODS = ['Participant self-links via portal', 'Support Coordinator links on behalf', 'You invite participant directly', 'Via referral from LAC'];
 
 export function PmStep09_ParticipantLinking() {
-  const { control } = useFormContext();
+  const { control, register } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div>
+        <label style={labelStyle}>Participant Reference ID Label</label>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', margin: '0 0 8px' }}>What do you call your internal participant reference number?</p>
+        <input {...register('participantReferenceIdLabel')} placeholder="e.g. Client ID, Member Number" style={inputStyle} />
+      </div>
+
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>Participant Linking Method(s)</label>
         <Controller name="participantLinkingMethod" control={control} defaultValue={[]} render={({ field }) => (

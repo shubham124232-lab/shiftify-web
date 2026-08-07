@@ -42,24 +42,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const isExempt = GATE_EXEMPT.some(p => pathname.startsWith(p));
     if (isExempt) return;
 
-    // 2. PENDING status — only block if phone is unverified.
-    //    Profile completion is handled by the setup banner inside the dashboard.
+    // 2. PENDING with unverified phone -- can't do anything until verified.
     //    JWT claims can say PENDING even after activation, so wait for initialized.
     if (!initialized) return;
-    if (user.status === "PENDING") {
-      if (!phoneVerified) {
-        router.replace("/setup/verify");
-        return;
-      }
-      // Phone verified — let them into the dashboard; banner will guide them.
+    if (user.status === "PENDING" && !phoneVerified) {
+      router.replace("/setup/verify");
       return;
     }
 
-    // 3. Profile incomplete -- only gate paid roles; Participants are free and
-    //    their wizard covers the required fields, so don't force-redirect them.
+    // 3. Profile incomplete -- gate all roles (including PENDING-but-verified,
+    //    now that registration no longer walks anyone through a wizard).
     //    ACTIVE users are already approved — don't gate them (handles seeded accounts).
-    const isParticipant = user.activeRole === "PARTICIPANT";
-    if (!isParticipant && user.status !== "ACTIVE" && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
+    if (user.status !== "ACTIVE" && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
       router.replace("/profile");
       return;
     }
@@ -67,6 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // 4. Profile complete but plan never activated (paid roles only) — send them
     //    to the subscription page instead of letting them sit in the dashboard
     //    with no active plan.
+    const isParticipant = user.activeRole === "PARTICIPANT";
     if (!isParticipant && user.status !== "ACTIVE") {
       router.replace("/subscription");
     }

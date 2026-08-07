@@ -44,9 +44,9 @@ export default function Header() {
               <i className="bi bi-box-arrow-in-right" style={{ color: 'var(--clr-text)' }} aria-hidden="true" />
               Log In
             </a>
-            <a href="/register" className="inline-flex items-center gap-2" style={{ padding: '9px 12px', fontSize: 14, fontWeight: 700, color: 'var(--clr-text)', textDecoration: 'none' }}>
-              <i className="bi bi-rocket-takeoff-fill" style={{ color: 'var(--clr-primary)' }} aria-hidden="true" />
-              Get Started
+            <a href="/register" className="inline-flex items-center gap-2" style={{ padding: '9px 16px', fontSize: 14, fontWeight: 700, color: 'var(--clr-primary)', textDecoration: 'none', border: '2px solid var(--clr-primary)', borderRadius: 'var(--btn-radius)' }}>
+              <i className="bi bi-person-fill" style={{ color: 'var(--clr-primary)' }} aria-hidden="true" />
+              Join Shiftify
             </a>
             <a href="#emergency" className="btn-emergency ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Emergency Support — Get help immediately">
               <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />

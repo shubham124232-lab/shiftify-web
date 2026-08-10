@@ -122,12 +122,17 @@ export function AppSidebar() {
           title={collapsed ? item.label : undefined}
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-            isActive ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+            "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+            isActive
+              ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/25"
+              : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900",
           )}
         >
-          <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
-          {!collapsed && <span className="truncate">{item.label}</span>}
+          <Icon className={cn(
+            "h-[18px] w-[18px] shrink-0 transition-colors",
+            isActive ? "text-white" : "text-slate-400 group-hover:text-brand-600",
+          )} />
+          {!collapsed && <span className="truncate tracking-tight">{item.label}</span>}
         </Link>
       </li>
     );
@@ -136,33 +141,49 @@ export function AppSidebar() {
   function SidebarContents({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">S</span>
-            {(!collapsed || mobile) && <span className="truncate text-base font-semibold tracking-tight text-slate-900">Shiftify</span>}
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-sm shadow-brand-600/30">
+              S
+            </span>
+            {(!collapsed || mobile) && (
+              <span className="truncate text-xl font-extrabold tracking-tight text-slate-900">
+                Shift<span className="text-brand-600">ify</span>
+              </span>
+            )}
           </div>
           {mobile ? (
-            <button type="button" onClick={() => setMobileOpen(false)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100">
+            <button type="button" onClick={() => setMobileOpen(false)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100">
               <X className="h-4 w-4" />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setCollapsed(c => !c)}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-colors hover:border-brand-200 hover:bg-brand-50 hover:text-brand-600"
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
             </button>
           )}
         </div>
-        <nav className="flex flex-1 flex-col justify-between overflow-y-auto p-2">
-          <ul className="space-y-0.5">
-            {items.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
-          </ul>
-          <ul className="space-y-0.5 border-t border-slate-100 pt-2">
-            {COMMON_BOTTOM.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
-          </ul>
+        <nav className="flex flex-1 flex-col justify-between overflow-y-auto p-3">
+          <div>
+            {(!collapsed || mobile) && (
+              <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Menu</p>
+            )}
+            <ul className="space-y-1">
+              {items.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
+            </ul>
+          </div>
+          <div className="border-t border-slate-100 pt-3">
+            {(!collapsed || mobile) && (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
+            )}
+            <ul className="space-y-1">
+              {COMMON_BOTTOM.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
+            </ul>
+          </div>
         </nav>
       </>
     );
@@ -197,7 +218,7 @@ export function AppSidebar() {
       </aside>
 
       <aside className={cn(
-        "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white transition-[width] duration-200 overflow-hidden",
+        "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_-12px_rgba(15,23,42,0.12)] transition-[width] duration-200 overflow-hidden",
         collapsed ? "w-16" : "w-56",
       )}>
         <SidebarContents />

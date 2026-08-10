@@ -2,10 +2,10 @@
 'use client';
 
 const quickSupport = [
-  { icon: 'bi-exclamation-triangle-fill', title: 'Rapid Replacement',     desc: 'A worker has cancelled',       color: '#DC2626', href: '#emergency'   },
-  { icon: 'bi-clock-fill',                title: 'Urgent Support',        desc: 'Needed within a few hours',     color: '#7C3AED', href: '#marketplace' },
-  { icon: 'bi-calendar-check-fill',       title: 'Last-Minute Support',   desc: 'Needed today or soon',          color: '#EA580C', href: '#marketplace' },
-  { icon: 'bi-people-fill',               title: 'Regular Support',       desc: 'Future or recurring',           color: '#C2185B', href: '#marketplace' },
+  { icon: 'bi-exclamation-triangle-fill', title: 'Rapid',                 desc: 'A worker has cancelled',       color: '#DC2626', href: '#emergency',   time: '< 60 mins' },
+  { icon: 'bi-clock-fill',                title: 'Urgent Support',        desc: 'Needed within a few hours',     color: '#7C3AED', href: '#marketplace', time: '1-4 hrs'            },
+  { icon: 'bi-calendar-check-fill',       title: 'Last-Minute Support',   desc: 'Needed today or soon',          color: '#EA580C', href: '#marketplace', time: '24-48 hrs'          },
+  { icon: 'bi-people-fill',               title: 'Regular Support',       desc: 'Future or recurring',           color: '#C2185B', href: '#marketplace', time: 'Routine'            },
 ] as const;
 
 const roles = [
@@ -24,11 +24,6 @@ export default function HeroSection() {
 
           {/* Left: Text */}
           <div className="hero-left">
-            <div className="badge-pink mb-4 inline-flex" role="status" aria-live="polite">
-              <span style={{ width: 8, height: 8, background: '#10B981', borderRadius: '50%', animation: 'blink 1.5s infinite', flexShrink: 0 }} aria-hidden="true" />
-              <span>2,400+ Active Support Workers Available Now</span>
-            </div>
-
             <h1 id="hero-heading" className="hero-title fade-up">
               Support when it<br />
               <span className="highlight">matters most</span>
@@ -55,6 +50,16 @@ export default function HeroSection() {
             <div className="hero-quick-grid fade-up">
               {quickSupport.map((item) => (
                 <a key={item.title} href={item.href} className="hero-quick-card" style={{ borderTopColor: item.color }}>
+                  <span
+                    style={{
+                      position: 'absolute', top: 12, right: 12,
+                      fontSize: 10.5, fontWeight: 700, color: item.color,
+                      background: `${item.color}14`, padding: '4px 11px', borderRadius: 100,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.time}
+                  </span>
                   <span className="quick-card-icon" style={{ background: item.color, color: '#fff' }}>
                     <i className={`bi ${item.icon}`} aria-hidden="true" />
                   </span>
@@ -63,6 +68,17 @@ export default function HeroSection() {
                   <i className="bi bi-arrow-right quick-card-arrow" aria-hidden="true" style={{ color: item.color }} />
                 </a>
               ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-4 fade-up">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#15803D', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.25)', padding: '6px 14px', borderRadius: 100 }}>
+                <i className="bi bi-clock-history" style={{ color: '#16A34A', fontSize: 15 }} aria-hidden="true" />
+                24/7
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#15803D', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.25)', padding: '6px 14px', borderRadius: 100 }}>
+                <span style={{ fontSize: 18, fontWeight: 800 }}>0%</span>
+                Platform Commission
+              </span>
             </div>
           </div>
 

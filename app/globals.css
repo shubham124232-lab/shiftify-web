@@ -154,6 +154,26 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 12px 26px rgba(0,0,0,0.32);
 }
 
+.btn-join-dark {
+  background: #fff !important;
+  color: #C2185B !important;
+  border-color: #C2185B !important;
+}
+.btn-join-dark:hover {
+  background: var(--clr-primary-xlight) !important;
+}
+.btn-join-dark .blink-text {
+  display: inline-flex;
+  animation: join-highlight 1.4s ease-in-out infinite;
+}
+@keyframes join-highlight {
+  0%, 100%   { transform: scale(1); }
+  50%        { transform: scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-join-dark .blink-text { animation: none; }
+}
+
 .header-logo img {
   height: 55px !important;
   width: 100%;
@@ -478,7 +498,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 1.5px solid var(--clr-border);
   border-top-width: 3px;
   border-radius: 14px;
-  padding: 16px 14px;
+  padding: 16px 9px;
   text-decoration: none;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition);
@@ -2704,11 +2724,8 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-}
-@media (min-width: 768px) {
-  .container-page { padding-left: 2rem; padding-right: 2rem; }
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* ---- Layout Utilities ---- */

@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore, selectProfileStep } from '@/lib/store/auth.store';
 import { api } from '@/lib/api';
 import { TOTAL_STEPS } from '@/lib/registration/stepConfig';
+import { cn } from '@/lib/utils';
 
 interface MarketplaceCheck {
   canPost: boolean; canBrowse: boolean; canApply: boolean; missing: string[];
@@ -69,57 +70,78 @@ export function SetupBanner() {
   // API unreachable — minimal nudge (wizard banners don't need API data)
   if (apiError && !showPendingProfileBanner && !showWizardBanner) {
     return (
-      <div style={{
-        background: '#F0F9FF', border: '1px solid #BAE6FD',
-        borderRadius: 12, padding: '14px 20px', marginBottom: 20,
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <i className="bi bi-person-fill-gear" style={{ fontSize: 20, color: '#0284c7', flexShrink: 0 }} />
-        <div style={{ flex: 1, fontSize: 13, color: '#0369a1' }}>
+      <div className="relative mb-5 flex items-center gap-3 rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-sky-50/50 to-white px-5 py-3.5 shadow-sm">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-100 to-sky-200/60 text-sky-700 ring-1 ring-inset ring-sky-300/40">
+          <i className="bi bi-person-fill-gear text-[17px]" />
+        </span>
+        <p className="flex-1 text-[13px] font-medium text-sky-900">
           Make sure your profile is complete to unlock all features.
-        </div>
-        <Link href="/profile" style={{ fontSize: 13, fontWeight: 700, color: '#0284c7', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        </p>
+        <Link
+          href="/profile"
+          className="shrink-0 whitespace-nowrap rounded-lg bg-sky-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-sky-600/25 transition hover:bg-sky-700"
+        >
           View Profile
         </Link>
-        <button type="button" onClick={() => setDismissed(true)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, padding: 4, flexShrink: 0 }}>
-          <i className="bi bi-x-lg" />
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/70 hover:text-slate-600"
+        >
+          <i className="bi bi-x-lg text-sm" />
         </button>
       </div>
     );
   }
 
+  const amber = showPendingSubscriptionBanner;
+
   return (
-    <div style={{
-      background: showPendingSubscriptionBanner ? '#FFF9C4' : '#fff7ed',
-      border: `1px solid ${showPendingSubscriptionBanner ? '#F59E0B' : '#fb923c'}`,
-      borderRadius: 12, padding: '16px 20px', marginBottom: 20,
-      display: 'flex', alignItems: 'flex-start', gap: 14, position: 'relative',
-    }}>
+    <div
+      className={cn(
+        'relative mb-5 flex items-start gap-4 rounded-2xl border p-4 shadow-sm sm:p-5',
+        amber
+          ? 'border-amber-300/50 bg-gradient-to-br from-amber-50 via-amber-50/40 to-white'
+          : 'border-orange-300/50 bg-gradient-to-br from-orange-50 via-orange-50/40 to-white',
+      )}
+    >
       {/* Icon */}
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: showPendingSubscriptionBanner ? 'rgba(245,158,11,0.12)' : 'rgba(251,146,60,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <i className={`bi ${showPendingSubscriptionBanner ? 'bi-lock-fill' : 'bi-person-fill-exclamation'}`}
-          style={{ fontSize: 18, color: showPendingSubscriptionBanner ? '#d97706' : '#ea580c' }} />
-      </div>
+      <span
+        className={cn(
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1 ring-inset',
+          amber
+            ? 'bg-gradient-to-br from-amber-100 to-amber-200/60 text-amber-700 ring-amber-300/40'
+            : 'bg-gradient-to-br from-orange-100 to-orange-200/60 text-orange-700 ring-orange-300/40',
+        )}
+      >
+        <i className={cn('bi text-[18px]', amber ? 'bi-lock-fill' : 'bi-person-fill-exclamation')} />
+      </span>
 
       {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="min-w-0 flex-1">
 
         {/* PENDING — profile incomplete */}
         {showPendingProfileBanner && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
-                Complete your profile ({Math.max(0, profileStep - 2)} of {totalWizardSteps - 2} steps done)
-              </div>
+            <p className="mb-1.5 text-[14px] font-bold tracking-tight text-slate-900">
+              Complete your profile
+              <span className="ml-1.5 font-medium text-slate-400">
+                ({Math.max(0, profileStep - 2)} of {totalWizardSteps - 2} steps done)
+              </span>
+            </p>
+            <div className="mb-2.5 h-1.5 max-w-xs overflow-hidden rounded-full bg-orange-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-[width] duration-500"
+                style={{ width: `${Math.round((profileStep / totalWizardSteps) * 100)}%` }}
+              />
             </div>
-            <div style={{ height: 5, background: '#fed7aa', borderRadius: 4, marginBottom: 10, maxWidth: 320 }}>
-              <div style={{ height: '100%', width: `${Math.round((profileStep / totalWizardSteps) * 100)}%`, background: '#ea580c', borderRadius: 4, transition: 'width 0.4s' }} />
-            </div>
-            <div style={{ fontSize: 13, color: '#92400e', marginBottom: 10, lineHeight: 1.5 }}>
+            <p className="mb-3 text-[13px] leading-relaxed text-slate-500">
               Finish your profile to unlock marketplace features and activate your plan.
-            </div>
-            <Link href="/profile/edit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
+            </p>
+            <Link
+              href="/profile/edit"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-orange-500/25 transition hover:shadow-md hover:shadow-orange-500/30"
+            >
               Complete Profile <i className="bi bi-arrow-right" />
             </Link>
           </>
@@ -128,44 +150,55 @@ export function SetupBanner() {
         {/* PENDING — profile done, needs subscription */}
         {showPendingSubscriptionBanner && (
           <>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
+            <p className="mb-1 text-[14px] font-bold tracking-tight text-slate-900">
               Subscription required — jobs are locked
-            </div>
-            <div style={{ fontSize: 13, color: '#78350f', marginBottom: 10, lineHeight: 1.5 }}>
+            </p>
+            <p className="mb-3 text-[13px] leading-relaxed text-slate-500">
               You cannot post or apply to jobs until your subscription is active.
-            </div>
-            <Link href="/subscription" className="btn-shiftify" style={{ display: 'inline-flex', height: 34, padding: '0 16px', fontSize: 13, fontWeight: 700, alignItems: 'center', textDecoration: 'none', borderRadius: 8 }}>
-              Activate Plan
+            </p>
+            <Link
+              href="/subscription"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-amber-500/25 transition hover:shadow-md hover:shadow-amber-500/30"
+            >
+              Activate Plan <i className="bi bi-arrow-right" />
             </Link>
           </>
         )}
 
         {!showPendingProfileBanner && !showPendingSubscriptionBanner && (hasMissing || pct < 100) && !showWizardBanner && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
-                Profile {pct}% complete — finish to unlock all features
-              </div>
-            </div>
+            <p className="mb-1.5 text-[14px] font-bold tracking-tight text-slate-900">
+              Profile {pct}% complete <span className="font-medium text-slate-400">— finish to unlock all features</span>
+            </p>
             {/* Progress bar */}
-            <div style={{ height: 5, background: '#fed7aa', borderRadius: 4, marginBottom: 10, maxWidth: 320 }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: '#ea580c', borderRadius: 4, transition: 'width 0.4s' }} />
+            <div className="mb-2.5 h-1.5 max-w-xs overflow-hidden rounded-full bg-orange-100">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-500 transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
+              />
             </div>
             {/* Missing fields from completionMissing */}
             {completionMissing.length > 0 && (
-              <ul style={{ margin: '0 0 10px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className="mb-3 flex flex-wrap gap-1.5">
                 {completionMissing.slice(0, 5).map((m, i) => (
-                  <li key={i} style={{ fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <i className="bi bi-circle-fill" style={{ fontSize: 5, color: '#f97316' }} />
+                  <span
+                    key={i}
+                    className="inline-flex items-center rounded-full bg-orange-100/70 px-2.5 py-1 text-[11px] font-medium text-orange-800 ring-1 ring-inset ring-orange-200/60"
+                  >
                     {m}
-                  </li>
+                  </span>
                 ))}
                 {completionMissing.length > 5 && (
-                  <li style={{ fontSize: 12, color: '#92400e' }}>+{completionMissing.length - 5} more fields</li>
+                  <span className="inline-flex items-center px-1 py-1 text-[11px] font-medium text-orange-700/70">
+                    +{completionMissing.length - 5} more
+                  </span>
                 )}
-              </ul>
+              </div>
             )}
-            <Link href="/profile/edit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
+            <Link
+              href="/profile/edit"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-orange-500/25 transition hover:shadow-md hover:shadow-orange-500/30"
+            >
               Complete Profile <i className="bi bi-arrow-right" />
             </Link>
           </>
@@ -173,15 +206,18 @@ export function SetupBanner() {
 
         {showWizardBanner && (
           <>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12', marginBottom: 4 }}>
-              Your profile is incomplete ({profileStep - 2} of {totalWizardSteps - 2} steps done)
-            </div>
-            <div style={{ fontSize: 13, color: '#92400e', marginBottom: 10, lineHeight: 1.5 }}>
+            <p className="mb-1 text-[14px] font-bold tracking-tight text-slate-900">
+              Your profile is incomplete
+              <span className="ml-1.5 font-medium text-slate-400">
+                ({profileStep - 2} of {totalWizardSteps - 2} steps done)
+              </span>
+            </p>
+            <p className="mb-3 text-[13px] leading-relaxed text-slate-500">
               Complete your profile to unlock full marketplace access.
-            </div>
+            </p>
             <Link
               href="/profile/edit"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-orange-500/25 transition hover:shadow-md hover:shadow-orange-500/30"
             >
               Continue Setup <i className="bi bi-arrow-right" />
             </Link>
@@ -191,11 +227,14 @@ export function SetupBanner() {
 
       {/* Dismiss */}
       {!showPendingSubscriptionBanner && (
-        <button type="button" onClick={() => setDismissed(true)}
-          style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16, padding: 4 }}>
-          <i className="bi bi-x-lg" />
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/70 hover:text-slate-600"
+        >
+          <i className="bi bi-x-lg text-sm" />
         </button>
-            )}
+      )}
     </div>
   );
 }

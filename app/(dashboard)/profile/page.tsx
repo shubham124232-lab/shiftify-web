@@ -178,6 +178,9 @@ export default function ProfilePage() {
       await api.patch("/users/me", { avatarUrl: presign.publicUrl });
       setAvatarUrl(presign.publicUrl);
       updateProfile({ avatarUrl: presign.publicUrl } as any);
+      // Photo counts toward profile completion — keep the gate in sync,
+      // same as the profile-save and document-save paths.
+      useAuthStore.getState().refreshGateStatus();
     } catch {
       setError("Avatar upload failed.");
     } finally {
@@ -243,6 +246,18 @@ export default function ProfilePage() {
         await api.post(`/users/me/profile/${rolePath}`, profilePayload);
       }
 
+      // Re-fetch profileCompletion/marketplaceMissing now that both saves are in —
+      // otherwise AppLayout's gate keeps reading pre-save values and bounces the
+      // user straight back here even though the profile is now complete. Also
+      // updates this page's own completion bar (local state, not the auth store)
+      // from the same response — no second /users/me round trip, and a failure
+      // here (it never throws) can't mask an already-successful save.
+      const gate = await useAuthStore.getState().refreshGateStatus();
+      if (gate) {
+        setCompletion(gate.profileCompletion ?? 0);
+        setCompletionMissing(gate.completionMissing);
+      }
+
       setSuccess(true);
     } catch (err: any) {
       setError(err?.message ?? "Save failed.");
@@ -277,7 +292,10 @@ export default function ProfilePage() {
     try {
       await api.post("/auth/verify/confirm", { channel: "phone", code: otpCode.trim() });
       setPhoneVerified(true);
-      useAuthStore.setState({ phoneVerified: true });
+      useAuthStore.getState().markPhoneVerified();
+      // marketplaceMissing's "Verify your phone number" item is backend-derived —
+      // markPhoneVerified only updates the local flag, so re-fetch to clear it.
+      useAuthStore.getState().refreshGateStatus();
       setVerifyStep("done");
       setOtpCode("");
     } catch (err: any) { setOtpError(err?.message ?? "Incorrect code."); }

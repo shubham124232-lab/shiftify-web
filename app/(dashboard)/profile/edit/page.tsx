@@ -6,6 +6,7 @@ import { useForm, FormProvider, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store/auth.store';
 import { api, ApiError } from '@/lib/api';
 import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
 import { upsertProfile, replaceAvailabilitySlots, type AvailabilitySlotPayload } from '@/lib/api/profile';
@@ -254,12 +255,16 @@ function DocumentsTabPanel({ role }: { role: string }) {
       if (existing) return prev.map((d) => (d.id === saved.id ? saved : d));
       return [...prev, saved];
     });
+    // Document status can flip marketplaceMissing — keep the gate in sync.
+    useAuthStore.getState().refreshGateStatus();
   }
 
   async function handleDelete(id: string) {
     try {
       await api.delete(`/upload/document/${id}`);
       setDocs((prev) => prev.filter((d) => d.id !== id));
+      // Deleting a required doc can re-flip marketplaceMissing — keep the gate in sync.
+      useAuthStore.getState().refreshGateStatus();
     } catch {
       // ignore
     }
@@ -377,6 +382,9 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
       if (hasAvailabilityField && Array.isArray(availability)) {
         await replaceAvailabilitySlots(availability as AvailabilitySlotPayload[]);
       }
+      // Otherwise AppLayout's gate keeps reading pre-save profileCompletion/
+      // marketplaceMissing and bounces the user straight back here.
+      await useAuthStore.getState().refreshGateStatus();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {

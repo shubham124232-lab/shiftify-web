@@ -1,0 +1,219 @@
+"use client";
+
+// Rapid Support journey (R-01..R-10 input/review) + R-11 live — support needed
+// now or within 60 minutes. Shortest journey: no mandatory long-form writing.
+// See [[participant-posting-journeys-spec]] memory for the source spec.
+
+import { useState } from "react";
+import { api, ApiError } from "@/lib/api";
+import {
+  WizardScreen, RadioCards, PersonStep, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
+  ReviewRow, LiveRequestScreen, CheckboxRow, inp, lbl,
+  buildWorkerPreferencesPayload, buildSafetyFlagsPayload, buildFundingPayload,
+} from "@/components/jobs/post/shared";
+import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
+import {
+  EMPTY_PERSON, EMPTY_CATALOGUE, EMPTY_REQUIREMENTS, EMPTY_SAFETY, EMPTY_FUNDING,
+  type PersonReceivingSupport, type CatalogueSelection, type WorkerRequirements, type SafetyChecklist, type FundingChoice,
+} from "@/lib/types/posting";
+
+const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+const TOTAL_STEPS = 10; // R-01..R-09 input steps + R-10 review
+
+type Timing = "ASAP" | "CHOOSE_TIME";
+type LocationType = "HOME" | "COMMUNITY" | "APPOINTMENT" | "PICKUP_DROPOFF" | "OTHER";
+type Duration = "30MIN" | "1HR" | "2HR" | "3HR" | "4HR_PLUS" | "NOT_SURE";
+
+const DURATION_HOURS: Record<Duration, number | undefined> = {
+  "30MIN": 0.5, "1HR": 1, "2HR": 2, "3HR": 3, "4HR_PLUS": 4, NOT_SURE: undefined,
+};
+
+export default function RapidJourney() {
+  const [step, setStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean } | null>(null);
+
+  const [timing, setTiming] = useState<Timing>("ASAP");
+  const [chosenTime, setChosenTime] = useState("");
+  const [person, setPerson] = useState<PersonReceivingSupport>(EMPTY_PERSON);
+  const [catalogue, setCatalogue] = useState<CatalogueSelection>(EMPTY_CATALOGUE);
+  const [locationType, setLocationType] = useState<LocationType>("HOME");
+  const [suburb, setSuburb] = useState("");
+  const [state, setState] = useState("NSW");
+  const [postcode, setPostcode] = useState("");
+  const [addressLine, setAddressLine] = useState("");
+  const [meetingDetails, setMeetingDetails] = useState("");
+  const [duration, setDuration] = useState<Duration>("1HR");
+  const [requirements, setRequirements] = useState<WorkerRequirements>(EMPTY_REQUIREMENTS);
+  const [safety, setSafety] = useState<SafetyChecklist>(EMPTY_SAFETY);
+  const [funding, setFunding] = useState<FundingChoice>(EMPTY_FUNDING);
+  const [agreeShare, setAgreeShare] = useState(false);
+
+  function patch<T>(setter: (v: T) => void, current: T) {
+    return (p: Partial<T>) => setter({ ...current, ...p });
+  }
+
+  function validate(): string | null {
+    if (step === 0 && timing === "CHOOSE_TIME" && !chosenTime) return "Choose a time within the next 60 minutes.";
+    if (step === 1 && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (step === 2 && !catalogue.categoryId) return "Select the support that is needed right now.";
+    if (step === 3 && catalogue.tasks.length === 0 && !catalogue.otherTask.trim()) return "Select at least one task, or describe the other essential task.";
+    if (step === 4 && !suburb.trim()) return "Suburb/postcode is required.";
+    if (step === 9 && !agreeShare) return "Please confirm the information can be shared with suitable workers/providers.";
+    return null;
+  }
+
+  function next() {
+    const err = validate();
+    if (err) { setError(err); return; }
+    setError(null);
+    if (step === TOTAL_STEPS - 1) { void submit(); return; }
+    setStep((s) => s + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function back() {
+    setError(null);
+    setStep((s) => Math.max(0, s - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function submit() {
+    setSaving(true); setError(null);
+    try {
+      const start = timing === "ASAP" ? new Date() : new Date(chosenTime);
+      const durationHours = DURATION_HOURS[duration] ?? 1;
+      const end = new Date(start.getTime() + durationHours * 60 * 60 * 1000);
+      const category = getCatalogueCategory(catalogue.categoryId);
+
+      const body: Record<string, unknown> = {
+        title: `${category?.label ?? "Support"} — Rapid Support`,
+        description: catalogue.otherTask || `Rapid support request: ${category?.label ?? ""}`,
+        category: catalogue.categoryId,
+        urgency: "RAPID",
+        scheduledStartAt: start.toISOString(),
+        scheduledEndAt: end.toISOString(),
+        totalHours: DURATION_HOURS[duration],
+        suburb: suburb.trim(),
+        state,
+        postcode: postcode.trim() || undefined,
+        serviceDeliveryMode: locationType,
+        addressLine: addressLine.trim() || undefined,
+        locationNotes: meetingDetails.trim() || undefined,
+        selectedTasks: catalogue.tasks.length ? catalogue.tasks : undefined,
+        workerPreferences: buildWorkerPreferencesPayload(requirements),
+        safetyFlags: buildSafetyFlagsPayload(safety),
+        ...buildFundingPayload(funding),
+        asDraft: false,
+      };
+      if (person.who === "SOMEONE_ELSE") {
+        body.inlineParticipant = {
+          name: person.someoneElseName.trim(),
+          phone: person.someoneElsePhone.trim() || undefined,
+          suburb: suburb.trim() || undefined,
+        };
+      }
+      const res = await api.post<{ job: { id: string } }>("/jobs", body);
+      setSubmitted({ id: res.job.id, isDraft: false });
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : "Failed to post request.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (submitted) return <LiveRequestScreen tier="RAPID" tierLabel="Rapid Support" jobId={submitted.id} isDraft={submitted.isDraft} />;
+
+  const category = getCatalogueCategory(catalogue.categoryId);
+  const screens = [
+    { title: "When do you need the worker to arrive?", label: "Continue" },
+    { title: "Who needs this Rapid Support?", label: "Continue" },
+    { title: "What support is needed right now?", label: "Continue" },
+    { title: "What must the worker help with?", label: "Continue" },
+    { title: "Where is the support needed?", label: "Continue" },
+    { title: "How long is support needed?", label: "Continue" },
+    { title: "What is essential for this request?", label: "Continue" },
+    { title: "Is there anything essential a worker must know before accepting?", label: "Continue" },
+    { title: "How will this support be paid for?", label: "Review Rapid request" },
+    { title: "Check your Rapid Support request", label: "Post Rapid request — Free" },
+  ];
+
+  return (
+    <WizardScreen
+      tierLabel="Rapid Support" screenTitle={screens[step].title} step={step} total={TOTAL_STEPS}
+      error={error} onBack={back} onNext={next} nextLabel={screens[step].label} saving={saving}
+    >
+      {step === 0 && (
+        <div className="space-y-4">
+          <label className={lbl}>When do you need the worker to arrive?</label>
+          <RadioCards value={timing} onChange={setTiming} options={[
+            { v: "ASAP", l: "As soon as possible" },
+            { v: "CHOOSE_TIME", l: "Choose a time within the next 60 minutes" },
+          ]} />
+          {timing === "CHOOSE_TIME" && (
+            <input type="datetime-local" className={inp} value={chosenTime} onChange={(e) => setChosenTime(e.target.value)} />
+          )}
+        </div>
+      )}
+
+      {step === 1 && <PersonStep value={person} onChange={patch(setPerson, person)} tierLabel="Rapid Support" />}
+
+      {step === 2 && (
+        <CategoryPickerStep
+          selectedIds={catalogue.categoryId ? [catalogue.categoryId] : []}
+          onToggle={(id) => setCatalogue({ categoryId: id, tasks: [], otherTask: "", answers: {} })}
+          questionLabel="What support is needed right now?"
+        />
+      )}
+
+      {step === 3 && <TasksStep value={catalogue} onChange={patch(setCatalogue, catalogue)} showOtherTask />}
+
+      {step === 4 && (
+        <div className="space-y-4">
+          <label className={lbl}>Where is the support needed?</label>
+          <RadioCards value={locationType} onChange={setLocationType} options={[
+            { v: "HOME", l: "Participant's home" }, { v: "COMMUNITY", l: "In the community" },
+            { v: "APPOINTMENT", l: "Appointment or activity" }, { v: "PICKUP_DROPOFF", l: "Pick-up/drop-off" }, { v: "OTHER", l: "Other" },
+          ]} />
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-2"><label className={lbl}>Suburb / postcode *</label><input className={inp} value={suburb} onChange={(e) => setSuburb(e.target.value)} placeholder="Parramatta" /></div>
+            <div><label className={lbl}>State</label><select className={inp} value={state} onChange={(e) => setState(e.target.value)}>{STATES.map((s) => <option key={s} value={s}>{s}</option>)}</select></div>
+          </div>
+          <div className="w-32"><label className={lbl}>Postcode</label><input className={inp} value={postcode} onChange={(e) => setPostcode(e.target.value)} maxLength={4} /></div>
+          <div><label className={lbl}>Exact address *</label><p className="text-xs text-slate-400 mb-1">Kept private until confirmation.</p><input className={inp} value={addressLine} onChange={(e) => setAddressLine(e.target.value)} /></div>
+          {locationType !== "HOME" && (
+            <div><label className={lbl}>Meeting or destination details</label><input className={inp} value={meetingDetails} onChange={(e) => setMeetingDetails(e.target.value)} /></div>
+          )}
+        </div>
+      )}
+
+      {step === 5 && (
+        <RadioCards value={duration} onChange={setDuration} options={[
+          { v: "30MIN", l: "30 minutes" }, { v: "1HR", l: "1 hour" }, { v: "2HR", l: "2 hours" },
+          { v: "3HR", l: "3 hours" }, { v: "4HR_PLUS", l: "4+ hours" }, { v: "NOT_SURE", l: "Not sure" },
+        ]} />
+      )}
+
+      {step === 6 && <RequirementsStep value={requirements} onChange={patch(setRequirements, requirements)} />}
+
+      {step === 7 && <SafetyStep value={safety} onChange={patch(setSafety, safety)} />}
+
+      {step === 8 && <FundingStep value={funding} onChange={patch(setFunding, funding)} />}
+
+      {step === 9 && (
+        <div className="space-y-4">
+          <div className="bg-slate-50 rounded-xl p-4 divide-y divide-slate-100">
+            <ReviewRow label="Arrival time and duration" value={`${timing === "ASAP" ? "As soon as possible" : new Date(chosenTime).toLocaleString("en-AU", { timeStyle: "short" })} · ${duration.replace("_", " ")}`} />
+            <ReviewRow label="Service and essential tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ") || catalogue.otherTask}`} />
+            <ReviewRow label="General location" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} />
+            <ReviewRow label="Essential requirements" value={requirements.none ? "None" : "Selected"} />
+            <ReviewRow label="Safety summary" value={safety.none ? "None" : "Selected"} />
+            <ReviewRow label="Funding and rate" value={funding.fundingType || "Not specified"} />
+          </div>
+          <CheckboxRow checked={agreeShare} onChange={setAgreeShare} label="I agree the shown request details can be shared with suitable workers/providers" />
+        </div>
+      )}
+    </WizardScreen>
+  );
+}

@@ -74,14 +74,14 @@ export function WizardScreen({
 
 export function RadioCards<T extends string>({
   options, value, onChange, columns = 1,
-}: { options: { v: T; l: string; d?: string }[]; value: T; onChange: (v: T) => void; columns?: number }) {
+}: { options: { v: T; l: string; d?: string }[]; value: T | undefined; onChange: (v: T) => void; columns?: number }) {
   return (
     <div className={cn("grid gap-3", columns > 1 ? `grid-cols-${columns}` : "")}>
       {options.map(({ v, l, d }) => (
         <label key={v} className={cn(
           "flex items-start gap-2 cursor-pointer border rounded-lg px-4 py-3 text-sm font-medium transition-colors",
           value === v ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600 hover:bg-slate-50",
-        )}>
+        )} onClick={() => onChange(v)}>
           <input type="radio" className="sr-only" checked={value === v} onChange={() => onChange(v)} />
           <div>
             <div>{l}</div>
@@ -399,7 +399,7 @@ export function RequirementsStep({
         <div className="pb-3 border-b border-slate-100">
           <label className={lbl}>Independent support worker, provider organisation, or either? *</label>
           <RadioCards
-            value={value.workerOrProvider ?? ""}
+            value={value.workerOrProvider ?? undefined}
             onChange={(v) => onChange({ workerOrProvider: v })}
             options={[{ v: "WORKER", l: "Independent support worker" }, { v: "PROVIDER", l: "Provider organisation" }, { v: "EITHER", l: "Either" }]}
           />

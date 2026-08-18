@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { Bell, ChevronDown, LogOut, User, CheckCircle } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
+import { getNotifications } from "@/lib/api/dashboard";
 import type { UserRole } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -32,6 +34,14 @@ const ROLE_COLORS: Record<string, string> = {
 export function AppTopbar() {
   const { user, switchRole, logout } = useAuth();
   const router = useRouter();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getNotifications()
+      .then(r => setHasUnread((r.notifications ?? []).some(n => !n.read)))
+      .catch(() => {});
+  }, [user]);
 
   if (!user) return null;
 
@@ -67,8 +77,8 @@ export function AppTopbar() {
         )}
       </div>
 
-      {/* Right: bell + account menu */}
-      <div className="flex items-center gap-3">
+      {/* Right: bell + messages + account menu */}
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => router.push("/notifications")}
@@ -76,10 +86,21 @@ export function AppTopbar() {
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
+          {hasUnread && (
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" />
+          )}
         </button>
 
+        <Link
+          href="/messages"
+          className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 sm:flex"
+        >
+          <MessageSquare className="h-[18px] w-[18px]" />
+          Messages
+        </Link>
+
         <Menu as="div" className="relative">
-          <MenuButton className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          <MenuButton className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
               {initials(displayName)}
             </span>

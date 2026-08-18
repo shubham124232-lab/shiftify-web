@@ -44,13 +44,15 @@ export default function Header() {
               <i className="bi bi-box-arrow-in-right" style={{ color: 'var(--clr-text)' }} aria-hidden="true" />
               Log In
             </a>
-            <a href="/register" className="inline-flex items-center gap-2" style={{ padding: '9px 12px', fontSize: 14, fontWeight: 700, color: 'var(--clr-text)', textDecoration: 'none' }}>
-              <i className="bi bi-rocket-takeoff-fill" style={{ color: 'var(--clr-primary)' }} aria-hidden="true" />
-              Get Started
+            <a href="/register" className="btn-join-dark inline-flex items-center gap-2" style={{ padding: '9px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', border: '2px solid transparent', borderRadius: 'var(--btn-radius)' }}>
+              <span className="blink-text inline-flex items-center gap-2">
+                <i className="bi bi-person-fill" aria-hidden="true" />
+                Join Shiftify
+              </span>
             </a>
-            <a href="#emergency" className="btn-emergency ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Emergency Support — Get help immediately">
+            <a href="#emergency" className="btn-emergency ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Rapid Support — Get help immediately">
               <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
-              Emergency
+              Rapid
             </a>
           </div>
 

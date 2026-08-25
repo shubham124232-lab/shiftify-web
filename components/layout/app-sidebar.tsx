@@ -38,6 +38,7 @@ function navForRole(role: string): NavItem[] {
         { href: "/jobs/my",      label: "My Jobs",        icon: Briefcase },
         { href: "/invoices",     label: "Invoices",       icon: Receipt },
         { href: "/availability", label: "Availability",   icon: Calendar },
+        { href: "/connect-invites", label: "Direct Connect", icon: Link2 },
         { href: "/documents",    label: "Documents",      icon: FileText },
         { href: "/messages",     label: "Messages",       icon: MessageSquare },
       ];

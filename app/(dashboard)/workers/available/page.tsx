@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,19 @@ const PAGE_SIZE = 20;
 interface Filters { suburb: string; state: string; }
 const EMPTY_FILTERS: Filters = { suburb: "", state: "" };
 
-function WorkerCard({ worker }: { worker: WorkerListing }) {
+type DirectConnectState = "NONE" | "PENDING" | "ACCEPTED" | "DECLINED" | "SENDING";
+
+function WorkerCard({
+  worker,
+  isProvider,
+  connectState,
+  onConnect,
+}: {
+  worker: WorkerListing;
+  isProvider: boolean;
+  connectState: DirectConnectState;
+  onConnect: (workerUserId: string) => void;
+}) {
   const rate = worker.hourlyRate != null ? `$${worker.hourlyRate}/hr` : null;
   const services = worker.servicesOffered ?? [];
 
@@ -46,11 +59,30 @@ function WorkerCard({ worker }: { worker: WorkerListing }) {
     <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-brand-300 transition-colors">
       <div className="flex items-center justify-between mb-2">
         <span className="text-base font-semibold text-slate-900">{worker.user.name}</span>
-        {worker.isAvailableNow && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
-            Available now
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {worker.isAvailableNow && (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
+              Available now
+            </span>
+          )}
+          {isProvider && connectState === "NONE" && (
+            <Button size="sm" variant="outline" onClick={() => onConnect(worker.userId)}>
+              Direct Connect
+            </Button>
+          )}
+          {isProvider && connectState === "SENDING" && (
+            <Button size="sm" variant="outline" disabled>Sending…</Button>
+          )}
+          {isProvider && connectState === "PENDING" && (
+            <span className="text-xs font-semibold text-amber-600">Invite sent</span>
+          )}
+          {isProvider && connectState === "ACCEPTED" && (
+            <span className="text-xs font-semibold text-emerald-600">Connected</span>
+          )}
+          {isProvider && connectState === "DECLINED" && (
+            <span className="text-xs font-semibold text-slate-400">Declined</span>
+          )}
+        </div>
       </div>
 
       {worker.listingHeadline && (
@@ -85,7 +117,15 @@ function WorkerCard({ worker }: { worker: WorkerListing }) {
   );
 }
 
+interface DirectConnectRequest {
+  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  worker: { id: string };
+}
+
 export default function BrowseWorkersPage() {
+  const { activeRole } = useAuth();
+  const isProvider = activeRole === "PROVIDER";
+
   const [workers, setWorkers] = useState<WorkerListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -94,6 +134,28 @@ export default function BrowseWorkersPage() {
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [connectStates, setConnectStates] = useState<Record<string, DirectConnectState>>({});
+
+  useEffect(() => {
+    if (!isProvider) return;
+    api.get<{ requests: DirectConnectRequest[] }>("/direct-connect")
+      .then(r => {
+        const next: Record<string, DirectConnectState> = {};
+        for (const req of r.requests ?? []) next[req.worker.id] = req.status;
+        setConnectStates(next);
+      })
+      .catch(() => { /* non-fatal — button just starts from NONE */ });
+  }, [isProvider]);
+
+  function sendDirectConnect(workerUserId: string) {
+    setConnectStates(s => ({ ...s, [workerUserId]: "SENDING" }));
+    api.post("/direct-connect", { workerUserId })
+      .then(() => setConnectStates(s => ({ ...s, [workerUserId]: "PENDING" })))
+      .catch(e => {
+        setConnectStates(s => ({ ...s, [workerUserId]: "NONE" }));
+        setError(e instanceof Error ? e.message : "Could not send the invite");
+      });
+  }
 
   const load = useCallback((f: Filters, p: number) => {
     setLoading(true);
@@ -163,7 +225,15 @@ export default function BrowseWorkersPage() {
         ) : (
           <>
             <div className="space-y-3">
-              {workers.map(w => <WorkerCard key={w.id} worker={w} />)}
+              {workers.map(w => (
+                <WorkerCard
+                  key={w.id}
+                  worker={w}
+                  isProvider={isProvider}
+                  connectState={connectStates[w.userId] ?? "NONE"}
+                  onConnect={sendDirectConnect}
+                />
+              ))}
             </div>
             {total > PAGE_SIZE && (
               <div className="flex justify-center gap-3 mt-8">

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
+import { inp as twInp, lbl as twLbl } from "@/components/jobs/post/shared";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,16 @@ export default function ProfilePage() {
   const [ndisNumber,     setNdisNumber]     = useState("");
   const [acceptingClients, setAcceptingClients] = useState(true);
   const [servicesOffered, setServicesOffered] = useState<string[]>([]);
+
+  // Coordinator-only fields (SC-A05/A08 + capacity/availability)
+  const [roleType,               setRoleType]               = useState("");
+  const [organisationRole,       setOrganisationRole]       = useState("");
+  const [preferredContactMethod, setPreferredContactMethod] = useState("");
+  const [currentCapacityStatus,  setCurrentCapacityStatus]  = useState("");
+  const [availabilityType,       setAvailabilityType]       = useState("");
+  const [maxParticipantLoad,     setMaxParticipantLoad]     = useState("");
+  const [orgInviteCode,          setOrgInviteCode]          = useState<string | null>(null);
+  const [generatingCode,         setGeneratingCode]         = useState(false);
 
   // ── Avatar ────────────────────────────────────────────────────────────────
   const [avatarUrl,      setAvatarUrl]      = useState<string | null>(null);
@@ -161,6 +172,14 @@ export default function ProfilePage() {
         setEmergencyRel(p.emergencyContactRelationship ?? "");
         // Workers: servicesOffered  Providers: coreServices
         setServicesOffered(p.servicesOffered ?? p.coreServices ?? []);
+        // Coordinator-only fields
+        setRoleType(p.roleType ?? "");
+        setOrganisationRole(p.organisationRole ?? "");
+        setPreferredContactMethod(p.preferredContactMethod ?? "");
+        setCurrentCapacityStatus(p.currentCapacityStatus ?? "");
+        setAvailabilityType(p.availabilityType ?? "");
+        setMaxParticipantLoad(p.maxParticipantLoad != null ? String(p.maxParticipantLoad) : "");
+        setOrgInviteCode(p.orgInviteCode ?? null);
       })
       .catch(() => {})
       .finally(() => setPageLoading(false));
@@ -225,9 +244,14 @@ export default function ProfilePage() {
         profilePayload.coreServices   = servicesOffered;
       } else if (activeRole === UserRole.COORDINATOR) {
         // coordinator schema uses organisationName, not businessName
-        profilePayload.organisationName = businessName || undefined;
-        profilePayload.abn              = abn || undefined;
-        profilePayload.bio              = bio || undefined;
+        profilePayload.organisationName       = businessName || undefined;
+        profilePayload.abn                    = abn || undefined;
+        profilePayload.bio                    = bio || undefined;
+        profilePayload.organisationRole       = organisationRole || undefined;
+        profilePayload.preferredContactMethod = preferredContactMethod || undefined;
+        profilePayload.currentCapacityStatus  = currentCapacityStatus || undefined;
+        profilePayload.availabilityType       = availabilityType || undefined;
+        profilePayload.maxParticipantLoad     = maxParticipantLoad ? Number(maxParticipantLoad) : undefined;
       } else if (activeRole === UserRole.PLAN_MANAGER) {
         profilePayload.businessName     = businessName || undefined;
         profilePayload.abn              = abn || undefined;
@@ -264,6 +288,15 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleGenerateInviteCode() {
+    setGeneratingCode(true);
+    try {
+      const res = await api.post<{ profile: { orgInviteCode: string | null } }>("/users/me/profile/coordinator/invite-code", {});
+      setOrgInviteCode(res.profile.orgInviteCode ?? null);
+    } catch (err: any) { setError(err?.message ?? "Failed to generate invite code."); }
+    finally { setGeneratingCode(false); }
   }
 
   function toggleService(val: string) {
@@ -475,6 +508,37 @@ export default function ProfilePage() {
             </Card>
           )}
 
+          {activeRole === UserRole.COORDINATOR && (
+            <Card>
+              <CardHeader><CardTitle>Availability & capacity</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-3.5">
+                <Field label="Current capacity status">
+                  <select className={twInp} value={currentCapacityStatus} onChange={e => setCurrentCapacityStatus(e.target.value)}>
+                    <option value="">Select…</option>
+                    <option value="ACCEPTING">Accepting new participants</option>
+                    <option value="LIMITED">Limited availability</option>
+                    <option value="WAITLIST_ONLY">Waitlist only</option>
+                    <option value="NOT_ACCEPTING">Not accepting</option>
+                  </select>
+                </Field>
+                <div className="grid grid-cols-2 gap-3.5">
+                  <Field label="Availability type">
+                    <select className={twInp} value={availabilityType} onChange={e => setAvailabilityType(e.target.value)}>
+                      <option value="">Select…</option>
+                      <option value="BUSINESS_HOURS">Business hours</option>
+                      <option value="FLEXIBLE">Flexible</option>
+                      <option value="EMERGENCY_AVAILABLE">Emergency availability</option>
+                    </select>
+                  </Field>
+                  <Field label="Maximum participant load">
+                    <input className={twInp} type="number" min={0} max={200} value={maxParticipantLoad}
+                      onChange={e => setMaxParticipantLoad(e.target.value)} placeholder="e.g. 20" />
+                  </Field>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {activeRole === UserRole.PARTICIPANT && (
             <>
               <Card>
@@ -568,6 +632,45 @@ export default function ProfilePage() {
                     <input type="checkbox" checked={acceptingClients} onChange={e => setAcceptingClients(e.target.checked)} />
                     Currently accepting new clients
                   </label>
+                )}
+                {activeRole === UserRole.COORDINATOR && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div>
+                        <label className={twLbl}>Coordinator type</label>
+                        <div className="h-10 flex items-center px-2.5 rounded-lg bg-slate-50 text-slate-600 text-sm">
+                          {{ INDEPENDENT: "Independent", SC_ORGANISATION: "SC Organisation", NDIS_PROVIDER: "NDIS Provider", OTHER_ORGANISATION: "Other Organisation" }[roleType] ?? "—"}
+                        </div>
+                      </div>
+                      <Field label="Your role in the organisation">
+                        <input className={twInp} value={organisationRole} onChange={e => setOrganisationRole(e.target.value)} placeholder="e.g. Senior Support Coordinator" />
+                      </Field>
+                    </div>
+                    <Field label="Preferred contact method">
+                      <select className={twInp} value={preferredContactMethod} onChange={e => setPreferredContactMethod(e.target.value)}>
+                        <option value="">Select…</option>
+                        <option value="EMAIL">Email</option>
+                        <option value="PHONE">Phone call</option>
+                        <option value="SMS">SMS</option>
+                        <option value="PLATFORM_MESSAGE">Platform message</option>
+                      </select>
+                    </Field>
+                    {roleType && roleType !== "INDEPENDENT" && (
+                      <div>
+                        <label className={twLbl}>Team invitation code</label>
+                        {orgInviteCode ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-sm px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 tracking-widest">{orgInviteCode}</span>
+                            <span className="text-xs text-slate-400">Share this with colleagues joining your organisation.</span>
+                          </div>
+                        ) : (
+                          <Button type="button" variant="outline" size="sm" onClick={handleGenerateInviteCode} disabled={generatingCode}>
+                            {generatingCode ? "Generating…" : "Generate invite code"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

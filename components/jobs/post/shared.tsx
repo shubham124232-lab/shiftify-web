@@ -6,9 +6,11 @@
 // just shared across 4 files instead of duplicated, since all 4 journeys ask
 // nearly the same service/safety/funding/requirements questions.
 
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { SERVICE_CATALOGUE, getCatalogueCategory, type CatalogueCategory } from "@/lib/constants/support-catalogue";
 import type {
@@ -40,13 +42,14 @@ export function WizardProgress({ step, total }: { step: number; total: number })
 }
 
 export function WizardScreen({
-  tierLabel, screenTitle, step, total, error, children, onBack, onNext, nextLabel, nextDisabled, saving,
+  tierLabel, screenTitle, step, total, error, belowError, children, onBack, onNext, nextLabel, nextDisabled, saving,
 }: {
   tierLabel: string;
   screenTitle: string;
   step: number;
   total: number;
   error?: string | null;
+  belowError?: React.ReactNode;
   children: React.ReactNode;
   onBack: () => void;
   onNext: () => void;
@@ -59,7 +62,8 @@ export function WizardScreen({
       <PageHeader title={tierLabel} description={screenTitle} />
       <div className="mx-auto max-w-2xl px-5 py-6">
         <WizardProgress step={step} total={total} />
-        {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {belowError && <div className="mb-4">{belowError}</div>}
         <Card><CardContent className="py-6">{children}</CardContent></Card>
         <div className="flex justify-between mt-6">
           <Button variant="ghost" onClick={onBack} disabled={step === 0}>Back</Button>
@@ -102,20 +106,221 @@ export function CheckboxRow({ checked, onChange, label }: { checked: boolean; on
   );
 }
 
-export function ReviewRow({ label, value }: { label: string; value: React.ReactNode }) {
+export function ReviewRow({ label, value, onEdit }: { label: string; value: React.ReactNode; onEdit?: () => void }) {
   return (
     <div className="flex justify-between items-start py-2 border-b border-slate-100 last:border-0 gap-4">
       <span className="text-xs font-semibold text-slate-500 w-40 shrink-0">{label}</span>
-      <span className="text-sm text-slate-800 text-right">{value || <span className="text-slate-300">none</span>}</span>
+      <span className="text-sm text-slate-800 text-right flex items-center justify-end gap-2">
+        {value || <span className="text-slate-300">none</span>}
+        {onEdit && (
+          <button type="button" onClick={onEdit} className="text-xs font-medium text-brand-600 hover:text-brand-700 underline shrink-0">
+            Edit
+          </button>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// ─── Privacy / address-release notice shown near the info-sharing checkbox ────
+
+export function AddressReleaseNotice() {
+  return (
+    <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+      Your exact address is never shown up front. It's released to a worker or provider only after you've both mutually confirmed the request — before that, they see your suburb and postcode only.
+    </p>
+  );
+}
+
+// ─── Posting-authority confirmation (Coordinator posting for a connected, ─────
+// non-managed participant — SC-P01). Only relevant when PersonStep resolves to
+// an EXISTING_PARTICIPANT that is a *connection* (canPostRequests already true
+// server-side to have reached this step), not a fully managed sub-account.
+
+export function PostingAuthorityStep({
+  participantName, onConfirm, onChooseAnother,
+}: { participantName: string; onConfirm: () => void; onChooseAnother: () => void }) {
+  return (
+    <div className="space-y-5 text-center">
+      <p className="text-sm font-semibold text-slate-800">
+        Can you post and manage this request for {participantName}?
+      </p>
+      <p className="text-xs text-slate-500">
+        You're connected to this participant. Confirm you're authorised to post and manage support requests on their behalf before continuing.
+      </p>
+      <div className="flex flex-col gap-2 max-w-xs mx-auto">
+        <Button onClick={onConfirm} className="w-full">Yes, I'm authorised</Button>
+        <Button variant="outline" onClick={onChooseAnother} className="w-full">Choose another participant</Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Single Shift Pass prompt (SC-S02/S06 — Pricing V2 §6) ─────────────────────
+// Shown in place of a raw error when createJob rejects with SUBSCRIPTION_LIMIT:
+// the Coordinator has used their 10 free introductory posts and needs either a
+// subscription or a one-time Shift Pass to post again.
+
+export function ShiftPassPrompt({ onPurchased, onDismiss }: { onPurchased: () => void; onDismiss: () => void }) {
+  const [screen, setScreen] = useState<"choice" | "purchase">("choice");
+  const [purchasing, setPurchasing] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function purchase() {
+    setPurchasing(true);
+    setErr(null);
+    try {
+      await api.post("/subscriptions/shift-pass", {});
+      onPurchased();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Purchase failed.");
+    } finally {
+      setPurchasing(false);
+    }
+  }
+
+  if (screen === "purchase") {
+    return (
+      <div className="space-y-4 text-center border border-slate-200 rounded-xl p-5 bg-slate-50">
+        <p className="text-sm font-semibold text-slate-800">Single Shift Pass</p>
+        <div className="flex items-center justify-between border border-slate-200 rounded-lg px-4 py-3 bg-white text-left">
+          <span className="text-sm text-slate-700">One new request or agreed chargeable action</span>
+          <span className="text-sm font-bold text-slate-900">$19.99</span>
+        </div>
+        <p className="text-xs text-slate-500">Direct Connect is not included.</p>
+        {err && <p className="text-xs text-red-600">{err}</p>}
+        <div className="flex flex-col gap-2 max-w-xs mx-auto">
+          <Button onClick={purchase} disabled={purchasing} className="w-full">
+            {purchasing ? "Processing…" : "Purchase for $19.99"}
+          </Button>
+          <Button variant="outline" onClick={() => setScreen("choice")} className="w-full">Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 text-center border border-slate-200 rounded-xl p-5 bg-slate-50">
+      <p className="text-sm font-semibold text-slate-800">You've used your 10 introductory job posts</p>
+      <p className="text-xs text-slate-500">Choose a subscription plan for ongoing posting, or buy a Single Shift Pass to post just this one request.</p>
+      <div className="flex flex-col gap-2 max-w-xs mx-auto">
+        <a href="/subscription"><Button className="w-full">Choose a subscription</Button></a>
+        <Button variant="outline" onClick={() => setScreen("purchase")} className="w-full">Purchase one Single Shift Pass — $19.99</Button>
+        <Button variant="ghost" onClick={onDismiss} className="w-full">Cancel</Button>
+      </div>
     </div>
   );
 }
 
 // ─── "Who needs support" step (shared) ─────────────────────────────────────────
 
+function SomeoneElseFields({ value, onChange }: { value: PersonReceivingSupport; onChange: (p: Partial<PersonReceivingSupport>) => void }) {
+  return (
+    <div className="space-y-3 border border-brand-100 rounded-xl p-4 bg-brand-50/30">
+      <div>
+        <label className={lbl}>Preferred name *</label>
+        <input className={inp} value={value.someoneElseName} onChange={(e) => onChange({ someoneElseName: e.target.value })} placeholder="e.g. Alex" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={lbl}>Age group</label>
+          <select className={inp} value={value.someoneElseAgeGroup} onChange={(e) => onChange({ someoneElseAgeGroup: e.target.value })}>
+            <option value="">Select…</option>
+            <option value="Child">Child</option>
+            <option value="Teen">Teen</option>
+            <option value="Adult">Adult</option>
+            <option value="Older adult">Older adult</option>
+          </select>
+        </div>
+        <div>
+          <label className={lbl}>Phone (optional)</label>
+          <input className={inp} type="tel" value={value.someoneElsePhone} onChange={(e) => onChange({ someoneElsePhone: e.target.value })} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PersonStep({
-  value, onChange, tierLabel,
-}: { value: PersonReceivingSupport; onChange: (p: Partial<PersonReceivingSupport>) => void; tierLabel: string }) {
+  value, onChange, tierLabel, isCoordinator, authorityConfirmed, onAuthorityChange,
+}: {
+  value: PersonReceivingSupport; onChange: (p: Partial<PersonReceivingSupport>) => void; tierLabel: string; isCoordinator?: boolean;
+  // SC-P01 — required once a Coordinator picks a *connected* (non-managed) participant.
+  authorityConfirmed?: boolean; onAuthorityChange?: (v: boolean) => void;
+}) {
+  const [participants, setParticipants] = useState<{ id: string; name: string; connected?: boolean }[]>([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(false);
+
+  useEffect(() => {
+    if (!isCoordinator) return;
+    setLoadingParticipants(true);
+    Promise.all([
+      api.get<{ users: { id: string; name: string }[] }>("/linking/participants")
+        .catch(() => ({ users: [] })),
+      api.get<{ connections: { status: string; canPostRequests: boolean; participant: { id: string; name: string } }[] }>("/coordinator-connections")
+        .catch(() => ({ connections: [] })),
+    ]).then(([managed, conns]) => {
+      const managedList = (managed.users ?? []).map((u) => ({ id: u.id, name: u.name }));
+      const connectedList = (conns.connections ?? [])
+        .filter((c) => c.status === "ACCEPTED" && c.canPostRequests)
+        .map((c) => ({ id: c.participant.id, name: c.participant.name, connected: true }));
+      setParticipants([...managedList, ...connectedList]);
+    }).finally(() => setLoadingParticipants(false));
+  }, [isCoordinator]);
+
+  if (isCoordinator) {
+    // A coordinator is never "Me" — only an existing managed participant or a new one.
+    const coordWho = value.who === "SOMEONE_ELSE" || value.who === "EXISTING_PARTICIPANT" ? value.who : undefined;
+    return (
+      <div className="space-y-5">
+        <label className={lbl}>Who needs this {tierLabel}?</label>
+        <RadioCards
+          value={coordWho}
+          onChange={(who) => onChange({ who })}
+          options={[
+            { v: "EXISTING_PARTICIPANT", l: "One of my existing participants" },
+            { v: "SOMEONE_ELSE", l: "A new participant" },
+          ]}
+        />
+        {value.who === "EXISTING_PARTICIPANT" && (
+          <div>
+            <label className={lbl}>Select participant *</label>
+            <select className={inp} value={value.existingParticipantId} onChange={(e) => {
+              const picked = participants.find((p) => p.id === e.target.value);
+              onChange({
+                existingParticipantId: e.target.value,
+                existingParticipantIsConnection: !!picked?.connected,
+                existingParticipantName: picked?.name ?? "",
+              });
+            }}>
+              <option value="">{loadingParticipants ? "Loading…" : "Select a participant…"}</option>
+              {participants.map((p) => <option key={p.id} value={p.id}>{p.name}{p.connected ? " (connected)" : ""}</option>)}
+            </select>
+            {!loadingParticipants && participants.length === 0 && (
+              <p className="text-xs text-slate-400 mt-1">No participants yet — add one from the Participant Cases page, or choose &ldquo;A new participant&rdquo;.</p>
+            )}
+          </div>
+        )}
+        {value.who === "EXISTING_PARTICIPANT" && value.existingParticipantId && value.existingParticipantIsConnection && !authorityConfirmed && (
+          <PostingAuthorityStep
+            participantName={value.existingParticipantName || "this participant"}
+            onConfirm={() => onAuthorityChange?.(true)}
+            onChooseAnother={() => {
+              onAuthorityChange?.(false);
+              onChange({ existingParticipantId: "", existingParticipantIsConnection: false, existingParticipantName: "" });
+            }}
+          />
+        )}
+        {value.who === "EXISTING_PARTICIPANT" && value.existingParticipantId && value.existingParticipantIsConnection && authorityConfirmed && (
+          <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+            ✓ Confirmed — you're authorised to post for {value.existingParticipantName || "this participant"}.
+          </p>
+        )}
+        {value.who === "SOMEONE_ELSE" && <SomeoneElseFields value={value} onChange={onChange} />}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <label className={lbl}>Who needs this {tierLabel}?</label>
@@ -124,30 +329,7 @@ export function PersonStep({
         onChange={(who) => onChange({ who })}
         options={[{ v: "ME", l: "Me" }, { v: "SOMEONE_ELSE", l: "Someone else" }]}
       />
-      {value.who === "SOMEONE_ELSE" && (
-        <div className="space-y-3 border border-brand-100 rounded-xl p-4 bg-brand-50/30">
-          <div>
-            <label className={lbl}>Preferred name *</label>
-            <input className={inp} value={value.someoneElseName} onChange={(e) => onChange({ someoneElseName: e.target.value })} placeholder="e.g. Alex" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={lbl}>Age group</label>
-              <select className={inp} value={value.someoneElseAgeGroup} onChange={(e) => onChange({ someoneElseAgeGroup: e.target.value })}>
-                <option value="">Select…</option>
-                <option value="Child">Child</option>
-                <option value="Teen">Teen</option>
-                <option value="Adult">Adult</option>
-                <option value="Older adult">Older adult</option>
-              </select>
-            </div>
-            <div>
-              <label className={lbl}>Phone (optional)</label>
-              <input className={inp} type="tel" value={value.someoneElsePhone} onChange={(e) => onChange({ someoneElsePhone: e.target.value })} />
-            </div>
-          </div>
-        </div>
-      )}
+      {value.who === "SOMEONE_ELSE" && <SomeoneElseFields value={value} onChange={onChange} />}
     </div>
   );
 }

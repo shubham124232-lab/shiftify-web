@@ -6,10 +6,11 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import {
   WizardScreen, RadioCards, PersonStep, CategoryPickerStep, MultiCategoryTasksStep, SafetyStep,
   FundingTypeStep, RateStep, RoutineWorkerStep, RoutinePreferencesStep,
-  ReviewRow, LiveRequestScreen, CheckboxRow, inp, lbl,
+  ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
   buildSafetyFlagsPayload, buildFundingPayload, buildRoutinePreferencesPayload,
 } from "@/components/jobs/post/shared";
 import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
@@ -31,8 +32,11 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 interface OneOffDate { date: string; startTime: string; durationHours: string }
 
 export default function RoutineJourney() {
+  const { activeRole } = useAuth();
+  const isCoordinator = activeRole === "COORDINATOR";
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean } | null>(null);
 
@@ -64,7 +68,9 @@ export default function RoutineJourney() {
   const [funding, setFunding] = useState<FundingChoice>(EMPTY_FUNDING);
   const [responseMethods, setResponseMethods] = useState<string[]>([]);
   const [screeningQuestions, setScreeningQuestions] = useState<string[]>([]);
+  const [responseRoute, setResponseRoute] = useState<"APPLY" | "SEND_AVAILABILITY" | "ANSWER_QUESTIONS" | "MEET_AND_GREET" | "INVITE_ONLY" | "PUBLIC">("APPLY");
   const [agreeShare, setAgreeShare] = useState(false);
+  const [postingAuthorityConfirmed, setPostingAuthorityConfirmed] = useState(false);
 
   function patch<T>(setter: (v: T) => void, current: T) {
     return (p: Partial<T>) => setter({ ...current, ...p });
@@ -82,7 +88,10 @@ export default function RoutineJourney() {
   }
 
   function validate(): string | null {
+    if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (step === 1 && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (step === 2 && catalogue.categoryIds.length === 0) return "Select at least one support service.";
     if (step === 3 && Object.values(catalogue.tasksByCategory).every((t) => t.length === 0)) return "Select at least one task.";
     if (step === 4) {
@@ -127,7 +136,7 @@ export default function RoutineJourney() {
   }
 
   async function submitCommon(asDraft: boolean) {
-    setSaving(true); setError(null);
+    setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const { start, end, totalHours } = firstStartEnd();
       const primaryCategoryId = catalogue.categoryIds[0];
@@ -174,19 +183,29 @@ export default function RoutineJourney() {
         locationNotes: travelDetails.trim() || undefined,
         selectedTasks,
         workerPreferences,
-        visibilityTarget: routineWorker === "WORKER" || routineWorker === "ONE_REGULAR" || routineWorker === "SMALL_TEAM" ? "WORKERS_ONLY" : routineWorker === "PROVIDER" ? "PROVIDERS_ONLY" : "ALL",
+        visibilityTarget: responseRoute === "INVITE_ONLY"
+          ? "INVITE_ONLY"
+          : routineWorker === "WORKER" || routineWorker === "ONE_REGULAR" || routineWorker === "SMALL_TEAM" ? "WORKERS_ONLY" : routineWorker === "PROVIDER" ? "PROVIDERS_ONLY" : "ALL",
         safetyFlags: buildSafetyFlagsPayload(safety),
         ...buildFundingPayload(funding),
-        responsePreferences: responseMethods.length ? { responseMethods, screeningQuestions: screeningQuestions.length ? screeningQuestions : undefined } : undefined,
+        responsePreferences: responseMethods.length || responseRoute !== "APPLY"
+          ? { responseMethods, screeningQuestions: screeningQuestions.length ? screeningQuestions : undefined, responseRoute }
+          : undefined,
         asDraft,
       };
       if (person.who === "SOMEONE_ELSE") {
         body.inlineParticipant = { name: person.someoneElseName.trim(), phone: person.someoneElsePhone.trim() || undefined, suburb: suburb.trim() || undefined };
+      } else if (person.who === "EXISTING_PARTICIPANT") {
+        body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
       setSubmitted({ id: res.job.id, isDraft: asDraft });
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
+        setShiftPassBlocked(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      }
     } finally { setSaving(false); }
   }
   async function submit() { return submitCommon(false); }
@@ -205,6 +224,9 @@ export default function RoutineJourney() {
     <WizardScreen
       tierLabel="Routine Support" screenTitle={titles[step]} step={step} total={TOTAL_STEPS}
       error={error} onBack={back} onNext={next}
+      belowError={shiftPassBlocked ? (
+        <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); submit(); }} onDismiss={() => setShiftPassBlocked(false)} />
+      ) : undefined}
       nextLabel={step === TOTAL_STEPS - 1 ? "Post Routine request — Free" : "Continue"}
       saving={saving}
     >
@@ -213,7 +235,12 @@ export default function RoutineJourney() {
           { v: "ONE_TIME", l: "One-time support" }, { v: "ONGOING", l: "Ongoing regular support" }, { v: "MULTIPLE_DATES", l: "Several dates that do not repeat" },
         ]} />
       )}
-      {step === 1 && <PersonStep value={person} onChange={patch(setPerson, person)} tierLabel="Routine Support" />}
+      {step === 1 && (
+        <PersonStep
+          value={person} onChange={patch(setPerson, person)} tierLabel="Routine Support" isCoordinator={isCoordinator}
+          authorityConfirmed={postingAuthorityConfirmed} onAuthorityChange={setPostingAuthorityConfirmed}
+        />
+      )}
       {step === 2 && (
         <CategoryPickerStep
           selectedIds={catalogue.categoryIds}
@@ -296,8 +323,19 @@ export default function RoutineJourney() {
       {step === 10 && <RateStep value={funding} onChange={patch(setFunding, funding)} />}
       {step === 11 && (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <label className={lbl}>How should professionals respond?</label>
+          <div>
+            <label className={lbl}>How should professionals respond? (SC-O12)</label>
+            <RadioCards value={responseRoute} onChange={setResponseRoute} options={[
+              { v: "APPLY", l: "Apply through Shiftify", d: "Anyone suitable can express interest" },
+              { v: "SEND_AVAILABILITY", l: "Send availability and rate" },
+              { v: "ANSWER_QUESTIONS", l: "Answer screening questions" },
+              { v: "MEET_AND_GREET", l: "Request a meet-and-greet first" },
+              { v: "INVITE_ONLY", l: "Invite only", d: "Not shown on the open board — only invited workers/providers can respond" },
+              { v: "PUBLIC", l: "Public", d: "Visible to all matching workers and providers" },
+            ]} />
+          </div>
+          <div className="border-t border-slate-100 pt-4 space-y-2">
+            <label className={lbl}>How should they respond in detail? (optional)</label>
             {RESPONSE_METHODS.map((m) => (
               <CheckboxRow key={m} checked={responseMethods.includes(m)} onChange={() => toggleResponseMethod(m)} label={m} />
             ))}
@@ -316,14 +354,15 @@ export default function RoutineJourney() {
       {step === 12 && (
         <div className="space-y-4">
           <div className="bg-slate-50 rounded-xl p-4 divide-y divide-slate-100">
-            <ReviewRow label="Pattern and schedule" value={pattern.replace("_", " ")} />
-            <ReviewRow label="Services/tasks/goals" value={`${catalogue.categoryIds.map((id) => getCatalogueCategory(id)?.label).join(", ")} — ${catalogue.goals.join(", ")}`} />
-            <ReviewRow label="Locations/travel" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} />
-            <ReviewRow label="Worker/provider preferences" value={routineWorker || "Not specified"} />
-            <ReviewRow label="Safety/support summary" value={safety.none ? "None" : "Selected"} />
-            <ReviewRow label="Funding/rate" value={funding.fundingType || "Not specified"} />
-            <ReviewRow label="Response method" value={responseMethods.join(", ")} />
+            <ReviewRow label="Pattern and schedule" value={pattern.replace("_", " ")} onEdit={() => setStep(4)} />
+            <ReviewRow label="Services/tasks/goals" value={`${catalogue.categoryIds.map((id) => getCatalogueCategory(id)?.label).join(", ")} — ${catalogue.goals.join(", ")}`} onEdit={() => setStep(3)} />
+            <ReviewRow label="Locations/travel" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} onEdit={() => setStep(5)} />
+            <ReviewRow label="Worker/provider preferences" value={routineWorker || "Not specified"} onEdit={() => setStep(6)} />
+            <ReviewRow label="Safety/support summary" value={safety.none ? "None" : "Selected"} onEdit={() => setStep(8)} />
+            <ReviewRow label="Funding/rate" value={funding.fundingType || "Not specified"} onEdit={() => setStep(9)} />
+            <ReviewRow label="Response route" value={responseRoute.replace("_", " ")} onEdit={() => setStep(11)} />
           </div>
+          <AddressReleaseNotice />
           <CheckboxRow checked={agreeShare} onChange={setAgreeShare} label="Information-sharing acknowledgement — I agree the shown details can be shared with suitable workers/providers" />
           <div className="flex justify-end">
             <button type="button" onClick={() => void submitCommon(true)} className="text-xs text-brand-700 underline">Save and finish later</button>

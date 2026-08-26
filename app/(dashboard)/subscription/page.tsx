@@ -153,6 +153,12 @@ export default function SubscriptionPage() {
             </div>
           )}
 
+          {sub?.plan.key?.endsWith('_FREE') && (
+            <p style={{ marginTop: 12, fontSize: 12, color: 'var(--clr-muted)' }}>
+              Free plan: up to 5 open job posts at a time. Upgrade to a paid plan to remove this limit.
+            </p>
+          )}
+
           {/* Locked warning if no active sub */}
           {(!sub || sub.status !== 'ACTIVE') && (
             <div style={{ marginTop: 16, background: '#FFF9C4', border: '1px solid #F59E0B', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#78350f', display: 'flex', alignItems: 'flex-start', gap: 10 }}>

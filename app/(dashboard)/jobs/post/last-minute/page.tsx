@@ -6,9 +6,10 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import {
   WizardScreen, RadioCards, PersonStep, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
-  ReviewRow, LiveRequestScreen, CheckboxRow, inp, lbl,
+  ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
   buildWorkerPreferencesPayload, buildSafetyFlagsPayload, buildFundingPayload,
 } from "@/components/jobs/post/shared";
 import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
@@ -26,8 +27,11 @@ const SHORT_NOTICE_REASONS = ["Cancellation", "Roster gap", "Appointment/change"
 const UPDATE_METHODS = ["Shiftify notifications", "SMS", "Email", "Contact the person posting this request", "Contact an authorised representative"];
 
 export default function LastMinuteJourney() {
+  const { activeRole } = useAuth();
+  const isCoordinator = activeRole === "COORDINATOR";
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean } | null>(null);
 
@@ -53,6 +57,7 @@ export default function LastMinuteJourney() {
   const [repName, setRepName] = useState("");
   const [repContact, setRepContact] = useState("");
   const [agreeShare, setAgreeShare] = useState(false);
+  const [postingAuthorityConfirmed, setPostingAuthorityConfirmed] = useState(false);
 
   function patch<T>(setter: (v: T) => void, current: T) {
     return (p: Partial<T>) => setter({ ...current, ...p });
@@ -63,7 +68,10 @@ export default function LastMinuteJourney() {
 
   function validate(): string | null {
     if (step === 0 && !startDateTime) return "Choose a date/time within the next 48 hours.";
+    if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (step === 1 && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (step === 2 && !catalogue.categoryId) return "Select a support category.";
     if (step === 3 && catalogue.tasks.length === 0) return "Select at least one task.";
     if (step === 4 && !suburb.trim()) return "Suburb/postcode is required.";
@@ -85,7 +93,7 @@ export default function LastMinuteJourney() {
   function back() { setError(null); setStep((s) => Math.max(0, s - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
 
   async function submitCommon(asDraft: boolean) {
-    setSaving(true); setError(null);
+    setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const start = new Date(startDateTime);
       const end = new Date(start.getTime() + parseFloat(durationHours || "1") * 60 * 60 * 1000);
@@ -117,11 +125,17 @@ export default function LastMinuteJourney() {
       };
       if (person.who === "SOMEONE_ELSE") {
         body.inlineParticipant = { name: person.someoneElseName.trim(), phone: person.someoneElsePhone.trim() || undefined, suburb: suburb.trim() || undefined };
+      } else if (person.who === "EXISTING_PARTICIPANT") {
+        body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
       setSubmitted({ id: res.job.id, isDraft: asDraft });
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
+        setShiftPassBlocked(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      }
     } finally { setSaving(false); }
   }
 
@@ -141,6 +155,9 @@ export default function LastMinuteJourney() {
     <WizardScreen
       tierLabel="Last-Minute Support" screenTitle={titles[step]} step={step} total={TOTAL_STEPS}
       error={error} onBack={back} onNext={next}
+      belowError={shiftPassBlocked ? (
+        <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); submit(); }} onDismiss={() => setShiftPassBlocked(false)} />
+      ) : undefined}
       nextLabel={step === TOTAL_STEPS - 2 ? "Review Last-Minute request" : step === TOTAL_STEPS - 1 ? "Post Last-Minute request — Free" : "Continue"}
       saving={saving}
     >
@@ -156,7 +173,12 @@ export default function LastMinuteJourney() {
           </div>
         </div>
       )}
-      {step === 1 && <PersonStep value={person} onChange={patch(setPerson, person)} tierLabel="Last-Minute Support" />}
+      {step === 1 && (
+        <PersonStep
+          value={person} onChange={patch(setPerson, person)} tierLabel="Last-Minute Support" isCoordinator={isCoordinator}
+          authorityConfirmed={postingAuthorityConfirmed} onAuthorityChange={setPostingAuthorityConfirmed}
+        />
+      )}
       {step === 2 && (
         <CategoryPickerStep
           selectedIds={catalogue.categoryId ? [catalogue.categoryId] : []}
@@ -230,14 +252,15 @@ export default function LastMinuteJourney() {
       {step === 10 && (
         <div className="space-y-4">
           <div className="bg-slate-50 rounded-xl p-4 divide-y divide-slate-100">
-            <ReviewRow label="Schedule" value={startDateTime ? `${new Date(startDateTime).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })} · ${durationHours} hours` : ""} />
-            <ReviewRow label="Service/tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ")}`} />
-            <ReviewRow label="Location/travel" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} />
-            <ReviewRow label="Worker requirements" value={requirements.workerOrProvider ?? "Not specified"} />
-            <ReviewRow label="Safety/support summary" value={safety.none ? "None" : "Selected"} />
-            <ReviewRow label="Funding/rate" value={funding.fundingType || "Not specified"} />
-            <ReviewRow label="Contact method" value={updateMethods.join(", ")} />
+            <ReviewRow label="Schedule" value={startDateTime ? `${new Date(startDateTime).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })} · ${durationHours} hours` : ""} onEdit={() => setStep(5)} />
+            <ReviewRow label="Service/tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ")}`} onEdit={() => setStep(3)} />
+            <ReviewRow label="Location/travel" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} onEdit={() => setStep(4)} />
+            <ReviewRow label="Worker requirements" value={requirements.workerOrProvider ?? "Not specified"} onEdit={() => setStep(6)} />
+            <ReviewRow label="Safety/support summary" value={safety.none ? "None" : "Selected"} onEdit={() => setStep(7)} />
+            <ReviewRow label="Funding/rate" value={funding.fundingType || "Not specified"} onEdit={() => setStep(8)} />
+            <ReviewRow label="Contact method" value={updateMethods.join(", ")} onEdit={() => setStep(9)} />
           </div>
+          <AddressReleaseNotice />
           <CheckboxRow checked={agreeShare} onChange={setAgreeShare} label="Information-sharing acknowledgement — I agree the shown details can be shared with suitable workers/providers" />
           <div className="flex justify-end">
             <button type="button" onClick={() => void submitCommon(true)} className="text-xs text-brand-700 underline">Save and finish later</button>

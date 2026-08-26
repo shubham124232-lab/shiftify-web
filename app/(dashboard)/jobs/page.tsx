@@ -36,6 +36,7 @@ interface Job {
   };
   budget?: { type: string; amount?: number };
   ownApplication?: { status: string } | null;
+  featuredUntil?: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -251,6 +252,7 @@ function JobCard({ job, canApply, applying, onApply, onView }: {
   onView: () => void;
 }) {
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
+  const isFeatured = !!job.featuredUntil && new Date(job.featuredUntil) > new Date();
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const applied = !!job.ownApplication;
   const qualsCount = job.workerPreferences?.requiredQualifications?.length ?? 0;
@@ -261,8 +263,13 @@ function JobCard({ job, canApply, applying, onApply, onView }: {
     : null;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-brand-300 transition-colors">
+    <div className={cn("bg-white border rounded-2xl p-5 hover:border-brand-300 transition-colors", isFeatured ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200")}>
       <div className="flex gap-2 flex-wrap mb-3">
+        {isFeatured && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+            ⭐ Featured
+          </span>
+        )}
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ background: urg.bg, color: urg.color }}>
           {job.urgency.replace("_", " ")}
         </span>

@@ -6,9 +6,10 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import {
   WizardScreen, RadioCards, PersonStep, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
-  ReviewRow, LiveRequestScreen, CheckboxRow, inp, lbl,
+  ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
   buildWorkerPreferencesPayload, buildSafetyFlagsPayload, buildFundingPayload,
 } from "@/components/jobs/post/shared";
 import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
@@ -29,8 +30,11 @@ const DURATION_HOURS: Record<Duration, number | undefined> = {
 };
 
 export default function RapidJourney() {
+  const { activeRole } = useAuth();
+  const isCoordinator = activeRole === "COORDINATOR";
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean } | null>(null);
 
@@ -49,6 +53,7 @@ export default function RapidJourney() {
   const [safety, setSafety] = useState<SafetyChecklist>(EMPTY_SAFETY);
   const [funding, setFunding] = useState<FundingChoice>(EMPTY_FUNDING);
   const [agreeShare, setAgreeShare] = useState(false);
+  const [postingAuthorityConfirmed, setPostingAuthorityConfirmed] = useState(false);
 
   function patch<T>(setter: (v: T) => void, current: T) {
     return (p: Partial<T>) => setter({ ...current, ...p });
@@ -56,7 +61,10 @@ export default function RapidJourney() {
 
   function validate(): string | null {
     if (step === 0 && timing === "CHOOSE_TIME" && !chosenTime) return "Choose a time within the next 60 minutes.";
+    if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (step === 1 && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (step === 2 && !catalogue.categoryId) return "Select the support that is needed right now.";
     if (step === 3 && catalogue.tasks.length === 0 && !catalogue.otherTask.trim()) return "Select at least one task, or describe the other essential task.";
     if (step === 4 && !suburb.trim()) return "Suburb/postcode is required.";
@@ -80,7 +88,7 @@ export default function RapidJourney() {
   }
 
   async function submit() {
-    setSaving(true); setError(null);
+    setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const start = timing === "ASAP" ? new Date() : new Date(chosenTime);
       const durationHours = DURATION_HOURS[duration] ?? 1;
@@ -103,6 +111,7 @@ export default function RapidJourney() {
         locationNotes: meetingDetails.trim() || undefined,
         selectedTasks: catalogue.tasks.length ? catalogue.tasks : undefined,
         workerPreferences: buildWorkerPreferencesPayload(requirements),
+        visibilityTarget: requirements.workerOrProvider === "WORKER" ? "WORKERS_ONLY" : requirements.workerOrProvider === "PROVIDER" ? "PROVIDERS_ONLY" : "ALL",
         safetyFlags: buildSafetyFlagsPayload(safety),
         ...buildFundingPayload(funding),
         asDraft: false,
@@ -113,11 +122,17 @@ export default function RapidJourney() {
           phone: person.someoneElsePhone.trim() || undefined,
           suburb: suburb.trim() || undefined,
         };
+      } else if (person.who === "EXISTING_PARTICIPANT") {
+        body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
       setSubmitted({ id: res.job.id, isDraft: false });
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
+        setShiftPassBlocked(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      }
     } finally {
       setSaving(false);
     }
@@ -143,6 +158,9 @@ export default function RapidJourney() {
     <WizardScreen
       tierLabel="Rapid Support" screenTitle={screens[step].title} step={step} total={TOTAL_STEPS}
       error={error} onBack={back} onNext={next} nextLabel={screens[step].label} saving={saving}
+      belowError={shiftPassBlocked ? (
+        <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); submit(); }} onDismiss={() => setShiftPassBlocked(false)} />
+      ) : undefined}
     >
       {step === 0 && (
         <div className="space-y-4">
@@ -157,7 +175,12 @@ export default function RapidJourney() {
         </div>
       )}
 
-      {step === 1 && <PersonStep value={person} onChange={patch(setPerson, person)} tierLabel="Rapid Support" />}
+      {step === 1 && (
+        <PersonStep
+          value={person} onChange={patch(setPerson, person)} tierLabel="Rapid Support" isCoordinator={isCoordinator}
+          authorityConfirmed={postingAuthorityConfirmed} onAuthorityChange={setPostingAuthorityConfirmed}
+        />
+      )}
 
       {step === 2 && (
         <CategoryPickerStep
@@ -195,7 +218,7 @@ export default function RapidJourney() {
         ]} />
       )}
 
-      {step === 6 && <RequirementsStep value={requirements} onChange={patch(setRequirements, requirements)} />}
+      {step === 6 && <RequirementsStep value={requirements} onChange={patch(setRequirements, requirements)} showWorkerChoice />}
 
       {step === 7 && <SafetyStep value={safety} onChange={patch(setSafety, safety)} />}
 
@@ -204,13 +227,14 @@ export default function RapidJourney() {
       {step === 9 && (
         <div className="space-y-4">
           <div className="bg-slate-50 rounded-xl p-4 divide-y divide-slate-100">
-            <ReviewRow label="Arrival time and duration" value={`${timing === "ASAP" ? "As soon as possible" : new Date(chosenTime).toLocaleString("en-AU", { timeStyle: "short" })} · ${duration.replace("_", " ")}`} />
-            <ReviewRow label="Service and essential tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ") || catalogue.otherTask}`} />
-            <ReviewRow label="General location" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} />
-            <ReviewRow label="Essential requirements" value={requirements.none ? "None" : "Selected"} />
-            <ReviewRow label="Safety summary" value={safety.none ? "None" : "Selected"} />
-            <ReviewRow label="Funding and rate" value={funding.fundingType || "Not specified"} />
+            <ReviewRow label="Arrival time and duration" value={`${timing === "ASAP" ? "As soon as possible" : new Date(chosenTime).toLocaleString("en-AU", { timeStyle: "short" })} · ${duration.replace("_", " ")}`} onEdit={() => setStep(5)} />
+            <ReviewRow label="Service and essential tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ") || catalogue.otherTask}`} onEdit={() => setStep(3)} />
+            <ReviewRow label="General location" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} onEdit={() => setStep(4)} />
+            <ReviewRow label="Essential requirements" value={requirements.none ? "None" : "Selected"} onEdit={() => setStep(6)} />
+            <ReviewRow label="Safety summary" value={safety.none ? "None" : "Selected"} onEdit={() => setStep(7)} />
+            <ReviewRow label="Funding and rate" value={funding.fundingType || "Not specified"} onEdit={() => setStep(8)} />
           </div>
+          <AddressReleaseNotice />
           <CheckboxRow checked={agreeShare} onChange={setAgreeShare} label="I agree the shown request details can be shared with suitable workers/providers" />
         </div>
       )}

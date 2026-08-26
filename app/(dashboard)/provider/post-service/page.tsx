@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api, ApiError } from "@/lib/api";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
+import { JOB_CATEGORIES } from "@/lib/constants/categories";
 
 // ── Schema ─────────────────────────────────────────────────────────────────────
 const schema = z.object({
@@ -31,13 +32,6 @@ const schema = z.object({
   acknowledgement: z.boolean().refine(v => v === true, { message: "You must confirm this information is accurate" }),
 });
 type FormData = z.infer<typeof schema>;
-
-const SERVICE_CATEGORIES = [
-  "Personal Care", "Community Access", "Domestic Assistance", "Transport Support",
-  "Social / Recreational Support", "Daily Living Support", "Respite", "Overnight Support",
-  "SIL Support", "Psychosocial Support", "Behaviour Support Assistance", "Complex Care",
-  "Meal Support", "Medication Support", "Appointment Support", "Other",
-];
 
 const LISTING_TYPES = [
   { value: "IMMEDIATE_INTAKE",    label: "Immediate intake open",       desc: "We have capacity available now" },
@@ -138,7 +132,7 @@ export default function PostServicePage() {
                   <label style={lbl}>Service Category <span style={{ color: "#ef4444" }}>*</span></label>
                   <select {...register("serviceCategory")} style={{ ...inp, cursor: "pointer", borderColor: errors.serviceCategory ? "#ef4444" : undefined }}>
                     <option value="">Select category…</option>
-                    {SERVICE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {JOB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                   {errors.serviceCategory && <p className="text-xs text-red-500 mt-1">{errors.serviceCategory.message}</p>}
                 </div>

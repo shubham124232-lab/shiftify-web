@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, FilePlus, Search, Briefcase,
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
-  CreditCard, Building2, Home,
+  CreditCard, Building2, Home, Star,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +28,8 @@ function navForRole(role: string): NavItem[] {
         { href: "/jobs/post",    label: "Post Request",   icon: FilePlus },
         { href: "/workers/available", label: "Browse Workers", icon: Search },
         { href: "/coordinators/available", label: "Browse Coordinators", icon: UserCheck },
+        { href: "/coordinator-connections", label: "Coordinator Connections", icon: Link2 },
+        { href: "/saved-professionals", label: "Saved",       icon: Star },
         { href: "/documents",    label: "Documents",      icon: FileText },
         { href: "/messages",     label: "Messages",       icon: MessageSquare },
       ];
@@ -38,6 +40,8 @@ function navForRole(role: string): NavItem[] {
         { href: "/jobs/my",      label: "My Jobs",        icon: Briefcase },
         { href: "/invoices",     label: "Invoices",       icon: Receipt },
         { href: "/availability", label: "Availability",   icon: Calendar },
+        { href: "/connect-invites", label: "Direct Connect", icon: Link2 },
+        { href: "/job-invites",  label: "Job Invitations", icon: Bell },
         { href: "/documents",    label: "Documents",      icon: FileText },
         { href: "/messages",     label: "Messages",       icon: MessageSquare },
       ];
@@ -51,6 +55,8 @@ function navForRole(role: string): NavItem[] {
         { href: "/workers/available",         label: "Browse Workers",       icon: UserCheck },
         { href: "/jobs/my",                   label: "Enquiries",            icon: Briefcase },
         { href: "/team",                      label: "My Team",              icon: Users },
+        { href: "/provider/organisation",     label: "Organisation",         icon: Building2 },
+        { href: "/job-invites",               label: "Job Invitations",      icon: Bell },
         { href: "/invoices",                  label: "Invoices",             icon: Receipt },
         { href: "/documents",                 label: "Documents",            icon: FileText },
         { href: "/messages",                  label: "Messages",             icon: MessageSquare },
@@ -59,10 +65,12 @@ function navForRole(role: string): NavItem[] {
       return [
         dash,
         { href: "/participants",         label: "Participant Cases",  icon: UserCheck },
+        { href: "/coordinator-connections", label: "Connections",     icon: Link2 },
         { href: "/jobs/my",              label: "My Requests",        icon: ClipboardList },
         { href: "/jobs/post",            label: "Post Request",       icon: FilePlus },
         { href: "/jobs?urgent=1",        label: "Urgent Requests",    icon: BarChart2 },
         { href: "/workers/available",    label: "Browse Workers",     icon: Search },
+        { href: "/saved-professionals",  label: "Saved",              icon: Star },
         { href: "/invoices",             label: "Invoices",           icon: Receipt },
         { href: "/documents",            label: "Documents",          icon: FileText },
         { href: "/messages",             label: "Messages",           icon: MessageSquare },
@@ -74,6 +82,7 @@ function navForRole(role: string): NavItem[] {
         { href: "/referrals",    label: "My Referrals",   icon: ClipboardList },
         { href: "/connections",  label: "Connections",    icon: Link2 },
         { href: "/workers/available", label: "Browse Workers", icon: Search },
+        { href: "/saved-professionals", label: "Saved",   icon: Star },
         { href: "/invoices",     label: "Invoices",       icon: Receipt },
         { href: "/documents",    label: "Documents",      icon: FileText },
         { href: "/messages",     label: "Messages",       icon: MessageSquare },

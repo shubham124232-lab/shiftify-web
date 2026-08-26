@@ -21,6 +21,11 @@ interface Applicant {
   };
 }
 interface Message   { id: string; senderId: string; senderName: string; body: string; createdAt: string; }
+interface JobInvite {
+  id: string; status: "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN";
+  amountAud: number | string | null; mockReceiptRef: string | null;
+  invitedUser: { id: string; name: string; avatarUrl: string | null };
+}
 
 interface JobDetail {
   id: string; title: string; description: string | null;
@@ -28,6 +33,9 @@ interface JobDetail {
   scheduledStartAt: string; scheduledEndAt: string | null;
   totalHours: number | null; status: string; postedAt: string;
   postedBy: { id: string; name: string };
+  addressLine?: string | null;
+  workerConfirmedAt?: string | null;
+  promotedFromCancellation?: boolean;
   selectedApplicant?: { id: string; name: string } | null;
   assignedWorker?: { id: string; name: string } | null;
   applications?: Applicant[];
@@ -39,6 +47,7 @@ interface JobDetail {
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
   workerPreferences?: { safetyFlags?: Record<string, boolean> } | null;
+  featuredUntil?: string | null;
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
@@ -67,6 +76,14 @@ const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
   SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
   SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
 };
+// Pricing V2 §8 / 15.2 — must match Backend's FEATURED_SHIFT_CONFIG exactly.
+const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: string }> = {
+  RAPID:       { priceAud: 19.99, durationLabel: "up to 60 minutes or until filled" },
+  SAME_DAY:    { priceAud: 14.99, durationLabel: "up to 24 hours or until filled" },
+  LAST_MINUTE: { priceAud: 9.99,  durationLabel: "up to 48 hours or until filled" },
+  SCHEDULED:   { priceAud: 21.99, durationLabel: "up to 7 days or until filled" },
+};
+
 const APP_STATUS_COLOR: Record<string, string> = {
   INTERESTED:  "#854d0e",
   SHORTLISTED: "#1d4ed8",
@@ -102,6 +119,7 @@ export default function JobDetailPage() {
   const [flagDescription, setFlagDescription] = useState("");
   const [flagging,       setFlagging]       = useState(false);
   const [flagSent,       setFlagSent]       = useState(false);
+  const [invites,        setInvites]        = useState<JobInvite[]>([]);
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -130,6 +148,13 @@ export default function JobDetailPage() {
       .catch(() => {});
   }
 
+  function loadInvites() {
+    // 403 for a non-poster — ignore silently, this section only renders for the owner.
+    api.get<{ invites: JobInvite[] }>(`/job-invites/${id}`)
+      .then(r => setInvites(r.invites ?? []))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -139,6 +164,7 @@ export default function JobDetailPage() {
     loadMessages();
     loadReviews();
     loadAssignments();
+    if (activeRole === "COORDINATOR" || activeRole === "PROVIDER") loadInvites();
     pollRef.current = setInterval(loadMessages, 30_000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -191,6 +217,26 @@ export default function JobDetailPage() {
       await loadJob();
     } catch (e: any) { setError(e.message); }
     finally { setActing(false); }
+  }
+
+  const [findingReplacement, setFindingReplacement] = useState(false);
+  const [featuring, setFeaturing] = useState(false);
+  async function findReplacement() {
+    setFindingReplacement(true);
+    try {
+      const res = await api.post<{ job: { id: string } }>(`/jobs/${id}/replacement`, {});
+      router.push(`/jobs/${res.job.id}`);
+    } catch (e: any) { setError(e.message); }
+    finally { setFindingReplacement(false); }
+  }
+
+  async function featureShift() {
+    setFeaturing(true);
+    try {
+      await api.post(`/jobs/${id}/featured-shift`, {});
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setFeaturing(false); }
   }
 
   async function submitReview() {
@@ -263,6 +309,12 @@ export default function JobDetailPage() {
           </div>
         )}
 
+        {job.promotedFromCancellation && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#b91c1c" }}>
+            ⚠ This request was reposted as urgent after the original worker/provider cancelled close to the start time.
+          </div>
+        )}
+
         {/* Status + badges */}
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: sta.bg, color: sta.color }}>
@@ -284,6 +336,18 @@ export default function JobDetailPage() {
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13 }}>
               <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Location:</span> {job.suburb}, {job.state}</div>
+              {job.addressLine && (
+                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Address:</span> {job.addressLine}</div>
+              )}
+              {job.status === "ASSIGNED" && !job.addressLine && (isOwner || workerPartyId === user?.id) && (
+                <div style={{ gridColumn: "1 / -1", fontSize: 12, fontWeight: 600, color: job.workerConfirmedAt ? "#15803d" : "#92400e" }}>
+                  {job.workerConfirmedAt
+                    ? "Confirmed — full address released above"
+                    : isOwner
+                      ? "Awaiting worker/provider confirmation — exact address is hidden until they accept"
+                      : "Accept the assignment below to see the exact address"}
+                </div>
+              )}
               <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Start:</span> {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
               {job.scheduledEndAt && (
                 <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>End:</span> {new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
@@ -353,6 +417,21 @@ export default function JobDetailPage() {
           );
         })()}
 
+        {/* Manual replacement — cancelled job, outside the automatic 4-hour promotion window (SC-04-05) */}
+        {isOwner && job.status === "CANCELLED" && !job.promotedFromCancellation && (
+          <Card>
+            <CardContent className="pt-5 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Need a replacement for this cancelled request?</p>
+                <p className="text-xs text-slate-500 mt-0.5">Creates a new open request with the same details — you can adjust anything before publishing.</p>
+              </div>
+              <Button onClick={findReplacement} disabled={findingReplacement}>
+                {findingReplacement ? "Creating…" : "Find Replacement"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Owner actions */}
         {isOwner && (
           <Card>
@@ -371,13 +450,37 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        {/* Featured Shift (Pricing V2 §8) — poster can pin/label an open request */}
+        {isOwner && job.status === "OPEN" && FEATURED_SHIFT_INFO[job.urgency] && (
+          <Card>
+            <CardContent className="pt-5 flex items-center justify-between gap-4 flex-wrap">
+              {job.featuredUntil && new Date(job.featuredUntil) > new Date() ? (
+                <div>
+                  <p className="text-sm font-semibold text-amber-700">⭐ Featured</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Featured until {new Date(job.featuredUntil).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Feature this request — ${FEATURED_SHIFT_INFO[job.urgency].priceAud.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Pins and labels your request {FEATURED_SHIFT_INFO[job.urgency].durationLabel}. Never changes genuine urgency ordering.</p>
+                  </div>
+                  <Button variant="outline" disabled={featuring} onClick={featureShift}>
+                    {featuring ? "Purchasing…" : "Purchase Featured Shift"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Worker: apply or show own application status */}
         {isWorker && !ownApp && job.status === "OPEN" && (
           <Card>
-            <CardHeader><CardTitle>Apply for this support request</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <Button onClick={() => setShowApply(true)}>Apply Now</Button>
-              <span style={{ fontSize: 13, color: "#94a3b8" }}>Takes 2–3 minutes — structured 6-step application</span>
+            <CardHeader><CardTitle>Connect to this support request</CardTitle></CardHeader>
+            <CardContent className="flex gap-2.5 items-center">
+              <Button onClick={() => setShowApply(true)}>Connect</Button>
+              <span className="text-[13px] text-slate-400">Review, confirm you're available and meet the requirements, and Connect — takes under a minute</span>
             </CardContent>
           </Card>
         )}
@@ -435,7 +538,20 @@ export default function JobDetailPage() {
         )}
 
         {/* Worker lifecycle actions */}
-        {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && (
+        {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && !job.workerConfirmedAt && (
+          <Card>
+            <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
+            <CardContent style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>
+                Accept this assignment to confirm you'll be attending — this releases the exact address and the participant's contact details to you.
+              </p>
+              <Button disabled={acting} onClick={() => jobAction("confirm-assignment")}>
+                {acting ? "Confirming..." : "Accept & Confirm Assignment"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+        {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && job.workerConfirmedAt && (
           <Card>
             <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10 }}>
@@ -520,6 +636,43 @@ export default function JobDetailPage() {
                 ))
               )}
             </CardContent>
+          </Card>
+        )}
+
+        {/* Invited (owner only, Coordinator free / Provider paid Direct Connect) */}
+        {isOwner && job.status === "OPEN" && (activeRole === "COORDINATOR" || activeRole === "PROVIDER") && (
+          <Card>
+            <CardHeader className="flex items-center justify-between flex-row">
+              <CardTitle>Invited{invites.length > 0 ? ` (${invites.length})` : ""}</CardTitle>
+              <Link href={`/workers/available?forJobId=${id}`}>
+                <Button size="sm" variant="outline">Invite someone</Button>
+              </Link>
+            </CardHeader>
+            {invites.length > 0 && (
+              <CardContent>
+                <div className="flex flex-col gap-2">
+                  {invites.map(inv => (
+                    <div key={inv.id} className="flex items-center gap-3 px-3.5 py-2.5 border border-slate-200 rounded-lg">
+                      <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 shrink-0">
+                        {inv.invitedUser.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">{inv.invitedUser.name}</span>
+                      {inv.amountAud != null && (
+                        <span className="text-xs font-semibold text-slate-500">${Number(inv.amountAud).toFixed(2)}{inv.mockReceiptRef ? " charged" : " if accepted"}</span>
+                      )}
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        inv.status === "ACCEPTED" ? "bg-emerald-50 text-emerald-700"
+                        : inv.status === "DECLINED" ? "bg-slate-100 text-slate-500"
+                        : inv.status === "WITHDRAWN" ? "bg-slate-100 text-slate-400"
+                        : "bg-amber-50 text-amber-700"
+                      }`}>
+                        {inv.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            )}
           </Card>
         )}
 

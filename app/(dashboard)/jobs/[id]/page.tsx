@@ -47,6 +47,7 @@ interface JobDetail {
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
   workerPreferences?: { safetyFlags?: Record<string, boolean> } | null;
+  featuredUntil?: string | null;
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
@@ -75,6 +76,14 @@ const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
   SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
   SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
 };
+// Pricing V2 §8 / 15.2 — must match Backend's FEATURED_SHIFT_CONFIG exactly.
+const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: string }> = {
+  RAPID:       { priceAud: 19.99, durationLabel: "up to 60 minutes or until filled" },
+  SAME_DAY:    { priceAud: 14.99, durationLabel: "up to 24 hours or until filled" },
+  LAST_MINUTE: { priceAud: 9.99,  durationLabel: "up to 48 hours or until filled" },
+  SCHEDULED:   { priceAud: 21.99, durationLabel: "up to 7 days or until filled" },
+};
+
 const APP_STATUS_COLOR: Record<string, string> = {
   INTERESTED:  "#854d0e",
   SHORTLISTED: "#1d4ed8",
@@ -211,6 +220,7 @@ export default function JobDetailPage() {
   }
 
   const [findingReplacement, setFindingReplacement] = useState(false);
+  const [featuring, setFeaturing] = useState(false);
   async function findReplacement() {
     setFindingReplacement(true);
     try {
@@ -218,6 +228,15 @@ export default function JobDetailPage() {
       router.push(`/jobs/${res.job.id}`);
     } catch (e: any) { setError(e.message); }
     finally { setFindingReplacement(false); }
+  }
+
+  async function featureShift() {
+    setFeaturing(true);
+    try {
+      await api.post(`/jobs/${id}/featured-shift`, {});
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setFeaturing(false); }
   }
 
   async function submitReview() {
@@ -431,13 +450,37 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        {/* Featured Shift (Pricing V2 §8) — poster can pin/label an open request */}
+        {isOwner && job.status === "OPEN" && FEATURED_SHIFT_INFO[job.urgency] && (
+          <Card>
+            <CardContent className="pt-5 flex items-center justify-between gap-4 flex-wrap">
+              {job.featuredUntil && new Date(job.featuredUntil) > new Date() ? (
+                <div>
+                  <p className="text-sm font-semibold text-amber-700">⭐ Featured</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Featured until {new Date(job.featuredUntil).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Feature this request — ${FEATURED_SHIFT_INFO[job.urgency].priceAud.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Pins and labels your request {FEATURED_SHIFT_INFO[job.urgency].durationLabel}. Never changes genuine urgency ordering.</p>
+                  </div>
+                  <Button variant="outline" disabled={featuring} onClick={featureShift}>
+                    {featuring ? "Purchasing…" : "Purchase Featured Shift"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Worker: apply or show own application status */}
         {isWorker && !ownApp && job.status === "OPEN" && (
           <Card>
-            <CardHeader><CardTitle>Apply for this support request</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <Button onClick={() => setShowApply(true)}>Apply Now</Button>
-              <span style={{ fontSize: 13, color: "#94a3b8" }}>Takes 2–3 minutes — structured 6-step application</span>
+            <CardHeader><CardTitle>Connect to this support request</CardTitle></CardHeader>
+            <CardContent className="flex gap-2.5 items-center">
+              <Button onClick={() => setShowApply(true)}>Connect</Button>
+              <span className="text-[13px] text-slate-400">Review, confirm you're available and meet the requirements, and Connect — takes under a minute</span>
             </CardContent>
           </Card>
         )}

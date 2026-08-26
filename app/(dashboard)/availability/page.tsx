@@ -45,6 +45,10 @@ export default function AvailabilityPage() {
   const [newDate,     setNewDate]     = useState("");
   const [newNote,     setNewNote]     = useState("");
   const [addingDate,  setAddingDate]  = useState(false);
+  const [availableNow, setAvailableNow] = useState(false);
+  const [availableNowSetAt, setAvailableNowSetAt] = useState<string | null>(null);
+  const [togglingNow, setTogglingNow] = useState(false);
+  const [nowError, setNowError] = useState<string | null>(null);
 
   const isWorker   = activeRole === UserRole.SUPPORT_WORKER;
   const isProvider = activeRole === UserRole.PROVIDER;
@@ -63,6 +67,33 @@ export default function AvailabilityPage() {
       .catch(() => {}) // no profile yet — leave empty
       .finally(() => setLoading(false));
   }, [activeRole, isWorker, isProvider]);
+
+  useEffect(() => {
+    if (!isWorker) return;
+    api.get<{ user: any }>("/users/me")
+      .then(r => {
+        setAvailableNow(!!r.user?.workerProfile?.isAvailableNow);
+        setAvailableNowSetAt(r.user?.workerProfile?.availableNowSetAt ?? null);
+      })
+      .catch(() => {});
+  }, [isWorker]);
+
+  // SW journey doc §12 — Available Now Power Up: manual ON with a 24h auto-clear
+  // (WorkerProfile.introductoryActionsUsed's sibling gate — see profile.service.ts).
+  async function toggleAvailableNow() {
+    setTogglingNow(true);
+    setNowError(null);
+    try {
+      const next = !availableNow;
+      await api.patch("/users/me/profile", { isAvailableNow: next });
+      setAvailableNow(next);
+      setAvailableNowSetAt(next ? new Date().toISOString() : null);
+    } catch (err: any) {
+      setNowError(err?.message ?? "Failed to update Available Now.");
+    } finally {
+      setTogglingNow(false);
+    }
+  }
 
   // ── Slot helpers ────────────────────────────────────────────────────────────
 
@@ -151,6 +182,28 @@ export default function AvailabilityPage() {
     <>
       <PageHeader title="My Availability" description="Set the days and hours you're available for work." />
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 24 }}>
+
+        {/* Available Now Power Up — SW doc §12, windows 22-23 */}
+        {isWorker && (
+          <Card>
+            <CardContent className="pt-5 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  {availableNow ? "🟢 Available Now" : "Available Now"}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {availableNow
+                    ? `Visible to requesters right now — clears automatically 24h after you turned it on${availableNowSetAt ? ` (${new Date(availableNowSetAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })})` : ""}.`
+                    : "Signal that you're free to start right now, on top of your normal weekly schedule below."}
+                </p>
+                {nowError && <p className="text-xs text-red-600 mt-1">{nowError}</p>}
+              </div>
+              <Button variant={availableNow ? "outline" : "primary"} disabled={togglingNow} onClick={toggleAvailableNow}>
+                {togglingNow ? "Updating…" : availableNow ? "Turn off" : "Turn on Available Now"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Weekly schedule */}
         <Card>

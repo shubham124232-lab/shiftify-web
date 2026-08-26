@@ -6,9 +6,10 @@
 
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import {
   WizardScreen, RadioCards, PersonStep, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
-  ReviewRow, LiveRequestScreen, CheckboxRow, inp, lbl,
+  ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
   buildWorkerPreferencesPayload, buildSafetyFlagsPayload, buildFundingPayload,
 } from "@/components/jobs/post/shared";
 import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
@@ -29,8 +30,11 @@ const SHORT_NOTICE_REASONS = [
 ];
 
 export default function UrgentJourney() {
+  const { activeRole } = useAuth();
+  const isCoordinator = activeRole === "COORDINATOR";
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean } | null>(null);
 
@@ -50,6 +54,7 @@ export default function UrgentJourney() {
   const [safety, setSafety] = useState<SafetyChecklist>(EMPTY_SAFETY);
   const [funding, setFunding] = useState<FundingChoice>(EMPTY_FUNDING);
   const [agreeShare, setAgreeShare] = useState(false);
+  const [postingAuthorityConfirmed, setPostingAuthorityConfirmed] = useState(false);
 
   function patch<T>(setter: (v: T) => void, current: T) {
     return (p: Partial<T>) => setter({ ...current, ...p });
@@ -57,7 +62,10 @@ export default function UrgentJourney() {
 
   function validate(): string | null {
     if (step === 0 && !startTime) return "Choose a start time (more than 60 minutes and within 4 hours from now).";
+    if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (step === 1 && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (step === 2 && !catalogue.categoryId) return "Select a support category.";
     if (step === 3 && catalogue.tasks.length === 0) return "Select at least one task.";
     if (step === 4 && !suburb.trim()) return "Suburb is required.";
@@ -76,7 +84,7 @@ export default function UrgentJourney() {
   function back() { setError(null); setStep((s) => Math.max(0, s - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
 
   async function submit() {
-    setSaving(true); setError(null);
+    setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const start = new Date(startTime);
       const durationHours = DURATION_HOURS[duration] ?? 1;
@@ -100,17 +108,24 @@ export default function UrgentJourney() {
         locationNotes: meetingDetails.trim() || undefined,
         selectedTasks: catalogue.tasks,
         workerPreferences: buildWorkerPreferencesPayload(requirements),
+        visibilityTarget: requirements.workerOrProvider === "WORKER" ? "WORKERS_ONLY" : requirements.workerOrProvider === "PROVIDER" ? "PROVIDERS_ONLY" : "ALL",
         safetyFlags: buildSafetyFlagsPayload(safety),
         ...buildFundingPayload(funding),
         asDraft: false,
       };
       if (person.who === "SOMEONE_ELSE") {
         body.inlineParticipant = { name: person.someoneElseName.trim(), phone: person.someoneElsePhone.trim() || undefined, suburb: suburb.trim() || undefined };
+      } else if (person.who === "EXISTING_PARTICIPANT") {
+        body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
       setSubmitted({ id: res.job.id, isDraft: false });
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
+        setShiftPassBlocked(true);
+      } else {
+        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+      }
     } finally { setSaving(false); }
   }
 
@@ -126,6 +141,9 @@ export default function UrgentJourney() {
     <WizardScreen
       tierLabel="Urgent Support" screenTitle={titles[step]} step={step} total={TOTAL_STEPS}
       error={error} onBack={back} onNext={next}
+      belowError={shiftPassBlocked ? (
+        <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); submit(); }} onDismiss={() => setShiftPassBlocked(false)} />
+      ) : undefined}
       nextLabel={step === TOTAL_STEPS - 2 ? "Review Urgent request" : step === TOTAL_STEPS - 1 ? "Post Urgent request — Free" : "Continue"}
       saving={saving}
     >
@@ -135,7 +153,12 @@ export default function UrgentJourney() {
           <input type="datetime-local" className={inp} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
         </div>
       )}
-      {step === 1 && <PersonStep value={person} onChange={patch(setPerson, person)} tierLabel="Urgent Support" />}
+      {step === 1 && (
+        <PersonStep
+          value={person} onChange={patch(setPerson, person)} tierLabel="Urgent Support" isCoordinator={isCoordinator}
+          authorityConfirmed={postingAuthorityConfirmed} onAuthorityChange={setPostingAuthorityConfirmed}
+        />
+      )}
       {step === 2 && (
         <CategoryPickerStep
           selectedIds={catalogue.categoryId ? [catalogue.categoryId] : []}
@@ -183,7 +206,7 @@ export default function UrgentJourney() {
         </div>
       )}
       {step === 6 && (
-        <RequirementsStep value={requirements} onChange={patch(setRequirements, requirements)}
+        <RequirementsStep value={requirements} onChange={patch(setRequirements, requirements)} showWorkerChoice
           questionLabel="Which requirements are essential?" genderLabel="Worker gender required"
           languageLabel="Language/Auslan" qualificationLabel="Qualification or participant-specific training" />
       )}
@@ -192,13 +215,14 @@ export default function UrgentJourney() {
       {step === 9 && (
         <div className="space-y-4">
           <div className="bg-slate-50 rounded-xl p-4 divide-y divide-slate-100">
-            <ReviewRow label="Date, start time and duration" value={startTime ? new Date(startTime).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) : ""} />
-            <ReviewRow label="Service, subcategory and tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ")}`} />
-            <ReviewRow label="Location" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} />
-            <ReviewRow label="Essential requirements" value={requirements.none ? "None" : "Selected"} />
-            <ReviewRow label="Safety summary" value={safety.none ? "None" : "Selected"} />
-            <ReviewRow label="Funding and rate" value={funding.fundingType || "Not specified"} />
+            <ReviewRow label="Date, start time and duration" value={startTime ? new Date(startTime).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) : ""} onEdit={() => setStep(5)} />
+            <ReviewRow label="Service, subcategory and tasks" value={`${category?.label ?? ""} — ${catalogue.tasks.join(", ")}`} onEdit={() => setStep(3)} />
+            <ReviewRow label="Location" value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} onEdit={() => setStep(4)} />
+            <ReviewRow label="Essential requirements" value={requirements.none ? "None" : "Selected"} onEdit={() => setStep(6)} />
+            <ReviewRow label="Safety summary" value={safety.none ? "None" : "Selected"} onEdit={() => setStep(7)} />
+            <ReviewRow label="Funding and rate" value={funding.fundingType || "Not specified"} onEdit={() => setStep(8)} />
           </div>
+          <AddressReleaseNotice />
           <CheckboxRow checked={agreeShare} onChange={setAgreeShare} label="Information-sharing acknowledgement — I agree the shown details can be shared with suitable workers/providers" />
         </div>
       )}

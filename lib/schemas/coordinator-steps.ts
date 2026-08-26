@@ -4,15 +4,18 @@ import { z } from 'zod';
 
 // Step 1 — Professional Identity
 export const coordStep1Schema = z.object({
-  roleType:           z.enum(['INDEPENDENT', 'AGENCY_EMPLOYED'], { required_error: 'Role type is required' }),
-  organisationName:   z.string().optional(),
-  abn:                z.string().optional(),
-  ndisRegistered:     z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
-  ndisProviderNumber: z.string().optional(),
-  yearsExperience:    z.string().min(1, 'Years of experience is required'),
+  roleType:               z.enum(['INDEPENDENT', 'SC_ORGANISATION', 'NDIS_PROVIDER', 'OTHER_ORGANISATION'], { required_error: 'Role type is required' }),
+  organisationName:       z.string().optional(),
+  organisationRole:       z.string().optional(),
+  preferredContactMethod: z.enum(['EMAIL', 'PHONE', 'SMS', 'PLATFORM_MESSAGE']).optional(),
+  joinedViaInviteCode:    z.string().optional(),
+  abn:                    z.string().optional(),
+  ndisRegistered:         z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
+  ndisProviderNumber:     z.string().optional(),
+  yearsExperience:        z.string().min(1, 'Years of experience is required'),
 }).superRefine((val, ctx) => {
-  if (val.roleType === 'AGENCY_EMPLOYED' && !val.organisationName) {
-    ctx.addIssue({ code: 'custom', path: ['organisationName'], message: 'Organisation name is required for agency coordinators' });
+  if (val.roleType !== 'INDEPENDENT' && !val.organisationName) {
+    ctx.addIssue({ code: 'custom', path: ['organisationName'], message: 'Organisation name is required' });
   }
 });
 
@@ -49,7 +52,7 @@ export const coordStep4Schema = z.object({
 export const coordStep5Schema = z.object({
   currentCapacityStatus: z.string().optional(),
   maxParticipantLoad:    z.number().int().min(0).max(200).optional(),
-  availabilityType:      z.string().optional(),
+  availabilityType:      z.string({ required_error: 'Availability for new participants is required' }).min(1, 'Availability for new participants is required'),
   isPubliclyListed:      z.boolean().optional(),
 });
 

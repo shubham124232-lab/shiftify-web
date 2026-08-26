@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -40,17 +41,34 @@ interface Filters { suburb: string; state: string; }
 const EMPTY_FILTERS: Filters = { suburb: "", state: "" };
 
 type DirectConnectState = "NONE" | "PENDING" | "ACCEPTED" | "DECLINED" | "SENDING";
+type JobInviteState = "NONE" | "SENDING" | "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN";
 
 function WorkerCard({
   worker,
   isProvider,
+  isCoordinator,
+  canSave,
+  isSaved,
+  saving,
+  onToggleSave,
   connectState,
   onConnect,
+  forJobId,
+  jobInviteState,
+  onInvite,
 }: {
   worker: WorkerListing;
   isProvider: boolean;
+  isCoordinator: boolean;
+  canSave: boolean;
+  isSaved: boolean;
+  saving: boolean;
+  onToggleSave: (workerUserId: string, currentlySaved: boolean) => void;
   connectState: DirectConnectState;
   onConnect: (workerUserId: string) => void;
+  forJobId: string | null;
+  jobInviteState: JobInviteState;
+  onInvite: (workerUserId: string) => void;
 }) {
   const rate = worker.hourlyRate != null ? `$${worker.hourlyRate}/hr` : null;
   const services = worker.servicesOffered ?? [];
@@ -64,6 +82,16 @@ function WorkerCard({
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
               Available now
             </span>
+          )}
+          {canSave && (
+            <Button
+              size="sm"
+              variant={isSaved ? "outline" : "ghost"}
+              disabled={saving}
+              onClick={() => onToggleSave(worker.userId, isSaved)}
+            >
+              {saving ? "..." : isSaved ? "★ Saved" : "☆ Save"}
+            </Button>
           )}
           {isProvider && connectState === "NONE" && (
             <Button size="sm" variant="outline" onClick={() => onConnect(worker.userId)}>
@@ -81,6 +109,23 @@ function WorkerCard({
           )}
           {isProvider && connectState === "DECLINED" && (
             <span className="text-xs font-semibold text-slate-400">Declined</span>
+          )}
+          {forJobId && (isCoordinator || isProvider) && jobInviteState === "NONE" && (
+            <Button size="sm" variant="outline" onClick={() => onInvite(worker.userId)}>
+              {isCoordinator ? "Invite to this request" : "Direct Connect for this shift — $9.99"}
+            </Button>
+          )}
+          {forJobId && jobInviteState === "SENDING" && (
+            <Button size="sm" variant="outline" disabled>Sending…</Button>
+          )}
+          {forJobId && jobInviteState === "PENDING" && (
+            <span className="text-xs font-semibold text-amber-600">Invited</span>
+          )}
+          {forJobId && jobInviteState === "ACCEPTED" && (
+            <span className="text-xs font-semibold text-emerald-600">Accepted</span>
+          )}
+          {forJobId && (jobInviteState === "DECLINED" || jobInviteState === "WITHDRAWN") && (
+            <span className="text-xs font-semibold text-slate-400">{jobInviteState === "DECLINED" ? "Declined" : "Withdrawn"}</span>
           )}
         </div>
       </div>
@@ -122,9 +167,16 @@ interface DirectConnectRequest {
   worker: { id: string };
 }
 
+interface SavedProfessionalSummary { professionalUserId: string }
+
 export default function BrowseWorkersPage() {
   const { activeRole } = useAuth();
   const isProvider = activeRole === "PROVIDER";
+  const isCoordinator = activeRole === "COORDINATOR";
+  const canSave = activeRole === "PARTICIPANT" || activeRole === "COORDINATOR" || activeRole === "PLAN_MANAGER";
+  const searchParams = useSearchParams();
+  const forJobId = searchParams.get("forJobId");
+  const [jobInviteStates, setJobInviteStates] = useState<Record<string, JobInviteState>>({});
 
   const [workers, setWorkers] = useState<WorkerListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +187,8 @@ export default function BrowseWorkersPage() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
   const [connectStates, setConnectStates] = useState<Record<string, DirectConnectState>>({});
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isProvider) return;
@@ -146,6 +200,55 @@ export default function BrowseWorkersPage() {
       })
       .catch(() => { /* non-fatal — button just starts from NONE */ });
   }, [isProvider]);
+
+  function loadSaved() {
+    if (!canSave) return;
+    api.get<{ saved: SavedProfessionalSummary[] }>("/saved-professionals")
+      .then(r => setSavedIds(new Set((r.saved ?? []).map(s => s.professionalUserId))))
+      .catch(() => { /* non-fatal — save buttons just start unsaved */ });
+  }
+
+  useEffect(() => { loadSaved(); }, [canSave]);
+
+  useEffect(() => {
+    if (!forJobId || (!isCoordinator && !isProvider)) return;
+    api.get<{ invites: { invitedUser: { id: string }; status: JobInviteState }[] }>(`/job-invites/${forJobId}`)
+      .then(r => {
+        const next: Record<string, JobInviteState> = {};
+        for (const inv of r.invites ?? []) next[inv.invitedUser.id] = inv.status;
+        setJobInviteStates(next);
+      })
+      .catch(() => { /* non-fatal — buttons just start unsent */ });
+  }, [forJobId, isCoordinator, isProvider]);
+
+  function sendJobInvite(workerUserId: string) {
+    if (!forJobId) return;
+    if (isProvider && !window.confirm("Direct Connect for this shift costs $9.99, charged only if the worker accepts. Continue?")) return;
+    setJobInviteStates(s => ({ ...s, [workerUserId]: "SENDING" }));
+    api.post(`/job-invites/${forJobId}`, { invitedUserId: workerUserId })
+      .then(() => setJobInviteStates(s => ({ ...s, [workerUserId]: "PENDING" })))
+      .catch(e => {
+        setJobInviteStates(s => ({ ...s, [workerUserId]: "NONE" }));
+        setError(e instanceof Error ? e.message : "Could not send the invitation");
+      });
+  }
+
+  async function toggleSave(workerUserId: string, currentlySaved: boolean) {
+    setSavingId(workerUserId);
+    try {
+      if (currentlySaved) {
+        await api.delete(`/saved-professionals/${workerUserId}`);
+        setSavedIds(s => { const next = new Set(s); next.delete(workerUserId); return next; });
+      } else {
+        await api.post("/saved-professionals", { professionalUserId: workerUserId });
+        setSavedIds(s => new Set(s).add(workerUserId));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update saved professionals.");
+    } finally {
+      setSavingId(null);
+    }
+  }
 
   function sendDirectConnect(workerUserId: string) {
     setConnectStates(s => ({ ...s, [workerUserId]: "SENDING" }));
@@ -230,8 +333,16 @@ export default function BrowseWorkersPage() {
                   key={w.id}
                   worker={w}
                   isProvider={isProvider}
+                  isCoordinator={isCoordinator}
+                  canSave={canSave}
+                  isSaved={savedIds.has(w.userId)}
+                  saving={savingId === w.userId}
+                  onToggleSave={toggleSave}
                   connectState={connectStates[w.userId] ?? "NONE"}
                   onConnect={sendDirectConnect}
+                  forJobId={forJobId}
+                  jobInviteState={jobInviteStates[w.userId] ?? "NONE"}
+                  onInvite={sendJobInvite}
                 />
               ))}
             </div>

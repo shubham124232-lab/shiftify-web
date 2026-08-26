@@ -12,7 +12,12 @@ interface Job {
   id: string; title: string; category: string; urgency: string;
   suburb: string; state: string; scheduledStartAt: string;
   totalHours: number | null; status: string; postedAt: string;
+  _count?: { applications: number };
 }
+
+const TIER_LABELS: Record<string, string> = {
+  RAPID: "Rapid", SAME_DAY: "Urgent", LAST_MINUTE: "Last-Minute", SCHEDULED: "Routine", EMERGENCY: "Emergency",
+};
 
 // ── Publish draft (owner only) ──────────────────────────────────────────────
 // PATCH /jobs/:id/publish flips DRAFT → OPEN. Backend endpoint already existed;
@@ -61,6 +66,8 @@ export default function MyJobsPage() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
   const [filter,  setFilter]  = useState("");
+  const [tierFilter, setTierFilter] = useState("");
+  const [responseFilter, setResponseFilter] = useState<"" | "NEW_RESPONSES" | "UNFILLED">("");
 
   function load() {
     setLoading(true);
@@ -75,7 +82,14 @@ export default function MyJobsPage() {
   const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
   const isProvider = activeRole === "PROVIDER";
   const isWorker   = activeRole === "SUPPORT_WORKER";
-  const shown = filter ? jobs.filter(j => j.status === filter) : jobs;
+  const shown = jobs
+    .filter(j => !filter || j.status === filter)
+    .filter(j => !tierFilter || j.urgency === tierFilter)
+    .filter(j => {
+      if (responseFilter === "NEW_RESPONSES") return j.status === "OPEN" && (j._count?.applications ?? 0) > 0;
+      if (responseFilter === "UNFILLED") return j.status === "OPEN" && (j._count?.applications ?? 0) === 0;
+      return true;
+    });
 
   const pageTitle = isProvider ? "Team Jobs" : "My Jobs";
   const pageDesc  = isProvider
@@ -111,6 +125,30 @@ export default function MyJobsPage() {
               }}
             >
               {s ? s.replace("_", " ") : "All"}
+            </button>
+          ))}
+        </div>
+
+        {/* Tier filter pills */}
+        <div className="flex gap-2 flex-wrap mb-3">
+          {(["", "RAPID", "SAME_DAY", "LAST_MINUTE", "SCHEDULED"] as const).map((t) => (
+            <button key={t} type="button" onClick={() => setTierFilter(t)}
+              className={`h-7 px-3 rounded-full border text-xs font-medium transition-colors ${tierFilter === t ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+              {t ? TIER_LABELS[t] ?? t : "All tiers"}
+            </button>
+          ))}
+        </div>
+
+        {/* Response-based filter pills */}
+        <div className="flex gap-2 flex-wrap mb-5">
+          {([
+            { v: "", l: "Any response status" },
+            { v: "NEW_RESPONSES", l: "New responses" },
+            { v: "UNFILLED", l: "Unfilled" },
+          ] as const).map((opt) => (
+            <button key={opt.v} type="button" onClick={() => setResponseFilter(opt.v)}
+              className={`h-7 px-3 rounded-full border text-xs font-medium transition-colors ${responseFilter === opt.v ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+              {opt.l}
             </button>
           ))}
         </div>

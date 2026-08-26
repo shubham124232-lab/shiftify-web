@@ -10,19 +10,27 @@ export const TIER_META: Record<PostingTier, { label: string; timing: string; urg
   ROUTINE:     { label: "Routine Support",      timing: "More than 48 hours, or ongoing", urgency: "SCHEDULED",  path: "routine" },
 };
 
-// "Who needs support" — every journey's step 2. Only "Myself" and "Someone else"
-// are wired to the backend today (there's no saved-dependents feature yet — see
-// [[participant-posting-journeys-spec]] memory); "Someone else" maps onto the
-// existing inlineParticipant mechanism (name + phone + suburb).
+// "Who needs support" — every journey's step 2. Participants choose "Myself" or
+// "Someone else" (mapped onto the existing inlineParticipant mechanism: name +
+// phone + suburb). Coordinators never post for themselves — they choose
+// "EXISTING_PARTICIPANT" (one of the participants they already manage, sent as
+// forParticipantUserId) or "SOMEONE_ELSE" to create a new one inline.
 export interface PersonReceivingSupport {
-  who: "ME" | "SOMEONE_ELSE";
+  who: "ME" | "SOMEONE_ELSE" | "EXISTING_PARTICIPANT";
   someoneElseName: string;
   someoneElsePhone: string;
   someoneElseAgeGroup: string;
+  existingParticipantId: string;
+  // Set by PersonStep when the selected participant is a *connection* (linked
+  // via coordinator-connections, canPostRequests already true) rather than a
+  // fully managed sub-account — drives the SC-P01 posting-authority prompt.
+  existingParticipantIsConnection: boolean;
+  existingParticipantName: string;
 }
 
 export const EMPTY_PERSON: PersonReceivingSupport = {
-  who: "ME", someoneElseName: "", someoneElsePhone: "", someoneElseAgeGroup: "",
+  who: "ME", someoneElseName: "", someoneElsePhone: "", someoneElseAgeGroup: "", existingParticipantId: "",
+  existingParticipantIsConnection: false, existingParticipantName: "",
 };
 
 // Essential/preferred worker requirements — shared by all 4 journeys' "requirements" step.

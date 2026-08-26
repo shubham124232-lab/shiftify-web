@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UserRole } from "@/lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +39,14 @@ const PAGE_SIZE = 20;
 interface Filters { search: string; }
 const EMPTY_FILTERS: Filters = { search: "" };
 
-function CoordinatorCard({ coordinator }: { coordinator: CoordinatorListing }) {
+function CoordinatorCard({
+  coordinator, connectionStatus, connecting, onConnect,
+}: {
+  coordinator: CoordinatorListing;
+  connectionStatus?: "PENDING" | "ACCEPTED" | "DECLINED";
+  connecting: boolean;
+  onConnect: () => void;
+}) {
   const rate = coordinator.hourlyRate != null ? `$${coordinator.hourlyRate}/hr` : null;
   const services = coordinator.servicesOfferedBeyondCoordination ?? [];
 
@@ -78,11 +87,26 @@ function CoordinatorCard({ coordinator }: { coordinator: CoordinatorListing }) {
           <span className="px-2 py-0.5 rounded-full bg-violet-100 text-xs text-violet-700">Seeking Plan Manager</span>
         )}
       </div>
+
+      <div className="mt-3">
+        {connectionStatus === "ACCEPTED" ? (
+          <span className="text-xs font-semibold text-emerald-600">✓ Connected</span>
+        ) : connectionStatus === "PENDING" ? (
+          <span className="text-xs font-semibold text-amber-600">Request sent — awaiting response</span>
+        ) : (
+          <Button size="sm" variant="outline" disabled={connecting} onClick={onConnect}>
+            {connecting ? "Sending..." : "Connect"}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
+interface ConnectionSummary { id: string; status: "PENDING" | "ACCEPTED" | "DECLINED"; coordinator: { id: string } }
+
 export default function BrowseCoordinatorsPage() {
+  const { activeRole } = useAuth();
   const [coordinators, setCoordinators] = useState<CoordinatorListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -90,6 +114,30 @@ export default function BrowseCoordinatorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [connections, setConnections] = useState<ConnectionSummary[]>([]);
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  function loadConnections() {
+    if (activeRole !== UserRole.PARTICIPANT) return;
+    api.get<{ connections: ConnectionSummary[] }>("/coordinator-connections")
+      .then(r => setConnections(r.connections ?? []))
+      .catch(() => {});
+  }
+
+  useEffect(() => { loadConnections(); }, [activeRole]);
+
+  async function connect(coordinatorUserId: string) {
+    setConnecting(coordinatorUserId);
+    setError(null);
+    try {
+      await api.post("/coordinator-connections", { targetUserId: coordinatorUserId });
+      loadConnections();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not send connection request.");
+    } finally {
+      setConnecting(null);
+    }
+  }
 
   const load = useCallback((f: Filters, p: number) => {
     setLoading(true);
@@ -146,7 +194,15 @@ export default function BrowseCoordinatorsPage() {
         ) : (
           <>
             <div className="space-y-3">
-              {coordinators.map(c => <CoordinatorCard key={c.id} coordinator={c} />)}
+              {coordinators.map(c => (
+                <CoordinatorCard
+                  key={c.id}
+                  coordinator={c}
+                  connectionStatus={connections.find(conn => conn.coordinator.id === c.userId)?.status}
+                  connecting={connecting === c.userId}
+                  onConnect={() => connect(c.userId)}
+                />
+              ))}
             </div>
             {total > PAGE_SIZE && (
               <div className="flex justify-center gap-3 mt-8">

@@ -32,6 +32,10 @@ export interface Job {
   hidden?: boolean;
   postedByUserId?: string;
   isOwnRequest?: boolean;
+  budgetPerHour?: number | null;
+  totalBudget?: number | null;
+  budgetType?: string | null;
+  _count?: { applications: number };
 }
 
 export function timeAgo(dateStr: string): string {

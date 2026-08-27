@@ -9,7 +9,8 @@ import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
-import { JobCard, type Job } from "@/components/jobs/job-card";
+import { type Job } from "@/components/jobs/job-card";
+import { LiveDashboardCard } from "@/components/jobs/live-dashboard-card";
 import { JobFiltersPanel, type LiveDashboardFilters } from "@/components/jobs/job-filters-panel";
 import { URGENCY_TABS, inp } from "@/lib/constants/job-filters";
 import { cn } from "@/lib/utils";
@@ -179,9 +180,9 @@ export default function LiveDashboardPage() {
         </div>
 
         {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-32 rounded-2xl bg-slate-100 animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-56 rounded-2xl bg-slate-100 animate-pulse" />
             ))}
           </div>
         ) : jobs.length === 0 ? (
@@ -192,9 +193,9 @@ export default function LiveDashboardPage() {
           </div>
         ) : (
           <>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {jobs.map(job => (
-                <JobCard key={job.id} job={job} canApply={canApply} applying={applying === job.id} showOwnerBadge
+                <LiveDashboardCard key={job.id} job={job} canApply={canApply} applying={applying === job.id}
                   onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)}
                   onToggleSave={() => handleToggleSave(job)} onToggleHide={() => handleToggleHide(job)} />
               ))}

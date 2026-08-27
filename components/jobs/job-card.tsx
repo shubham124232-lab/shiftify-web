@@ -12,6 +12,7 @@ export interface Job {
   suburb: string;
   state: string;
   scheduledStartAt: string;
+  scheduledEndAt?: string | null;
   estimatedHours: number | null;
   postedAt: string;
   applicationDeadlineAt?: string | null;

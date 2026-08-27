@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
+import { JOB_CATEGORIES } from "@/lib/constants/categories";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,28 @@ interface UnavailDate {
   date: string;     // ISO date "2025-06-15"
   note: string | null;
 }
+
+// SW doc Windows 24-26 — a worker's posted general-availability listing,
+// distinct from the fixed weekly schedule below.
+interface AvailabilityListing {
+  id: string;
+  listingType: "DATE_RANGE" | "FORTNIGHTLY" | "ONGOING" | "BACKUP";
+  startDate: string;
+  endDate: string | null;
+  services: string[];
+  suburb: string | null;
+  state: string | null;
+  travelRadiusKm: number | null;
+  rate: number | string | null;
+  visibility: "ALL" | "CONNECTIONS_ONLY";
+  expiresAt: string | null;
+  status: "DRAFT" | "ACTIVE" | "PAUSED" | "EXPIRED";
+}
+
+const LISTING_TYPE_LABELS: Record<string, string> = {
+  DATE_RANGE: "Specific date range", FORTNIGHTLY: "Fortnightly pattern",
+  ONGOING: "Ongoing", BACKUP: "Backup / on-call",
+};
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 const DAY_LABELS: Record<string, string> = {
@@ -47,8 +70,27 @@ export default function AvailabilityPage() {
   const [addingDate,  setAddingDate]  = useState(false);
   const [availableNow, setAvailableNow] = useState(false);
   const [availableNowSetAt, setAvailableNowSetAt] = useState<string | null>(null);
+  const [availableNowUntil, setAvailableNowUntil] = useState<string | null>(null);
+  const [untilInput, setUntilInput] = useState("");
   const [togglingNow, setTogglingNow] = useState(false);
   const [nowError, setNowError] = useState<string | null>(null);
+
+  // Availability listings (Windows 24-26)
+  const [listings, setListings] = useState<AvailabilityListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState<string | null>(null);
+  const [showListingForm, setShowListingForm] = useState(false);
+  const [creatingListing, setCreatingListing] = useState(false);
+  const [listingType, setListingType] = useState<AvailabilityListing["listingType"]>("ONGOING");
+  const [listingStart, setListingStart] = useState("");
+  const [listingEnd, setListingEnd] = useState("");
+  const [listingServices, setListingServices] = useState<string[]>([]);
+  const [listingSuburb, setListingSuburb] = useState("");
+  const [listingState, setListingState] = useState("");
+  const [listingRadius, setListingRadius] = useState("");
+  const [listingRate, setListingRate] = useState("");
+  const [listingVisibility, setListingVisibility] = useState<AvailabilityListing["visibility"]>("ALL");
+  const [listingExpiresAt, setListingExpiresAt] = useState("");
 
   const isWorker   = activeRole === UserRole.SUPPORT_WORKER;
   const isProvider = activeRole === UserRole.PROVIDER;
@@ -74,9 +116,70 @@ export default function AvailabilityPage() {
       .then(r => {
         setAvailableNow(!!r.user?.workerProfile?.isAvailableNow);
         setAvailableNowSetAt(r.user?.workerProfile?.availableNowSetAt ?? null);
+        setAvailableNowUntil(r.user?.workerProfile?.availableNowUntil ?? null);
       })
       .catch(() => {});
   }, [isWorker]);
+
+  function loadListings() {
+    setListingsLoading(true);
+    api.get<{ listings: AvailabilityListing[] }>("/availability-listings/mine")
+      .then(r => setListings(r.listings ?? []))
+      .catch(() => {})
+      .finally(() => setListingsLoading(false));
+  }
+
+  useEffect(() => { if (isWorker) loadListings(); }, [isWorker]);
+
+  function toggleListingService(cat: string) {
+    setListingServices(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  }
+
+  async function handleCreateListing() {
+    if (!listingStart || listingServices.length === 0) return;
+    setCreatingListing(true);
+    setListingsError(null);
+    try {
+      await api.post("/availability-listings", {
+        listingType: listingType,
+        startDate: new Date(listingStart).toISOString(),
+        endDate: listingEnd ? new Date(listingEnd).toISOString() : undefined,
+        services: listingServices,
+        suburb: listingSuburb || undefined,
+        state: listingState || undefined,
+        travelRadiusKm: listingRadius ? Number(listingRadius) : undefined,
+        rate: listingRate ? Number(listingRate) : undefined,
+        visibility: listingVisibility,
+        expiresAt: listingExpiresAt ? new Date(listingExpiresAt).toISOString() : undefined,
+      });
+      setListingStart(""); setListingEnd(""); setListingServices([]); setListingSuburb("");
+      setListingState(""); setListingRadius(""); setListingRate(""); setListingExpiresAt("");
+      setShowListingForm(false);
+      loadListings();
+    } catch (err: any) {
+      setListingsError(err?.message ?? "Failed to create availability listing.");
+    } finally {
+      setCreatingListing(false);
+    }
+  }
+
+  async function setListingStatus(id: string, status: AvailabilityListing["status"]) {
+    try {
+      await api.patch(`/availability-listings/${id}`, { status });
+      loadListings();
+    } catch (err: any) {
+      setListingsError(err?.message ?? "Failed to update listing.");
+    }
+  }
+
+  async function deleteListing(id: string) {
+    try {
+      await api.del(`/availability-listings/${id}`);
+      setListings(prev => prev.filter(l => l.id !== id));
+    } catch (err: any) {
+      setListingsError(err?.message ?? "Failed to delete listing.");
+    }
+  }
 
   // SW journey doc §12 — Available Now Power Up: manual ON with a 24h auto-clear
   // (WorkerProfile.introductoryActionsUsed's sibling gate — see profile.service.ts).
@@ -85,9 +188,11 @@ export default function AvailabilityPage() {
     setNowError(null);
     try {
       const next = !availableNow;
-      await api.patch("/users/me/profile", { isAvailableNow: next });
+      const until = next && untilInput ? new Date(untilInput).toISOString() : null;
+      await api.patch("/users/me/profile/worker", { isAvailableNow: next, availableNowUntil: until });
       setAvailableNow(next);
       setAvailableNowSetAt(next ? new Date().toISOString() : null);
+      setAvailableNowUntil(next ? until : null);
     } catch (err: any) {
       setNowError(err?.message ?? "Failed to update Available Now.");
     } finally {
@@ -193,14 +298,158 @@ export default function AvailabilityPage() {
                 </p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {availableNow
-                    ? `Visible to requesters right now — clears automatically 24h after you turned it on${availableNowSetAt ? ` (${new Date(availableNowSetAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })})` : ""}.`
+                    ? availableNowUntil
+                      ? `Visible to requesters right now — clears at ${new Date(availableNowUntil).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}.`
+                      : `Visible to requesters right now — clears automatically 24h after you turned it on${availableNowSetAt ? ` (${new Date(availableNowSetAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })})` : ""}.`
                     : "Signal that you're free to start right now, on top of your normal weekly schedule below."}
                 </p>
+                {!availableNow && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="text-xs font-semibold text-slate-500">Available until (optional)</label>
+                    <input type="datetime-local" value={untilInput} onChange={e => setUntilInput(e.target.value)}
+                      className="h-8 px-2 border border-slate-200 rounded-md text-xs" />
+                  </div>
+                )}
                 {nowError && <p className="text-xs text-red-600 mt-1">{nowError}</p>}
               </div>
               <Button variant={availableNow ? "outline" : "primary"} disabled={togglingNow} onClick={toggleAvailableNow}>
                 {togglingNow ? "Updating…" : availableNow ? "Turn off" : "Turn on Available Now"}
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Availability listings — SW doc Windows 24-26 */}
+        {isWorker && (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Availability listings</CardTitle>
+                <Button variant={showListingForm ? "outline" : "primary"} onClick={() => setShowListingForm(v => !v)}>
+                  {showListingForm ? "Cancel" : "+ Post availability"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <p className="text-xs text-slate-500 -mt-2">
+                Post a general window of availability (e.g. ongoing, fortnightly, or backup/on-call) separate from your fixed weekly schedule below — requesters can browse these.
+              </p>
+
+              {showListingForm && (
+                <div className="border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Type</label>
+                      <select className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm"
+                        value={listingType} onChange={e => setListingType(e.target.value as AvailabilityListing["listingType"])}>
+                        {Object.entries(LISTING_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Visible to</label>
+                      <select className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm"
+                        value={listingVisibility} onChange={e => setListingVisibility(e.target.value as AvailabilityListing["visibility"])}>
+                        <option value="ALL">Everyone browsing</option>
+                        <option value="CONNECTIONS_ONLY">My connections only</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Start date</label>
+                      <input type="date" className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingStart} onChange={e => setListingStart(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">End date (optional)</label>
+                      <input type="date" className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingEnd} onChange={e => setListingEnd(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Suburb</label>
+                      <input className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingSuburb} onChange={e => setListingSuburb(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">State</label>
+                      <input className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingState} onChange={e => setListingState(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Travel radius (km)</label>
+                      <input type="number" min={0} className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingRadius} onChange={e => setListingRadius(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Rate ($/hr, optional)</label>
+                      <input type="number" min={0} className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingRate} onChange={e => setListingRate(e.target.value)} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-600 mb-1">Expires on (optional — otherwise stays active until you pause it)</label>
+                      <input type="date" className="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-sm" value={listingExpiresAt} onChange={e => setListingExpiresAt(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5">Services covered</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {JOB_CATEGORIES.map(c => {
+                        const selected = listingServices.includes(c.value);
+                        return (
+                          <button key={c.value} type="button" onClick={() => toggleListingService(c.value)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                              selected ? "border-brand-600 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600"
+                            }`}>
+                            {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Button onClick={handleCreateListing} disabled={creatingListing || !listingStart || listingServices.length === 0}>
+                    {creatingListing ? "Posting…" : "Post availability"}
+                  </Button>
+                </div>
+              )}
+
+              {listingsError && (
+                <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+                  {listingsError}
+                </div>
+              )}
+
+              {listingsLoading ? (
+                <p className="text-sm text-slate-400">Loading…</p>
+              ) : listings.length === 0 ? (
+                <p className="text-sm text-slate-400">No availability listings posted yet.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {listings.map(l => (
+                    <div key={l.id} className="border border-slate-200 rounded-lg px-3.5 py-3 flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-800">
+                          {LISTING_TYPE_LABELS[l.listingType]}
+                          <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            l.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700"
+                            : l.status === "PAUSED" ? "bg-amber-100 text-amber-700"
+                            : l.status === "EXPIRED" ? "bg-slate-100 text-slate-500"
+                            : "bg-slate-100 text-slate-500"
+                          }`}>{l.status}</span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {new Date(l.startDate).toLocaleDateString("en-AU")}
+                          {l.endDate && ` – ${new Date(l.endDate).toLocaleDateString("en-AU")}`}
+                          {l.suburb && ` · ${l.suburb}${l.state ? `, ${l.state}` : ""}`}
+                          {l.rate && ` · $${l.rate}/hr`}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {l.status === "ACTIVE" && (
+                          <Button size="sm" variant="outline" onClick={() => setListingStatus(l.id, "PAUSED")}>Pause</Button>
+                        )}
+                        {l.status === "PAUSED" && (
+                          <Button size="sm" variant="outline" onClick={() => setListingStatus(l.id, "ACTIVE")}>Resume</Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => deleteListing(l.id)}>Delete</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

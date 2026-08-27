@@ -10,8 +10,8 @@ export const URGENCY_TABS: { value: string; label: string }[] = [
 ];
 
 export const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY:   { bg: "#fee2e2", color: "#dc2626" },
-  REPLACEMENT: { bg: "#fee2e2", color: "#dc2626" },
+  EMERGENCY:   { bg: "#fee2e2", color: "#ff0000" },
+  REPLACEMENT: { bg: "#fee2e2", color: "#a0144f" },
   RAPID:       { bg: "#fee2e2", color: "#dc2626" },
   SAME_DAY:    { bg: "#e0e3fb", color: "#5562d4" },
   LAST_MINUTE: { bg: "#ffedd5", color: "#c2410c" },

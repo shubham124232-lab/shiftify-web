@@ -10,6 +10,7 @@ import { DashboardTabCard } from "@/components/dashboard/tab-card";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
 import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
+import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboard, type CoordinatorDashboard } from "@/lib/api/dashboard";
 import { api } from "@/lib/api";
@@ -18,18 +19,17 @@ import {
   ClipboardList, Users, AlertTriangle,
 } from "lucide-react";
 
-// ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// "Requests expiring soon" needs applicationDeadlineAt, which /jobs/my doesn't
-// currently select — genuinely not exposed, still a placeholder. Same for
-// "Participants w/ Gaps" (needs a per-participant join /jobs/my doesn't have).
-const PH_EXPIRING = [
-  { id: "e1", title: "Weekly Domestic – Linda W.", expiresIn: "2 days" },
-  { id: "e2", title: "Transport Support – Raj S.", expiresIn: "5 days" },
-];
-// ──────────────────────────────────────────────────────────────────────────────
+function expiresInLabel(deadline: string): string {
+  const ms = new Date(deadline).getTime() - Date.now();
+  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+  if (days <= 0) return "Today";
+  if (days === 1) return "1 day";
+  return `${days} days`;
+}
 
 interface MyJob {
   id: string; title: string; status: string; urgency: string; suburb: string;
+  applicationDeadlineAt: string | null;
   _count: { applications: number };
 }
 
@@ -60,6 +60,9 @@ export default function CoordinatorDashboard() {
   const responseCount = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
   const urgentJobs    = openJobs.filter((j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY");
   const unread        = data?.unreadNotifications ?? 0;
+  const expiringSoon  = openJobs
+    .filter((j) => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() - Date.now() < 1000 * 60 * 60 * 24 * 7)
+    .sort((a, b) => new Date(a.applicationDeadlineAt!).getTime() - new Date(b.applicationDeadlineAt!).getTime());
 
   const postTiles: ActionTile[] = [
     { key: "rapid",       icon: Zap,           title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=EMERGENCY",   highlighted: true },
@@ -174,15 +177,22 @@ export default function CoordinatorDashboard() {
               <CardTitle>Requests expiring soon</CardTitle>
             </CardHeader>
             <CardContent className="py-2">
-              {PH_EXPIRING.map((e) => (
+              {jobsLoading ? (
+                <p className="py-4 text-sm text-slate-400">Loading…</p>
+              ) : !expiringSoon.length ? (
+                <p className="py-4 text-sm text-slate-500">No open requests with a deadline coming up.</p>
+              ) : expiringSoon.slice(0, 5).map((e) => (
                 <DashboardListRow
                   key={e.id}
                   title={e.title}
-                  badge={<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">{e.expiresIn}</span>}
+                  href={`/jobs/${e.id}`}
+                  badge={<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">{expiresInLabel(e.applicationDeadlineAt!)}</span>}
                 />
               ))}
             </CardContent>
           </Card>
+
+          <LiveShiftboardTeaser />
         </div>
 
         {/* ── Right rail ── */}

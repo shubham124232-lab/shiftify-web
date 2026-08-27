@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, FilePlus, Search, Briefcase,
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
-  CreditCard, Building2, Home, Star,
+  CreditCard, Building2, Home, Star, ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +26,7 @@ function navForRole(role: string): NavItem[] {
         dash,
         { href: "/jobs/my",      label: "My Requests",    icon: ClipboardList },
         { href: "/jobs/post",    label: "Post Request",   icon: FilePlus },
+        { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
         { href: "/workers/available", label: "Browse Workers", icon: Search },
         { href: "/coordinators/available", label: "Browse Coordinators", icon: UserCheck },
         { href: "/coordinator-connections", label: "Coordinator Connections", icon: Link2 },
@@ -36,19 +37,22 @@ function navForRole(role: string): NavItem[] {
     case "SUPPORT_WORKER":
       return [
         dash,
-        { href: "/jobs",         label: "Browse Jobs",    icon: Search },
+        { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
         { href: "/jobs/my",      label: "My Jobs",        icon: Briefcase },
+        { href: "/my-support",   label: "My Support",     icon: Calendar },
+        { href: "/connections/my", label: "My Connections", icon: Link2 },
         { href: "/invoices",     label: "Invoices",       icon: Receipt },
         { href: "/availability", label: "Availability",   icon: Calendar },
         { href: "/connect-invites", label: "Direct Connect", icon: Link2 },
         { href: "/job-invites",  label: "Job Invitations", icon: Bell },
         { href: "/documents",    label: "Documents",      icon: FileText },
         { href: "/messages",     label: "Messages",       icon: MessageSquare },
+        { href: "/help-safety",  label: "Help & Safety",  icon: ShieldCheck },
       ];
     case "PROVIDER":
       return [
         dash,
-        { href: "/jobs",                      label: "Browse Requests",      icon: Search },
+        { href: "/live-dashboard",            label: "Live Dashboard",       icon: Search },
         { href: "/provider/listings",         label: "My Listings",          icon: ClipboardList },
         { href: "/provider/post-service",     label: "Post Service",         icon: FilePlus },
         { href: "/provider/sil-vacancy",      label: "SIL / SDA Vacancy",   icon: Home },
@@ -69,16 +73,20 @@ function navForRole(role: string): NavItem[] {
         { href: "/jobs/my",              label: "My Requests",        icon: ClipboardList },
         { href: "/jobs/post",            label: "Post Request",       icon: FilePlus },
         { href: "/jobs?urgent=1",        label: "Urgent Requests",    icon: BarChart2 },
+        { href: "/live-dashboard",       label: "Live Dashboard",     icon: Search },
+        { href: "/find",                 label: "Find Directly",      icon: Search },
         { href: "/workers/available",    label: "Browse Workers",     icon: Search },
         { href: "/saved-professionals",  label: "Saved",              icon: Star },
         { href: "/invoices",             label: "Invoices",           icon: Receipt },
         { href: "/documents",            label: "Documents",          icon: FileText },
         { href: "/messages",             label: "Messages",           icon: MessageSquare },
+        { href: "/help-safety",          label: "Help & Safety",      icon: ShieldCheck },
       ];
     case "PLAN_MANAGER":
       return [
         dash,
         { href: "/load-board",   label: "Load Board",     icon: Search },
+        { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
         { href: "/referrals",    label: "My Referrals",   icon: ClipboardList },
         { href: "/connections",  label: "Connections",    icon: Link2 },
         { href: "/workers/available", label: "Browse Workers", icon: Search },

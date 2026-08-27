@@ -9,6 +9,7 @@ import { DashboardTabCard } from "@/components/dashboard/tab-card";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
 import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
+import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { getDashboard, type WorkerDashboard } from "@/lib/api/dashboard";
@@ -22,6 +23,56 @@ interface ExpiringDoc {
   docType: string;
   fileName: string;
   expiryDate: string | null;
+}
+
+// SW doc Window 15 — Available Now status card on the dashboard right rail.
+function AvailableNowCard() {
+  const [available, setAvailable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+
+  useEffect(() => {
+    api.get<{ user: any }>("/users/me")
+      .then(r => setAvailable(!!r.user?.workerProfile?.isAvailableNow))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function toggle() {
+    setToggling(true);
+    try {
+      const next = !available;
+      await api.patch("/users/me/profile/worker", { isAvailableNow: next });
+      setAvailable(next);
+    } catch {
+      // profile-page toggle handles error detail; dashboard card fails silently
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="pt-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-800">{available ? "🟢 Available Now" : "Available Now"}</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {loading ? "Loading…" : available ? "Requesters can see you're free right now." : "Signal you're free to start right now."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={loading || toggling}
+          className={`h-7 px-3 rounded-full text-xs font-semibold border transition-colors ${
+            available ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          {toggling ? "…" : available ? "Turn off" : "Turn on"}
+        </button>
+      </CardContent>
+    </Card>
+  );
 }
 
 const APP_STATUS_BADGE: Record<string, string> = {
@@ -85,6 +136,10 @@ export default function WorkerDashboard() {
         description="Your upcoming shifts and nearby opportunities."
       />
       <SetupBanner />
+
+      <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-sm text-emerald-800 font-medium">
+        💰 0% commission — you keep 100% of every rate you agree with a requester.
+      </div>
 
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -205,10 +260,13 @@ export default function WorkerDashboard() {
               )}
             </CardContent>
           </Card>
+
+          <LiveShiftboardTeaser />
         </div>
 
         {/* ── Right rail ── */}
         <div className="space-y-6">
+          <AvailableNowCard />
           <QuickActionsPanel actions={quickActions} />
           <ProfileProgressCard />
         </div>

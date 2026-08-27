@@ -9,6 +9,7 @@ import { DashboardTabCard } from "@/components/dashboard/tab-card";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
 import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
+import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboard, type ParticipantDashboard } from "@/lib/api/dashboard";
 import { api } from "@/lib/api";
@@ -205,6 +206,8 @@ export default function ParticipantDashboard() {
               ))}
             </CardContent>
           </Card>
+
+          <LiveShiftboardTeaser />
         </div>
 
         {/* ── Right rail ── */}

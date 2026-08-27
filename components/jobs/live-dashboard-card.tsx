@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { URGENCY_STYLE, FUNDING_LABELS } from "@/lib/constants/job-filters";
 import { timeAgo, type Job } from "@/components/jobs/job-card";
-import { MapPin, Users, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, Hourglass, DollarSign, Users } from "lucide-react";
+
+function timeRange(startAt: string, endAt?: string | null): string | null {
+  if (!endAt) return null;
+  const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: false };
+  return `${new Date(startAt).toLocaleTimeString("en-AU", opts)} – ${new Date(endAt).toLocaleTimeString("en-AU", opts)}`;
+}
 
 export function LiveDashboardCard({ job, canApply, applying, onApply, onView, onToggleSave, onToggleHide }: {
   job: Job;
@@ -21,79 +26,111 @@ export function LiveDashboardCard({ job, canApply, applying, onApply, onView, on
   const isOwner = !!job.isOwnRequest;
   const applicantCount = job._count?.applications ?? 0;
   const rateStr = job.budgetPerHour
-    ? `$${Number(job.budgetPerHour)}/hr`
+    ? `$${Number(job.budgetPerHour)}/hr (Indicative)`
     : job.budgetType === "TOTAL" && job.totalBudget
     ? `$${Number(job.totalBudget)} total`
     : null;
+  const range = timeRange(job.scheduledStartAt, job.scheduledEndAt);
+  const skills = [catLabel, ...(job.workerPreferences?.requiredQualifications ?? [])].filter(Boolean).slice(0, 3);
 
   return (
     <div
-      className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col hover:shadow-md hover:border-brand-300 transition-all"
+      className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col hover:shadow-md transition-shadow"
       style={{ borderLeft: `4px solid ${urg.color}` }}
     >
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide" style={{ background: urg.bg, color: urg.color }}>
-            {job.urgency.replace("_", " ")}
-          </span>
-          {isOwner && (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-100 text-brand-700">
-              Your Request
+      <div className="p-4 flex-1">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide text-white" style={{ background: urg.color }}>
+              {job.urgency.replace("_", " ")}
             </span>
-          )}
+            {isOwner && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold bg-brand-100 text-brand-700">
+                Your Request
+              </span>
+            )}
+          </div>
+          <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeAgo(job.postedAt)}</span>
         </div>
 
-        <Link href={`/jobs/${job.id}`} className="block text-sm font-semibold text-slate-900 hover:text-brand-600 leading-snug mb-1">
+        <Link href={`/jobs/${job.id}`} className="block text-base font-bold text-slate-900 hover:text-brand-600 leading-snug mb-2.5">
           {job.title}
         </Link>
-        <p className="text-xs text-slate-500 mb-3">{catLabel}</p>
 
-        <div className="space-y-1.5 text-xs text-slate-500 mb-3">
-          <div className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
+        <div className="space-y-1.5 text-sm text-slate-600 mb-3">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
             <span>{job.suburb}, {job.state}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span>{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 shrink-0 text-slate-400" />
+            <span>{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 shrink-0" />
-            <span>{applicantCount} applicant{applicantCount === 1 ? "" : "s"}</span>
-          </div>
+          {range && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>{range}</span>
+            </div>
+          )}
+          {job.estimatedHours != null && (
+            <div className="flex items-center gap-2">
+              <Hourglass className="h-4 w-4 shrink-0 text-slate-400" />
+              <span>{job.estimatedHours} hours</span>
+            </div>
+          )}
+          {rateStr && (
+            <div className="flex items-center gap-2 font-semibold text-emerald-700">
+              <DollarSign className="h-4 w-4 shrink-0" />
+              <span>{rateStr}</span>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {job.isRecurring && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-700">Recurring</span>
-          )}
-          {job.fundingType && (
+        {skills.length > 0 && (
+          <div>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Required skills</p>
+            <div className="flex flex-wrap gap-1.5">
+              {skills.map(s => (
+                <span key={s} className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-100">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {job.fundingType && (
+          <div className="mt-3">
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-700">
               {FUNDING_LABELS[job.fundingType] ?? job.fundingType}
             </span>
-          )}
-        </div>
-
-        <div className="mt-auto flex items-end justify-between pt-2 border-t border-slate-100">
-          <div>
-            {rateStr && <p className="text-sm font-bold text-emerald-700">{rateStr}</p>}
-            <p className="text-[11px] text-slate-400">{timeAgo(job.postedAt)}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className={cn("flex items-center gap-1.5 px-4 py-3 bg-slate-50 border-t border-slate-100", canApply ? "justify-between" : "justify-end")}>
-        {canApply && (
-          <div className="flex gap-1">
-            <Button size="sm" variant="ghost" onClick={onToggleSave}>{job.saved ? "★ Saved" : "☆ Save"}</Button>
-            <Button size="sm" variant="ghost" onClick={onToggleHide}>Hide</Button>
           </div>
         )}
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={onView}>{isOwner ? "Manage" : "View"}</Button>
+      </div>
+
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-100">
+        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+          <Users className="h-3.5 w-3.5" />
+          {applicantCount} application{applicantCount === 1 ? "" : "s"}
+        </span>
+        <div className="flex items-center gap-2">
+          {canApply && (
+            <>
+              <Button size="sm" variant="ghost" onClick={onToggleSave}>{job.saved ? "★" : "☆"}</Button>
+              <Button size="sm" variant="ghost" onClick={onToggleHide}>Hide</Button>
+            </>
+          )}
+          <button
+            type="button"
+            onClick={onView}
+            className="h-8 px-4 rounded-md text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: urg.color }}
+          >
+            {isOwner ? "Manage" : "View Details"}
+          </button>
           {canApply && (
             <Button size="sm" variant={applied ? "ghost" : "primary"} disabled={applied || applying} onClick={() => !applied && onApply()}>
-              {applied ? `Applied` : applying ? "Applying…" : "Quick Apply"}
+              {applied ? "Applied" : applying ? "Applying…" : "Quick Apply"}
             </Button>
           )}
         </div>

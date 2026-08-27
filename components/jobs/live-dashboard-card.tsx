@@ -34,10 +34,7 @@ export function LiveDashboardCard({ job, canApply, applying, onApply, onView, on
   const skills = [catLabel, ...(job.workerPreferences?.requiredQualifications ?? [])].filter(Boolean).slice(0, 3);
 
   return (
-    <div
-      className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col hover:shadow-md transition-shadow"
-      style={{ borderLeft: `4px solid ${urg.color}` }}
-    >
+    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col hover:shadow-md transition-shadow">
       <div className="p-4 flex-1">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -50,7 +47,10 @@ export function LiveDashboardCard({ job, canApply, applying, onApply, onView, on
               </span>
             )}
           </div>
-          <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeAgo(job.postedAt)}</span>
+          <span className="flex items-center gap-1 text-[11px] text-slate-400 whitespace-nowrap">
+            {timeAgo(job.postedAt)}
+            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: urg.color }} />
+          </span>
         </div>
 
         <Link href={`/jobs/${job.id}`} className="block text-base font-bold text-slate-900 hover:text-brand-600 leading-snug mb-2.5">
@@ -108,7 +108,7 @@ export function LiveDashboardCard({ job, canApply, applying, onApply, onView, on
         )}
       </div>
 
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-100">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
         <span className="flex items-center gap-1.5 text-xs text-slate-500">
           <Users className="h-3.5 w-3.5" />
           {applicantCount} application{applicantCount === 1 ? "" : "s"}

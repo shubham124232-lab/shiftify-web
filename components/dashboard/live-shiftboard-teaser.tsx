@@ -77,7 +77,7 @@ export function LiveShiftboardTeaser() {
                       <span>{applicants} application{applicants === 1 ? "" : "s"}</span>
                     </div>
                   </div>
-                  <div className="px-3.5 py-2.5 bg-slate-50 border-t border-slate-100">
+                  <div className="px-3.5 py-2.5 border-t border-slate-100">
                     <Link href={`/jobs/${j.id}`}>
                       <Button size="sm" variant="outline" className="w-full">
                         {j.isOwnRequest ? "Manage Request" : "View Public Details"}

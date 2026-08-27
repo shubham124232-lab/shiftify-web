@@ -183,7 +183,7 @@ export default function LiveDashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-56 rounded-2xl bg-slate-100 animate-pulse" />
             ))}
@@ -196,7 +196,7 @@ export default function LiveDashboardPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
               {jobs.map(job => (
                 <LiveDashboardCard key={job.id} job={job} canApply={canApply} applying={applying === job.id}
                   onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)}

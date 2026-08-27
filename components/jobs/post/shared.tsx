@@ -136,21 +136,86 @@ export function AddressReleaseNotice() {
 // non-managed participant — SC-P01). Only relevant when PersonStep resolves to
 // an EXISTING_PARTICIPANT that is a *connection* (canPostRequests already true
 // server-side to have reached this step), not a fully managed sub-account.
+// Doc requires 3 choices: self-certify / request participant approval / choose
+// another participant. "Request approval" doesn't change canPostRequests — it's
+// a one-off ping (postingApprovalStatus on the connection) the coordinator can
+// send instead of self-certifying, and posting is blocked until it resolves.
+
+type PostingApprovalStatus = "PENDING" | "APPROVED" | "DECLINED" | null;
 
 export function PostingAuthorityStep({
-  participantName, onConfirm, onChooseAnother,
-}: { participantName: string; onConfirm: () => void; onChooseAnother: () => void }) {
+  participantUserId, participantName, onConfirm, onChooseAnother,
+}: { participantUserId: string; participantName: string; onConfirm: () => void; onChooseAnother: () => void }) {
+  const [mode, setMode] = useState<"choice" | "requesting" | "waiting" | "declined">("choice");
+  const [error, setError] = useState<string | null>(null);
+
+  async function requestApproval() {
+    setMode("requesting");
+    setError(null);
+    try {
+      await api.post("/coordinator-connections/request-posting-approval", { participantUserId });
+      setMode("waiting");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Couldn't send the approval request.");
+      setMode("choice");
+    }
+  }
+
+  useEffect(() => {
+    if (mode !== "waiting") return;
+    const check = () => {
+      api.get<{ connections: { participant: { id: string }; postingApprovalStatus: PostingApprovalStatus }[] }>("/coordinator-connections")
+        .then((r) => {
+          const conn = r.connections.find((c) => c.participant.id === participantUserId);
+          if (conn?.postingApprovalStatus === "APPROVED") onConfirm();
+          else if (conn?.postingApprovalStatus === "DECLINED") setMode("declined");
+        })
+        .catch(() => {});
+    };
+    const interval = setInterval(check, 5000);
+    return () => clearInterval(interval);
+  }, [mode, participantUserId, onConfirm]);
+
+  if (mode === "waiting" || mode === "requesting") {
+    return (
+      <div className="space-y-5 text-center">
+        <p className="text-sm font-semibold text-slate-800">Waiting for {participantName}&rsquo;s approval</p>
+        <p className="text-xs text-slate-500">
+          We've asked {participantName} to approve you posting this request on their behalf. This will update automatically once they respond.
+        </p>
+        <div className="flex flex-col gap-2 max-w-xs mx-auto">
+          <Button variant="outline" onClick={onChooseAnother} className="w-full">Choose another participant</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "declined") {
+    return (
+      <div className="space-y-5 text-center">
+        <p className="text-sm font-semibold text-slate-800">{participantName} declined this request</p>
+        <p className="text-xs text-slate-500">You can ask again, or post for a different participant.</p>
+        <div className="flex flex-col gap-2 max-w-xs mx-auto">
+          <Button onClick={requestApproval} className="w-full">Request approval again</Button>
+          <Button variant="outline" onClick={onChooseAnother} className="w-full">Choose another participant</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5 text-center">
       <p className="text-sm font-semibold text-slate-800">
         Can you post and manage this request for {participantName}?
       </p>
       <p className="text-xs text-slate-500">
-        You're connected to this participant. Confirm you're authorised to post and manage support requests on their behalf before continuing.
+        You're connected to this participant. Confirm you're authorised to post and manage support requests on their behalf, or ask them to approve this request first.
       </p>
+      {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex flex-col gap-2 max-w-xs mx-auto">
-        <Button onClick={onConfirm} className="w-full">Yes, I'm authorised</Button>
-        <Button variant="outline" onClick={onChooseAnother} className="w-full">Choose another participant</Button>
+        <Button onClick={onConfirm} className="w-full">Yes, I&rsquo;m authorised</Button>
+        <Button variant="outline" onClick={requestApproval} className="w-full">Request participant approval</Button>
+        <Button variant="ghost" onClick={onChooseAnother} className="w-full">Choose another participant</Button>
       </div>
     </div>
   );
@@ -303,6 +368,7 @@ export function PersonStep({
         )}
         {value.who === "EXISTING_PARTICIPANT" && value.existingParticipantId && value.existingParticipantIsConnection && !authorityConfirmed && (
           <PostingAuthorityStep
+            participantUserId={value.existingParticipantId}
             participantName={value.existingParticipantName || "this participant"}
             onConfirm={() => onAuthorityChange?.(true)}
             onChooseAnother={() => {

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
 import { inp } from "@/components/jobs/post/shared";
+import { RepeatSupportModal } from "@/components/jobs/RepeatSupportModal";
 
 interface ManagedParticipant { id: string; name: string; email: string | null; phone: string | null; ndisNumber?: string; }
 interface Connection {
@@ -38,7 +39,7 @@ export default function ParticipantsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unlinking, setUnlinking] = useState<string | null>(null);
-  const [repeating, setRepeating] = useState<string | null>(null);
+  const [repeatJobId, setRepeatJobId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "NEW_RESPONSES" | "UNFILLED">("ALL");
 
@@ -70,17 +71,6 @@ export default function ParticipantsPage() {
     finally { setUnlinking(null); }
   }
 
-  async function handleRepeat(jobId: string) {
-    setRepeating(jobId);
-    try {
-      const res = await api.post<{ job: { id: string } }>(`/jobs/${jobId}/duplicate`, {});
-      router.push(`/jobs/${res.job.id}`);
-    } catch (err: any) {
-      setError(err?.message ?? "Failed to repeat this request.");
-    } finally {
-      setRepeating(null);
-    }
-  }
 
   const portfolio: PortfolioEntry[] = useMemo(() => {
     const acceptedConnections = connections.filter((c) => c.status === "ACCEPTED");
@@ -186,6 +176,7 @@ export default function ParticipantsPage() {
                           </div>
                         </div>
                         <div className="flex gap-1.5 shrink-0">
+                          <Link href={`/participants/${p.id}?source=${p.source}`}><Button variant="outline" size="sm">View</Button></Link>
                           {p.source === "MANAGED" && (
                             <>
                               <Link href={`/participants/${p.id}/edit`}><Button variant="outline" size="sm">Edit</Button></Link>
@@ -203,9 +194,9 @@ export default function ParticipantsPage() {
                         <span className="text-[11px] text-slate-300">·</span>
                         <span className="text-[11px] text-slate-500">{p.newResponseCount} new responses</span>
                         {p.mostRecentJobId && (
-                          <button type="button" onClick={() => handleRepeat(p.mostRecentJobId!)} disabled={repeating === p.mostRecentJobId}
+                          <button type="button" onClick={() => setRepeatJobId(p.mostRecentJobId!)}
                             className="ml-auto text-[11px] font-medium text-brand-600 hover:text-brand-700 underline">
-                            {repeating === p.mostRecentJobId ? "Repeating…" : "Repeat previous request"}
+                            Repeat previous request
                           </button>
                         )}
                       </div>
@@ -216,6 +207,7 @@ export default function ParticipantsPage() {
           </CardContent>
         </Card>
       </div>
+      {repeatJobId && <RepeatSupportModal jobId={repeatJobId} onClose={() => setRepeatJobId(null)} />}
     </>
   );
 }

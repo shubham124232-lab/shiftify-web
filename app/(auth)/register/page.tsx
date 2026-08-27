@@ -2,10 +2,10 @@
 // /register: role -> details -> [OTP modal] -> plan (paid) -> payment (paid) -> profile wizard
 // Everything on one page. No redirects between steps.
 
-import { useState, useRef, useEffect, useCallback, FormEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense, FormEvent } from 'react';
 import { useForm, FormProvider, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import AuthLayout from '@/components/auth/AuthLayout';
@@ -141,12 +141,31 @@ function planPrice(p: ApiPlan): number { return Number(p.amountAud ?? p.price ??
 function planLabel(p: ApiPlan): string { return p.label ?? p.name ?? p.key ?? ''; }
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageInner />
+    </Suspense>
+  );
+}
+
+function RegisterPageInner() {
   const router = useRouter();
   const { register: registerUser, loading: authLoading, error: authError, clearError, silentInit, activatePlan } = useAuth();
   const store = useRegistrationStore();
 
   const [phase,       setPhase]       = useState<Phase>('role');
   const [role,        setRole]        = useState<UserRole|null>(null);
+  const [termsChecked, setTermsChecked] = useState(false);
+
+  // Homepage role cards (SW doc Window 1) link here with ?role=..., pre-selecting
+  // the intent-selection screen (Window 2) below rather than skipping it.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const fromQuery = searchParams.get('role');
+    if (fromQuery && Object.values(UserRole).includes(fromQuery as UserRole)) {
+      setRole(fromQuery as UserRole);
+    }
+  }, [searchParams]);
 
   // OTP
   const [showOtp,    setShowOtp]    = useState(false);
@@ -269,6 +288,7 @@ export default function RegisterPage() {
     if (!password)            errs.password = 'Password is required.';
     else if (password.length < 8) errs.password = 'Password must be at least 8 characters.';
     if (password && password !== confirm) errs.confirm = 'Passwords do not match.';
+    if (!termsChecked) errs.terms = 'You must agree to the Terms and Privacy Policy to continue.';
 
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
@@ -587,11 +607,17 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <p style={{fontSize:11,color:'var(--clr-muted)',lineHeight:1.5,margin:0}}>
-              By creating an account you agree to our{' '}
-              <Link href="/terms" style={{color:'var(--clr-primary)',textDecoration:'none'}}>Terms</Link>{' '}and{' '}
-              <Link href="/privacy" style={{color:'var(--clr-primary)',textDecoration:'none'}}>Privacy Policy</Link>.
-            </p>
+            <label style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.5,cursor:'pointer'}}>
+              <input type="checkbox" checked={termsChecked}
+                onChange={e => { setTermsChecked(e.target.checked); setFieldErrors(p=>({...p,terms:''})); }}
+                style={{marginTop:2,flexShrink:0}} />
+              <span>
+                I agree to the{' '}
+                <Link href="/terms" style={{color:'var(--clr-primary)',textDecoration:'none'}}>Terms</Link>{' '}and{' '}
+                <Link href="/privacy" style={{color:'var(--clr-primary)',textDecoration:'none'}}>Privacy Policy</Link>.
+              </span>
+            </label>
+            {fieldErrors.terms && <p style={{fontSize:11,color:'#ef4444',margin:0}}>{fieldErrors.terms}</p>}
 
             <button type="submit" disabled={submitting} className="btn-shiftify"
               style={{width:'100%',height:46,fontSize:15,fontWeight:700,opacity:submitting?0.7:1,cursor:submitting?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>

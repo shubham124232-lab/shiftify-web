@@ -12,65 +12,11 @@ import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { createSavedSearch, type SavedSearchFilters } from "@/lib/api/saved-searches";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Job {
-  id: string;
-  title: string;
-  category: string;
-  urgency: string;
-  suburb: string;
-  state: string;
-  scheduledStartAt: string;
-  estimatedHours: number | null;
-  postedAt: string;
-  status: string;
-  isRecurring?: boolean;
-  shiftType?: string;
-  fundingType?: string;
-  workerPreferences?: {
-    workerType?: string;
-    requiredQualifications?: string[];
-    experienceLevel?: string;
-  };
-  budget?: { type: string; amount?: number };
-  ownApplication?: { status: string } | null;
-  featuredUntil?: string | null;
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY:   { bg: "#fee2e2", color: "#b91c1c" },
-  REPLACEMENT: { bg: "#fee2e2", color: "#b91c1c" },
-  SAME_DAY:    { bg: "#ffedd5", color: "#c2410c" },
-  SCHEDULED:   { bg: "#f1f5f9", color: "#475569" },
-};
-
-const SHIFT_TYPE_LABELS: Record<string, string> = {
-  STANDARD: "Standard", ACTIVE_OVERNIGHT: "Overnight", SLEEPOVER: "Sleepover",
-  TWENTY_FOUR_HOUR: "24-Hour", DROP_IN: "Drop-in",
-};
-
-// Values must match Prisma's FundingType enum (SELF_MANAGED | PLAN_MANAGED | NDIA_MANAGED | ...)
-const FUNDING_LABELS: Record<string, string> = {
-  SELF_MANAGED: "Self-managed", PLAN_MANAGED: "Plan-managed", NDIA_MANAGED: "NDIA-managed",
-};
-
-const POSTED_WITHIN_OPTIONS = [
-  { value: "", label: "Any time" },
-  { value: "1", label: "Last 24 hours" },
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-];
-
-// Values must match the backend's jobFiltersSchema sortBy enum (newest | urgency | startDate | bestMatch)
-const SORT_OPTIONS = [
-  { value: "newest", label: "Most recent" },
-  { value: "urgency", label: "Urgency" },
-  { value: "startDate", label: "Start date" },
-];
+import { JobCard, type Job } from "@/components/jobs/job-card";
+import {
+  URGENCY_TABS, URGENCY_STYLE, SHIFT_TYPE_LABELS, FUNDING_LABELS,
+  POSTED_WITHIN_OPTIONS, SORT_OPTIONS, inp, lbl,
+} from "@/lib/constants/job-filters";
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 
@@ -94,9 +40,6 @@ const defaultFilters: Filters = {
   isRecurring: "", workerType: "", experienceLevel: "", postedWithin: "",
   dateFrom: "", dateTo: "", sortBy: "urgency",
 };
-
-const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
-const lbl = "block text-xs font-semibold text-slate-600 mb-1";
 
 function toSavedSearchFilters(f: Filters): SavedSearchFilters {
   const out: SavedSearchFilters = {};
@@ -152,12 +95,15 @@ function FilterSidebar({
       {/* Urgency */}
       <div>
         <label className={lbl}>Urgency</label>
-        <select className={inp} value={filters.urgency} onChange={e => onChange({ urgency: e.target.value })}>
-          <option value="">Any urgency</option>
-          <option value="EMERGENCY">Emergency</option>
-          <option value="SAME_DAY">Same day</option>
-          <option value="SCHEDULED">Scheduled</option>
-        </select>
+        <div className="flex flex-wrap gap-2">
+          {URGENCY_TABS.map(({ value, label }) => (
+            <button key={value} type="button" onClick={() => onChange({ urgency: value })}
+              className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
+                filters.urgency === value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Recurring */}
@@ -244,87 +190,6 @@ function FilterSidebar({
   );
 }
 
-function JobCard({ job, canApply, applying, onApply, onView }: {
-  job: Job;
-  canApply: boolean;
-  applying: boolean;
-  onApply: () => void;
-  onView: () => void;
-}) {
-  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
-  const isFeatured = !!job.featuredUntil && new Date(job.featuredUntil) > new Date();
-  const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
-  const applied = !!job.ownApplication;
-  const qualsCount = job.workerPreferences?.requiredQualifications?.length ?? 0;
-  const budgetStr = job.budget?.type === "HOURLY" && job.budget.amount
-    ? `$${job.budget.amount}/hr`
-    : job.budget?.type === "TOTAL" && job.budget.amount
-    ? `$${job.budget.amount} total`
-    : null;
-
-  return (
-    <div className={cn("bg-white border rounded-2xl p-5 hover:border-brand-300 transition-colors", isFeatured ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200")}>
-      <div className="flex gap-2 flex-wrap mb-3">
-        {isFeatured && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
-            ⭐ Featured
-          </span>
-        )}
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ background: urg.bg, color: urg.color }}>
-          {job.urgency.replace("_", " ")}
-        </span>
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-          {catLabel}
-        </span>
-        {job.shiftType && job.shiftType !== "STANDARD" && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
-            {SHIFT_TYPE_LABELS[job.shiftType] ?? job.shiftType}
-          </span>
-        )}
-        {job.isRecurring && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-            Recurring
-          </span>
-        )}
-        {job.fundingType && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-            {FUNDING_LABELS[job.fundingType] ?? job.fundingType}
-          </span>
-        )}
-      </div>
-
-      <Link href={`/jobs/${job.id}`} className="block text-base font-semibold text-slate-900 hover:text-brand-600 mb-1.5 leading-snug">
-        {job.title}
-      </Link>
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
-        <span>{job.suburb}, {job.state}</span>
-        {job.estimatedHours && <span>{job.estimatedHours}h</span>}
-        <span>{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
-        {budgetStr && <span className="font-semibold text-emerald-700">{budgetStr}</span>}
-      </div>
-
-      {qualsCount > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {(job.workerPreferences?.requiredQualifications ?? []).slice(0, 3).map(q => (
-            <span key={q} className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">{q}</span>
-          ))}
-          {qualsCount > 3 && <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-500">+{qualsCount - 3} more</span>}
-        </div>
-      )}
-
-      <div className="flex gap-2 justify-end mt-1">
-        <Button size="sm" variant="ghost" onClick={onView}>View</Button>
-        {canApply && (
-          <Button size="sm" variant={applied ? "ghost" : "outline"} disabled={applied || applying} onClick={() => !applied && onApply()}>
-            {applied ? `Applied (${job.ownApplication!.status})` : applying ? "Applying..." : "Quick Apply"}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function urgencyFiltersFromParams(searchParams: URLSearchParams): Filters {
   const urgencyParam = searchParams.get("urgency");
   return urgencyParam && Object.prototype.hasOwnProperty.call(URGENCY_STYLE, urgencyParam)
@@ -348,13 +213,15 @@ export default function JobsBrowsePage() {
   const [appliedFilters, setAppliedFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
   const [savingSearch, setSavingSearch] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [savedOnly, setSavedOnly] = useState(false);
 
   const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
 
-  const load = useCallback((f: Filters, p: number) => {
+  const load = useCallback((f: Filters, p: number, saved: boolean) => {
     setLoading(true);
     const params = new URLSearchParams({ status: "OPEN", page: String(p), limit: "20" });
+    if (saved)         params.set("savedOnly", "true");
     if (f.suburb)      params.set("suburb", f.suburb);
     if (f.category)    params.set("category", f.category);
     if (f.urgency)     params.set("urgency", f.urgency);
@@ -379,7 +246,7 @@ export default function JobsBrowsePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(appliedFilters, page); }, [appliedFilters, page, load]);
+  useEffect(() => { load(appliedFilters, page, savedOnly); }, [appliedFilters, page, savedOnly, load]);
 
   function applyFilters() { setAppliedFilters({ ...filters }); setPage(1); setShowFilters(false); }
   function resetFilters()  { setFilters(defaultFilters); setAppliedFilters(defaultFilters); setPage(1); }
@@ -402,7 +269,7 @@ export default function JobsBrowsePage() {
     setUpgradeMessage(null);
     try {
       await api.post(`/jobs/${id}/apply`, {});
-      load(appliedFilters, page);
+      load(appliedFilters, page, savedOnly);
     } catch (e: unknown) {
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
         setUpgradeMessage(e.message);
@@ -411,6 +278,33 @@ export default function JobsBrowsePage() {
       }
     }
     finally { setApplying(null); }
+  }
+
+  async function handleToggleSave(job: Job) {
+    const nextSaved = !job.saved;
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, saved: nextSaved } : j));
+    try {
+      if (nextSaved) await api.patch(`/jobs/${job.id}/save`, { saved: true });
+      else if (!job.hidden) await api.delete(`/jobs/${job.id}/save`);
+      else await api.patch(`/jobs/${job.id}/save`, { saved: false });
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? "Could not update saved state.");
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, saved: job.saved } : j));
+    }
+  }
+
+  async function handleToggleHide(job: Job) {
+    const nextHidden = !job.hidden;
+    if (nextHidden) setJobs(prev => prev.filter(j => j.id !== job.id));
+    else setJobs(prev => prev.map(j => j.id === job.id ? { ...j, hidden: false } : j));
+    try {
+      if (nextHidden) await api.patch(`/jobs/${job.id}/save`, { hidden: true });
+      else if (!job.saved) await api.delete(`/jobs/${job.id}/save`);
+      else await api.patch(`/jobs/${job.id}/save`, { hidden: false });
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? "Could not update hidden state.");
+      load(appliedFilters, page, savedOnly);
+    }
   }
 
   const activeFilterCount = Object.entries(appliedFilters).filter(
@@ -433,6 +327,17 @@ export default function JobsBrowsePage() {
         {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {saveMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">{saveMessage}</div>}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {canApply && (
+          <div className="flex gap-2 mb-4">
+            {([["false", "All jobs"], ["true", "Saved"]] as [string, string][]).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => { setSavedOnly(v === "true"); setPage(1); }}
+                className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
+                  String(savedOnly) === v ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-8">
           <div className="hidden lg:block">
             <div className="sticky top-6">
@@ -476,7 +381,8 @@ export default function JobsBrowsePage() {
                 <div className="space-y-3">
                   {jobs.map(job => (
                     <JobCard key={job.id} job={job} canApply={canApply} applying={applying === job.id}
-                      onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)} />
+                      onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)}
+                      onToggleSave={() => handleToggleSave(job)} onToggleHide={() => handleToggleHide(job)} />
                   ))}
                 </div>
                 {total > 20 && (

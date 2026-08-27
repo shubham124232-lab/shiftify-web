@@ -124,7 +124,7 @@ export default function SubscriptionPage() {
                   {sub.plan.name}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--clr-muted)' }}>
-                  ${Number(sub.plan.amountAud).toFixed(2)}/month
+                  ${Number(sub.plan.amountAud).toFixed(2)}/{sub.plan.key.endsWith('_ANNUAL') ? 'year' : 'month'}
                 </div>
                 <div style={{ display: 'flex', gap: 20, marginTop: 12, fontSize: 13, color: 'var(--clr-muted)' }}>
                   <span><i className="bi bi-calendar-check" style={{ marginRight: 5 }} />Started {fmtDate(sub.startedAt)}</span>
@@ -201,7 +201,7 @@ export default function SubscriptionPage() {
                         )}
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--clr-muted)', marginTop: 3 }}>
-                        ${Number(plan.amountAud).toFixed(2)}/month
+                        ${Number(plan.amountAud).toFixed(2)}/{plan.key.endsWith('_ANNUAL') ? 'year' : 'month'}
                       </div>
                     </div>
                     {!isCurrent && (

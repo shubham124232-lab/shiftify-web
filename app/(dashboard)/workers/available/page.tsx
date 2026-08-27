@@ -47,6 +47,7 @@ function WorkerCard({
   worker,
   isProvider,
   isCoordinator,
+  isParticipant,
   canSave,
   isSaved,
   saving,
@@ -60,6 +61,7 @@ function WorkerCard({
   worker: WorkerListing;
   isProvider: boolean;
   isCoordinator: boolean;
+  isParticipant: boolean;
   canSave: boolean;
   isSaved: boolean;
   saving: boolean;
@@ -110,9 +112,9 @@ function WorkerCard({
           {isProvider && connectState === "DECLINED" && (
             <span className="text-xs font-semibold text-slate-400">Declined</span>
           )}
-          {forJobId && (isCoordinator || isProvider) && jobInviteState === "NONE" && (
+          {forJobId && (isCoordinator || isProvider || isParticipant) && jobInviteState === "NONE" && (
             <Button size="sm" variant="outline" onClick={() => onInvite(worker.userId)}>
-              {isCoordinator ? "Invite to this request" : "Direct Connect for this shift — $9.99"}
+              {isProvider ? "Direct Connect for this shift — $9.99" : "Invite to this request"}
             </Button>
           )}
           {forJobId && jobInviteState === "SENDING" && (
@@ -173,6 +175,7 @@ export default function BrowseWorkersPage() {
   const { activeRole } = useAuth();
   const isProvider = activeRole === "PROVIDER";
   const isCoordinator = activeRole === "COORDINATOR";
+  const isParticipant = activeRole === "PARTICIPANT";
   const canSave = activeRole === "PARTICIPANT" || activeRole === "COORDINATOR" || activeRole === "PLAN_MANAGER";
   const searchParams = useSearchParams();
   const forJobId = searchParams.get("forJobId");
@@ -334,6 +337,7 @@ export default function BrowseWorkersPage() {
                   worker={w}
                   isProvider={isProvider}
                   isCoordinator={isCoordinator}
+                  isParticipant={isParticipant}
                   canSave={canSave}
                   isSaved={savedIds.has(w.userId)}
                   saving={savingId === w.userId}

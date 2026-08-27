@@ -9,11 +9,11 @@ const quickSupport = [
 ] as const;
 
 const roles = [
-  { icon: 'bi-people-fill',        title: 'Participant',         desc: 'Find and book the right support for you',        color: '#DB2777', bg: 'rgba(219,39,119,0.1)' },
-  { icon: 'bi-person-fill',        title: 'Support Worker',      desc: 'Find shifts that match your skills & availability', color: '#16A34A', bg: 'rgba(22,163,74,0.1)' },
-  { icon: 'bi-diagram-3-fill',     title: 'Support Coordinator', desc: 'Manage and coordinate participant supports',     color: '#7C3AED', bg: 'rgba(124,58,237,0.1)' },
-  { icon: 'bi-building-fill',      title: 'Provider',            desc: 'Find workers and grow your services',            color: '#EA580C', bg: 'rgba(234,88,12,0.1)'  },
-  { icon: 'bi-wallet2',            title: 'Plan Manager',        desc: 'Review and manage supports & budgets',           color: '#2563EB', bg: 'rgba(37,99,235,0.1)'  },
+  { icon: 'bi-people-fill',        title: 'Participant',         desc: 'Find and book the right support for you',        color: '#DB2777', bg: 'rgba(219,39,119,0.1)', roleValue: 'PARTICIPANT' },
+  { icon: 'bi-person-fill',        title: 'Support Worker',      desc: 'Find shifts that match your skills & availability', color: '#16A34A', bg: 'rgba(22,163,74,0.1)', roleValue: 'SUPPORT_WORKER' },
+  { icon: 'bi-diagram-3-fill',     title: 'Support Coordinator', desc: 'Manage and coordinate participant supports',     color: '#7C3AED', bg: 'rgba(124,58,237,0.1)', roleValue: 'COORDINATOR' },
+  { icon: 'bi-building-fill',      title: 'Provider',            desc: 'Find workers and grow your services',            color: '#EA580C', bg: 'rgba(234,88,12,0.1)', roleValue: 'PROVIDER' },
+  { icon: 'bi-wallet2',            title: 'Plan Manager',        desc: 'Review and manage supports & budgets',           color: '#2563EB', bg: 'rgba(37,99,235,0.1)', roleValue: 'PLAN_MANAGER' },
 ] as const;
 
 export default function HeroSection() {
@@ -88,7 +88,7 @@ export default function HeroSection() {
 
             <div className="hero-role-list" role="list">
               {roles.map((role) => (
-                <a key={role.title} href="#" className="hero-role-row" role="listitem">
+                <a key={role.title} href={`/register?role=${role.roleValue}`} className="hero-role-row" role="listitem">
                   <span className="hero-role-icon" style={{ background: role.bg, color: role.color }}>
                     <i className={`bi ${role.icon}`} aria-hidden="true" />
                   </span>

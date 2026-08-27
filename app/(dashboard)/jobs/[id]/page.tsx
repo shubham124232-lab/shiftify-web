@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,18 @@ interface JobInvite {
   id: string; status: "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN";
   amountAud: number | string | null; mockReceiptRef: string | null;
   invitedUser: { id: string; name: string; avatarUrl: string | null };
+}
+interface MeetAndGreet {
+  id: string; proposedByUserId: string; type: "PHONE" | "VIDEO" | "IN_PERSON";
+  proposedTimes: string[]; location: string | null; cost: "FREE" | "AGREED_RATE" | "DISCUSS";
+  topics: string[] | null; status: "PROPOSED" | "CONFIRMED" | "DECLINED"; confirmedTime: string | null;
+  proposedBy: { id: string; name: string };
+}
+interface ChangeRequest {
+  id: string; requestedByUserId: string;
+  changeType: "TIME" | "DURATION" | "DATE" | "RECURRENCE" | "RATE" | "OTHER";
+  reason: string | null; alternative: { details?: string } | string; status: "PENDING" | "ACCEPTED" | "REJECTED";
+  requestedBy: { id: string; name: string };
 }
 
 interface JobDetail {
@@ -48,12 +61,21 @@ interface JobDetail {
   emergencyContactRelationship?: string | null;
   workerPreferences?: { safetyFlags?: Record<string, boolean> } | null;
   featuredUntil?: string | null;
+  meetAndGreets?: MeetAndGreet[];
+  changeRequests?: ChangeRequest[];
+  closedOutcome?: "FILLED_CONFIRMED" | "CANCELLED" | "NOT_PROCEEDING" | "UNFILLED" | null;
+  runningLateNotifiedAt?: string | null;
+  runningLateMinutes?: number | null;
+  workerPrivateNote?: string | null;
 }
 
 interface TeamWorker { id: string; name: string | null; username: string; }
 interface Review {
   id: string; raterUserId: string; revieweeUserId: string;
   rating: number; comment: string | null; createdAt: string;
+  reliabilityRating?: number | null; communicationRating?: number | null;
+  qualityRating?: number | null; privateConcern?: string | null;
+  revieweeResponse?: string | null; reportedByReviewee?: boolean;
   rater: { id: string; name: string; avatarUrl?: string | null };
   reviewee: { id: string; name: string; avatarUrl?: string | null };
 }
@@ -92,6 +114,22 @@ const APP_STATUS_COLOR: Record<string, string> = {
   WITHDRAWN:   "#94a3b8",
 };
 
+// SC journey M03 "Compare responses" — shared by the sequential applicant
+// list and the side-by-side compare table so the two views never drift.
+function applicantDisplay(app: Applicant) {
+  const wp = app.applicant.workerProfile;
+  const pp = app.applicant.providerProfile;
+  const rating = wp?.rating ?? pp?.averageRating ?? 0;
+  const reviewCount = wp?.totalReviews ?? pp?.totalRatings ?? 0;
+  const rate = wp?.hourlyRate;
+  const services = (wp?.servicesOffered ?? pp?.coreServices ?? []) as string[];
+  const skillLabels = services.map(s => JOB_CATEGORIES.find(c => c.value === s)?.label ?? s).slice(0, 3);
+  const coverage = wp?.state
+    ? `Covers ${wp.state}${wp.suburb ? ` (${wp.suburb}` : ""}${wp.travelRadiusKm ? `${wp.suburb ? ", " : " ("}${wp.travelRadiusKm}km radius)` : wp.suburb ? ")" : ""}`
+    : null;
+  return { wp, pp, rating, reviewCount, rate, skillLabels, coverage };
+}
+
 export default function JobDetailPage() {
   const { id }           = useParams<{ id: string }>();
   const router           = useRouter();
@@ -112,6 +150,12 @@ export default function JobDetailPage() {
   const [reviewRating,   setReviewRating]   = useState(0);
   const [reviewComment,  setReviewComment]  = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [reliabilityRating,   setReliabilityRating]   = useState(0);
+  const [communicationRating, setCommunicationRating] = useState(0);
+  const [qualityRating,       setQualityRating]       = useState(0);
+  const [privateConcern,      setPrivateConcern]      = useState("");
+  const [respondingReviewId, setRespondingReviewId] = useState<string | null>(null);
+  const [responseText,       setResponseText]       = useState("");
   const [assignments,    setAssignments]    = useState<Assignment[]>([]);
   const [rosterActing,   setRosterActing]   = useState(false);
   const [showFlagForm,   setShowFlagForm]   = useState(false);
@@ -119,7 +163,36 @@ export default function JobDetailPage() {
   const [flagDescription, setFlagDescription] = useState("");
   const [flagging,       setFlagging]       = useState(false);
   const [flagSent,       setFlagSent]       = useState(false);
+  const [flagDraftId,    setFlagDraftId]    = useState<string | null>(null);
+  const [flagEvidence,   setFlagEvidence]   = useState<string[]>([]);
+  const [flagUploading,  setFlagUploading]  = useState(false);
+  const [flagSavingDraft, setFlagSavingDraft] = useState(false);
+  const [flagDraftSaved, setFlagDraftSaved] = useState(false);
+  const [blocking,       setBlocking]       = useState(false);
+  const [blocked,        setBlocked]        = useState(false);
   const [invites,        setInvites]        = useState<JobInvite[]>([]);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReasonCategory, setCancelReasonCategory] = useState("");
+  const [notifyReplacements, setNotifyReplacements] = useState(true);
+  const [cancelSummary, setCancelSummary] = useState<{ promotedTitle: string | null; emergency: boolean } | null>(null);
+  const [compareView, setCompareView] = useState(false);
+  const [showChangeForm, setShowChangeForm] = useState(false);
+  const [changeType, setChangeType] = useState("TIME");
+  const [changeReason, setChangeReason] = useState("");
+  const [changeAlternative, setChangeAlternative] = useState("");
+  const [showMagForm, setShowMagForm] = useState(false);
+  const [magType, setMagType] = useState("PHONE");
+  const [magTimes, setMagTimes] = useState(["", "", ""]);
+  const [magLocation, setMagLocation] = useState("");
+  const [magCost, setMagCost] = useState("FREE");
+  const [showCloseForm, setShowCloseForm] = useState(false);
+  const [closeOutcome, setCloseOutcome] = useState("FILLED_CONFIRMED");
+  const [closeFeedback, setCloseFeedback] = useState("");
+  const [blockingUserId, setBlockingUserId] = useState<string | null>(null);
+  const [showRunningLate, setShowRunningLate] = useState(false);
+  const [lateMinutes, setLateMinutes] = useState("15");
+  const [privateNote, setPrivateNote] = useState("");
+  const [noteSaved, setNoteSaved] = useState(false);
   const pollRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -160,12 +233,18 @@ export default function JobDetailPage() {
   }, [messages]);
 
   useEffect(() => {
+    if (job?.workerPrivateNote != null) setPrivateNote(job.workerPrivateNote);
+  }, [job?.workerPrivateNote]);
+
+  useEffect(() => {
     loadJob().finally(() => setLoading(false));
     loadMessages();
     loadReviews();
     loadAssignments();
     if (activeRole === "COORDINATOR" || activeRole === "PROVIDER") loadInvites();
     pollRef.current = setInterval(loadMessages, 30_000);
+    // Viewing this job's message thread marks it read for the current user.
+    api.patch(`/jobs/${id}/messages/read`, {}).catch(() => {});
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -175,6 +254,20 @@ export default function JobDetailPage() {
       .then(r => setTeamWorkers(r.users ?? []))
       .catch(() => {});
   }, [activeRole]);
+
+  // Resume an in-progress incident report for this job instead of starting blank.
+  useEffect(() => {
+    api.get<{ incident: { id: string; category: string; description: string | null; evidenceUrls: string[] } | null }>(`/jobs/${id}/incidents/draft`)
+      .then(r => {
+        if (!r.incident) return;
+        setFlagDraftId(r.incident.id);
+        setFlagCategory(r.incident.category);
+        setFlagDescription(r.incident.description ?? "");
+        setFlagEvidence(r.incident.evidenceUrls ?? []);
+        setShowFlagForm(true);
+      })
+      .catch(() => {});
+  }, [id]);
 
   async function sendMessage() {
     if (!msgBody.trim()) return;
@@ -190,12 +283,68 @@ export default function JobDetailPage() {
   async function submitFlag() {
     setFlagging(true);
     try {
-      await api.post(`/jobs/${id}/incidents`, { category: flagCategory, description: flagDescription.trim() || undefined });
+      if (flagDraftId) {
+        // Finishing a saved draft — completes it and flips DRAFT → OPEN.
+        await api.patch(`/jobs/${id}/incidents/${flagDraftId}`, {
+          category: flagCategory, description: flagDescription.trim() || undefined, finalize: true,
+        });
+      } else {
+        await api.post(`/jobs/${id}/incidents`, {
+          category: flagCategory, description: flagDescription.trim() || undefined, evidenceUrls: flagEvidence,
+        });
+      }
       setFlagSent(true);
       setShowFlagForm(false);
       setFlagDescription("");
+      setFlagDraftId(null);
+      setFlagEvidence([]);
     } catch (e: any) { setError(e.message); }
     finally { setFlagging(false); }
+  }
+
+  // "Save as draft" — lets the reporter come back later instead of losing the form.
+  async function saveFlagDraft() {
+    setFlagSavingDraft(true);
+    try {
+      if (flagDraftId) {
+        await api.patch(`/jobs/${id}/incidents/${flagDraftId}`, {
+          category: flagCategory, description: flagDescription.trim() || undefined,
+        });
+      } else {
+        const res = await api.post<{ incident: { id: string } }>(`/jobs/${id}/incidents`, {
+          category: flagCategory, description: flagDescription.trim() || undefined, evidenceUrls: flagEvidence, isDraft: true,
+        });
+        setFlagDraftId(res.incident.id);
+      }
+      setFlagDraftSaved(true);
+      setTimeout(() => setFlagDraftSaved(false), 2000);
+    } catch (e: any) { setError(e.message); }
+    finally { setFlagSavingDraft(false); }
+  }
+
+  // Evidence attachment — presign → PUT to R2 → keep the public URL, then either
+  // send it with the initial POST or attach it to an existing draft via PATCH.
+  async function uploadFlagEvidence(file: File) {
+    setFlagUploading(true);
+    try {
+      const { uploadUrl, publicUrl } = await presignUpload("incident-evidence", file.name, file.type);
+      await putFileToR2(uploadUrl, file);
+      if (flagDraftId) {
+        await api.patch(`/jobs/${id}/incidents/${flagDraftId}`, { evidenceUrls: [publicUrl] });
+      }
+      setFlagEvidence(prev => [...prev, publicUrl]);
+    } catch (e: any) { setError(e.message); }
+    finally { setFlagUploading(false); }
+  }
+
+  async function blockOtherParty() {
+    if (!job || !otherPartyId) return;
+    setBlocking(true);
+    try {
+      await api.post("/users/blocks", { blockedUserId: otherPartyId, blockMessages: true, hideProfile: true });
+      setBlocked(true);
+    } catch (e: any) { setError(e.message); }
+    finally { setBlocking(false); }
   }
 
   // Provider was selected on this job and needs to hand it to one of their team
@@ -214,6 +363,135 @@ export default function JobDetailPage() {
     setActing(true);
     try {
       await api.patch(`/jobs/${id}/${action}`, payload);
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Structured cancellation (SW doc Window 35) — reason category + optional
+  // "notify suitable replacement workers" broadcast, replacing the bare cancel call.
+  async function submitCancel() {
+    setActing(true);
+    try {
+      const res = await api.patch<{ job: { cancelled: any; promoted: { title: string } | null } }>(`/jobs/${id}/cancel`, {
+        reasonCategory: cancelReasonCategory || undefined,
+        notifyReplacements,
+      });
+      const promoted = res.job.promoted;
+      setCancelSummary({
+        promotedTitle: promoted?.title ?? null,
+        emergency:     !!promoted?.title?.startsWith("[EMERGENCY]"),
+      });
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Worker's 3-way response to a confirmed selection (Window 30 "Decline")
+  async function declineAssignment() {
+    setActing(true);
+    try {
+      await api.patch(`/jobs/${id}/decline-assignment`, {});
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Worker requests a change instead of accepting as-is (Window 34)
+  async function submitChangeRequest() {
+    if (!changeAlternative.trim()) return;
+    setActing(true);
+    try {
+      await api.post(`/jobs/${id}/change-request`, {
+        changeType,
+        reason: changeReason.trim() || undefined,
+        alternative: { details: changeAlternative.trim() },
+      });
+      setShowChangeForm(false);
+      setChangeReason("");
+      setChangeAlternative("");
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  async function respondToChangeRequest(crId: string, action: "ACCEPT" | "REJECT") {
+    setActing(true);
+    try {
+      await api.patch(`/jobs/change-request/${crId}/respond`, { action });
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Meet-and-greet propose/respond (Window 29)
+  async function submitMeetAndGreet() {
+    const times = magTimes.map(t => t.trim()).filter(Boolean);
+    if (times.length === 0) return;
+    setActing(true);
+    try {
+      await api.post(`/jobs/${id}/meet-and-greet`, {
+        type: magType,
+        proposedTimes: times,
+        location: magLocation.trim() || undefined,
+        cost: magCost,
+      });
+      setShowMagForm(false);
+      setMagTimes(["", "", ""]);
+      setMagLocation("");
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Close connection (Window 38) — a marketplace-outcome tag, separate from job.status.
+  async function submitCloseConnection() {
+    setActing(true);
+    try {
+      await api.patch(`/jobs/${id}/close-connection`, { outcome: closeOutcome, feedback: closeFeedback.trim() || undefined });
+      setShowCloseForm(false);
+      setCloseFeedback("");
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Block or limit contact (Window 44) — from a message sender, block further
+  // messages and hide your own profile from them.
+  async function blockUser(blockedUserId: string) {
+    setBlockingUserId(blockedUserId);
+    try {
+      await api.post("/users/blocks", { blockedUserId, blockMessages: true, hideProfile: true });
+    } catch (e: any) { setError(e.message); }
+    finally { setBlockingUserId(null); }
+  }
+
+  // Running late (Window 33) — a one-tap notice to the poster, not a GPS check-in.
+  async function submitRunningLate() {
+    setActing(true);
+    try {
+      await api.patch(`/jobs/${id}/running-late`, { minutesLate: Number(lateMinutes) });
+      setShowRunningLate(false);
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  // Private note (Window 33) — visible only to the worker who wrote it.
+  async function savePrivateNote() {
+    setActing(true);
+    try {
+      await api.patch(`/jobs/${id}/worker-note`, { note: privateNote });
+      setNoteSaved(true);
+      setTimeout(() => setNoteSaved(false), 2000);
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  async function respondToMag(magId: string, action: "CONFIRM" | "DECLINE", confirmedTime?: string) {
+    setActing(true);
+    try {
+      await api.patch(`/jobs/meet-and-greet/${magId}/respond`, { action, confirmedTime });
       await loadJob();
     } catch (e: any) { setError(e.message); }
     finally { setActing(false); }
@@ -243,12 +521,41 @@ export default function JobDetailPage() {
     if (!reviewRating) return;
     setSubmittingReview(true);
     try {
-      await api.post(`/jobs/${id}/reviews`, { rating: reviewRating, comment: reviewComment.trim() || undefined });
+      await api.post(`/jobs/${id}/reviews`, {
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+        reliabilityRating: reliabilityRating || undefined,
+        communicationRating: communicationRating || undefined,
+        qualityRating: qualityRating || undefined,
+        privateConcern: privateConcern.trim() || undefined,
+      });
       setReviewRating(0);
       setReviewComment("");
+      setReliabilityRating(0);
+      setCommunicationRating(0);
+      setQualityRating(0);
+      setPrivateConcern("");
       loadReviews();
     } catch (e: any) { setError(e.message); }
     finally { setSubmittingReview(false); }
+  }
+
+  async function submitReviewResponse(reviewId: string) {
+    if (!responseText.trim()) return;
+    try {
+      await api.patch(`/reviews/${reviewId}/respond`, { response: responseText.trim() });
+      setRespondingReviewId(null);
+      setResponseText("");
+      loadReviews();
+    } catch (e: any) { setError(e.message); }
+  }
+
+  async function reportReview(reviewId: string) {
+    if (!confirm("Report this review to Shiftify for review?")) return;
+    try {
+      await api.post(`/reviews/${reviewId}/report`, { reason: "Reported from job page" });
+      loadReviews();
+    } catch (e: any) { setError(e.message); }
   }
 
   async function addToRoster(workerUserId: string) {
@@ -296,6 +603,7 @@ export default function JobDetailPage() {
     !job.assignedWorker;
   const workerPartyId = job.assignedWorker?.id ?? job.selectedApplicant?.id;
   const isReviewParty = job.status === "CONFIRMED" && (user?.id === job.postedBy.id || user?.id === workerPartyId);
+  const otherPartyId = isOwner ? workerPartyId : job.postedBy.id;
   const myReview = reviews.find(r => r.raterUserId === user?.id);
 
   return (
@@ -361,6 +669,73 @@ export default function JobDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Before/during support (SW doc Windows 32-33) — worker-only shortcuts */}
+        {workerPartyId === user?.id && ["ASSIGNED", "IN_PROGRESS"].includes(job.status) && (
+          <Card>
+            <CardHeader><CardTitle>Before & during support</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3.5">
+              <div className="flex gap-2.5 flex-wrap">
+                {job.addressLine && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.addressLine)}`}
+                    target="_blank" rel="noopener noreferrer"
+                  >
+                    <Button size="sm" variant="outline">Get directions</Button>
+                  </a>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setShowRunningLate(v => !v)}>
+                  I'm running late
+                </Button>
+              </div>
+
+              {job.runningLateNotifiedAt && (
+                <p className="text-xs text-amber-700 m-0">
+                  You notified the poster you're running about {job.runningLateMinutes} minutes late.
+                </p>
+              )}
+
+              {showRunningLate && (
+                <div className="flex gap-2.5 items-center p-3.5 border border-slate-200 rounded-lg bg-slate-50">
+                  <select value={lateMinutes} onChange={e => setLateMinutes(e.target.value)}
+                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
+                    {[5, 10, 15, 20, 30, 45, 60].map(m => <option key={m} value={m}>{m} minutes</option>)}
+                  </select>
+                  <Button size="sm" disabled={acting} onClick={submitRunningLate}>Notify poster</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowRunningLate(false)}>Cancel</Button>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Private note (only visible to you)
+                </label>
+                <textarea value={privateNote} onChange={e => setPrivateNote(e.target.value)}
+                  rows={2} placeholder="Jot down anything you want to remember about this shift..."
+                  className="w-full px-2.5 py-2 border border-slate-200 rounded-md text-sm resize-y" />
+                <div className="flex items-center gap-2.5 mt-1.5">
+                  <Button size="sm" variant="outline" disabled={acting} onClick={savePrivateNote}>Save note</Button>
+                  {noteSaved && <span className="text-xs text-green-700">Saved</span>}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Payment information (SW doc Window 41) — 0%-commission messaging, worker/poster only */}
+        {(isOwner || workerPartyId === user?.id) && ["ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED"].includes(job.status) && (
+          <Card>
+            <CardHeader><CardTitle>Payment information</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-1.5">
+              <p className="text-sm text-slate-600 m-0">
+                Shiftify takes <strong>0% commission</strong> — payment is arranged directly between you and the other party at the rate you agreed.
+              </p>
+              <p className="text-xs text-slate-400 m-0">
+                Invoices created on this request are a shared record for your own files, not a payment request processed by Shiftify.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Care & Safety Notes — visible to poster and worker, shown only if any note was provided */}
         {(() => {
@@ -432,6 +807,49 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        {/* Close connection (SW doc Window 38) — marketplace outcome tag, not proof of delivery/payment */}
+        {isOwner && (
+          <Card>
+            <CardHeader className="flex items-center justify-between flex-row">
+              <CardTitle>Close connection</CardTitle>
+              {(!job.closedOutcome || (job.closedOutcome && !showCloseForm)) && (
+                <Button size="sm" variant="outline" onClick={() => {
+                  if (job.closedOutcome) { setCloseOutcome(job.closedOutcome); setCloseFeedback(""); }
+                  setShowCloseForm(v => !v);
+                }}>
+                  {job.closedOutcome ? "Edit outcome" : "Save outcome"}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2.5">
+              {job.closedOutcome && !showCloseForm ? (
+                <p className="text-sm text-slate-600 m-0">
+                  Marked <strong>{job.closedOutcome.replace("_", " ").toLowerCase()}</strong>. This status isn't proof support was delivered and doesn't approve an invoice or payment.
+                </p>
+              ) : showCloseForm ? (
+                <div className="flex flex-col gap-2.5 p-3.5 border border-slate-200 rounded-lg bg-slate-50">
+                  <select value={closeOutcome} onChange={e => setCloseOutcome(e.target.value)}
+                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
+                    <option value="FILLED_CONFIRMED">Filled and confirmed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="NOT_PROCEEDING">Not proceeding</option>
+                    <option value="UNFILLED">Unfilled</option>
+                  </select>
+                  <textarea value={closeFeedback} onChange={e => setCloseFeedback(e.target.value)}
+                    placeholder="Private feedback (optional)" rows={2}
+                    className="px-2.5 py-2 border border-slate-200 rounded-md text-sm resize-y" />
+                  <div className="flex gap-2.5">
+                    <Button size="sm" disabled={acting} onClick={submitCloseConnection}>Save outcome</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowCloseForm(false)}>Cancel</Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400 m-0">Not closed yet — captures only the marketplace outcome, no invoicing or payment approval.</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Owner actions */}
         {isOwner && (
           <Card>
@@ -441,7 +859,7 @@ export default function JobDetailPage() {
                 <Button variant="outline" disabled={acting} onClick={() => jobAction("confirm")}>Confirm Completion</Button>
               )}
               {["OPEN", "ASSIGNED"].includes(job.status) && (
-                <Button variant="outline" disabled={acting} onClick={() => jobAction("cancel")}>Cancel Job</Button>
+                <Button variant="outline" disabled={acting} onClick={() => setShowCancelModal(true)}>Cancel Job</Button>
               )}
               {canInvoice && (
                 <Button variant="outline" onClick={() => router.push(`/jobs/${id}/invoice`)}>Create Invoice</Button>
@@ -537,17 +955,142 @@ export default function JobDetailPage() {
           </Card>
         )}
 
-        {/* Worker lifecycle actions */}
+        {/* Worker's 3-way response to a confirmed selection (SW doc Window 30) */}
         {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && !job.workerConfirmedAt && (
           <Card>
-            <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>
-                Accept this assignment to confirm you'll be attending — this releases the exact address and the participant's contact details to you.
+            <CardHeader><CardTitle>Your confirmed support</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-slate-700 m-0">
+                Accept this assignment to confirm you'll be attending — this releases the exact address and the participant's contact details to you. If something needs to change first, request a change instead of declining outright.
               </p>
-              <Button disabled={acting} onClick={() => jobAction("confirm-assignment")}>
-                {acting ? "Confirming..." : "Accept & Confirm Assignment"}
-              </Button>
+              <div className="flex gap-2.5 flex-wrap">
+                <Button disabled={acting} onClick={() => jobAction("confirm-assignment")}>
+                  {acting ? "Confirming..." : "Accept confirmed support"}
+                </Button>
+                <Button variant="outline" disabled={acting} onClick={() => setShowChangeForm(v => !v)}>
+                  Request change
+                </Button>
+                <Button variant="outline" disabled={acting} onClick={declineAssignment}
+                  className="border-red-500 text-red-500 hover:bg-red-50">
+                  Decline
+                </Button>
+              </div>
+              {showChangeForm && (
+                <div className="flex flex-col gap-2.5 p-3.5 border border-slate-200 rounded-lg bg-slate-50">
+                  <select value={changeType} onChange={e => setChangeType(e.target.value)}
+                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
+                    <option value="TIME">Time</option>
+                    <option value="DURATION">Duration</option>
+                    <option value="DATE">Date</option>
+                    <option value="RECURRENCE">Recurrence</option>
+                    <option value="RATE">Rate</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                  <input value={changeReason} onChange={e => setChangeReason(e.target.value)}
+                    placeholder="Reason (optional)"
+                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm" />
+                  <textarea value={changeAlternative} onChange={e => setChangeAlternative(e.target.value)}
+                    placeholder="Proposed new details" rows={2}
+                    className="px-2.5 py-2 border border-slate-200 rounded-md text-sm resize-y" />
+                  <div className="flex gap-2.5">
+                    <Button size="sm" disabled={acting || !changeAlternative.trim()} onClick={submitChangeRequest}>Send request</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowChangeForm(false)}>Keep original</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Change requests thread */}
+        {(job.changeRequests?.length ?? 0) > 0 && (
+          <Card>
+            <CardHeader><CardTitle>Change requests</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2.5">
+              {job.changeRequests!.map(cr => (
+                <div key={cr.id} className="flex items-center gap-3 px-3.5 py-2.5 border border-slate-200 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-slate-800">{cr.requestedBy.name} requested a {cr.changeType.toLowerCase()} change</span>
+                    <p className="text-xs text-slate-500 mt-0.5 mb-0">{typeof cr.alternative === "string" ? cr.alternative : cr.alternative?.details ?? ""}{cr.reason ? ` — ${cr.reason}` : ""}</p>
+                  </div>
+                  {isOwner && cr.status === "PENDING" ? (
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" disabled={acting} onClick={() => respondToChangeRequest(cr.id, "ACCEPT")}>Accept</Button>
+                      <Button size="sm" variant="outline" disabled={acting} onClick={() => respondToChangeRequest(cr.id, "REJECT")}>Reject</Button>
+                    </div>
+                  ) : (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                      cr.status === "ACCEPTED" ? "bg-emerald-50 text-emerald-700" : cr.status === "REJECTED" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"
+                    }`}>{cr.status}</span>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Meet-and-greet (SW doc Window 29) — offered while OPEN or ASSIGNED-unconfirmed */}
+        {["OPEN", "ASSIGNED"].includes(job.status) && (isOwner || ownApp || job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && (
+          <Card>
+            <CardHeader className="flex items-center justify-between flex-row">
+              <CardTitle>Meet-and-greet</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setShowMagForm(v => !v)}>Propose</Button>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2.5">
+              {showMagForm && (
+                <div className="flex flex-col gap-2.5 p-3.5 border border-slate-200 rounded-lg bg-slate-50">
+                  <select value={magType} onChange={e => setMagType(e.target.value)}
+                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
+                    <option value="PHONE">Phone</option>
+                    <option value="VIDEO">Video</option>
+                    <option value="IN_PERSON">In person</option>
+                  </select>
+                  {magTimes.map((t, i) => (
+                    <input key={i} value={t} onChange={e => setMagTimes(arr => arr.map((v, idx) => idx === i ? e.target.value : v))}
+                      placeholder={`Proposed time ${i + 1}${i === 0 ? "" : " (optional)"}`} type="datetime-local"
+                      className="h-9 px-2.5 border border-slate-200 rounded-md text-sm" />
+                  ))}
+                  {magType === "IN_PERSON" && (
+                    <input value={magLocation} onChange={e => setMagLocation(e.target.value)}
+                      placeholder="Agreed safe location" className="h-9 px-2.5 border border-slate-200 rounded-md text-sm" />
+                  )}
+                  <select value={magCost} onChange={e => setMagCost(e.target.value)}
+                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
+                    <option value="FREE">Free</option>
+                    <option value="AGREED_RATE">Agreed rate</option>
+                    <option value="DISCUSS">To discuss</option>
+                  </select>
+                  <div className="flex gap-2.5">
+                    <Button size="sm" disabled={acting || !magTimes.some(t => t.trim())} onClick={submitMeetAndGreet}>Send proposal</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowMagForm(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+              {(job.meetAndGreets?.length ?? 0) === 0 ? (
+                <p className="text-sm text-slate-400 m-0">No meet-and-greet proposed yet.</p>
+              ) : job.meetAndGreets!.map(mag => (
+                <div key={mag.id} className="flex items-center gap-3 px-3.5 py-2.5 border border-slate-200 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-slate-800">{mag.proposedBy.name} proposed a {mag.type.replace("_", " ").toLowerCase()} meet-and-greet</span>
+                    <p className="text-xs text-slate-500 mt-0.5 mb-0">
+                      {mag.status === "CONFIRMED" && mag.confirmedTime
+                        ? `Confirmed for ${new Date(mag.confirmedTime).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}`
+                        : mag.proposedTimes.map(t => new Date(t).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })).join(" · ")}
+                      {mag.location ? ` — ${mag.location}` : ""} · {mag.cost.replace("_", " ").toLowerCase()}
+                    </p>
+                  </div>
+                  {mag.status === "PROPOSED" && mag.proposedByUserId !== user?.id ? (
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" disabled={acting} onClick={() => respondToMag(mag.id, "CONFIRM", mag.proposedTimes[0])}>Confirm time</Button>
+                      <Button size="sm" variant="outline" disabled={acting} onClick={() => respondToMag(mag.id, "DECLINE")}>Decline</Button>
+                    </div>
+                  ) : (
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                      mag.status === "CONFIRMED" ? "bg-emerald-50 text-emerald-700" : mag.status === "DECLINED" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"
+                    }`}>{mag.status}</span>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         )}
@@ -612,9 +1155,30 @@ export default function JobDetailPage() {
                       </button>
                     ))}
                   </div>
+                  {([
+                    ["Reliability", reliabilityRating, setReliabilityRating],
+                    ["Communication", communicationRating, setCommunicationRating],
+                    ["Quality of support", qualityRating, setQualityRating],
+                  ] as const).map(([label, value, setValue]) => (
+                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, color: "#64748b", width: 130 }}>{label}</span>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <button key={n} onClick={() => setValue(n)}
+                            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0,
+                              color: n <= value ? "#f59e0b" : "#e2e8f0" }}>
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                   <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
-                    placeholder="Optional comment..." maxLength={1000} rows={3}
+                    placeholder="Optional comment (visible to the other party)..." maxLength={1000} rows={3}
                     style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+                  <textarea value={privateConcern} onChange={e => setPrivateConcern(e.target.value)}
+                    placeholder="Private concern for Shiftify only (not shown to the other party)..." maxLength={1000} rows={2}
+                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #fde68a", background: "#fffbeb", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
                   <Button size="sm" disabled={!reviewRating || submittingReview} onClick={submitReview}>
                     {submittingReview ? "Submitting..." : "Submit Review"}
                   </Button>
@@ -631,7 +1195,51 @@ export default function JobDetailPage() {
                       </span>
                       <span style={{ color: "#f59e0b", fontSize: 13 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
                     </div>
+                    {(r.reliabilityRating || r.communicationRating || r.qualityRating) && (
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                        {[
+                          r.reliabilityRating && `Reliability ${r.reliabilityRating}★`,
+                          r.communicationRating && `Communication ${r.communicationRating}★`,
+                          r.qualityRating && `Quality ${r.qualityRating}★`,
+                        ].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
                     {r.comment && <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>{r.comment}</p>}
+                    {r.privateConcern && (
+                      <p style={{ fontSize: 12, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", margin: 0 }}>
+                        Private concern (only you can see this): {r.privateConcern}
+                      </p>
+                    )}
+                    {r.revieweeResponse && (
+                      <p style={{ fontSize: 12, color: "#374151", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", margin: 0 }}>
+                        {r.reviewee.name}&apos;s response: {r.revieweeResponse}
+                      </p>
+                    )}
+                    {r.reportedByReviewee && (
+                      <span style={{ fontSize: 11, color: "#b91c1c" }}>Reported by {r.reviewee.name}</span>
+                    )}
+                    {r.revieweeUserId === user?.id && !r.revieweeResponse && (
+                      respondingReviewId === r.id ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <textarea value={responseText} onChange={e => setResponseText(e.target.value)}
+                            placeholder="Write a public response…" rows={2}
+                            style={{ fontSize: 12, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6 }} />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <Button size="sm" onClick={() => submitReviewResponse(r.id)}>Submit</Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setRespondingReviewId(null); setResponseText(""); }}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 12 }}>
+                          <button type="button" onClick={() => setRespondingReviewId(r.id)}
+                            style={{ fontSize: 11, color: "#0369a1", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Respond</button>
+                          {!r.reportedByReviewee && (
+                            <button type="button" onClick={() => reportReview(r.id)}
+                              style={{ fontSize: 11, color: "#b91c1c", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Report</button>
+                          )}
+                        </div>
+                      )
+                    )}
                   </div>
                 ))
               )}
@@ -679,24 +1287,76 @@ export default function JobDetailPage() {
         {/* Applicants (owner only) */}
         {isOwner && job.applications && job.applications.length > 0 && (
           <Card>
-            <CardHeader><CardTitle>Applicants ({job.applications.length})</CardTitle></CardHeader>
+            <CardHeader className="flex items-center justify-between flex-row">
+              <CardTitle>Applicants ({job.applications.length})</CardTitle>
+              {job.applications.length > 1 && (
+                <Button size="sm" variant="outline" onClick={() => setCompareView(v => !v)}>
+                  {compareView ? "List view" : "Compare"}
+                </Button>
+              )}
+            </CardHeader>
             <CardContent>
+              {compareView && job.applications.length > 1 ? (
+                /* SC journey M03 — side-by-side comparison instead of scrolling a sequential list */
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse min-w-[560px]">
+                    <thead>
+                      <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
+                        <th className="py-2 pr-3 font-semibold">Applicant</th>
+                        <th className="py-2 pr-3 font-semibold">Rating</th>
+                        <th className="py-2 pr-3 font-semibold">Rate</th>
+                        <th className="py-2 pr-3 font-semibold">Coverage</th>
+                        <th className="py-2 pr-3 font-semibold">Skills</th>
+                        <th className="py-2 pr-3 font-semibold">Applied</th>
+                        <th className="py-2 pr-3 font-semibold">Status</th>
+                        {job.status === "OPEN" && <th className="py-2 pr-3 font-semibold">Action</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {job.applications.map(app => {
+                        const { rating, reviewCount, rate, skillLabels, coverage } = applicantDisplay(app);
+                        return (
+                          <tr key={app.id} className="border-b border-slate-100 align-top">
+                            <td className="py-2.5 pr-3">
+                              <Link href={`/profile/${app.applicantUserId}`} className="font-semibold text-slate-800 hover:underline">{app.applicant.name}</Link>
+                            </td>
+                            <td className="py-2.5 pr-3 whitespace-nowrap">{reviewCount > 0 ? `★ ${rating.toFixed(1)} (${reviewCount})` : "—"}</td>
+                            <td className="py-2.5 pr-3 whitespace-nowrap">{rate != null ? `$${Number(rate).toFixed(0)}/hr` : "—"}</td>
+                            <td className="py-2.5 pr-3 text-xs text-slate-600">{coverage ?? "—"}</td>
+                            <td className="py-2.5 pr-3">
+                              <div className="flex gap-1 flex-wrap">
+                                {skillLabels.length > 0 ? skillLabels.map(l => (
+                                  <span key={l} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{l}</span>
+                                )) : "—"}
+                              </div>
+                            </td>
+                            <td className="py-2.5 pr-3 text-xs whitespace-nowrap">{new Date(app.createdAt).toLocaleDateString("en-AU")}</td>
+                            <td className="py-2.5 pr-3 font-semibold whitespace-nowrap" style={{ color: APP_STATUS_COLOR[app.status] ?? "#94a3b8" }}>{app.status}</td>
+                            {job.status === "OPEN" && (
+                              <td className="py-2.5 pr-3">
+                                {["INTERESTED", "SHORTLISTED"].includes(app.status) ? (
+                                  <div className="flex gap-1.5">
+                                    {app.status === "INTERESTED" && (
+                                      <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "shortlist")} style={{ borderColor: "#3b82f6", color: "#3b82f6" }}>Shortlist</Button>
+                                    )}
+                                    <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>Select</Button>
+                                    <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "decline")} style={{ borderColor: "#ef4444", color: "#ef4444" }}>Decline</Button>
+                                  </div>
+                                ) : "—"}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {job.applications.map(app => {
+                  const { rating, reviewCount, rate, skillLabels, coverage } = applicantDisplay(app);
                   const wp = app.applicant.workerProfile;
-                  const pp = app.applicant.providerProfile;
-                  const rating = wp?.rating ?? pp?.averageRating ?? 0;
-                  const reviews = wp?.totalReviews ?? pp?.totalRatings ?? 0;
-                  const rate = wp?.hourlyRate;
-                  const services = (wp?.servicesOffered ?? pp?.coreServices ?? []) as string[];
-                  const skillLabels = services
-                    .map(s => JOB_CATEGORIES.find(c => c.value === s)?.label ?? s)
-                    .slice(0, 3);
-                  // Simple coverage label — derived from home suburb/state + travel radius,
-                  // no geocoding or real distance matching yet.
-                  const coverage = wp?.state
-                    ? `Covers ${wp.state}${wp.suburb ? ` (${wp.suburb}` : ""}${wp.travelRadiusKm ? `${wp.suburb ? ", " : " ("}${wp.travelRadiusKm}km radius)` : wp.suburb ? ")" : ""}`
-                    : null;
+                  const reviews = reviewCount;
                   return (
                   <div key={app.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
                     {app.applicant.avatarUrl ? (
@@ -763,6 +1423,7 @@ export default function JobDetailPage() {
                   );
                 })}
               </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -776,8 +1437,14 @@ export default function JobDetailPage() {
                 <p style={{ fontSize: 13, color: "#94a3b8" }}>No messages yet.</p>
               ) : messages.map(m => (
                 <div key={m.id} style={{ padding: "10px 14px", borderRadius: 10, background: m.senderId === user?.id ? "rgba(194,24,91,0.06)" : "#f8fafc", border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 4 }}>
-                    {m.senderName} - {new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
+                    <span>{m.senderName} - {new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}</span>
+                    {m.senderId !== user?.id && (
+                      <button type="button" onClick={() => blockUser(m.senderId)} disabled={blockingUserId === m.senderId}
+                        className="text-[11px] font-semibold text-red-500 bg-transparent border-none cursor-pointer p-0">
+                        {blockingUserId === m.senderId ? "Blocking…" : "Block"}
+                      </button>
+                    )}
                   </div>
                   <div style={{ fontSize: 14, color: "#1e293b" }}>{m.body}</div>
                 </div>
@@ -804,13 +1471,27 @@ export default function JobDetailPage() {
           <CardHeader><CardTitle>Report an issue</CardTitle></CardHeader>
           <CardContent>
             {flagSent ? (
-              <p style={{ fontSize: 13, color: "#16a34a" }}>Reported — an admin has been notified.</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ fontSize: 13, color: "#16a34a", margin: 0 }}>Reported — an admin has been notified.</p>
+                {otherPartyId && (
+                  blocked ? (
+                    <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>This user is now blocked from messaging you and can no longer see your profile.</p>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled={blocking} onClick={blockOtherParty}>
+                      {blocking ? "Blocking…" : "Also block this user"}
+                    </Button>
+                  )
+                )}
+              </div>
             ) : !showFlagForm ? (
               <Button variant="ghost" onClick={() => setShowFlagForm(true)}>
                 🚩 Flag an incident
               </Button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <p style={{ fontSize: 12, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", margin: 0 }}>
+                  If this is a medical emergency or anyone is in immediate danger, call <strong>000</strong> now — don't wait for a report to be reviewed.
+                </p>
                 <select
                   value={flagCategory}
                   onChange={e => setFlagCategory(e.target.value)}
@@ -828,11 +1509,44 @@ export default function JobDetailPage() {
                   rows={3}
                   style={{ padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, resize: "vertical" }}
                 />
-                <div style={{ display: "flex", gap: 10 }}>
+
+                <div>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>
+                    Evidence <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional — photos or documents)</span>
+                  </label>
+                  {flagEvidence.length > 0 && (
+                    <ul style={{ margin: "0 0 6px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
+                      {flagEvidence.map((url, i) => (
+                        <li key={url} style={{ fontSize: 12, color: "#16a34a", display: "flex", alignItems: "center", gap: 6 }}>
+                          <i className="bi bi-paperclip" /> Attachment {i + 1}
+                          <a href={url} target="_blank" rel="noreferrer" style={{ color: "#2563eb" }}>view</a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/heic,image/webp,application/pdf"
+                    disabled={flagUploading}
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) uploadFlagEvidence(file);
+                      e.target.value = "";
+                    }}
+                    style={{ fontSize: 12 }}
+                  />
+                  {flagUploading && <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>Uploading…</p>}
+                </div>
+
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                   <Button onClick={submitFlag} disabled={flagging}>
                     {flagging ? "Reporting..." : "Submit report"}
                   </Button>
+                  <Button variant="outline" onClick={saveFlagDraft} disabled={flagSavingDraft}>
+                    {flagSavingDraft ? "Saving…" : "Save as draft"}
+                  </Button>
                   <Button variant="ghost" onClick={() => setShowFlagForm(false)}>Cancel</Button>
+                  {flagDraftSaved && <span style={{ fontSize: 12, color: "#16a34a" }}>Draft saved</span>}
                 </div>
               </div>
             )}
@@ -840,6 +1554,58 @@ export default function JobDetailPage() {
         </Card>
 
       </div>
+
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-5"
+          onClick={() => { if (!cancelSummary) setShowCancelModal(false); }}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-md flex flex-col gap-3.5" onClick={e => e.stopPropagation()}>
+            {cancelSummary ? (
+              /* SW doc Window 36 — poster cancellation summary screen */
+              <>
+                <h3 className="text-base font-bold text-slate-800 m-0">Request cancelled</h3>
+                <p className="text-sm text-slate-600 m-0">This request has been cancelled and the poster's applicants have been notified.</p>
+                {cancelSummary.promotedTitle ? (
+                  <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3 m-0">
+                    {cancelSummary.emergency
+                      ? "Because the shift was starting soon, a new emergency-urgency request was posted automatically."
+                      : "A replacement request has been posted, and previous applicants plus matching saved searches have been notified."}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500 m-0">No replacement request was created.</p>
+                )}
+                <div className="flex justify-end mt-1">
+                  <Button onClick={() => { setShowCancelModal(false); setCancelSummary(null); }}>Done</Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-base font-bold text-slate-800 m-0">Cancel this request</h3>
+                <label className="text-xs font-semibold text-slate-500">Reason</label>
+                <select value={cancelReasonCategory} onChange={e => setCancelReasonCategory(e.target.value)}
+                  className="h-10 px-2.5 border border-slate-200 rounded-lg text-sm">
+                  <option value="">Select a reason</option>
+                  <option value="ILLNESS">Illness</option>
+                  <option value="EMERGENCY">Emergency</option>
+                  <option value="TRANSPORT">Transport</option>
+                  <option value="SCHEDULING_CONFLICT">Scheduling conflict</option>
+                  <option value="UNSAFE_OR_UNSUITABLE">Unsafe or unsuitable</option>
+                  <option value="OTHER">Other</option>
+                </select>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={notifyReplacements} onChange={e => setNotifyReplacements(e.target.checked)} />
+                  Notify suitable replacement workers
+                </label>
+                <div className="flex gap-2.5 justify-end mt-1">
+                  <Button variant="ghost" onClick={() => setShowCancelModal(false)}>Back</Button>
+                  <Button disabled={acting} onClick={submitCancel} className="border-red-500 text-red-500">
+                    {acting ? "Cancelling…" : "Confirm cancellation"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showApply && (
         <ApplyModal

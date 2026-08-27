@@ -8,6 +8,7 @@ import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-
 import { DashboardTabCard } from "@/components/dashboard/tab-card";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
 import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
+import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { getDashboard, type PlanManagerDashboard } from "@/lib/api/dashboard";
 import { listLinkedParticipants, type LinkedParticipant } from "@/lib/api/pm";
 import {
@@ -146,6 +147,8 @@ export default function PlanManagerDashboardPage() {
               },
             ]}
           />
+
+          <LiveShiftboardTeaser />
         </div>
 
         {/* ── Right rail ── */}

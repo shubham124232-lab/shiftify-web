@@ -64,6 +64,7 @@ export default function JobInvitesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [justConnected, setJustConnected] = useState<JobInvite | null>(null);
 
   const canView = activeRole === UserRole.SUPPORT_WORKER || activeRole === UserRole.PROVIDER;
 
@@ -82,6 +83,7 @@ export default function JobInvitesPage() {
     setError(null);
     try {
       await api.patch(`/job-invites/${id}/respond`, { action });
+      if (action === "ACCEPT") setJustConnected(invites.find(i => i.id === id) ?? null);
       load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not respond to this invitation");
@@ -112,6 +114,21 @@ export default function JobInvitesPage() {
       />
       <div className="mx-auto max-w-3xl px-5 py-6">
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+        {justConnected && (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+            <p className="text-sm font-semibold text-emerald-800">You&apos;re connected on &ldquo;{justConnected.job.title}&rdquo;</p>
+            <p className="text-xs text-emerald-700 mt-1">
+              {justConnected.invitedBy.name} will confirm the details with you next. You can message them any time in the meantime.
+            </p>
+            <div className="flex gap-2 mt-3">
+              <Link href={`/jobs/${justConnected.job.id}`}>
+                <Button size="sm">Message &amp; view request</Button>
+              </Link>
+              <Button size="sm" variant="ghost" onClick={() => setJustConnected(null)}>Dismiss</Button>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="space-y-3">

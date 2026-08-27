@@ -12,7 +12,7 @@ import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
 
 // Pages inside the dashboard that should be accessible even with an incomplete profile
 // (so the user can actually go fix their profile without getting redirect-looped)
-const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability"];
+const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability", "/help-safety", "/blocked-users"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();

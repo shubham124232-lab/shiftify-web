@@ -12,7 +12,7 @@ import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { type Job } from "@/components/jobs/job-card";
 import { LiveDashboardCard } from "@/components/jobs/live-dashboard-card";
 import { JobFiltersPanel, type LiveDashboardFilters } from "@/components/jobs/job-filters-panel";
-import { URGENCY_TABS, inp } from "@/lib/constants/job-filters";
+import { URGENCY_TABS, URGENCY_STYLE, inp } from "@/lib/constants/job-filters";
 import { cn } from "@/lib/utils";
 import { Zap, Clock, CalendarClock, CalendarDays } from "lucide-react";
 
@@ -146,9 +146,12 @@ export default function LiveDashboardPage() {
           <div className="flex flex-wrap gap-2">
             {URGENCY_TABS.map(({ value, label }) => (
               <button key={value} type="button" onClick={() => { setUrgency(value); setPage(1); }}
-                className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
+                className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors inline-flex items-center gap-1.5",
                   urgency === value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
                 {label}
+                {value && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: urgency === value ? "#fff" : URGENCY_STYLE[value]?.color }} />
+                )}
               </button>
             ))}
           </div>
@@ -163,9 +166,9 @@ export default function LiveDashboardPage() {
                 value={suburbInput}
                 onChange={(e) => setSuburbInput(e.target.value)}
               />
-              <Button type="submit" variant="outline" size="sm">Search</Button>
+              <Button type="submit" variant="outline" size="sm" className="h-9">Search</Button>
             </form>
-            <Button variant="outline" size="sm" onClick={() => setShowFilters(v => !v)}>
+            <Button variant="outline" size="sm" className="h-9" onClick={() => setShowFilters(v => !v)}>
               {showFilters ? "Hide Filters" : `Filters${activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}`}
             </Button>
             {activeFilterCount > 0 && <button onClick={resetFilters} className="text-xs text-brand-600 hover:underline">Reset</button>}

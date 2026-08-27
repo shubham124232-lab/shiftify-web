@@ -22,6 +22,9 @@ interface Connection {
   canMessage: boolean;
   canConfirmBookings: boolean;
   canManageReplacements: boolean;
+  postingApprovalStatus: "PENDING" | "APPROVED" | "DECLINED" | null;
+  permissionRequestPending: boolean;
+  requestedPermissions: Record<string, boolean> | null;
 }
 
 const PERMISSION_LABELS: { key: keyof Connection; label: string }[] = [
@@ -39,6 +42,8 @@ export default function CoordinatorConnectionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [resentId, setResentId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const isParticipant = activeRole === UserRole.PARTICIPANT;
   const isCoordinator = activeRole === UserRole.COORDINATOR;
 
@@ -72,6 +77,57 @@ export default function CoordinatorConnectionsPage() {
     } finally { setActing(null); }
   }
 
+  async function respondToApproval(id: string, action: "APPROVE" | "DECLINE") {
+    setActing(id); setError(null);
+    try {
+      await api.patch(`/coordinator-connections/${id}/respond-posting-approval`, { action });
+      load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Action failed.");
+    } finally { setActing(null); }
+  }
+
+  async function respondToPermissionRequest(id: string, action: "APPROVE" | "DECLINE") {
+    setActing(id); setError(null);
+    try {
+      await api.patch(`/coordinator-connections/${id}/respond-permissions`, { action });
+      load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Action failed.");
+    } finally { setActing(null); }
+  }
+
+  async function resendRequest(id: string) {
+    setActing(id); setError(null);
+    try {
+      await api.post(`/coordinator-connections/${id}/resend`, {});
+      setResentId(id);
+      setTimeout(() => setResentId((prev) => (prev === id ? null : prev)), 3000);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not resend the invitation.");
+    } finally { setActing(null); }
+  }
+
+  async function cancelRequest(id: string) {
+    setActing(id); setError(null);
+    try {
+      await api.patch(`/coordinator-connections/${id}/cancel`, {});
+      load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not cancel the invitation.");
+    } finally { setActing(null); }
+  }
+
+  async function copyInvitationLink(id: string) {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/coordinator-connections?requestId=${id}`);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 3000);
+    } catch {
+      setError("Could not copy the link — copy it from the address bar instead.");
+    }
+  }
+
   if (!isParticipant && !isCoordinator) {
     return (
       <>
@@ -87,6 +143,8 @@ export default function CoordinatorConnectionsPage() {
   const pending = conns.filter(c => c.status === "PENDING" && c.initiatedBy !== activeRole);
   const sent    = conns.filter(c => c.status === "PENDING" && c.initiatedBy === activeRole);
   const active  = conns.filter(c => c.status === "ACCEPTED");
+  const postingApprovals = isParticipant ? conns.filter(c => c.status === "ACCEPTED" && c.postingApprovalStatus === "PENDING") : [];
+  const permissionRequests = isParticipant ? conns.filter(c => c.status === "ACCEPTED" && c.permissionRequestPending) : [];
 
   return (
     <>
@@ -103,6 +161,48 @@ export default function CoordinatorConnectionsPage() {
           <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
         ) : (
           <>
+            {postingApprovals.length > 0 && (
+              <Card>
+                <CardContent className="pt-4 flex flex-col gap-2.5">
+                  <div className="text-xs font-bold text-slate-400 uppercase">
+                    Posting approval requests ({postingApprovals.length})
+                  </div>
+                  {postingApprovals.map(c => (
+                    <div key={c.id} className="flex items-center gap-3 px-3.5 py-2.5 border-[1.5px] border-amber-200 rounded-lg bg-amber-50">
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">{c.coordinator.name}</div>
+                        <div className="text-xs text-slate-400">wants to post a support request on your behalf</div>
+                      </div>
+                      <Button size="sm" disabled={acting === c.id} onClick={() => respondToApproval(c.id, "APPROVE")}>Approve</Button>
+                      <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respondToApproval(c.id, "DECLINE")}>Decline</Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {permissionRequests.length > 0 && (
+              <Card>
+                <CardContent className="pt-4 flex flex-col gap-2.5">
+                  <div className="text-xs font-bold text-slate-400 uppercase">
+                    Permission requests ({permissionRequests.length})
+                  </div>
+                  {permissionRequests.map(c => (
+                    <div key={c.id} className="flex items-center gap-3 px-3.5 py-2.5 border-[1.5px] border-amber-200 rounded-lg bg-amber-50">
+                      <div className="flex-1">
+                        <div className="text-sm font-semibold">{c.coordinator.name}</div>
+                        <div className="text-xs text-slate-400">
+                          wants: {PERMISSION_LABELS.filter(p => c.requestedPermissions?.[p.key as string]).map(p => p.label).join(", ") || "additional access"}
+                        </div>
+                      </div>
+                      <Button size="sm" disabled={acting === c.id} onClick={() => respondToPermissionRequest(c.id, "APPROVE")}>Approve</Button>
+                      <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respondToPermissionRequest(c.id, "DECLINE")}>Decline</Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             {pending.length > 0 && (
               <Card>
                 <CardContent style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -133,9 +233,16 @@ export default function CoordinatorConnectionsPage() {
                     Sent — awaiting response ({sent.length})
                   </div>
                   {sent.map(c => (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                      <div style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{isCoordinator ? c.participant.name : c.coordinator.name}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", background: "#fef9c3", padding: "2px 10px", borderRadius: 20 }}>Pending</span>
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, flexWrap: "wrap" }}>
+                      <div style={{ flex: 1, fontSize: 14, fontWeight: 600, minWidth: 120 }}>{isCoordinator ? c.participant.name : c.coordinator.name}</div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", background: "#fef9c3", padding: "2px 10px", borderRadius: 20 }}>
+                        {resentId === c.id ? "Resent" : "Pending"}
+                      </span>
+                      <Button size="sm" variant="outline" disabled={acting === c.id} onClick={() => resendRequest(c.id)}>Resend</Button>
+                      <Button size="sm" variant="outline" disabled={acting === c.id} onClick={() => copyInvitationLink(c.id)}>
+                        {copiedId === c.id ? "Copied!" : "Copy link"}
+                      </Button>
+                      <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => cancelRequest(c.id)}>Cancel</Button>
                     </div>
                   ))}
                 </CardContent>

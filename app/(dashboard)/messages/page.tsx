@@ -7,12 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { api } from "@/lib/api";
 
-interface JobSummary {
-  id: string;
-  title: string;
-  status?: string;
-}
-
 interface Message {
   id: string;
   senderId: string;
@@ -22,52 +16,225 @@ interface Message {
 }
 
 interface Thread {
-  job: JobSummary;
+  id: string;
+  title: string;
+  status?: string;
   lastMessage: Message | null;
+  unreadCount: number;
+  archived: boolean;
 }
 
+// SC-F06 "Message first" (Journey 9) — a flat, one-shot pre-connection
+// message (DirectInquiry), not a job thread. No replies/threading, so it
+// gets its own simple list rather than living inside the job-thread inbox.
+interface DirectInquiry {
+  id: string;
+  body: string;
+  createdAt: string;
+  readAt: string | null;
+  sender: { id: string; name: string; avatarUrl: string | null };
+}
+
+const STATUS_FILTERS = [
+  { value: "", label: "All" },
+  { value: "OPEN", label: "Open" },
+  { value: "ASSIGNED", label: "Assigned" },
+  { value: "IN_PROGRESS", label: "In progress" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
+] as const;
+
+type View = "threads" | "inquiries";
+
 export default function MessagesPage() {
+  const [view, setView] = useState<View>("threads");
+
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+
+  const [inquiries, setInquiries] = useState<DirectInquiry[]>([]);
+  const [inquiriesLoading, setInquiriesLoading] = useState(true);
+  const [inquiriesError, setInquiriesError] = useState<string | null>(null);
+
+  function loadInquiries() {
+    setInquiriesLoading(true);
+    api.get<{ inquiries: DirectInquiry[] }>("/direct-inquiries/received")
+      .then(({ inquiries }) => setInquiries(inquiries ?? []))
+      .catch((e: any) => setInquiriesError(e.message))
+      .finally(() => setInquiriesLoading(false));
+  }
 
   useEffect(() => {
-    let cancelled = false;
+    if (view === "inquiries") loadInquiries();
+  }, [view]);
 
-    async function load() {
-      setLoading(true);
-      try {
-        const { jobs } = await api.get<{ jobs: JobSummary[] }>("/jobs/my");
-        const withMessages = await Promise.all(
-          jobs.map(async (job) => {
-            const { messages } = await api.get<{ messages: Message[] }>(`/jobs/${job.id}/messages`);
-            return { job, lastMessage: messages.length ? messages[messages.length - 1] : null };
-          })
-        );
-        if (cancelled) return;
-        const sorted = withMessages.sort((a, b) => {
+  async function markInquiryRead(id: string) {
+    setInquiries((prev) => prev.map((i) => (i.id === id ? { ...i, readAt: i.readAt ?? new Date().toISOString() } : i)));
+    try {
+      await api.patch(`/direct-inquiries/${id}/read`);
+    } catch {
+      loadInquiries();
+    }
+  }
+
+  function load(includeArchived: boolean) {
+    setLoading(true);
+    api.get<{ threads: Thread[] }>(`/jobs/messages/threads?includeArchived=${includeArchived}`)
+      .then(({ threads }) => {
+        const sorted = [...threads].sort((a, b) => {
           const at = a.lastMessage?.createdAt ?? "";
           const bt = b.lastMessage?.createdAt ?? "";
           return bt.localeCompare(at);
         });
         setThreads(sorted);
-      } catch (e: any) {
-        if (!cancelled) setError(e.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+      })
+      .catch((e: any) => setError(e.message))
+      .finally(() => setLoading(false));
+  }
 
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  useEffect(() => {
+    load(showArchived);
+  }, [showArchived]);
+
+  async function toggleArchive(threadId: string, archived: boolean) {
+    // Optimistic: drop it from (or keep it out of) the current view immediately.
+    setThreads(prev => prev.filter(t => t.id !== threadId));
+    try {
+      await api.patch(`/jobs/${threadId}/messages/archive`, { archived });
+    } catch {
+      load(showArchived);
+    }
+  }
+
+  const visible = showArchived ? threads : threads.filter(t => !t.archived);
+  const filtered = visible.filter((thread) => {
+    if (statusFilter && thread.status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const inTitle = thread.title.toLowerCase().includes(q);
+      const inBody = thread.lastMessage?.body.toLowerCase().includes(q) ?? false;
+      if (!inTitle && !inBody) return false;
+    }
+    return true;
+  });
+
+  const unreadInquiries = inquiries.filter((i) => !i.readAt).length;
 
   return (
     <>
-      <PageHeader title="Messages" description="Per-job conversation threads." />
+      <PageHeader title="Messages" description="Per-job conversation threads, plus one-off messages sent before a request connects you." />
       <div className="container-page py-8">
+        <div className="flex gap-1.5 mb-4 border-b border-slate-200 pb-4">
+          <button type="button" onClick={() => setView("threads")}
+            className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+              view === "threads" ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}>
+            Job threads
+          </button>
+          <button type="button" onClick={() => setView("inquiries")}
+            className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+              view === "inquiries" ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}>
+            Direct messages{unreadInquiries > 0 ? ` (${unreadInquiries})` : ""}
+          </button>
+        </div>
+
+        {view === "inquiries" ? (
+          <>
+            {inquiriesError && (
+              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{inquiriesError}</div>
+            )}
+            {inquiriesLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 rounded-2xl bg-slate-100 animate-pulse" />)}
+              </div>
+            ) : inquiries.length === 0 ? (
+              <Card>
+                <CardContent>
+                  <EmptyState
+                    icon="✉️"
+                    title="No direct messages"
+                    description="One-off messages people send you from Find Directly, before any request connects you, show up here."
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {inquiries.map((inq) => (
+                  <div
+                    key={inq.id}
+                    className="flex items-start gap-3 bg-white border border-slate-200 rounded-2xl px-5 py-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900">{inq.sender.name}</p>
+                        {!inq.readAt && (
+                          <span className="shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-brand-600 text-white text-[11px] font-bold">
+                            New
+                          </span>
+                        )}
+                        <span className="text-xs text-slate-400">{new Date(inq.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-0.5 whitespace-pre-wrap">{inq.body}</p>
+                    </div>
+                    {!inq.readAt && (
+                      <button
+                        type="button"
+                        onClick={() => markInquiryRead(inq.id)}
+                        className="shrink-0 h-8 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+        <>
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        )}
+
+        <div className="flex gap-1.5 mb-4">
+          <button type="button" onClick={() => setShowArchived(false)}
+            className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+              !showArchived ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}>
+            Inbox
+          </button>
+          <button type="button" onClick={() => setShowArchived(true)}
+            className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+              showArchived ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}>
+            Archived
+          </button>
+        </div>
+
+        {!loading && threads.length > 0 && (
+          <div className="flex flex-wrap gap-3 mb-4">
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search conversations…"
+              className="h-9 px-3 border border-slate-200 rounded-lg text-sm flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-brand-400"
+            />
+            <div className="flex gap-1.5 flex-wrap">
+              {STATUS_FILTERS.map(f => (
+                <button key={f.value} type="button" onClick={() => setStatusFilter(f.value)}
+                  className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+                    statusFilter === f.value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}>
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {loading ? (
@@ -81,35 +248,56 @@ export default function MessagesPage() {
             <CardContent>
               <EmptyState
                 icon="💬"
-                title="No active conversations"
-                description="Each job gets its own thread once someone applies or accepts."
+                title={showArchived ? "No archived conversations" : "No active conversations"}
+                description={showArchived ? "Conversations you archive show up here." : "Each job gets its own thread once someone applies or accepts."}
               />
+            </CardContent>
+          </Card>
+        ) : filtered.length === 0 ? (
+          <Card>
+            <CardContent>
+              <EmptyState icon="🔍" title="No matching conversations" description="Try a different search or filter." />
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-2">
-            {threads.map(({ job, lastMessage }) => (
-              <Link
-                key={job.id}
-                href={`/jobs/${job.id}`}
-                className="block bg-white border border-slate-200 rounded-2xl px-5 py-4 hover:border-brand-300 transition-colors"
+            {filtered.map((thread) => (
+              <div
+                key={thread.id}
+                className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl px-5 py-4 hover:border-brand-300 transition-colors"
               >
-                <div className="flex items-center justify-between gap-4">
+                <Link href={`/jobs/${thread.id}`} className="min-w-0 flex-1 flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{job.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{thread.title}</p>
+                      {thread.unreadCount > 0 && (
+                        <span className="shrink-0 inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-brand-600 text-white text-[11px] font-bold">
+                          {thread.unreadCount > 99 ? "99+" : thread.unreadCount}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500 truncate mt-0.5">
-                      {lastMessage ? `${lastMessage.senderName}: ${lastMessage.body}` : "No messages yet"}
+                      {thread.lastMessage ? `${thread.lastMessage.senderName}: ${thread.lastMessage.body}` : "No messages yet"}
                     </p>
                   </div>
-                  {lastMessage && (
+                  {thread.lastMessage && (
                     <span className="shrink-0 text-xs text-slate-400">
-                      {new Date(lastMessage.createdAt).toLocaleDateString()}
+                      {new Date(thread.lastMessage.createdAt).toLocaleDateString()}
                     </span>
                   )}
-                </div>
-              </Link>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => toggleArchive(thread.id, !thread.archived)}
+                  className="shrink-0 h-8 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  {thread.archived ? "Unarchive" : "Archive"}
+                </button>
+              </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </div>
     </>

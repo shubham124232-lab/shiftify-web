@@ -1,21 +1,17 @@
-// Matches the backend's JobUrgency enum (EMERGENCY | SAME_DAY | SCHEDULED | REPLACEMENT | RAPID | LAST_MINUTE).
+// Matches the backend's JobUrgency enum (RAPID | URGENT | LAST_MINUTE | ROUTINE).
 export const URGENCY_TABS: { value: string; label: string }[] = [
   { value: "",            label: "All" },
   { value: "RAPID",       label: "Rapid" },
-  { value: "EMERGENCY",   label: "Emergency" },
-  { value: "SAME_DAY",    label: "Same day" },
+  { value: "URGENT",      label: "Urgent" },
   { value: "LAST_MINUTE", label: "Last-minute" },
-  { value: "REPLACEMENT", label: "Replacement" },
-  { value: "SCHEDULED",   label: "Scheduled" },
+  { value: "ROUTINE",     label: "Routine" },
 ];
 
 export const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY:   { bg: "#ffe4d1", color: "#fd6309" },
-  REPLACEMENT: { bg: "#fbe1f4", color: "#d6249f" },
   RAPID:       { bg: "#fde2e2", color: "#e00f12" },
-  SAME_DAY:    { bg: "#e6e0fd", color: "#4d2ae9" },
+  URGENT:      { bg: "#e6e0fd", color: "#4d2ae9" },
   LAST_MINUTE: { bg: "#d7f3f1", color: "#1e9c94" },
-  SCHEDULED:   { bg: "#f1f5f9", color: "#475569" },
+  ROUTINE:     { bg: "#f1f5f9", color: "#475569" },
 };
 
 export const SHIFT_TYPE_LABELS: Record<string, string> = {

@@ -69,7 +69,7 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
   onToggleHide: () => void;
   showOwnerBadge?: boolean;
 }) {
-  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
+  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
   const isFeatured = !!job.featuredUntil && new Date(job.featuredUntil) > new Date();
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const applied = !!job.ownApplication;

@@ -14,10 +14,10 @@ import { listLinkedParticipants, postReferral, type LinkedParticipant } from "@/
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
 const URGENCY_OPTIONS = [
-  { value: "SCHEDULED",   label: "Scheduled" },
-  { value: "SAME_DAY",    label: "Same day" },
-  { value: "EMERGENCY",   label: "Emergency" },
-  { value: "REPLACEMENT", label: "Replacement" },
+  { value: "RAPID",       label: "Rapid" },
+  { value: "URGENT",      label: "Urgent" },
+  { value: "LAST_MINUTE", label: "Last-minute" },
+  { value: "ROUTINE",     label: "Routine" },
 ];
 
 const FUNDING_TYPES = [
@@ -57,7 +57,7 @@ export default function PostReferralPage() {
     formState: { errors, isSubmitting },
   } = useForm<ReferralFormValues>({
     resolver: zodResolver(referralSchema),
-    defaultValues: { urgency: "SCHEDULED", fundingType: "PLAN_MANAGED" },
+    defaultValues: { urgency: "ROUTINE", fundingType: "PLAN_MANAGED" },
   });
 
   useEffect(() => {

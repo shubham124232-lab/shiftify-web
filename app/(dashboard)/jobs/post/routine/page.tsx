@@ -169,7 +169,7 @@ export default function RoutineJourney() {
         description: catalogue.description.trim() || `Routine support request: ${primaryCategory?.label ?? ""}`,
         supportGoal: catalogue.goals[0]?.slice(0, 80) || undefined,
         category: primaryCategoryId,
-        urgency: "SCHEDULED",
+        urgency: "ROUTINE",
         scheduledStartAt: start.toISOString(),
         scheduledEndAt: end.toISOString(),
         totalHours,

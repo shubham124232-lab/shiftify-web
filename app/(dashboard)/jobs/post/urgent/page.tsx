@@ -95,7 +95,7 @@ export default function UrgentJourney() {
         title: `${category?.label ?? "Support"} — Urgent Support`,
         description: note.trim() || `Urgent support request: ${category?.label ?? ""}`,
         category: catalogue.categoryId,
-        urgency: "SAME_DAY",
+        urgency: "URGENT",
         scheduledStartAt: start.toISOString(),
         scheduledEndAt: end.toISOString(),
         totalHours: DURATION_HOURS[duration],

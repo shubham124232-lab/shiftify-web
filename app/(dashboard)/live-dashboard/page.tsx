@@ -22,9 +22,9 @@ const defaultFilters: LiveDashboardFilters = {
 };
 
 const POST_TILES: ActionTile[] = [
-  { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=EMERGENCY",   highlighted: true },
-  { key: "urgent",      icon: Clock,        title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=SAME_DAY" },
-  { key: "last-minute", icon: CalendarClock,title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=REPLACEMENT" },
+  { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
+  { key: "urgent",      icon: Clock,        title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
+  { key: "last-minute", icon: CalendarClock,title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
   { key: "routine",     icon: CalendarDays, title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
 ];
 
@@ -129,7 +129,7 @@ export default function LiveDashboardPage() {
         title="Live Dashboard"
         description={`${total} open support request${total !== 1 ? "s" : ""} across the platform`}
       />
-      <div className="mx-auto max-w-6xl px-5 py-6 space-y-6">
+      <div className="mx-auto px-5 py-6 space-y-6">
         {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 

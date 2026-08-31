@@ -176,8 +176,8 @@ export default function WorkerDashboard() {
                         href={`/jobs/${j.id}`} rightLabel="View"
                         badge={
                           <span className={`rounded-full px-2 py-0.5 text-xs ${
-                            j.urgency === "EMERGENCY" ? "bg-red-100 text-red-700"
-                            : j.urgency === "SAME_DAY" ? "bg-orange-100 text-orange-700"
+                            j.urgency === "RAPID" ? "bg-red-100 text-red-700"
+                            : j.urgency === "URGENT" ? "bg-orange-100 text-orange-700"
                             : "bg-slate-100 text-slate-500"
                           }`}>{j.urgency}</span>
                         } />

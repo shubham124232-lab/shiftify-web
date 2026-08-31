@@ -5,9 +5,9 @@ export type PostingTier = "RAPID" | "URGENT" | "LAST_MINUTE" | "ROUTINE";
 
 export const TIER_META: Record<PostingTier, { label: string; timing: string; urgency: string; path: string }> = {
   RAPID:       { label: "Rapid Support",       timing: "Now – 60 minutes",              urgency: "RAPID",       path: "rapid" },
-  URGENT:      { label: "Urgent Support",       timing: "Over 60 minutes, up to 4 hours", urgency: "SAME_DAY",   path: "urgent" },
+  URGENT:      { label: "Urgent Support",       timing: "Over 60 minutes, up to 4 hours", urgency: "URGENT",   path: "urgent" },
   LAST_MINUTE: { label: "Last-Minute Support",  timing: "Over 4 hours, up to 48 hours",   urgency: "LAST_MINUTE", path: "last-minute" },
-  ROUTINE:     { label: "Routine Support",      timing: "More than 48 hours, or ongoing", urgency: "SCHEDULED",  path: "routine" },
+  ROUTINE:     { label: "Routine Support",      timing: "More than 48 hours, or ongoing", urgency: "ROUTINE",  path: "routine" },
 };
 
 // "Who needs support" — every journey's step 2. Participants choose "Myself" or

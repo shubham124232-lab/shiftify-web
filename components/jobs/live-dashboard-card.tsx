@@ -20,7 +20,7 @@ export function LiveDashboardCard({ job, canApply, applying, onApply, onView, on
   onToggleSave: () => void;
   onToggleHide: () => void;
 }) {
-  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
+  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const applied = !!job.ownApplication;
   const isOwner = !!job.isOwnRequest;

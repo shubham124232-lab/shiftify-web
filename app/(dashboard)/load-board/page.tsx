@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { browseLoadBoard, type LoadBoardRequest } from "@/lib/api/pm";
 
 const URGENCY_BADGE: Record<string, string> = {
-  EMERGENCY: "bg-red-100 text-red-700",
-  SAME_DAY:  "bg-orange-100 text-orange-700",
-  SCHEDULED: "bg-slate-100 text-slate-500",
+  RAPID:       "bg-red-100 text-red-700",
+  URGENT:      "bg-orange-100 text-orange-700",
+  LAST_MINUTE: "bg-teal-100 text-teal-700",
+  ROUTINE:     "bg-slate-100 text-slate-500",
 };
 
 const CATEGORIES = [
@@ -19,7 +20,7 @@ const CATEGORIES = [
   "OVERNIGHT_SUPPORT", "SIL_SUPPORT", "RESPITE", "OTHER",
 ];
 
-const URGENCIES = ["", "EMERGENCY", "SAME_DAY", "SCHEDULED"];
+const URGENCIES = ["", "RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
 
 export default function PmLoadBoardPage() {
   const [requests, setRequests] = useState<LoadBoardRequest[]>([]);

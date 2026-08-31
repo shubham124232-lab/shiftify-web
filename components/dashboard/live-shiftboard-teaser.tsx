@@ -50,7 +50,7 @@ export function LiveShiftboardTeaser() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {jobs.map((j) => {
-              const urg = URGENCY_STYLE[j.urgency] ?? URGENCY_STYLE.SCHEDULED;
+              const urg = URGENCY_STYLE[j.urgency] ?? URGENCY_STYLE.ROUTINE;
               const catLabel = JOB_CATEGORIES.find((c) => c.value === j.category)?.label ?? j.category;
               const applicants = j._count?.applications ?? 0;
               return (

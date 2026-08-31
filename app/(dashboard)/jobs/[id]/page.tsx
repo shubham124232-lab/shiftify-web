@@ -94,16 +94,17 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   CANCELLED:   { bg: "#fee2e2", color: "#b91c1c" },
 };
 const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY: { bg: "#fee2e2", color: "#b91c1c" },
-  SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
-  SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
+  RAPID:       { bg: "#fee2e2", color: "#b91c1c" },
+  URGENT:      { bg: "#ffedd5", color: "#c2410c" },
+  LAST_MINUTE: { bg: "#d7f3f1", color: "#1e9c94" },
+  ROUTINE:     { bg: "#f1f5f9", color: "#475569" },
 };
 // Pricing V2 §8 / 15.2 — must match Backend's FEATURED_SHIFT_CONFIG exactly.
 const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: string }> = {
   RAPID:       { priceAud: 19.99, durationLabel: "up to 60 minutes or until filled" },
-  SAME_DAY:    { priceAud: 14.99, durationLabel: "up to 24 hours or until filled" },
+  URGENT:      { priceAud: 14.99, durationLabel: "up to 24 hours or until filled" },
   LAST_MINUTE: { priceAud: 9.99,  durationLabel: "up to 48 hours or until filled" },
-  SCHEDULED:   { priceAud: 21.99, durationLabel: "up to 7 days or until filled" },
+  ROUTINE:     { priceAud: 21.99, durationLabel: "up to 7 days or until filled" },
 };
 
 const APP_STATUS_COLOR: Record<string, string> = {
@@ -174,7 +175,7 @@ export default function JobDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReasonCategory, setCancelReasonCategory] = useState("");
   const [notifyReplacements, setNotifyReplacements] = useState(true);
-  const [cancelSummary, setCancelSummary] = useState<{ promotedTitle: string | null; emergency: boolean } | null>(null);
+  const [cancelSummary, setCancelSummary] = useState<{ promotedTitle: string | null } | null>(null);
   const [compareView, setCompareView] = useState(false);
   const [showChangeForm, setShowChangeForm] = useState(false);
   const [changeType, setChangeType] = useState("TIME");
@@ -378,10 +379,7 @@ export default function JobDetailPage() {
         notifyReplacements,
       });
       const promoted = res.job.promoted;
-      setCancelSummary({
-        promotedTitle: promoted?.title ?? null,
-        emergency:     !!promoted?.title?.startsWith("[EMERGENCY]"),
-      });
+      setCancelSummary({ promotedTitle: promoted?.title ?? null });
       await loadJob();
     } catch (e: any) { setError(e.message); }
     finally { setActing(false); }
@@ -591,7 +589,7 @@ export default function JobDetailPage() {
 
   const isOwner  = user?.id === job.postedBy.id;
   const isWorker = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
-  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
+  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
   const sta = STATUS_STYLE[job.status]  ?? { bg: "#f1f5f9", color: "#475569" };
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status);
@@ -1566,9 +1564,7 @@ export default function JobDetailPage() {
                 <p className="text-sm text-slate-600 m-0">This request has been cancelled and the poster's applicants have been notified.</p>
                 {cancelSummary.promotedTitle ? (
                   <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3 m-0">
-                    {cancelSummary.emergency
-                      ? "Because the shift was starting soon, a new emergency-urgency request was posted automatically."
-                      : "A replacement request has been posted, and previous applicants plus matching saved searches have been notified."}
+                    A replacement request has been posted, and previous applicants plus matching saved searches have been notified.
                   </p>
                 ) : (
                   <p className="text-sm text-slate-500 m-0">No replacement request was created.</p>

@@ -44,9 +44,10 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY: { bg: "#fee2e2", color: "#b91c1c" },
-  SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
-  SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
+  RAPID:       { bg: "#fee2e2", color: "#b91c1c" },
+  URGENT:      { bg: "#ffedd5", color: "#c2410c" },
+  LAST_MINUTE: { bg: "#d7f3f1", color: "#1e9c94" },
+  ROUTINE:     { bg: "#f1f5f9", color: "#475569" },
 };
 
 export default function MyRequestsPage() {

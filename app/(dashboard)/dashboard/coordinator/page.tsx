@@ -58,16 +58,16 @@ export default function CoordinatorDashboard() {
   const openJobs      = myJobs.filter((j) => j.status === "OPEN");
   const unfilledJobs  = openJobs.filter((j) => j._count.applications === 0);
   const responseCount = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
-  const urgentJobs    = openJobs.filter((j) => j.urgency === "EMERGENCY" || j.urgency === "SAME_DAY");
+  const urgentJobs    = openJobs.filter((j) => j.urgency === "RAPID" || j.urgency === "URGENT");
   const unread        = data?.unreadNotifications ?? 0;
   const expiringSoon  = openJobs
     .filter((j) => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() - Date.now() < 1000 * 60 * 60 * 24 * 7)
     .sort((a, b) => new Date(a.applicationDeadlineAt!).getTime() - new Date(b.applicationDeadlineAt!).getTime());
 
   const postTiles: ActionTile[] = [
-    { key: "rapid",       icon: Zap,           title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=EMERGENCY",   highlighted: true },
-    { key: "urgent",      icon: Clock,         title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=SAME_DAY" },
-    { key: "last-minute", icon: CalendarClock, title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=REPLACEMENT" },
+    { key: "rapid",       icon: Zap,           title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
+    { key: "urgent",      icon: Clock,         title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
+    { key: "last-minute", icon: CalendarClock, title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
     { key: "routine",     icon: CalendarDays,  title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
   ];
 

@@ -16,7 +16,7 @@ interface Job {
 }
 
 const TIER_LABELS: Record<string, string> = {
-  RAPID: "Rapid", SAME_DAY: "Urgent", LAST_MINUTE: "Last-Minute", SCHEDULED: "Routine", EMERGENCY: "Emergency",
+  RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine",
 };
 
 // ── Publish draft (owner only) ──────────────────────────────────────────────
@@ -131,7 +131,7 @@ export default function MyJobsPage() {
 
         {/* Tier filter pills */}
         <div className="flex gap-2 flex-wrap mb-3">
-          {(["", "RAPID", "SAME_DAY", "LAST_MINUTE", "SCHEDULED"] as const).map((t) => (
+          {(["", "RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTierFilter(t)}
               className={`h-7 px-3 rounded-full border text-xs font-medium transition-colors ${tierFilter === t ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
               {t ? TIER_LABELS[t] ?? t : "All tiers"}

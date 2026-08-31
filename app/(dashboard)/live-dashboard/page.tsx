@@ -129,7 +129,7 @@ export default function LiveDashboardPage() {
         title="Live Dashboard"
         description={`${total} open support request${total !== 1 ? "s" : ""} across the platform`}
       />
-      <div className="mx-auto max-w-6xl px-5 py-6 space-y-6">
+      <div className="mx-auto px-5 py-6 space-y-6">
         {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
 

@@ -37,11 +37,11 @@ export function PmStep02_RoleType() {
           <label key={opt.value}
             style={{ display: 'flex', gap: 14, padding: '16px', borderRadius: 12, cursor: 'pointer',
               border: `1.5px solid ${selected === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-              background: selected === opt.value ? 'rgba(79,70,229,0.06)' : '#fff',
+              background: selected === opt.value ? 'rgba(183,37,88,0.06)' : 'var(--td-white)',
               transition: 'all 0.15s' }}>
             <input type="radio" value={opt.value} {...register('pmRoleType')} style={{ display: 'none' }} />
             <div style={{ width: 42, height: 42, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: selected === opt.value ? 'rgba(79,70,229,0.12)' : 'var(--clr-surface)',
+              background: selected === opt.value ? 'rgba(183,37,88,0.12)' : 'var(--clr-surface)',
               border: `1.5px solid ${selected === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}` }}>
               <i className={`bi ${opt.icon}`} style={{ fontSize: 18, color: selected === opt.value ? 'var(--clr-primary)' : 'var(--clr-muted)' }} />
             </div>

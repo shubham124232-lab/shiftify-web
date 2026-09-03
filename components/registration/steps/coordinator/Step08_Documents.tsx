@@ -2,7 +2,7 @@
 import { useFormContext, Controller } from 'react-hook-form';
 import { FileUploadField } from '../../fields/FileUploadField';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const LANGUAGES = ['English','Arabic','Cantonese','Dari','Greek','Hindi','Italian','Khmer','Korean','Macedonian','Mandarin','Persian','Polish','Punjabi','Serbian','Somali','Spanish','Tagalog','Tamil','Turkish','Ukrainian','Vietnamese'];
@@ -14,15 +14,15 @@ function Toggle({ name, label, hint }: { name: string; label: string; hint?: str
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
       padding: '14px 16px', borderRadius: 10, border: `1.5px solid ${val ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-      background: val ? 'rgba(79,70,229,0.04)' : '#fff' }}>
+      background: val ? 'rgba(183,37,88,0.04)' : 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
         {hint && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2 }}>{hint}</div>}
       </div>
       <label style={{ position: 'relative', display: 'inline-block', width: 44, height: 24, flexShrink: 0 }}>
         <input type="checkbox" {...register(name)} style={{ opacity: 0, width: 0, height: 0 }} />
-        <span style={{ position: 'absolute', inset: 0, borderRadius: 24, background: val ? 'var(--clr-primary)' : '#ccc', transition: '0.2s', cursor: 'pointer' }} />
-        <span style={{ position: 'absolute', top: 3, left: val ? 22 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: '0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+        <span style={{ position: 'absolute', inset: 0, borderRadius: 24, background: val ? 'var(--clr-primary)' : 'var(--td-border-hard)', transition: '0.2s', cursor: 'pointer' }} />
+        <span style={{ position: 'absolute', top: 3, left: val ? 22 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--td-white)', transition: '0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)' }} />
       </label>
     </div>
   );
@@ -52,11 +52,11 @@ export function CoordStep08_Documents() {
 
       {/* Bio */}
       <div>
-        <label style={labelStyle}>Professional Bio <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Professional Bio <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--clr-muted)' }}>Introduce yourself to participants and families — your experience, approach, and values.</p>
         <textarea {...register('bio')} rows={5} placeholder="e.g. I have 6 years of experience supporting NDIS participants with complex needs across Sydney…"
-          style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical', fontFamily: 'inherit', borderColor: errors.bio ? '#ef4444' : undefined }} />
-        {errors.bio && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.bio.message as string}</p>}
+          style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical', fontFamily: 'inherit', borderColor: errors.bio ? 'var(--td-pink)' : undefined }} />
+        {errors.bio && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.bio.message as string}</p>}
       </div>
 
       {/* Languages */}
@@ -75,8 +75,8 @@ export function CoordStep08_Documents() {
                   }}
                   style={{ padding: '6px 12px', borderRadius: 16, fontSize: 12, cursor: 'pointer',
                     border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                    background: sel ? 'var(--clr-primary)' : '#fff',
-                    color: sel ? '#fff' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
+                    background: sel ? 'var(--clr-primary)' : 'var(--td-white)',
+                    color: sel ? 'var(--td-white)' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
                   {lang}
                 </button>
               );

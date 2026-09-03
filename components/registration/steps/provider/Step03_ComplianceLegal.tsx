@@ -5,7 +5,7 @@ import { useRegistrationStore } from '@/lib/store/registration.store';
 import { listDocuments }        from '@/lib/api/profile';
 import { FileUploadField }      from '../../fields/FileUploadField';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 40, padding: '0 12px', borderRadius: 8, border: '1.5px solid var(--clr-border)', fontSize: 13, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 40, padding: '0 12px', borderRadius: 8, border: '1.5px solid var(--clr-border)', fontSize: 13, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 4 };
 const sectionTitle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 8 };
 
@@ -13,12 +13,12 @@ function Toggle({ label, name }: { label: string; name: string }) {
   const { register, watch } = useFormContext();
   const val = watch(name) as boolean;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)', lineHeight: 1.4 }}>{label}</span>
       <label style={{ cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <div style={{ width: 42, height: 24, borderRadius: 12, background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative', transition: 'background 0.2s' }}>
-          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)' }} />
         </div>
       </label>
     </div>
@@ -51,7 +51,7 @@ export function ProviderStep03_ComplianceLegal() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Insurance metadata */}
-      <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--clr-primary)' }}>
           <i className="bi bi-shield-check" style={{ marginRight: 6 }} />Insurance Policy Details
         </p>
@@ -99,7 +99,7 @@ export function ProviderStep03_ComplianceLegal() {
       )}
 
       {/* Document uploads */}
-      <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.2)', borderRadius: 10, padding: 10 }}>
+      <div style={{ background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.2)', borderRadius: 10, padding: 10 }}>
         <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
           <i className="bi bi-info-circle" style={{ marginRight: 6 }} />
           All documents are optional at this stage. Upload from your Documents page anytime.

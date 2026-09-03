@@ -34,20 +34,20 @@ const STATUS_TABS = [
 ];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  DRAFT:       { bg: "#f1f5f9", color: "#64748b" },
-  OPEN:        { bg: "#dbeafe", color: "#1d4ed8" },
-  ASSIGNED:    { bg: "#dcfce7", color: "#15803d" },
-  IN_PROGRESS: { bg: "#fef9c3", color: "#854d0e" },
-  COMPLETED:   { bg: "#f1f5f9", color: "#475569" },
-  CONFIRMED:   { bg: "#dcfce7", color: "#15803d" },
-  CANCELLED:   { bg: "#fee2e2", color: "#b91c1c" },
+  DRAFT:        { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
+  OPEN:         { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
+  ASSIGNED:     { bg: "var(--td-grey)", color: "var(--td-ink-700)" },
+  IN_PROGRESS:  { bg: "var(--td-dark-text)", color: "var(--td-white)" },
+  CONFIRMED:    { bg: "var(--td-border)", color: "var(--td-dark-text)" },
+  COMPLETED:    { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
+  CANCELLED:    { bg: "var(--td-pink)", color: "var(--td-white)" },
 };
 
 const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  RAPID:       { bg: "#fee2e2", color: "#b91c1c" },
-  URGENT:      { bg: "#ffedd5", color: "#c2410c" },
-  LAST_MINUTE: { bg: "#d7f3f1", color: "#1e9c94" },
-  ROUTINE:     { bg: "#f1f5f9", color: "#475569" },
+  RAPID:        { bg: "var(--td-pink)", color: "var(--td-white)" },
+  URGENT:       { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
+  LAST_MINUTE:  { bg: "var(--td-border)", color: "var(--td-dark-text)" },
+  ROUTINE:      { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
 };
 
 export default function MyRequestsPage() {
@@ -89,15 +89,15 @@ export default function MyRequestsPage() {
               onClick={() => setTab(t.key)}
               style={{
                 padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: tab === t.key ? "2px solid #c2185b" : "1.5px solid #e2e8f0",
-                background: tab === t.key ? "rgba(194,24,91,0.08)" : "#fff",
-                color: tab === t.key ? "#c2185b" : "#64748b",
+                border: tab === t.key ? "2px solid var(--td-pink)" : "1.5px solid var(--td-border)",
+                background: tab === t.key ? "rgba(183,37,88,0.08)" : "var(--td-white)",
+                color: tab === t.key ? "var(--td-pink)" : "var(--td-muted-dark)",
                 whiteSpace: "nowrap",
               }}
             >
               {t.label}
               {counts[t.key] > 0 && (
-                <span style={{ marginLeft: 5, background: tab === t.key ? "rgba(194,24,91,0.15)" : "#f1f5f9", borderRadius: 10, padding: "1px 6px", fontSize: 11 }}>
+                <span style={{ marginLeft: 5, background: tab === t.key ? "rgba(183,37,88,0.15)" : "var(--td-grey)", borderRadius: 10, padding: "1px 6px", fontSize: 11 }}>
                   {counts[t.key]}
                 </span>
               )}
@@ -106,20 +106,20 @@ export default function MyRequestsPage() {
         </div>
 
         {error && (
-          <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828", marginBottom: 16 }}>
+          <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)", marginBottom: 16 }}>
             {error}
           </div>
         )}
 
         {loading ? (
-          <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
+          <p style={{ color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
         ) : shown.length === 0 ? (
           <div style={{ textAlign: "center", padding: "56px 0" }}>
             <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 6 }}>
               {tab ? `No ${tab.replace("_", " ").toLowerCase()} requests` : "No requests yet"}
             </p>
-            <p style={{ fontSize: 13, color: "#94a3b8", marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "var(--td-muted)", marginBottom: 20 }}>
               Post a support request to find workers and providers.
             </p>
             <Link href="/jobs/post"><Button>Post a Request</Button></Link>
@@ -127,7 +127,7 @@ export default function MyRequestsPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {shown.map(req => {
-              const s = STATUS_STYLE[req.status] ?? { bg: "#f1f5f9", color: "#475569" };
+              const s = STATUS_STYLE[req.status] ?? { bg: "var(--td-grey)", color: "var(--td-dark-text-soft)" };
               const u = URGENCY_STYLE[req.urgency] ?? URGENCY_STYLE.SCHEDULED;
               const catLabel = JOB_CATEGORIES.find(c => c.value === req.category)?.label ?? req.category;
               const appCount = req._count?.applications ?? 0;
@@ -144,14 +144,14 @@ export default function MyRequestsPage() {
                           <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: u.bg, color: u.color }}>
                             {req.urgency.replace("_", " ")}
                           </span>
-                          <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, background: "#f1f5f9", color: "#64748b" }}>
+                          <span style={{ padding: "3px 10px", borderRadius: 20, fontSize: 11, background: "var(--td-grey)", color: "var(--td-muted-dark)" }}>
                             {catLabel}
                           </span>
                         </div>
 
-                        <div style={{ fontSize: 15, fontWeight: 700, color: "#1e293b", marginBottom: 6 }}>{req.title}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 6 }}>{req.title}</div>
 
-                        <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#64748b", flexWrap: "wrap" }}>
+                        <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--td-muted-dark)", flexWrap: "wrap" }}>
                           <span>📍 {req.suburb}, {req.state}</span>
                           {req.totalHours && <span>⏱ {req.totalHours}h</span>}
                           <span>📅 {new Date(req.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
@@ -161,9 +161,9 @@ export default function MyRequestsPage() {
 
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
                         {appCount > 0 && (
-                          <div style={{ textAlign: "center", background: "rgba(194,24,91,0.07)", borderRadius: 10, padding: "6px 12px" }}>
-                            <div style={{ fontSize: 18, fontWeight: 800, color: "#c2185b" }}>{appCount}</div>
-                            <div style={{ fontSize: 10, color: "#c2185b", fontWeight: 600 }}>applicant{appCount !== 1 ? "s" : ""}</div>
+                          <div style={{ textAlign: "center", background: "rgba(183,37,88,0.07)", borderRadius: 10, padding: "6px 12px" }}>
+                            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--td-pink)" }}>{appCount}</div>
+                            <div style={{ fontSize: 10, color: "var(--td-pink)", fontWeight: 600 }}>applicant{appCount !== 1 ? "s" : ""}</div>
                           </div>
                         )}
                         <Link href={`/jobs/${req.id}`}>

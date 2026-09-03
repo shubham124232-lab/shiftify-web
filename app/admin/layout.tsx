@@ -36,14 +36,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading || !initialized || !user || !user.adminTier) {
     return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
+      <div className="td-theme flex h-screen items-center justify-center text-slate-500">
         <Spinner /> <span className="ml-2">Loading admin console...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="td-theme flex h-screen">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-900 text-slate-200 md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-slate-800 px-5">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">S</span>

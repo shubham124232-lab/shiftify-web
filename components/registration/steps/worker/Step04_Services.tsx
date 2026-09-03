@@ -41,7 +41,7 @@ export function WorkerStep04_Services() {
           defaultValue={[]}
           render={({ field }) => (
             <ServiceMultiSelect
-              label={<>Services Offered <span style={{ color: '#ef4444' }}>*</span></>  as unknown as string}
+              label={<>Services Offered <span style={{ color: 'var(--td-pink)' }}>*</span></>  as unknown as string}
               value={field.value ?? []}
               onChange={field.onChange}
               error={errors.servicesOffered?.message as string}
@@ -70,7 +70,7 @@ export function WorkerStep04_Services() {
                     style={{
                       padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
                       border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                      background: selected ? 'rgba(79,70,229,0.1)' : '#fff',
+                      background: selected ? 'rgba(183,37,88,0.1)' : 'var(--td-white)',
                       color: selected ? 'var(--clr-primary)' : 'var(--clr-text)', cursor: 'pointer',
                     }}>
                     {selected && <i className="bi bi-check2" style={{ marginRight: 4 }} />}
@@ -85,7 +85,7 @@ export function WorkerStep04_Services() {
 
       {/* Experience level */}
       <div>
-        <label style={labelStyle}>Experience Level <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Experience Level <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
           {EXPERIENCE_LEVELS.map(lvl => {
             const selected = expLevel === lvl.value;
@@ -94,7 +94,7 @@ export function WorkerStep04_Services() {
                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
                 border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
                 borderRadius: 10, cursor: 'pointer',
-                background: selected ? 'rgba(79,70,229,0.06)' : '#fff',
+                background: selected ? 'rgba(183,37,88,0.06)' : 'var(--td-white)',
               }}>
                 <input type="radio" value={lvl.value} {...register('experienceLevel')} style={{ display: 'none' }} />
                 <i className={`bi ${lvl.icon}`} style={{ color: selected ? 'var(--clr-primary)' : 'var(--clr-muted)', fontSize: 16 }} />
@@ -106,7 +106,7 @@ export function WorkerStep04_Services() {
             );
           })}
         </div>
-        {errors.experienceLevel && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.experienceLevel.message as string}</p>}
+        {errors.experienceLevel && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{errors.experienceLevel.message as string}</p>}
       </div>
 
       {/* Disability experience */}
@@ -128,9 +128,9 @@ export function WorkerStep04_Services() {
                     }}
                     style={{
                       padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                      border: `1.5px solid ${selected ? '#16a34a' : 'var(--clr-border)'}`,
-                      background: selected ? '#F0FFF4' : '#fff',
-                      color: selected ? '#16a34a' : 'var(--clr-text)', cursor: 'pointer',
+                      border: `1.5px solid ${selected ? 'var(--td-dark-text-soft)' : 'var(--clr-border)'}`,
+                      background: selected ? 'var(--td-grey-tint)' : 'var(--td-white)',
+                      color: selected ? 'var(--td-dark-text-soft)' : 'var(--clr-text)', cursor: 'pointer',
                     }}>
                     {selected && <i className="bi bi-check2" style={{ marginRight: 4 }} />}
                     {type}

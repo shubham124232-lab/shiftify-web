@@ -86,18 +86,18 @@ interface Assignment {
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  OPEN:        { bg: "#dbeafe", color: "#1d4ed8" },
-  ASSIGNED:    { bg: "#dcfce7", color: "#15803d" },
-  IN_PROGRESS: { bg: "#fef9c3", color: "#854d0e" },
-  COMPLETED:   { bg: "#f1f5f9", color: "#475569" },
-  CONFIRMED:   { bg: "#dcfce7", color: "#15803d" },
-  CANCELLED:   { bg: "#fee2e2", color: "#b91c1c" },
+  OPEN:         { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
+  ASSIGNED:     { bg: "var(--td-grey)", color: "var(--td-ink-700)" },
+  IN_PROGRESS:  { bg: "var(--td-dark-text)", color: "var(--td-white)" },
+  CONFIRMED:    { bg: "var(--td-border)", color: "var(--td-dark-text)" },
+  COMPLETED:    { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
+  CANCELLED:    { bg: "var(--td-pink)", color: "var(--td-white)" },
 };
 const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  RAPID:       { bg: "#fee2e2", color: "#b91c1c" },
-  URGENT:      { bg: "#ffedd5", color: "#c2410c" },
-  LAST_MINUTE: { bg: "#d7f3f1", color: "#1e9c94" },
-  ROUTINE:     { bg: "#f1f5f9", color: "#475569" },
+  RAPID:        { bg: "var(--td-pink)", color: "var(--td-white)" },
+  URGENT:       { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
+  LAST_MINUTE:  { bg: "var(--td-border)", color: "var(--td-dark-text)" },
+  ROUTINE:      { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
 };
 // Pricing V2 §8 / 15.2 — must match Backend's FEATURED_SHIFT_CONFIG exactly.
 const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: string }> = {
@@ -108,11 +108,11 @@ const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: str
 };
 
 const APP_STATUS_COLOR: Record<string, string> = {
-  INTERESTED:  "#854d0e",
-  SHORTLISTED: "#1d4ed8",
-  SELECTED:    "#15803d",
-  DECLINED:    "#b91c1c",
-  WITHDRAWN:   "#94a3b8",
+  INTERESTED:  "var(--td-ink-800)",
+  SHORTLISTED: "var(--td-ink-700)",
+  SELECTED:    "var(--td-ink-700)",
+  DECLINED:    "var(--td-pink-hover)",
+  WITHDRAWN:   "var(--td-muted)",
 };
 
 // SC journey M03 "Compare responses" — shared by the sequential applicant
@@ -583,14 +583,14 @@ export default function JobDetailPage() {
     finally { setActing(false); }
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#94a3b8" }}>Loading...</div>;
-  if (error && !job) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}</div>;
+  if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading...</div>;
+  if (error && !job) return <div style={{ padding: 40, color: "var(--td-pink-hover)" }}>{error}</div>;
   if (!job) return null;
 
   const isOwner  = user?.id === job.postedBy.id;
   const isWorker = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
-  const sta = STATUS_STYLE[job.status]  ?? { bg: "#f1f5f9", color: "#475569" };
+  const sta = STATUS_STYLE[job.status]  ?? { bg: "var(--td-grey)", color: "var(--td-dark-text-soft)" };
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
   const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status);
   const ownApp = isWorker ? job.applications?.find(a => a.applicantUserId === user?.id) : null;
@@ -610,13 +610,13 @@ export default function JobDetailPage() {
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
         {error && (
-          <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+          <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
             {error}
           </div>
         )}
 
         {job.promotedFromCancellation && (
-          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#b91c1c" }}>
+          <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
             ⚠ This request was reposted as urgent after the original worker/provider cancelled close to the start time.
           </div>
         )}
@@ -629,7 +629,7 @@ export default function JobDetailPage() {
           <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: urg.bg, color: urg.color }}>
             {job.urgency.replace("_", " ")}
           </span>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#f1f5f9", color: "#64748b" }}>
+          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "var(--td-grey)", color: "var(--td-muted-dark)" }}>
             {catLabel}
           </span>
         </div>
@@ -638,15 +638,15 @@ export default function JobDetailPage() {
         <Card>
           <CardContent style={{ paddingTop: 20 }}>
             {job.description && (
-              <p style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>{job.description}</p>
+              <p style={{ fontSize: 14, color: "var(--td-dark-text-soft)", lineHeight: 1.6, marginBottom: 16 }}>{job.description}</p>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13 }}>
-              <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Location:</span> {job.suburb}, {job.state}</div>
+              <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Location:</span> {job.suburb}, {job.state}</div>
               {job.addressLine && (
-                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Address:</span> {job.addressLine}</div>
+                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Address:</span> {job.addressLine}</div>
               )}
               {job.status === "ASSIGNED" && !job.addressLine && (isOwner || workerPartyId === user?.id) && (
-                <div style={{ gridColumn: "1 / -1", fontSize: 12, fontWeight: 600, color: job.workerConfirmedAt ? "#15803d" : "#92400e" }}>
+                <div style={{ gridColumn: "1 / -1", fontSize: 12, fontWeight: 600, color: job.workerConfirmedAt ? "var(--td-ink-700)" : "var(--td-ink-800)" }}>
                   {job.workerConfirmedAt
                     ? "Confirmed — full address released above"
                     : isOwner
@@ -654,15 +654,15 @@ export default function JobDetailPage() {
                       : "Accept the assignment below to see the exact address"}
                 </div>
               )}
-              <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Start:</span> {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
+              <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Start:</span> {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
               {job.scheduledEndAt && (
-                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>End:</span> {new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
+                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>End:</span> {new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
               )}
               {job.totalHours && (
-                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Hours:</span> {job.totalHours}h</div>
+                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Hours:</span> {job.totalHours}h</div>
               )}
               {job.assignedWorker && (
-                <div><span style={{ color: "#94a3b8", fontWeight: 600 }}>Assigned to:</span> {job.assignedWorker.name}</div>
+                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Assigned to:</span> {job.assignedWorker.name}</div>
               )}
             </div>
           </CardContent>
@@ -740,45 +740,45 @@ export default function JobDetailPage() {
           const checkedFlags = SAFETY_CHECKLIST.filter(f => job.workerPreferences?.safetyFlags?.[f.key]);
           if (!(job.riskSafetyNotes || job.medicalNotes || job.behaviourNotes || job.locationNotes || job.emergencyContactName || checkedFlags.length > 0)) return null;
           return (
-          <Card style={{ borderColor: "#fde68a", background: "#fffbeb" }}>
-            <CardHeader><CardTitle style={{ color: "#92400e" }}>⚠ Care & Safety Notes</CardTitle></CardHeader>
+          <Card style={{ borderColor: "var(--td-border)", background: "var(--td-grey-tint)" }}>
+            <CardHeader><CardTitle style={{ color: "var(--td-ink-800)" }}>⚠ Care & Safety Notes</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {checkedFlags.length > 0 && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Safety & Property Checklist</div>
-                  <ul style={{ fontSize: 13, color: "#374151", margin: 0, paddingLeft: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Safety & Property Checklist</div>
+                  <ul style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0, paddingLeft: 18 }}>
                     {checkedFlags.map(f => <li key={f.key}>{f.label}</li>)}
                   </ul>
                 </div>
               )}
               {job.riskSafetyNotes && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Risk & Safety</div>
-                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.riskSafetyNotes}</p>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Risk & Safety</div>
+                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.riskSafetyNotes}</p>
                 </div>
               )}
               {job.medicalNotes && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Medical Considerations</div>
-                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.medicalNotes}</p>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Medical Considerations</div>
+                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.medicalNotes}</p>
                 </div>
               )}
               {job.behaviourNotes && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Behaviour Notes</div>
-                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.behaviourNotes}</p>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Behaviour Notes</div>
+                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.behaviourNotes}</p>
                 </div>
               )}
               {job.locationNotes && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Access & Location Notes</div>
-                  <p style={{ fontSize: 13, color: "#374151", whiteSpace: "pre-wrap", margin: 0 }}>{job.locationNotes}</p>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Access & Location Notes</div>
+                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.locationNotes}</p>
                 </div>
               )}
               {job.emergencyContactName && (
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", marginBottom: 3 }}>Emergency Contact (this shift)</div>
-                  <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Emergency Contact (this shift)</div>
+                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0 }}>
                     {job.emergencyContactName}
                     {job.emergencyContactRelationship && ` (${job.emergencyContactRelationship})`}
                     {job.emergencyContactPhone && ` — ${job.emergencyContactPhone}`}
@@ -903,11 +903,11 @@ export default function JobDetailPage() {
 
         {isWorker && ownApp && (
           <div style={{
-            background: ownApp.status === "WITHDRAWN" ? "#fff7ed" : ownApp.status === "DECLINED" ? "#fef2f2" : "#f0fdf4",
-            border: `1px solid ${ownApp.status === "WITHDRAWN" ? "#fed7aa" : ownApp.status === "DECLINED" ? "#fecaca" : "#bbf7d0"}`,
+            background: ownApp.status === "WITHDRAWN" ? "var(--td-grey-tint)" : ownApp.status === "DECLINED" ? "var(--td-pink-soft)" : "var(--td-grey-tint)",
+            border: `1px solid ${ownApp.status === "WITHDRAWN" ? "var(--td-border)" : ownApp.status === "DECLINED" ? "var(--td-pink-tint)" : "var(--td-border)"}`,
             borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12,
           }}>
-            <span style={{ fontSize: 13, color: APP_STATUS_COLOR[ownApp.status] ?? "#374151", flex: 1 }}>
+            <span style={{ fontSize: 13, color: APP_STATUS_COLOR[ownApp.status] ?? "var(--td-dark-text-soft)", flex: 1 }}>
               {ownApp.status === "WITHDRAWN" ? "You withdrew your application."
                 : ownApp.status === "DECLINED" ? "Your application was declined."
                 : ownApp.status === "SELECTED" ? "You have been selected for this job."
@@ -916,7 +916,7 @@ export default function JobDetailPage() {
             {!["SELECTED", "WITHDRAWN", "DECLINED"].includes(ownApp.status) && (
               <Button size="sm" variant="outline" disabled={acting}
                 onClick={() => appAction(ownApp.id, "withdraw")}
-                style={{ borderColor: "#ef4444", color: "#ef4444" }}>
+                style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>
                 Withdraw
               </Button>
             )}
@@ -929,7 +929,7 @@ export default function JobDetailPage() {
             <CardHeader><CardTitle>Assign a team worker</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               {teamWorkers.length === 0 ? (
-                <span style={{ fontSize: 13, color: "#94a3b8" }}>
+                <span style={{ fontSize: 13, color: "var(--td-muted)" }}>
                   No team workers yet — add one from the Team page first.
                 </span>
               ) : (
@@ -937,7 +937,7 @@ export default function JobDetailPage() {
                   <select
                     value={pickedWorkerId}
                     onChange={e => setPickedWorkerId(e.target.value)}
-                    style={{ height: 36, padding: "0 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13 }}
+                    style={{ height: 36, padding: "0 10px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 13 }}
                   >
                     <option value="">Select a worker...</option>
                     {teamWorkers.map(w => (
@@ -1116,11 +1116,11 @@ export default function JobDetailPage() {
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {assignments.map(a => (
                 <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "8px 12px", border: "1px solid #f1f5f9", borderRadius: 8 }}>
-                  <span style={{ fontSize: 13, color: "#374151" }}>{a.workerUser.name}</span>
+                  padding: "8px 12px", border: "1px solid var(--td-grey)", borderRadius: 8 }}>
+                  <span style={{ fontSize: 13, color: "var(--td-dark-text-soft)" }}>{a.workerUser.name}</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color:
-                      a.status === "COMPLETED" ? "#15803d" : a.status === "CANCELLED" ? "#b91c1c" : "#854d0e" }}>
+                      a.status === "COMPLETED" ? "var(--td-ink-700)" : a.status === "CANCELLED" ? "var(--td-pink-hover)" : "var(--td-ink-800)" }}>
                       {a.status}
                     </span>
                     {a.status === "ASSIGNED" && a.workerUserId === user?.id && (
@@ -1142,13 +1142,13 @@ export default function JobDetailPage() {
             <CardHeader><CardTitle>Reviews</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {isReviewParty && !myReview && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Leave a review</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 12, border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>Leave a review</div>
                   <div style={{ display: "flex", gap: 4 }}>
                     {[1, 2, 3, 4, 5].map(n => (
                       <button key={n} onClick={() => setReviewRating(n)}
                         style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, lineHeight: 1, padding: 0,
-                          color: n <= reviewRating ? "#f59e0b" : "#e2e8f0" }}>
+                          color: n <= reviewRating ? "var(--td-muted-dark)" : "var(--td-border)" }}>
                         ★
                       </button>
                     ))}
@@ -1159,12 +1159,12 @@ export default function JobDetailPage() {
                     ["Quality of support", qualityRating, setQualityRating],
                   ] as const).map(([label, value, setValue]) => (
                     <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#64748b", width: 130 }}>{label}</span>
+                      <span style={{ fontSize: 12, color: "var(--td-muted-dark)", width: 130 }}>{label}</span>
                       <div style={{ display: "flex", gap: 2 }}>
                         {[1, 2, 3, 4, 5].map(n => (
                           <button key={n} onClick={() => setValue(n)}
                             style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 0,
-                              color: n <= value ? "#f59e0b" : "#e2e8f0" }}>
+                              color: n <= value ? "var(--td-muted-dark)" : "var(--td-border)" }}>
                             ★
                           </button>
                         ))}
@@ -1173,28 +1173,28 @@ export default function JobDetailPage() {
                   ))}
                   <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
                     placeholder="Optional comment (visible to the other party)..." maxLength={1000} rows={3}
-                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
                   <textarea value={privateConcern} onChange={e => setPrivateConcern(e.target.value)}
                     placeholder="Private concern for Shiftify only (not shown to the other party)..." maxLength={1000} rows={2}
-                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid #fde68a", background: "#fffbeb", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
+                    style={{ width: "100%", padding: "8px 10px", border: "1.5px solid var(--td-border)", background: "var(--td-grey-tint)", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
                   <Button size="sm" disabled={!reviewRating || submittingReview} onClick={submitReview}>
                     {submittingReview ? "Submitting..." : "Submit Review"}
                   </Button>
                 </div>
               )}
               {reviews.length === 0 ? (
-                <p style={{ fontSize: 13, color: "#94a3b8", margin: 0 }}>No reviews yet.</p>
+                <p style={{ fontSize: 13, color: "var(--td-muted)", margin: 0 }}>No reviews yet.</p>
               ) : (
                 reviews.map(r => (
-                  <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 10, borderBottom: "1px solid #f1f5f9" }}>
+                  <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 3, paddingBottom: 10, borderBottom: "1px solid var(--td-grey)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>
                         {r.rater.name} → {r.reviewee.name}
                       </span>
-                      <span style={{ color: "#f59e0b", fontSize: 13 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                      <span style={{ color: "var(--td-muted-dark)", fontSize: 13 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
                     </div>
                     {(r.reliabilityRating || r.communicationRating || r.qualityRating) && (
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                      <div style={{ fontSize: 11, color: "var(--td-muted)" }}>
                         {[
                           r.reliabilityRating && `Reliability ${r.reliabilityRating}★`,
                           r.communicationRating && `Communication ${r.communicationRating}★`,
@@ -1202,26 +1202,26 @@ export default function JobDetailPage() {
                         ].filter(Boolean).join(" · ")}
                       </div>
                     )}
-                    {r.comment && <p style={{ fontSize: 13, color: "#374151", margin: 0 }}>{r.comment}</p>}
+                    {r.comment && <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0 }}>{r.comment}</p>}
                     {r.privateConcern && (
-                      <p style={{ fontSize: 12, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", margin: 0 }}>
+                      <p style={{ fontSize: 12, color: "var(--td-ink-800)", background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 6, padding: "4px 8px", margin: 0 }}>
                         Private concern (only you can see this): {r.privateConcern}
                       </p>
                     )}
                     {r.revieweeResponse && (
-                      <p style={{ fontSize: 12, color: "#374151", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 8px", margin: 0 }}>
+                      <p style={{ fontSize: 12, color: "var(--td-dark-text-soft)", background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 6, padding: "4px 8px", margin: 0 }}>
                         {r.reviewee.name}&apos;s response: {r.revieweeResponse}
                       </p>
                     )}
                     {r.reportedByReviewee && (
-                      <span style={{ fontSize: 11, color: "#b91c1c" }}>Reported by {r.reviewee.name}</span>
+                      <span style={{ fontSize: 11, color: "var(--td-pink-hover)" }}>Reported by {r.reviewee.name}</span>
                     )}
                     {r.revieweeUserId === user?.id && !r.revieweeResponse && (
                       respondingReviewId === r.id ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                           <textarea value={responseText} onChange={e => setResponseText(e.target.value)}
                             placeholder="Write a public response…" rows={2}
-                            style={{ fontSize: 12, padding: 6, border: "1px solid #e2e8f0", borderRadius: 6 }} />
+                            style={{ fontSize: 12, padding: 6, border: "1px solid var(--td-border)", borderRadius: 6 }} />
                           <div style={{ display: "flex", gap: 8 }}>
                             <Button size="sm" onClick={() => submitReviewResponse(r.id)}>Submit</Button>
                             <Button size="sm" variant="ghost" onClick={() => { setRespondingReviewId(null); setResponseText(""); }}>Cancel</Button>
@@ -1230,10 +1230,10 @@ export default function JobDetailPage() {
                       ) : (
                         <div style={{ display: "flex", gap: 12 }}>
                           <button type="button" onClick={() => setRespondingReviewId(r.id)}
-                            style={{ fontSize: 11, color: "#0369a1", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Respond</button>
+                            style={{ fontSize: 11, color: "var(--td-ink-700)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Respond</button>
                           {!r.reportedByReviewee && (
                             <button type="button" onClick={() => reportReview(r.id)}
-                              style={{ fontSize: 11, color: "#b91c1c", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Report</button>
+                              style={{ fontSize: 11, color: "var(--td-pink-hover)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Report</button>
                           )}
                         </div>
                       )
@@ -1329,16 +1329,16 @@ export default function JobDetailPage() {
                               </div>
                             </td>
                             <td className="py-2.5 pr-3 text-xs whitespace-nowrap">{new Date(app.createdAt).toLocaleDateString("en-AU")}</td>
-                            <td className="py-2.5 pr-3 font-semibold whitespace-nowrap" style={{ color: APP_STATUS_COLOR[app.status] ?? "#94a3b8" }}>{app.status}</td>
+                            <td className="py-2.5 pr-3 font-semibold whitespace-nowrap" style={{ color: APP_STATUS_COLOR[app.status] ?? "var(--td-muted)" }}>{app.status}</td>
                             {job.status === "OPEN" && (
                               <td className="py-2.5 pr-3">
                                 {["INTERESTED", "SHORTLISTED"].includes(app.status) ? (
                                   <div className="flex gap-1.5">
                                     {app.status === "INTERESTED" && (
-                                      <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "shortlist")} style={{ borderColor: "#3b82f6", color: "#3b82f6" }}>Shortlist</Button>
+                                      <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "shortlist")} style={{ borderColor: "var(--td-muted-dark)", color: "var(--td-muted-dark)" }}>Shortlist</Button>
                                     )}
                                     <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>Select</Button>
-                                    <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "decline")} style={{ borderColor: "#ef4444", color: "#ef4444" }}>Decline</Button>
+                                    <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "decline")} style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>Decline</Button>
                                   </div>
                                 ) : "—"}
                               </td>
@@ -1356,39 +1356,39 @@ export default function JobDetailPage() {
                   const wp = app.applicant.workerProfile;
                   const reviews = reviewCount;
                   return (
-                  <div key={app.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
+                  <div key={app.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
                     {app.applicant.avatarUrl ? (
                       <img src={app.applicant.avatarUrl} alt={app.applicant.name} style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                     ) : (
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#e2e8f0", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--td-border)", color: "var(--td-muted-dark)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>
                         {app.applicant.name.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <Link href={`/profile/${app.applicantUserId}`} style={{ fontSize: 14, fontWeight: 600, color: "#1e293b", textDecoration: "none" }} className="hover:underline">
+                      <Link href={`/profile/${app.applicantUserId}`} style={{ fontSize: 14, fontWeight: 600, color: "var(--td-ink-800)", textDecoration: "none" }} className="hover:underline">
                         {app.applicant.name}
                       </Link>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                         {reviews > 0 && (
-                          <span style={{ fontSize: 12, color: "#b45309", fontWeight: 600 }}>★ {rating.toFixed(1)} ({reviews})</span>
+                          <span style={{ fontSize: 12, color: "var(--td-ink-700)", fontWeight: 600 }}>★ {rating.toFixed(1)} ({reviews})</span>
                         )}
                         {rate != null && (
-                          <span style={{ fontSize: 12, color: "#15803d", fontWeight: 600 }}>${Number(rate).toFixed(0)}/hr</span>
+                          <span style={{ fontSize: 12, color: "var(--td-ink-700)", fontWeight: 600 }}>${Number(rate).toFixed(0)}/hr</span>
                         )}
-                        <span style={{ fontSize: 12, color: "#94a3b8" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</span>
+                        <span style={{ fontSize: 12, color: "var(--td-muted)" }}>{new Date(app.createdAt).toLocaleDateString("en-AU")}</span>
                       </div>
                       {coverage && (
-                        <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>📍 {coverage}</div>
+                        <div style={{ fontSize: 11, color: "var(--td-muted-dark)", marginTop: 2 }}>📍 {coverage}</div>
                       )}
                       {skillLabels.length > 0 && (
                         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 4 }}>
                           {skillLabels.map(label => (
-                            <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: "#f1f5f9", color: "#475569" }}>{label}</span>
+                            <span key={label} style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: "var(--td-grey)", color: "var(--td-dark-text-soft)" }}>{label}</span>
                           ))}
                         </div>
                       )}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "#94a3b8" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "var(--td-muted)" }}>
                       {app.status}
                     </span>
                     {job.status === "OPEN" && ["INTERESTED", "SHORTLISTED"].includes(app.status) && (
@@ -1396,7 +1396,7 @@ export default function JobDetailPage() {
                         {app.status === "INTERESTED" && (
                           <Button size="sm" variant="outline" disabled={acting}
                             onClick={() => appAction(app.id, "shortlist")}
-                            style={{ borderColor: "#3b82f6", color: "#3b82f6" }}>
+                            style={{ borderColor: "var(--td-muted-dark)", color: "var(--td-muted-dark)" }}>
                             Shortlist
                           </Button>
                         )}
@@ -1405,7 +1405,7 @@ export default function JobDetailPage() {
                         </Button>
                         <Button size="sm" variant="outline" disabled={acting}
                           onClick={() => appAction(app.id, "decline")}
-                          style={{ borderColor: "#ef4444", color: "#ef4444" }}>
+                          style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>
                           Decline
                         </Button>
                       </div>
@@ -1432,10 +1432,10 @@ export default function JobDetailPage() {
           <CardContent>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16, maxHeight: 320, overflowY: "auto" }}>
               {messages.length === 0 ? (
-                <p style={{ fontSize: 13, color: "#94a3b8" }}>No messages yet.</p>
+                <p style={{ fontSize: 13, color: "var(--td-muted)" }}>No messages yet.</p>
               ) : messages.map(m => (
-                <div key={m.id} style={{ padding: "10px 14px", borderRadius: 10, background: m.senderId === user?.id ? "rgba(194,24,91,0.06)" : "#f8fafc", border: "1px solid #e2e8f0" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
+                <div key={m.id} style={{ padding: "10px 14px", borderRadius: 10, background: m.senderId === user?.id ? "rgba(183,37,88,0.06)" : "var(--td-grey-tint)", border: "1px solid var(--td-border)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--td-muted)", marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
                     <span>{m.senderName} - {new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}</span>
                     {m.senderId !== user?.id && (
                       <button type="button" onClick={() => blockUser(m.senderId)} disabled={blockingUserId === m.senderId}
@@ -1444,7 +1444,7 @@ export default function JobDetailPage() {
                       </button>
                     )}
                   </div>
-                  <div style={{ fontSize: 14, color: "#1e293b" }}>{m.body}</div>
+                  <div style={{ fontSize: 14, color: "var(--td-ink-800)" }}>{m.body}</div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
@@ -1455,7 +1455,7 @@ export default function JobDetailPage() {
                 onChange={e => setMsgBody(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
                 placeholder="Type a message..."
-                style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none" }}
+                style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, outline: "none" }}
               />
               <Button onClick={sendMessage} disabled={sending || !msgBody.trim()}>
                 {sending ? "..." : "Send"}
@@ -1470,10 +1470,10 @@ export default function JobDetailPage() {
           <CardContent>
             {flagSent ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ fontSize: 13, color: "#16a34a", margin: 0 }}>Reported — an admin has been notified.</p>
+                <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0 }}>Reported — an admin has been notified.</p>
                 {otherPartyId && (
                   blocked ? (
-                    <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>This user is now blocked from messaging you and can no longer see your profile.</p>
+                    <p style={{ fontSize: 12, color: "var(--td-muted-dark)", margin: 0 }}>This user is now blocked from messaging you and can no longer see your profile.</p>
                   ) : (
                     <Button size="sm" variant="outline" disabled={blocking} onClick={blockOtherParty}>
                       {blocking ? "Blocking…" : "Also block this user"}
@@ -1487,13 +1487,13 @@ export default function JobDetailPage() {
               </Button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ fontSize: 12, color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", margin: 0 }}>
+                <p style={{ fontSize: 12, color: "var(--td-pink-hover)", background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 8, padding: "8px 12px", margin: 0 }}>
                   If this is a medical emergency or anyone is in immediate danger, call <strong>000</strong> now — don't wait for a report to be reviewed.
                 </p>
                 <select
                   value={flagCategory}
                   onChange={e => setFlagCategory(e.target.value)}
-                  style={{ height: 40, padding: "0 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14 }}
+                  style={{ height: 40, padding: "0 12px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14 }}
                 >
                   <option value="SAFETY">Safety concern</option>
                   <option value="NO_SHOW">No-show</option>
@@ -1505,19 +1505,19 @@ export default function JobDetailPage() {
                   onChange={e => setFlagDescription(e.target.value)}
                   placeholder="What happened? (optional)"
                   rows={3}
-                  style={{ padding: 12, border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, resize: "vertical" }}
+                  style={{ padding: 12, border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, resize: "vertical" }}
                 />
 
                 <div>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#475569", marginBottom: 4 }}>
-                    Evidence <span style={{ fontWeight: 400, color: "#94a3b8" }}>(optional — photos or documents)</span>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4 }}>
+                    Evidence <span style={{ fontWeight: 400, color: "var(--td-muted)" }}>(optional — photos or documents)</span>
                   </label>
                   {flagEvidence.length > 0 && (
                     <ul style={{ margin: "0 0 6px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 4 }}>
                       {flagEvidence.map((url, i) => (
-                        <li key={url} style={{ fontSize: 12, color: "#16a34a", display: "flex", alignItems: "center", gap: 6 }}>
+                        <li key={url} style={{ fontSize: 12, color: "var(--td-dark-text-soft)", display: "flex", alignItems: "center", gap: 6 }}>
                           <i className="bi bi-paperclip" /> Attachment {i + 1}
-                          <a href={url} target="_blank" rel="noreferrer" style={{ color: "#2563eb" }}>view</a>
+                          <a href={url} target="_blank" rel="noreferrer" style={{ color: "var(--td-dark-text-soft)" }}>view</a>
                         </li>
                       ))}
                     </ul>
@@ -1533,7 +1533,7 @@ export default function JobDetailPage() {
                     }}
                     style={{ fontSize: 12 }}
                   />
-                  {flagUploading && <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>Uploading…</p>}
+                  {flagUploading && <p style={{ fontSize: 12, color: "var(--td-muted-dark)", margin: "4px 0 0" }}>Uploading…</p>}
                 </div>
 
                 <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -1544,7 +1544,7 @@ export default function JobDetailPage() {
                     {flagSavingDraft ? "Saving…" : "Save as draft"}
                   </Button>
                   <Button variant="ghost" onClick={() => setShowFlagForm(false)}>Cancel</Button>
-                  {flagDraftSaved && <span style={{ fontSize: 12, color: "#16a34a" }}>Draft saved</span>}
+                  {flagDraftSaved && <span style={{ fontSize: 12, color: "var(--td-dark-text-soft)" }}>Draft saved</span>}
                 </div>
               </div>
             )}

@@ -8,17 +8,17 @@ function CheckboxDeclaration({ name, label }: { name: string; label: React.React
   return (
     <div>
       <label style={{ display: 'flex', gap: 12, cursor: 'pointer', padding: '14px',
-        border: `1.5px solid ${err ? '#ef4444' : val ? '#22c55e' : 'var(--clr-border)'}`,
-        borderRadius: 10, background: val ? '#F0FFF4' : '#fff', alignItems: 'flex-start' }}>
+        border: `1.5px solid ${err ? 'var(--td-pink)' : val ? 'var(--td-muted-dark)' : 'var(--clr-border)'}`,
+        borderRadius: 10, background: val ? 'var(--td-grey-tint)' : 'var(--td-white)', alignItems: 'flex-start' }}>
         <div style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0, marginTop: 1,
-          border: `2px solid ${val ? '#22c55e' : 'var(--clr-border)'}`, background: val ? '#22c55e' : '#fff',
+          border: `2px solid ${val ? 'var(--td-muted-dark)' : 'var(--clr-border)'}`, background: val ? 'var(--td-muted-dark)' : 'var(--td-white)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-          {val && <i className="bi bi-check-lg" style={{ color: '#fff', fontSize: 12 }} />}
+          {val && <i className="bi bi-check-lg" style={{ color: 'var(--td-white)', fontSize: 12 }} />}
         </div>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <span style={{ fontSize: 13, color: 'var(--clr-text)', lineHeight: 1.5 }}>{label}</span>
       </label>
-      {err && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 4, marginLeft: 2 }}>{err}</p>}
+      {err && <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 4, marginLeft: 2 }}>{err}</p>}
     </div>
   );
 }
@@ -27,7 +27,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
   const { register, watch } = useFormContext();
   const val = watch(name) as boolean;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
         {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
@@ -35,7 +35,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
       <label style={{ cursor: 'pointer' }}>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <div style={{ width: 42, height: 24, borderRadius: 12, background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative', transition: 'background 0.2s' }}>
-          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)' }} />
         </div>
       </label>
     </div>

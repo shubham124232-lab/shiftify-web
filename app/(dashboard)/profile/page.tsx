@@ -17,12 +17,12 @@ import { inp as twInp, lbl as twLbl } from "@/components/jobs/post/shared";
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
   display: "block", fontSize: 12, fontWeight: 600,
-  color: "#374151", marginBottom: 4,
+  color: "var(--td-dark-text-soft)", marginBottom: 4,
 };
 const row: React.CSSProperties = {
   display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14,
@@ -448,12 +448,12 @@ export default function ProfilePage() {
         <PageHeader title="My Profile" description="Update your contact details and role information." />
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
           {[1,2,3].map(i => (
-            <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 24 }}>
-              <div style={{ height: 16, width: "30%", background: "#f3f4f6", borderRadius: 6, marginBottom: 20, animation: "pulse 1.5s ease-in-out infinite" }} />
+            <div key={i} style={{ background: "var(--td-white)", border: "1px solid var(--td-border)", borderRadius: 12, padding: 24 }}>
+              <div style={{ height: 16, width: "30%", background: "var(--td-grey)", borderRadius: 6, marginBottom: 20, animation: "pulse 1.5s ease-in-out infinite" }} />
               {[1,2].map(j => (
                 <div key={j} style={{ marginBottom: 14 }}>
-                  <div style={{ height: 10, width: "20%", background: "#f3f4f6", borderRadius: 4, marginBottom: 6 }} />
-                  <div style={{ height: 40, background: "#f9fafb", borderRadius: 8, border: "1px solid #e5e7eb" }} />
+                  <div style={{ height: 10, width: "20%", background: "var(--td-grey)", borderRadius: 4, marginBottom: 6 }} />
+                  <div style={{ height: 40, background: "var(--td-grey-tint)", borderRadius: 8, border: "1px solid var(--td-border)" }} />
                 </div>
               ))}
             </div>
@@ -471,19 +471,19 @@ export default function ProfilePage() {
 
           {/* Profile completion bar */}
           {completion > 0 && (
-            <div style={{ background: "#fff", borderRadius: 12, padding: "16px 20px", border: "1.5px solid #e2e8f0" }}>
+            <div style={{ background: "var(--td-white)", borderRadius: 12, padding: "16px 20px", border: "1.5px solid var(--td-border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Profile completion</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: completion >= 80 ? "#16a34a" : "#f59e0b" }}>{completion}%</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>Profile completion</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: completion >= 80 ? "var(--td-dark-text-soft)" : "var(--td-muted-dark)" }}>{completion}%</span>
               </div>
-              <div style={{ height: 6, borderRadius: 6, background: "#e2e8f0" }}>
-                <div style={{ height: 6, borderRadius: 6, width: `${completion}%`, background: completion >= 80 ? "#16a34a" : "#f59e0b", transition: "width 0.3s" }} />
+              <div style={{ height: 6, borderRadius: 6, background: "var(--td-border)" }}>
+                <div style={{ height: 6, borderRadius: 6, width: `${completion}%`, background: completion >= 80 ? "var(--td-dark-text-soft)" : "var(--td-muted-dark)", transition: "width 0.3s" }} />
               </div>
               {completionMissing.length > 0 && (
-                <ul style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: 6 }}>
+                <ul style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--td-grey)", display: "flex", flexDirection: "column", gap: 6 }}>
                   {completionMissing.map((label) => (
-                    <li key={label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#64748b" }}>
-                      <span style={{ width: 14, height: 14, borderRadius: 4, border: "1.5px solid #cbd5e1", flexShrink: 0 }} />
+                    <li key={label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--td-muted-dark)" }}>
+                      <span style={{ width: 14, height: 14, borderRadius: 4, border: "1.5px solid var(--td-border-hard)", flexShrink: 0 }} />
                       {label}
                     </li>
                   ))}
@@ -501,10 +501,10 @@ export default function ProfilePage() {
                   onClick={() => fileRef.current?.click()}
                   style={{
                     width: 80, height: 80, borderRadius: "50%", cursor: "pointer",
-                    background: avatarUrl ? "transparent" : "var(--clr-primary, #c2185b)",
-                    border: "3px solid #e2e8f0", overflow: "hidden",
+                    background: avatarUrl ? "transparent" : "var(--clr-primary, var(--td-pink))",
+                    border: "3px solid var(--td-border)", overflow: "hidden",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 28, fontWeight: 700, color: "#fff",
+                    fontSize: 28, fontWeight: 700, color: "var(--td-white)",
                   }}
                 >
                   {avatarUrl
@@ -515,7 +515,7 @@ export default function ProfilePage() {
                   <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
                     {uploading ? "Uploading..." : "Change photo"}
                   </Button>
-                  <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>JPG or PNG, max 5 MB</p>
+                  <p style={{ fontSize: 12, color: "var(--td-muted)", marginTop: 6 }}>JPG or PNG, max 5 MB</p>
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
               </div>
@@ -531,14 +531,14 @@ export default function ProfilePage() {
               </Field>
               {(username !== null) && (
                 <Field label="Username">
-                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: '#f9fafb', color: '#374151', cursor: 'default', userSelect: 'all' as const }}>
+                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: 'var(--td-grey-tint)', color: 'var(--td-dark-text-soft)', cursor: 'default', userSelect: 'all' as const }}>
                     {username || '—'}
                   </div>
                 </Field>
               )}
               <div style={row}>
                 <Field label="Email">
-                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: '#f9fafb', color: '#374151', cursor: 'default', userSelect: 'all' as const }}>
+                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: 'var(--td-grey-tint)', color: 'var(--td-dark-text-soft)', cursor: 'default', userSelect: 'all' as const }}>
                     {email || '—'}
                   </div>
                 </Field>
@@ -547,20 +547,20 @@ export default function ProfilePage() {
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <input style={{ ...inp, flex: 1 }} type="tel" value={phone} onChange={e => { setPhone(e.target.value); setVerifyStep("idle"); }} placeholder="+61 4xx xxx xxx" />
                     {phoneVerified ? (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>✓ Verified</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--td-dark-text-soft)", whiteSpace: "nowrap" }}>✓ Verified</span>
                     ) : (
                       <button
                         type="button"
                         onClick={handleSendOtp}
                         disabled={otpSending || verifyStep === "sent"}
-                        style={{ height: 40, padding: "0 14px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", opacity: otpSending ? 0.7 : 1 }}
+                        style={{ height: 40, padding: "0 14px", background: "var(--td-pink)", color: "var(--td-white)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", opacity: otpSending ? 0.7 : 1 }}
                       >
                         {otpSending ? "Sending…" : verifyStep === "sent" ? "Code sent" : "Verify phone"}
                       </button>
                     )}
                   </div>
                   {verifyStep === "sent" && !phoneVerified && otpDevCode && (
-                    <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#2E7D32', marginTop: 8 }}>
+                    <div style={{ background: 'var(--td-grey)', border: '1px solid var(--td-border-hard)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: 'var(--td-ink-700)', marginTop: 8 }}>
                       <span style={{ fontWeight: 700 }}>Dev OTP: </span>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: 2 }}>{otpDevCode}</span>
                     </div>
@@ -578,18 +578,18 @@ export default function ProfilePage() {
                         type="button"
                         onClick={handleConfirmOtp}
                         disabled={otpConfirming || otpCode.length < 6}
-                        style={{ height: 40, padding: "0 14px", background: "#1e293b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: otpConfirming ? 0.7 : 1 }}
+                        style={{ height: 40, padding: "0 14px", background: "var(--td-ink-800)", color: "var(--td-white)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: otpConfirming ? 0.7 : 1 }}
                       >
                         {otpConfirming ? "Verifying…" : "Confirm"}
                       </button>
-                      <button type="button" onClick={handleSendOtp} style={{ fontSize: 12, color: "#c2185b", background: "none", border: "none", cursor: "pointer" }}>
+                      <button type="button" onClick={handleSendOtp} style={{ fontSize: 12, color: "var(--td-pink)", background: "none", border: "none", cursor: "pointer" }}>
                         Resend
                       </button>
                     </div>
                   )}
-                  {otpError && <p style={{ fontSize: 12, color: "#C62828", marginTop: 6 }}>{otpError}</p>}
+                  {otpError && <p style={{ fontSize: 12, color: "var(--td-pink-hover)", marginTop: 6 }}>{otpError}</p>}
                   {!phoneVerified && verifyStep !== "sent" && (
-                    <p style={{ fontSize: 12, color: "#f59e0b", marginTop: 6 }}>⚠ Phone not verified — required to post support requests.</p>
+                    <p style={{ fontSize: 12, color: "var(--td-muted-dark)", marginTop: 6 }}>⚠ Phone not verified — required to post support requests.</p>
                   )}
                 </div>
               </div>
@@ -858,9 +858,9 @@ export default function ProfilePage() {
                         onClick={() => toggleService(cat.value)}
                         style={{
                           padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          border: selected ? "2px solid #c2185b" : "1.5px solid #e2e8f0",
-                          background: selected ? "rgba(194,24,91,0.08)" : "#fff",
-                          color: selected ? "#c2185b" : "#64748b",
+                          border: selected ? "2px solid var(--td-pink)" : "1.5px solid var(--td-border)",
+                          background: selected ? "rgba(183,37,88,0.08)" : "var(--td-white)",
+                          color: selected ? "var(--td-pink)" : "var(--td-muted-dark)",
                         }}
                       >
                         {cat.label}
@@ -951,12 +951,12 @@ export default function ProfilePage() {
                 {saving ? "Saving..." : "Save profile"}
               </Button>
               {success && (
-                <span style={{ fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13, color: "var(--td-dark-text-soft)", display: "flex", alignItems: "center", gap: 6 }}>
                   <i className="bi bi-check-circle-fill" /> Saved successfully
                 </span>
               )}
               {error && (
-                <span style={{ fontSize: 13, color: "#dc2626" }}>{error}</span>
+                <span style={{ fontSize: 13, color: "var(--td-pink)" }}>{error}</span>
               )}
             </div>
           </form>

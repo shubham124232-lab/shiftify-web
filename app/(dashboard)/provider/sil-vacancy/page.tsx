@@ -43,7 +43,7 @@ const SUPPORT_MODELS = ["24/7 Support", "Sleepover Support", "Drop-in Support", 
 const SUITABLE_FOR   = ["Physical Disability", "Psychosocial Disability", "Intellectual Disability", "Autism", "ABI", "High Support Needs", "Mental Health Support Needs"];
 const FUNDING_ROUTES = ["SIL Funded", "SDA Funded", "Respite Funding", "Private Contribution", "Mixed", "Discuss on enquiry"];
 
-const inp: React.CSSProperties = { width: "100%", height: 42, padding: "0 12px", borderRadius: 8, border: "1.5px solid var(--clr-border)", fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box" };
+const inp: React.CSSProperties = { width: "100%", height: 42, padding: "0 12px", borderRadius: 8, border: "1.5px solid var(--clr-border)", fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box" };
 const lbl: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "var(--clr-text)", marginBottom: 4 };
 
 export default function SilVacancyPage() {
@@ -102,7 +102,7 @@ export default function SilVacancyPage() {
                   <label key={opt.value} style={{
                     display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", cursor: "pointer",
                     border: `1.5px solid ${vacancyCategory === opt.value ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                    borderRadius: 10, background: vacancyCategory === opt.value ? "rgba(79,70,229,0.05)" : "#fff",
+                    borderRadius: 10, background: vacancyCategory === opt.value ? "rgba(183,37,88,0.05)" : "var(--td-white)",
                   }}>
                     <input type="radio" value={opt.value} {...register("vacancyCategory")} style={{ marginTop: 2 }} />
                     <div>
@@ -120,14 +120,14 @@ export default function SilVacancyPage() {
               <CardHeader><CardTitle>Vacancy Details</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label style={lbl}>Listing Title <span style={{ color: "#ef4444" }}>*</span></label>
-                  <input {...register("title")} placeholder="e.g. SIL Vacancy Available in Liverpool" style={{ ...inp, borderColor: errors.title ? "#ef4444" : undefined }} />
+                  <label style={lbl}>Listing Title <span style={{ color: "var(--td-pink)" }}>*</span></label>
+                  <input {...register("title")} placeholder="e.g. SIL Vacancy Available in Liverpool" style={{ ...inp, borderColor: errors.title ? "var(--td-pink)" : undefined }} />
                   {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
-                    <label style={lbl}>Suburb <span style={{ color: "#ef4444" }}>*</span></label>
-                    <input {...register("suburb")} placeholder="e.g. Liverpool" style={{ ...inp, borderColor: errors.suburb ? "#ef4444" : undefined }} />
+                    <label style={lbl}>Suburb <span style={{ color: "var(--td-pink)" }}>*</span></label>
+                    <input {...register("suburb")} placeholder="e.g. Liverpool" style={{ ...inp, borderColor: errors.suburb ? "var(--td-pink)" : undefined }} />
                     {errors.suburb && <p className="text-xs text-red-500 mt-1">{errors.suburb.message}</p>}
                   </div>
                   <div>
@@ -159,10 +159,10 @@ export default function SilVacancyPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={lbl}>Vacancy Description <span style={{ color: "#ef4444" }}>*</span></label>
+                  <label style={lbl}>Vacancy Description <span style={{ color: "var(--td-pink)" }}>*</span></label>
                   <textarea {...register("description")} rows={4}
                     placeholder="Describe what is available, the living arrangement, support included, who it suits, and any restrictions…"
-                    style={{ ...inp, height: "auto", padding: "10px 12px", resize: "vertical", borderColor: errors.description ? "#ef4444" : undefined }} />
+                    style={{ ...inp, height: "auto", padding: "10px 12px", resize: "vertical", borderColor: errors.description ? "var(--td-pink)" : undefined }} />
                   {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>}
                 </div>
               </CardContent>
@@ -180,7 +180,7 @@ export default function SilVacancyPage() {
                         onClick={() => setValue("suitableFor", sel ? suitableFor.filter(s => s !== opt) : [...suitableFor, opt])}
                         style={{ padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
                           border: `1.5px solid ${sel ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                          background: sel ? "rgba(79,70,229,0.1)" : "#fff",
+                          background: sel ? "rgba(183,37,88,0.1)" : "var(--td-white)",
                           color: sel ? "var(--clr-primary)" : "var(--clr-text)" }}>
                         {opt}
                       </button>
@@ -202,7 +202,7 @@ export default function SilVacancyPage() {
                         onClick={() => setValue("fundingRoutes", sel ? fundingRoutes.filter(f => f !== opt) : [...fundingRoutes, opt])}
                         style={{ padding: "5px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
                           border: `1.5px solid ${sel ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                          background: sel ? "rgba(79,70,229,0.1)" : "#fff",
+                          background: sel ? "rgba(183,37,88,0.1)" : "var(--td-white)",
                           color: sel ? "var(--clr-primary)" : "var(--clr-text)" }}>
                         {opt}
                       </button>
@@ -215,8 +215,8 @@ export default function SilVacancyPage() {
             {/* Acknowledgement */}
             <label style={{
               display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", cursor: "pointer",
-              border: `1.5px solid ${errors.acknowledgement ? "#ef4444" : "var(--clr-border)"}`,
-              borderRadius: 10, background: "#fff",
+              border: `1.5px solid ${errors.acknowledgement ? "var(--td-pink)" : "var(--clr-border)"}`,
+              borderRadius: 10, background: "var(--td-white)",
             }}>
               <input type="checkbox" {...register("acknowledgement")} style={{ marginTop: 2 }} />
               <span style={{ fontSize: 13, color: "var(--clr-text)", lineHeight: 1.5 }}>

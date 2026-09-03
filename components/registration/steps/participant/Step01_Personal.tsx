@@ -1,7 +1,7 @@
 'use client';
 import { useFormContext } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const PARTICIPANT_TYPES = [
@@ -53,7 +53,7 @@ export function ParticipantStep01_Personal() {
               display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
               padding: '6px 12px', borderRadius: 20,
               border: `1.5px solid ${gender === g ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-              background: gender === g ? 'rgba(79,70,229,0.07)' : '#fff',
+              background: gender === g ? 'rgba(183,37,88,0.07)' : 'var(--td-white)',
               fontSize: 12, fontWeight: 500, color: gender === g ? 'var(--clr-primary)' : 'var(--clr-text)',
             }}>
               <input type="radio" value={g} {...register('gender')} style={{ display: 'none' }} />
@@ -68,7 +68,7 @@ export function ParticipantStep01_Personal() {
         <label style={labelStyle}>Location</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 120px', gap: 10 }}>
           <div>
-            <input {...register('suburb')} placeholder="Suburb" style={{ ...inputStyle, borderColor: errors.suburb ? '#ef4444' : undefined }} />
+            <input {...register('suburb')} placeholder="Suburb" style={{ ...inputStyle, borderColor: errors.suburb ? 'var(--td-pink)' : undefined }} />
           </div>
           <div>
             <input {...register('postcode')} placeholder="Postcode" style={inputStyle} maxLength={4} />

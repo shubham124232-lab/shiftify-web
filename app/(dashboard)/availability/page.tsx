@@ -270,7 +270,7 @@ export default function AvailabilityPage() {
       <>
         <PageHeader title="Availability" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>Availability management is only available for Support Workers and Providers.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>Availability management is only available for Support Workers and Providers.</p>
         </div>
       </>
     );
@@ -279,8 +279,8 @@ export default function AvailabilityPage() {
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   const inp: React.CSSProperties = {
-    height: 36, padding: "0 10px", border: "1.5px solid #e2e8f0",
-    borderRadius: 8, fontSize: 13, outline: "none", background: "#fff",
+    height: 36, padding: "0 10px", border: "1.5px solid var(--td-border)",
+    borderRadius: 8, fontSize: 13, outline: "none", background: "var(--td-white)",
   };
 
   return (
@@ -407,7 +407,7 @@ export default function AvailabilityPage() {
               )}
 
               {listingsError && (
-                <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+                <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
                   {listingsError}
                 </div>
               )}
@@ -466,7 +466,7 @@ export default function AvailabilityPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
+              <p style={{ color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {DAYS.map(day => {
@@ -478,8 +478,8 @@ export default function AvailabilityPage() {
                       style={{
                         display: "flex", alignItems: "center", gap: 14,
                         padding: "12px 16px", borderRadius: 10,
-                        border: `1.5px solid ${enabled ? "#c2185b" : "#e2e8f0"}`,
-                        background: enabled ? "rgba(194,24,91,0.03)" : "#fafafa",
+                        border: `1.5px solid ${enabled ? "var(--td-pink)" : "var(--td-border)"}`,
+                        background: enabled ? "rgba(183,37,88,0.03)" : "var(--td-grey-tint)",
                         transition: "all 0.15s",
                       }}
                     >
@@ -488,21 +488,21 @@ export default function AvailabilityPage() {
                         onClick={() => toggleDay(day)}
                         style={{
                           width: 40, height: 22, borderRadius: 11, cursor: "pointer",
-                          background: enabled ? "#c2185b" : "#e2e8f0",
+                          background: enabled ? "var(--td-pink)" : "var(--td-border)",
                           position: "relative", transition: "background 0.2s", flexShrink: 0,
                         }}
                       >
                         <div style={{
-                          width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                          width: 18, height: 18, borderRadius: "50%", background: "var(--td-white)",
                           position: "absolute", top: 2,
                           left: enabled ? 20 : 2,
                           transition: "left 0.2s",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                          boxShadow: "0 1px 3px rgba(10,10,10,0.2)",
                         }} />
                       </div>
 
                       {/* Day label */}
-                      <div style={{ width: 90, fontSize: 13, fontWeight: 600, color: enabled ? "#1e293b" : "#94a3b8" }}>
+                      <div style={{ width: 90, fontSize: 13, fontWeight: 600, color: enabled ? "var(--td-ink-800)" : "var(--td-muted)" }}>
                         {DAY_LABELS[day]}
                       </div>
 
@@ -515,14 +515,14 @@ export default function AvailabilityPage() {
                             onChange={e => updateSlot(day, "startTime", e.target.value)}
                             style={inp}
                           />
-                          <span style={{ fontSize: 13, color: "#94a3b8" }}>to</span>
+                          <span style={{ fontSize: 13, color: "var(--td-muted)" }}>to</span>
                           <input
                             type="time"
                             value={slot.endTime}
                             onChange={e => updateSlot(day, "endTime", e.target.value)}
                             style={inp}
                           />
-                          <span style={{ fontSize: 12, color: "#94a3b8" }}>
+                          <span style={{ fontSize: 12, color: "var(--td-muted)" }}>
                             {/* hours diff */}
                             {(() => {
                               const [sh, sm] = slot.startTime.split(":").map(Number);
@@ -533,7 +533,7 @@ export default function AvailabilityPage() {
                           </span>
                         </div>
                       ) : (
-                        <span style={{ fontSize: 13, color: "#cbd5e1", fontStyle: "italic" }}>Unavailable</span>
+                        <span style={{ fontSize: 13, color: "var(--td-border-hard)", fontStyle: "italic" }}>Unavailable</span>
                       )}
                     </div>
                   );
@@ -542,12 +542,12 @@ export default function AvailabilityPage() {
             )}
 
             {error && (
-              <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828", marginTop: 16 }}>
+              <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)", marginTop: 16 }}>
                 {error}
               </div>
             )}
             {success && (
-              <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#2E7D32", marginTop: 16 }}>
+              <div style={{ background: "var(--td-grey)", border: "1px solid var(--td-border-hard)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-ink-700)", marginTop: 16 }}>
                 Schedule saved.
               </div>
             )}
@@ -562,7 +562,7 @@ export default function AvailabilityPage() {
             {/* Add form */}
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Date</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4 }}>Date</label>
                 <input
                   type="date"
                   value={newDate}
@@ -571,7 +571,7 @@ export default function AvailabilityPage() {
                 />
               </div>
               <div style={{ flex: 1, minWidth: 160 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Reason (optional)</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4 }}>Reason (optional)</label>
                 <input
                   type="text"
                   value={newNote}
@@ -587,23 +587,23 @@ export default function AvailabilityPage() {
 
             {/* List */}
             {unavail.length === 0 ? (
-              <p style={{ fontSize: 13, color: "#94a3b8" }}>No blocked dates. Add dates you're unavailable above.</p>
+              <p style={{ fontSize: 13, color: "var(--td-muted)" }}>No blocked dates. Add dates you're unavailable above.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {unavail
                   .sort((a, b) => a.date.localeCompare(b.date))
                   .map(u => (
-                    <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #fee2e2", borderRadius: 10, background: "#fff5f5" }}>
+                    <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid var(--td-pink-tint)", borderRadius: 10, background: "var(--td-pink-soft)" }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--td-ink-800)" }}>
                           {new Date(u.date + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
                         </div>
-                        {u.note && <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{u.note}</div>}
+                        {u.note && <div style={{ fontSize: 12, color: "var(--td-muted-dark)", marginTop: 2 }}>{u.note}</div>}
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveDate(u.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4 }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--td-muted)", fontSize: 16, padding: 4 }}
                         title="Remove"
                       >
                         ✕

@@ -3,7 +3,7 @@ import { useFormContext, Controller } from 'react-hook-form';
 import { TagInput } from '../../fields/TagInput';
 
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 
 const STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
 
@@ -60,7 +60,7 @@ export function ProviderStep05_ServiceCoverage() {
                   onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((x: string) => x !== s) : [...cur, s]); }}
                   style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                     border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                    background: sel ? 'var(--clr-primary)' : '#fff', color: sel ? '#fff' : 'var(--clr-text)' }}>
+                    background: sel ? 'var(--clr-primary)' : 'var(--td-white)', color: sel ? 'var(--td-white)' : 'var(--clr-text)' }}>
                   {s}
                 </button>
               );
@@ -71,7 +71,7 @@ export function ProviderStep05_ServiceCoverage() {
 
       {/* Service mode */}
       <div>
-        <label style={labelStyle}>Service Delivery Mode <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Service Delivery Mode <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'flex', gap: 8 }}>
           {[
             { value: 'IN_PERSON', label: 'In-person' },
@@ -81,7 +81,7 @@ export function ProviderStep05_ServiceCoverage() {
             <label key={opt.value} style={{
               flex: 1, padding: '10px 6px', borderRadius: 10, textAlign: 'center', cursor: 'pointer',
               border: `1.5px solid ${mode === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-              background: mode === opt.value ? 'rgba(79,70,229,0.05)' : '#fff',
+              background: mode === opt.value ? 'rgba(183,37,88,0.05)' : 'var(--td-white)',
               fontSize: 13, fontWeight: 500,
             }}>
               <input type="radio" value={opt.value} {...register('serviceMode')} style={{ display: 'none' }} />
@@ -89,7 +89,7 @@ export function ProviderStep05_ServiceCoverage() {
             </label>
           ))}
         </div>
-        {errors.serviceMode && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.serviceMode.message as string}</p>}
+        {errors.serviceMode && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.serviceMode.message as string}</p>}
       </div>
 
     </div>

@@ -4,28 +4,36 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-tiles";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { type Job } from "@/components/jobs/job-card";
 import { LiveDashboardCard } from "@/components/jobs/live-dashboard-card";
 import { JobFiltersPanel, type LiveDashboardFilters } from "@/components/jobs/job-filters-panel";
-import { URGENCY_TABS, URGENCY_STYLE, inp } from "@/lib/constants/job-filters";
 import { cn } from "@/lib/utils";
-import { Zap, Clock, CalendarClock, CalendarDays } from "lucide-react";
+import { UrgencySegmented } from "@/components/jobs/urgency-segmented";
+import type { LucideIcon } from "lucide-react";
+import { Search, SearchX, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, Lock } from "lucide-react";
 
 const defaultFilters: LiveDashboardFilters = {
   category: "", shiftType: "", fundingType: "", isRecurring: "",
   postedWithin: "", dateFrom: "", dateTo: "", sortBy: "urgency",
 };
 
-const POST_TILES: ActionTile[] = [
-  { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
-  { key: "urgent",      icon: Clock,        title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
-  { key: "last-minute", icon: CalendarClock,title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
-  { key: "routine",     icon: CalendarDays, title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
+// Legend for the card footers. These are the real states a card can be in —
+// there is no access/lock level on a job — so each is shown only to the role
+// that can actually encounter it.
+type CardState = {
+  icon: LucideIcon;
+  roles: ("worker" | "poster")[];
+  title: string;
+  sub: string;
+};
+
+const CARD_STATES: CardState[] = [
+  { icon: CheckCircle2,      roles: ["worker"], title: "Open for applications", sub: "Apply or accept the shift now." },
+  { icon: CheckCircle2,      roles: ["worker"], title: "Application sent",      sub: "You have applied — awaiting a response." },
+  { icon: SlidersHorizontal, roles: ["poster"], title: "Your request",          sub: "Open it to manage applications." },
+  { icon: Lock,              roles: ["poster"], title: "View only",             sub: "Workers and providers can apply to this one." },
 ];
 
 export default function LiveDashboardPage() {
@@ -44,8 +52,6 @@ export default function LiveDashboardPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<LiveDashboardFilters>(defaultFilters);
   const [appliedFilters, setAppliedFilters] = useState<LiveDashboardFilters>(defaultFilters);
-
-  const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
 
   const load = useCallback((f: LiveDashboardFilters, sub: string, urg: string, p: number) => {
@@ -122,95 +128,193 @@ export default function LiveDashboardPage() {
   const activeFilterCount = Object.entries(appliedFilters).filter(
     ([k, v]) => k !== "sortBy" && v !== "" && v !== defaultFilters[k as keyof LiveDashboardFilters]
   ).length;
+  // Suburb and urgency live outside `appliedFilters`, but the empty state has
+  // to offer "clear" whenever any of the three is narrowing the results.
+  const hasActiveSearch = activeFilterCount > 0 || suburb !== "" || urgency !== "";
+  const totalPages = Math.ceil(total / 20);
 
   return (
     <>
-      <PageHeader
-        title="Live Dashboard"
-        description={`${total} open support request${total !== 1 ? "s" : ""} across the platform`}
-      />
-      <div className="mx-auto px-5 py-6 space-y-6">
-        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
-        {error && <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
-
-        {canPost && (
-          <ActionTilesCard
-            title="Post a support request"
-            tiles={POST_TILES}
-            note="Shiftify is not an emergency service. If there is immediate danger, call 000."
-          />
-        )}
-
-        {/* Top bar: urgency pills + search + filters */}
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {URGENCY_TABS.map(({ value, label }) => (
-              <button key={value} type="button" onClick={() => { setUrgency(value); setPage(1); }}
-                className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors inline-flex items-center gap-1.5",
-                  urgency === value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
-                {label}
-                {value && (
-                  <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: urgency === value ? "#fff" : URGENCY_STYLE[value]?.color }} />
-                )}
-              </button>
-            ))}
+      <div className="mx-auto px-6 py-7 space-y-6">
+        {/* Header: title, standing description, suburb search */}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-brand-600 ring-4 ring-brand-100" />
+              <h1 className="text-[28px] font-bold leading-none tracking-tight text-slate-900">Live Dashboard</h1>
+            </div>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-500">
+              Real-time support requests from across the platform.<br />
+              Find the right shift, when it suits you.
+            </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <form
-              onSubmit={(e) => { e.preventDefault(); setSuburb(suburbInput.trim()); setPage(1); }}
-              className="flex gap-2 flex-1 min-w-[220px]"
-            >
+
+          <form
+            onSubmit={(e) => { e.preventDefault(); setSuburb(suburbInput.trim()); setPage(1); }}
+            className="flex w-full gap-3 lg:w-auto"
+          >
+            <div className="relative w-full lg:w-[380px]">
+              <Search aria-hidden className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                className={cn(inp, "flex-1")}
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-card transition-colors placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                 placeholder="Search by suburb…"
                 value={suburbInput}
                 onChange={(e) => setSuburbInput(e.target.value)}
               />
-              <Button type="submit" variant="outline" size="sm" className="h-9">Search</Button>
-            </form>
-            <Button variant="outline" size="sm" className="h-9" onClick={() => setShowFilters(v => !v)}>
-              {showFilters ? "Hide Filters" : `Filters${activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}`}
-            </Button>
-            {activeFilterCount > 0 && <button onClick={resetFilters} className="text-xs text-brand-600 hover:underline">Reset</button>}
-          </div>
-          {showFilters && (
-            <Card>
-              <CardContent className="py-4 px-4">
-                <JobFiltersPanel filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
-              </CardContent>
-            </Card>
-          )}
+            </div>
+            <button
+              type="submit"
+              className="h-12 shrink-0 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-card transition-colors hover:border-slate-300 hover:text-slate-900"
+            >
+              Search
+            </button>
+          </form>
         </div>
 
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
+        {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+        {/* Urgency tabs + advanced filters */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <UrgencySegmented
+            value={urgency}
+            onChange={v => { setUrgency(v); setPage(1); }}
+            className="min-w-0 flex-1"
+          />
+          <div className="flex shrink-0 items-center gap-2">
+            {activeFilterCount > 0 && (
+              <button onClick={resetFilters} className="px-1 text-xs font-medium text-slate-500 transition-colors hover:text-brand-700">
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowFilters(v => !v)}
+              className={cn(
+                "inline-flex h-11 items-center gap-2 rounded-xl border px-5 text-sm font-semibold transition-colors",
+                showFilters || activeFilterCount > 0
+                  ? "border-brand-200 bg-brand-50 text-brand-700"
+                  : "border-slate-200 bg-white text-slate-700 shadow-card hover:border-slate-300 hover:text-slate-900",
+              )}
+            >
+              <SlidersHorizontal className="h-4 w-4" strokeWidth={2.25} />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold tabular-nums text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {showFilters && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+            <JobFiltersPanel filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
+          </div>
+        )}
+
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-56 rounded-2xl bg-slate-100 animate-pulse" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+                <div className="space-y-3 p-4">
+                  <div className="h-5 w-20 animate-pulse rounded-full bg-slate-100" />
+                  <div className="space-y-2">
+                    <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" />
+                  </div>
+                  <div className="space-y-2 pt-1">
+                    <div className="h-3 w-3/4 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
+                    <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
+                  </div>
+                  <div className="h-9 w-28 animate-pulse rounded-lg bg-slate-100" />
+                </div>
+                <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3">
+                  <div className="h-8 w-full animate-pulse rounded-lg bg-slate-100" />
+                </div>
+              </div>
             ))}
           </div>
         ) : jobs.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-base font-semibold text-slate-700">No open jobs found</p>
-            <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or check back later.</p>
-            {activeFilterCount > 0 && <Button className="mt-4" variant="outline" onClick={resetFilters}>Clear Filters</Button>}
+          <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 px-6 py-16 text-center">
+            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <SearchX className="h-6 w-6" />
+            </span>
+            <p className="text-base font-semibold text-slate-900">No open requests found</p>
+            <p className="mt-1 max-w-sm text-sm text-slate-500">
+              {hasActiveSearch
+                ? "Nothing matches these filters right now. Try widening your search or clearing them."
+                : "There are no open support requests on the platform right now. Check back shortly."}
+            </p>
+            {hasActiveSearch && (
+              <Button className="mt-5" variant="outline" onClick={resetFilters}>Clear all filters</Button>
+            )}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[13px] text-slate-500">
+                Showing <span className="font-semibold tabular-nums text-slate-900">{jobs.length}</span> of{" "}
+                <span className="font-semibold tabular-nums text-slate-900">{total}</span> open request{total !== 1 ? "s" : ""}
+              </p>
+              {totalPages > 1 && (
+                <p className="shrink-0 text-[13px] tabular-nums text-slate-400">Page {page} of {totalPages}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {jobs.map(job => (
                 <LiveDashboardCard key={job.id} job={job} canApply={canApply} applying={applying === job.id}
                   onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)}
                   onToggleSave={() => handleToggleSave(job)} onToggleHide={() => handleToggleHide(job)} />
               ))}
             </div>
-            {total > 20 && (
-              <div className="flex justify-center gap-3 mt-8">
-                <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
-                <span className="flex items-center text-sm text-slate-500">Page {page} of {Math.ceil(total / 20)}</span>
-                <Button variant="ghost" size="sm" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(p => p + 1)}>Next</Button>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-2">
+                <Button variant="secondary" size="sm" className="h-9" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronLeft className="h-4 w-4" /> Previous
+                </Button>
+                <span className="px-3 text-[13px] font-medium tabular-nums text-slate-500">
+                  {page} / {totalPages}
+                </span>
+                <Button variant="secondary" size="sm" className="h-9" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  Next <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </>
+        )}
+
+        {!loading && jobs.length > 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-card">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+              <h2 className="w-40 shrink-0 text-base font-bold leading-snug text-slate-900">
+                What the card<br />footer means
+              </h2>
+              <div className="grid flex-1 gap-6 sm:grid-cols-2">
+                {CARD_STATES.filter(s => s.roles.includes(canApply ? "worker" : "poster")).map(s => {
+                  const Icon = s.icon;
+                  return (
+                    <div key={s.title} className="flex items-start gap-3">
+                      <span
+                        aria-hidden
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 ring-1 ring-brand-100"
+                      >
+                        <Icon className="h-5 w-5" strokeWidth={2.2} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900">{s.title}</p>
+                        <p className="mt-0.5 text-[13px] leading-snug text-slate-500">{s.sub}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>

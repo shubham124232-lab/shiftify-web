@@ -8,7 +8,7 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 42, padding: '0 12px',
   borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)',
-  fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box',
+  fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box',
 };
 
 export function WorkerStep06_ServiceAreas() {
@@ -63,7 +63,7 @@ export function WorkerStep06_ServiceAreas() {
                 style={{
                   flex: 1, height: 42, borderRadius: 10, fontWeight: 700, fontSize: 13,
                   border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: selected ? 'rgba(79,70,229,0.07)' : '#fff',
+                  background: selected ? 'rgba(183,37,88,0.07)' : 'var(--td-white)',
                   color: selected ? 'var(--clr-primary)' : 'var(--clr-text)', cursor: 'pointer',
                 }}>
                 {opt}
@@ -85,7 +85,7 @@ export function WorkerStep06_ServiceAreas() {
                 style={{
                   flex: 1, height: 42, borderRadius: 10, fontWeight: 700, fontSize: 13,
                   border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: selected ? 'rgba(79,70,229,0.07)' : '#fff',
+                  background: selected ? 'rgba(183,37,88,0.07)' : 'var(--td-white)',
                   color: selected ? 'var(--clr-primary)' : 'var(--clr-text)', cursor: 'pointer',
                 }}>
                 {opt}
@@ -98,14 +98,14 @@ export function WorkerStep06_ServiceAreas() {
       {/* Vehicle details — conditional */}
       {hasVehicle && (
         <div style={{
-          background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)',
+          background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.15)',
           borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
             <i className="bi bi-car-front-fill" style={{ marginRight: 6 }} />
             Vehicle Details
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--clr-text)' }}>My vehicle has valid, current insurance</div>
             </div>
@@ -125,9 +125,9 @@ export function WorkerStep06_ServiceAreas() {
             <div>
               <label style={labelStyle}>Year</label>
               <input type="number" {...register('vehicleDetails.year', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
-                placeholder="e.g. 2020" style={{ ...inputStyle, borderColor: (errors.vehicleDetails as any)?.year ? '#ef4444' : undefined }} />
+                placeholder="e.g. 2020" style={{ ...inputStyle, borderColor: (errors.vehicleDetails as any)?.year ? 'var(--td-pink)' : undefined }} />
               {(errors.vehicleDetails as any)?.year && (
-                <p style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{(errors.vehicleDetails as any).year.message}</p>
+                <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 3 }}>{(errors.vehicleDetails as any).year.message}</p>
               )}
             </div>
             <div>
@@ -136,11 +136,11 @@ export function WorkerStep06_ServiceAreas() {
             </div>
           </div>
           <div>
-            <label style={labelStyle}>Registration Plate <span style={{ color: '#ef4444' }}>*</span></label>
+            <label style={labelStyle}>Registration Plate <span style={{ color: 'var(--td-pink)' }}>*</span></label>
             <input {...register('vehicleDetails.rego')} placeholder="e.g. ABC123"
-              style={{ ...inputStyle, borderColor: (errors.vehicleDetails as any)?.rego ? '#ef4444' : 'var(--clr-border)' }} />
+              style={{ ...inputStyle, borderColor: (errors.vehicleDetails as any)?.rego ? 'var(--td-pink)' : 'var(--clr-border)' }} />
             {(errors.vehicleDetails as any)?.rego && (
-              <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{(errors.vehicleDetails as any).rego.message}</p>
+              <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{(errors.vehicleDetails as any).rego.message}</p>
             )}
           </div>
         </div>

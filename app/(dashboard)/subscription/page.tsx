@@ -22,11 +22,11 @@ function fmtDate(d: string | null) {
 }
 
 const STATUS_CHIP: Record<string, { bg: string; color: string; label: string }> = {
-  ACTIVE:    { bg: '#dcfce7', color: '#15803d', label: 'Active'    },
-  TRIALING:  { bg: '#fef9c3', color: '#854d0e', label: 'Trial'     },
-  CANCELLED: { bg: '#fee2e2', color: '#b91c1c', label: 'Cancelled' },
-  EXPIRED:   { bg: '#fee2e2', color: '#b91c1c', label: 'Expired'   },
-  PAST_DUE:  { bg: '#fef3c7', color: '#92400e', label: 'Past Due'  },
+  ACTIVE:    { bg: 'var(--td-grey)', color: 'var(--td-ink-700)', label: 'Active'    },
+  TRIALING:  { bg: 'var(--td-grey)', color: 'var(--td-ink-800)', label: 'Trial'     },
+  CANCELLED: { bg: 'var(--td-pink-tint)', color: 'var(--td-pink-hover)', label: 'Cancelled' },
+  EXPIRED:   { bg: 'var(--td-pink-tint)', color: 'var(--td-pink-hover)', label: 'Expired'   },
+  PAST_DUE:  { bg: 'var(--td-grey)', color: 'var(--td-ink-800)', label: 'Past Due'  },
 };
 
 export default function SubscriptionPage() {
@@ -75,7 +75,7 @@ export default function SubscriptionPage() {
         <PageHeader title="Subscription" description="Manage your plan and billing." />
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {[1, 2].map(i => (
-            <div key={i} style={{ height: 100, background: '#f3f4f6', borderRadius: 12, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            <div key={i} style={{ height: 100, background: 'var(--td-grey)', borderRadius: 12, animation: 'pulse 1.5s ease-in-out infinite' }} />
           ))}
         </div>
       </>
@@ -88,8 +88,8 @@ export default function SubscriptionPage() {
       <>
         <PageHeader title="Subscription" description="Manage your plan and billing." />
         <div style={{ maxWidth: 680, margin: '0 auto', padding: '32px 20px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 36, textAlign: 'center' }}>
-            <div style={{ width: 56, height: 56, background: 'rgba(194,24,91,0.08)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <div style={{ background: 'var(--td-white)', border: '1px solid var(--td-border)', borderRadius: 14, padding: 36, textAlign: 'center' }}>
+            <div style={{ width: 56, height: 56, background: 'rgba(183,37,88,0.08)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <i className="bi bi-gift-fill" style={{ color: 'var(--clr-primary)', fontSize: 24 }} />
             </div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 800, color: 'var(--clr-text)', margin: '0 0 10px' }}>Free for Participants</h2>
@@ -112,7 +112,7 @@ export default function SubscriptionPage() {
         </button>
 
         {/* ── Current plan card ─────────────────────────────────────────── */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24 }}>
+        <div style={{ background: 'var(--td-white)', border: '1px solid var(--td-border)', borderRadius: 14, padding: 24 }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--clr-muted)', marginBottom: 16 }}>
             Current Plan
           </div>
@@ -142,12 +142,12 @@ export default function SubscriptionPage() {
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#dc2626' }}>No active subscription</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--td-pink)' }}>No active subscription</div>
                 <div style={{ fontSize: 13, color: 'var(--clr-muted)', marginTop: 4 }}>
                   Select a plan below to unlock posting and job applications.
                 </div>
               </div>
-              <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 12, fontWeight: 700, borderRadius: 100, padding: '5px 14px' }}>
+              <span style={{ background: 'var(--td-pink-tint)', color: 'var(--td-pink-hover)', fontSize: 12, fontWeight: 700, borderRadius: 100, padding: '5px 14px' }}>
                 Inactive
               </span>
             </div>
@@ -161,8 +161,8 @@ export default function SubscriptionPage() {
 
           {/* Locked warning if no active sub */}
           {(!sub || sub.status !== 'ACTIVE') && (
-            <div style={{ marginTop: 16, background: '#FFF9C4', border: '1px solid #F59E0B', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#78350f', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <i className="bi bi-lock-fill" style={{ color: '#f59e0b', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
+            <div style={{ marginTop: 16, background: 'var(--td-grey-tint)', border: '1px solid var(--td-muted-dark)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: 'var(--td-dark-text)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <i className="bi bi-lock-fill" style={{ color: 'var(--td-muted-dark)', fontSize: 16, marginTop: 1, flexShrink: 0 }} />
               <div>
                 <strong>Jobs are locked.</strong> You cannot post or apply to jobs until you have an active subscription. Select a plan below.
               </div>
@@ -172,13 +172,13 @@ export default function SubscriptionPage() {
 
         {/* ── Plan options ─────────────────────────────────────────────── */}
         {plans.length > 0 && (
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24 }}>
+          <div style={{ background: 'var(--td-white)', border: '1px solid var(--td-border)', borderRadius: 14, padding: 24 }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--clr-muted)', marginBottom: 16 }}>
               {sub?.status === 'ACTIVE' ? 'Change Plan' : 'Choose a Plan'}
             </div>
 
             {upgradeError && (
-              <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#b91c1c', marginBottom: 14 }}>
+              <div style={{ background: 'var(--td-pink-tint)', border: '1px solid var(--td-pink)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--td-pink-hover)', marginBottom: 14 }}>
                 <i className="bi bi-exclamation-circle" style={{ marginRight: 6 }} />{upgradeError}
               </div>
             )}
@@ -189,15 +189,15 @@ export default function SubscriptionPage() {
                 const isWorking = upgrading === plan.id;
                 const didActivate = upgradeOk === plan.id;
                 return (
-                  <div key={plan.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 10, border: isCurrent ? '2px solid var(--clr-primary)' : '1.5px solid #e5e7eb', background: isCurrent ? 'rgba(194,24,91,0.03)' : '#fff', transition: 'border 0.2s' }}>
+                  <div key={plan.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 10, border: isCurrent ? '2px solid var(--clr-primary)' : '1.5px solid var(--td-border)', background: isCurrent ? 'rgba(183,37,88,0.03)' : 'var(--td-white)', transition: 'border 0.2s' }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--clr-text)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         {plan.name}
                         {isCurrent && (
-                          <span style={{ background: 'rgba(194,24,91,0.1)', color: 'var(--clr-primary)', fontSize: 10, fontWeight: 800, borderRadius: 100, padding: '2px 8px' }}>Current</span>
+                          <span style={{ background: 'rgba(183,37,88,0.1)', color: 'var(--clr-primary)', fontSize: 10, fontWeight: 800, borderRadius: 100, padding: '2px 8px' }}>Current</span>
                         )}
                         {didActivate && !isCurrent && (
-                          <span style={{ color: '#16a34a', fontSize: 12 }}><i className="bi bi-check-circle-fill" /> Activated</span>
+                          <span style={{ color: 'var(--td-dark-text-soft)', fontSize: 12 }}><i className="bi bi-check-circle-fill" /> Activated</span>
                         )}
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--clr-muted)', marginTop: 3 }}>

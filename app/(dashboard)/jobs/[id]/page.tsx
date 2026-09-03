@@ -12,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
 import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
+import { URGENCY_STYLE } from "@/lib/constants/job-filters";
+import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
+import { ShieldAlert, HeartPulse, Users, KeyRound, PhoneCall, ListChecks, Flag, Send, MessageSquare } from "lucide-react";
 
 interface Applicant {
   id: string; applicantUserId: string; status: string; createdAt: string;
@@ -85,6 +89,15 @@ interface Assignment {
   workerUser: { id: string; name: string; avatarUrl?: string | null };
 }
 
+// One tint per hero fact, drawn from the existing accent tokens so the four
+// tiles are told apart at a glance without introducing new colours.
+const HERO_TILE_TONES = [
+  { bg: "var(--td-lastmin-soft)", ink: "var(--td-lastmin)" },
+  { bg: "var(--td-routine-soft)", ink: "var(--td-routine)" },
+  { bg: "var(--td-urgent-soft)",  ink: "var(--td-urgent)" },
+  { bg: "var(--td-chip-soft)",    ink: "var(--td-chip-ink)" },
+  { bg: "var(--td-rapid-soft)",   ink: "var(--td-rapid)" },
+];
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   OPEN:         { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
   ASSIGNED:     { bg: "var(--td-grey)", color: "var(--td-ink-700)" },
@@ -92,12 +105,6 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   CONFIRMED:    { bg: "var(--td-border)", color: "var(--td-dark-text)" },
   COMPLETED:    { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
   CANCELLED:    { bg: "var(--td-pink)", color: "var(--td-white)" },
-};
-const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  RAPID:        { bg: "var(--td-pink)", color: "var(--td-white)" },
-  URGENT:       { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
-  LAST_MINUTE:  { bg: "var(--td-border)", color: "var(--td-dark-text)" },
-  ROUTINE:      { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
 };
 // Pricing V2 §8 / 15.2 — must match Backend's FEATURED_SHIFT_CONFIG exactly.
 const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: string }> = {
@@ -604,69 +611,98 @@ export default function JobDetailPage() {
   const otherPartyId = isOwner ? workerPartyId : job.postedBy.id;
   const myReview = reviews.find(r => r.raterUserId === user?.id);
 
+  const heroFacts = [
+    { label: "Location", value: job.addressLine || `${job.suburb}, ${job.state}` },
+    { label: "Starts", value: new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) },
+    ...(job.scheduledEndAt
+      ? [{ label: "Ends", value: new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) }]
+      : []),
+    ...(job.totalHours ? [{ label: "Duration", value: `${job.totalHours} hours` }] : []),
+    ...(job.assignedWorker ? [{ label: "Assigned to", value: job.assignedWorker.name }] : []),
+  ];
+
   return (
     <>
-      <PageHeader title={job.title} description={`Posted by ${job.postedBy.name}`} />
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Hero — carries identity, status and the shift's key facts. */}
+      <header className="border-b border-slate-200 bg-slate-50">
+        <div className="mx-auto max-w-[1100px] px-6 py-8">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="mb-5 inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-500 transition-colors hover:text-slate-900"
+          >
+            <span aria-hidden>&larr;</span> Back
+          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-white"
+              style={{ background: urg.solid }}
+            >
+              {job.urgency.replace("_", " ")}
+            </span>
+            <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.07em] text-slate-700 ring-1 ring-inset ring-slate-200">
+              {job.status.replace("_", " ")}
+            </span>
+            <span className="inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-slate-500 ring-1 ring-inset ring-slate-200">
+              {catLabel}
+            </span>
+          </div>
+
+          <h1 className="mt-4 max-w-3xl text-[30px] font-bold leading-[1.2] tracking-[-0.02em] text-slate-900">
+            {job.title}
+          </h1>
+          <p className="mt-2 text-[13px] text-slate-500">
+            Posted by <span className="font-medium text-slate-900">{job.postedBy.name}</span>
+          </p>
+
+          {job.description && (
+            <p className="mt-5 max-w-3xl whitespace-pre-wrap text-[15px] leading-relaxed text-slate-600">
+              {job.description}
+            </p>
+          )}
+
+          {/* Each fact gets its own tint so the four read as separate facts, not one block. */}
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {heroFacts.map((f, i) => {
+              const tone = HERO_TILE_TONES[i % HERO_TILE_TONES.length];
+              return (
+                <div key={f.label} className="rounded-xl px-4 py-3.5 ring-1 ring-inset ring-black/[0.04]" style={{ background: tone.bg }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: tone.ink }}>
+                    {f.label}
+                  </p>
+                  <p className="mt-1 text-[14px] font-semibold leading-snug text-slate-900">{f.value}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {job.status === "ASSIGNED" && !job.addressLine && (isOwner || workerPartyId === user?.id) && (
+            <p className="mt-4 text-[12px] font-medium text-slate-500">
+              {job.workerConfirmedAt
+                ? "Confirmed — full address released above"
+                : isOwner
+                  ? "Awaiting worker/provider confirmation — the exact address stays hidden until they accept"
+                  : "Accept the assignment below to see the exact address"}
+            </p>
+          )}
+        </div>
+      </header>
+
+      <div className="bg-white">
+        <div className="mx-auto flex max-w-[1100px] flex-col gap-5 px-6 py-7">
 
         {error && (
-          <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
+          <div className="rounded-xl border border-[var(--td-rapid-soft)] bg-[var(--td-rapid-soft)] px-4 py-3 text-[13px] text-[var(--td-rapid)]">
             {error}
           </div>
         )}
 
         {job.promotedFromCancellation && (
-          <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
-            ⚠ This request was reposted as urgent after the original worker/provider cancelled close to the start time.
+          <div className="rounded-xl border border-[var(--td-rapid-soft)] bg-[var(--td-rapid-soft)] px-4 py-3 text-[13px] text-[var(--td-rapid)]">
+            This request was reposted as urgent after the original worker/provider cancelled close to the start time.
           </div>
         )}
-
-        {/* Status + badges */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: sta.bg, color: sta.color }}>
-            {job.status.replace("_", " ")}
-          </span>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 700, background: urg.bg, color: urg.color }}>
-            {job.urgency.replace("_", " ")}
-          </span>
-          <span style={{ padding: "4px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "var(--td-grey)", color: "var(--td-muted-dark)" }}>
-            {catLabel}
-          </span>
-        </div>
-
-        {/* Main info */}
-        <Card>
-          <CardContent style={{ paddingTop: 20 }}>
-            {job.description && (
-              <p style={{ fontSize: 14, color: "var(--td-dark-text-soft)", lineHeight: 1.6, marginBottom: 16 }}>{job.description}</p>
-            )}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13 }}>
-              <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Location:</span> {job.suburb}, {job.state}</div>
-              {job.addressLine && (
-                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Address:</span> {job.addressLine}</div>
-              )}
-              {job.status === "ASSIGNED" && !job.addressLine && (isOwner || workerPartyId === user?.id) && (
-                <div style={{ gridColumn: "1 / -1", fontSize: 12, fontWeight: 600, color: job.workerConfirmedAt ? "var(--td-ink-700)" : "var(--td-ink-800)" }}>
-                  {job.workerConfirmedAt
-                    ? "Confirmed — full address released above"
-                    : isOwner
-                      ? "Awaiting worker/provider confirmation — exact address is hidden until they accept"
-                      : "Accept the assignment below to see the exact address"}
-                </div>
-              )}
-              <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Start:</span> {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
-              {job.scheduledEndAt && (
-                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>End:</span> {new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
-              )}
-              {job.totalHours && (
-                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Hours:</span> {job.totalHours}h</div>
-              )}
-              {job.assignedWorker && (
-                <div><span style={{ color: "var(--td-muted)", fontWeight: 600 }}>Assigned to:</span> {job.assignedWorker.name}</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Before/during support (SW doc Windows 32-33) — worker-only shortcuts */}
         {workerPartyId === user?.id && ["ASSIGNED", "IN_PROGRESS"].includes(job.status) && (
@@ -738,55 +774,51 @@ export default function JobDetailPage() {
         {/* Care & Safety Notes — visible to poster and worker, shown only if any note was provided */}
         {(() => {
           const checkedFlags = SAFETY_CHECKLIST.filter(f => job.workerPreferences?.safetyFlags?.[f.key]);
-          if (!(job.riskSafetyNotes || job.medicalNotes || job.behaviourNotes || job.locationNotes || job.emergencyContactName || checkedFlags.length > 0)) return null;
+          const notes = [
+            checkedFlags.length > 0 && {
+              icon: ListChecks, label: "Safety & property checklist",
+              body: <ul className="m-0 list-disc space-y-0.5 pl-4">{checkedFlags.map(f => <li key={f.key}>{f.label}</li>)}</ul>,
+            },
+            job.riskSafetyNotes  && { icon: ShieldAlert, label: "Risk & safety",        body: job.riskSafetyNotes },
+            job.medicalNotes     && { icon: HeartPulse,  label: "Medical considerations", body: job.medicalNotes },
+            job.behaviourNotes   && { icon: Users,       label: "Behaviour notes",      body: job.behaviourNotes },
+            job.locationNotes    && { icon: KeyRound,    label: "Access & location",    body: job.locationNotes },
+            job.emergencyContactName && {
+              icon: PhoneCall, label: "Emergency contact for this shift",
+              body: [job.emergencyContactName,
+                     job.emergencyContactRelationship && `(${job.emergencyContactRelationship})`,
+                     job.emergencyContactPhone && `— ${job.emergencyContactPhone}`].filter(Boolean).join(" "),
+            },
+          ].filter(Boolean) as { icon: LucideIcon; label: string; body: React.ReactNode }[];
+
+          if (notes.length === 0) return null;
           return (
-          <Card style={{ borderColor: "var(--td-border)", background: "var(--td-grey-tint)" }}>
-            <CardHeader><CardTitle style={{ color: "var(--td-ink-800)" }}>⚠ Care & Safety Notes</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {checkedFlags.length > 0 && (
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+              <div className="flex items-center gap-3 bg-[var(--td-rapid-soft)] px-6 py-4">
+                <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-[var(--td-rapid)]">
+                  <ShieldAlert className="h-[18px] w-[18px]" strokeWidth={2.1} />
+                </span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Safety & Property Checklist</div>
-                  <ul style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0, paddingLeft: 18 }}>
-                    {checkedFlags.map(f => <li key={f.key}>{f.label}</li>)}
-                  </ul>
+                  <h2 className="text-[15px] font-bold leading-tight text-slate-900">Care &amp; safety notes</h2>
+                  <p className="mt-0.5 text-[12px] text-slate-500">Read these before the shift starts.</p>
                 </div>
-              )}
-              {job.riskSafetyNotes && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Risk & Safety</div>
-                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.riskSafetyNotes}</p>
-                </div>
-              )}
-              {job.medicalNotes && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Medical Considerations</div>
-                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.medicalNotes}</p>
-                </div>
-              )}
-              {job.behaviourNotes && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Behaviour Notes</div>
-                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.behaviourNotes}</p>
-                </div>
-              )}
-              {job.locationNotes && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Access & Location Notes</div>
-                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", whiteSpace: "pre-wrap", margin: 0 }}>{job.locationNotes}</p>
-                </div>
-              )}
-              {job.emergencyContactName && (
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 3 }}>Emergency Contact (this shift)</div>
-                  <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0 }}>
-                    {job.emergencyContactName}
-                    {job.emergencyContactRelationship && ` (${job.emergencyContactRelationship})`}
-                    {job.emergencyContactPhone && ` — ${job.emergencyContactPhone}`}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {notes.map(n => {
+                  const Icon = n.icon;
+                  return (
+                    <div key={n.label} className="flex gap-3.5 px-6 py-4">
+                      <Icon aria-hidden className="mt-0.5 h-[15px] w-[15px] shrink-0 text-slate-400" strokeWidth={1.9} />
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">{n.label}</p>
+                        <div className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-slate-700">{n.body}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           );
         })()}
 
@@ -1427,47 +1459,98 @@ export default function JobDetailPage() {
         )}
 
         {/* Messages */}
-        <Card>
-          <CardHeader><CardTitle>Messages</CardTitle></CardHeader>
-          <CardContent>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16, maxHeight: 320, overflowY: "auto" }}>
-              {messages.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--td-muted)" }}>No messages yet.</p>
-              ) : messages.map(m => (
-                <div key={m.id} style={{ padding: "10px 14px", borderRadius: 10, background: m.senderId === user?.id ? "rgba(183,37,88,0.06)" : "var(--td-grey-tint)", border: "1px solid var(--td-border)" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--td-muted)", marginBottom: 4, display: "flex", justifyContent: "space-between" }}>
-                    <span>{m.senderName} - {new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}</span>
-                    {m.senderId !== user?.id && (
-                      <button type="button" onClick={() => blockUser(m.senderId)} disabled={blockingUserId === m.senderId}
-                        className="text-[11px] font-semibold text-red-500 bg-transparent border-none cursor-pointer p-0">
-                        {blockingUserId === m.senderId ? "Blocking…" : "Block"}
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 14, color: "var(--td-ink-800)" }}>{m.body}</div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
+            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <MessageSquare className="h-[17px] w-[17px]" strokeWidth={2.1} />
+            </span>
+            <div className="flex-1">
+              <h2 className="text-[15px] font-bold leading-tight text-slate-900">Messages</h2>
+              <p className="mt-0.5 text-[12px] text-slate-500">
+                {messages.length === 0 ? "Nothing sent yet" : `${messages.length} message${messages.length === 1 ? "" : "s"}`}
+              </p>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input
-                value={msgBody}
-                onChange={e => setMsgBody(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                placeholder="Type a message..."
-                style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, outline: "none" }}
-              />
-              <Button onClick={sendMessage} disabled={sending || !msgBody.trim()}>
-                {sending ? "..." : "Send"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="max-h-[360px] overflow-y-auto px-6 py-5">
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <span aria-hidden className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                  <MessageSquare className="h-5 w-5" strokeWidth={1.9} />
+                </span>
+                <p className="text-[13px] font-semibold text-slate-900">No messages yet</p>
+                <p className="mt-1 text-[12px] text-slate-500">Start the conversation below.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {messages.map(m => {
+                  const mine = m.senderId === user?.id;
+                  return (
+                    <div key={m.id} className={cn("flex flex-col gap-1", mine ? "items-end" : "items-start")}>
+                      <div className="flex items-center gap-2 px-1 text-[11px] text-slate-400">
+                        <span className="font-semibold text-slate-500">{mine ? "You" : m.senderName}</span>
+                        <span>{new Date(m.createdAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}</span>
+                        {!mine && (
+                          <button
+                            type="button"
+                            onClick={() => blockUser(m.senderId)}
+                            disabled={blockingUserId === m.senderId}
+                            className="font-semibold text-slate-400 transition-colors hover:text-[var(--td-rapid)]"
+                          >
+                            {blockingUserId === m.senderId ? "Blocking…" : "Block"}
+                          </button>
+                        )}
+                      </div>
+                      <div
+                        className={cn(
+                          "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed",
+                          mine
+                            ? "rounded-br-md bg-brand-600 text-white"
+                            : "rounded-bl-md border border-slate-200 bg-slate-50 text-slate-700",
+                        )}
+                      >
+                        {m.body}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
+            <input
+              value={msgBody}
+              onChange={e => setMsgBody(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
+              placeholder="Type a message…"
+              className="h-11 flex-1 rounded-full border border-slate-200 bg-white px-4 text-[13.5px] text-slate-900 transition-colors placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            />
+            <button
+              type="button"
+              onClick={sendMessage}
+              disabled={sending || !msgBody.trim()}
+              aria-label="Send message"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            >
+              <Send className="h-[17px] w-[17px]" strokeWidth={2.1} />
+            </button>
+          </div>
+        </section>
 
         {/* Incident report — pilot safety gate */}
-        <Card>
-          <CardHeader><CardTitle>Report an issue</CardTitle></CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+          <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
+            <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--td-rapid-soft)] text-[var(--td-rapid)]">
+              <Flag className="h-[16px] w-[16px]" strokeWidth={2.1} />
+            </span>
+            <div>
+              <h2 className="text-[15px] font-bold leading-tight text-slate-900">Report an issue</h2>
+              <p className="mt-0.5 text-[12px] text-slate-500">Something unsafe or not right about this shift.</p>
+            </div>
+          </div>
+          <div className="px-6 py-5">
             {flagSent ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0 }}>Reported — an admin has been notified.</p>
@@ -1482,8 +1565,8 @@ export default function JobDetailPage() {
                 )}
               </div>
             ) : !showFlagForm ? (
-              <Button variant="ghost" onClick={() => setShowFlagForm(true)}>
-                🚩 Flag an incident
+              <Button variant="outline" onClick={() => setShowFlagForm(true)}>
+                Flag an incident
               </Button>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1548,9 +1631,10 @@ export default function JobDetailPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
+        </div>
       </div>
 
       {showCancelModal && (

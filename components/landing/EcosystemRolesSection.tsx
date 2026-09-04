@@ -22,7 +22,7 @@ const roles: Role[] = [
     linkText: 'Find support',
     href: '#marketplace',
     Icon: FiHeart,
-    color: '#DB2777',
+    color: 'var(--td-pink)',
     image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=500&q=80&auto=format&fit=crop',
     imageAlt: 'Participant with their support worker',
   },
@@ -33,7 +33,7 @@ const roles: Role[] = [
     linkText: 'Coordinator tools',
     href: '/register',
     Icon: FiUsers,
-    color: '#F97316',
+    color: 'var(--td-pink)',
     image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=500&q=80&auto=format&fit=crop',
     imageAlt: 'Coordinator reviewing a caseload on a laptop',
   },
@@ -44,7 +44,7 @@ const roles: Role[] = [
     linkText: 'For providers',
     href: '/register',
     Icon: FiHome,
-    color: '#2563EB',
+    color: 'var(--td-dark-text-soft)',
     image: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=500&q=80&auto=format&fit=crop',
     imageAlt: 'Provider managing operations at a desk',
   },
@@ -55,7 +55,7 @@ const roles: Role[] = [
     linkText: 'Find shifts',
     href: '/register',
     Icon: FiBriefcase,
-    color: '#059669',
+    color: 'var(--td-pink)',
     image: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?w=500&q=80&auto=format&fit=crop',
     imageAlt: 'Support worker checking shifts on their phone',
   },
@@ -66,13 +66,13 @@ const roles: Role[] = [
     linkText: 'Learn more',
     href: '/register',
     Icon: FiCalendar,
-    color: '#7C3AED',
+    color: 'var(--td-black)',
   },
 ];
 
 export default function EcosystemRolesSection() {
   return (
-    <section id="ecosystem-roles" className="section-py roles-grid-bg" aria-labelledby="roles-grid-heading">
+    <section id="ecosystem-roles" className="section-py roles-grid-bg" aria-labelledby="roles-grid-heading" style={{ display: 'none' }}>
       <div className="container-xl">
 
         <div className="grid lg:grid-cols-12 gap-5 items-start mb-8 fade-up">
@@ -96,14 +96,14 @@ export default function EcosystemRolesSection() {
               <a href={role.href} className="role-grid-card">
                 <div
                   className="role-grid-image-wrap"
-                  style={!role.image ? { background: `linear-gradient(160deg, ${role.color}, #1A1A2E)` } : undefined}
+                  style={!role.image ? { background: role.color } : undefined}
                 >
                   {role.image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={role.image} alt={role.imageAlt} className="role-grid-image" loading="lazy" />
                   )}
                   <span className="role-grid-icon" style={{ background: role.color }}>
-                    <role.Icon size={16} color="#fff" strokeWidth={2} />
+                    <role.Icon size={16} color="var(--td-white)" strokeWidth={2} />
                   </span>
                 </div>
                 <div className="role-grid-body">

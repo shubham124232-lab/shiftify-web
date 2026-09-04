@@ -2,18 +2,18 @@
 'use client';
 
 const quickSupport = [
-  { icon: 'bi-exclamation-triangle-fill', title: 'Rapid',                 desc: 'A worker has cancelled',       color: '#DC2626', href: '#emergency',   time: '< 60 mins' },
-  { icon: 'bi-clock-fill',                title: 'Urgent Support',        desc: 'Needed within a few hours',     color: '#7C3AED', href: '#marketplace', time: '1-4 hrs'            },
-  { icon: 'bi-calendar-check-fill',       title: 'Last-Minute Support',   desc: 'Needed today or soon',          color: '#EA580C', href: '#marketplace', time: '24-48 hrs'          },
-  { icon: 'bi-people-fill',               title: 'Regular Support',       desc: 'Future or recurring',           color: '#C2185B', href: '#marketplace', time: 'Routine'            },
+  { icon: 'bi-exclamation-triangle-fill', title: 'Rapid',                 desc: 'A worker has cancelled',       color: 'var(--td-pink)', href: '#emergency',   time: '< 60 mins' },
+  { icon: 'bi-clock-fill',                title: 'Urgent Support',        desc: 'Needed within a few hours',     color: 'var(--td-black)', href: '#marketplace', time: '1-4 hrs'            },
+  { icon: 'bi-calendar-check-fill',       title: 'Last-Minute Support',   desc: 'Needed today or soon',          color: 'var(--td-dark-text)', href: '#marketplace', time: '24-48 hrs'          },
+  { icon: 'bi-people-fill',               title: 'Regular Support',       desc: 'Future or recurring',           color: 'var(--td-dark-text-soft)', href: '#marketplace', time: 'Routine'            },
 ] as const;
 
 const roles = [
-  { icon: 'bi-people-fill',        title: 'Participant',         desc: 'Find and book the right support for you',        color: '#DB2777', bg: 'rgba(219,39,119,0.1)', roleValue: 'PARTICIPANT' },
-  { icon: 'bi-person-fill',        title: 'Support Worker',      desc: 'Find shifts that match your skills & availability', color: '#16A34A', bg: 'rgba(22,163,74,0.1)', roleValue: 'SUPPORT_WORKER' },
-  { icon: 'bi-diagram-3-fill',     title: 'Support Coordinator', desc: 'Manage and coordinate participant supports',     color: '#7C3AED', bg: 'rgba(124,58,237,0.1)', roleValue: 'COORDINATOR' },
-  { icon: 'bi-building-fill',      title: 'Provider',            desc: 'Find workers and grow your services',            color: '#EA580C', bg: 'rgba(234,88,12,0.1)', roleValue: 'PROVIDER' },
-  { icon: 'bi-wallet2',            title: 'Plan Manager',        desc: 'Review and manage supports & budgets',           color: '#2563EB', bg: 'rgba(37,99,235,0.1)', roleValue: 'PLAN_MANAGER' },
+  { icon: 'bi-people-fill',        title: 'Participant',         desc: 'Find and book the right support for you', roleValue: 'PARTICIPANT', tone: 'pink' },
+  { icon: 'bi-person-fill',        title: 'Support Worker',      desc: 'Find shifts that match your skills & availability', roleValue: 'SUPPORT_WORKER', tone: 'light' },
+  { icon: 'bi-diagram-3-fill',     title: 'Support Coordinator', desc: 'Manage and coordinate participant supports', roleValue: 'COORDINATOR', tone: 'grey' },
+  { icon: 'bi-building-fill',      title: 'Provider',            desc: 'Find workers and grow your services', roleValue: 'PROVIDER', tone: 'light' },
+  { icon: 'bi-wallet2',            title: 'Plan Manager',        desc: 'Review and manage supports & budgets', roleValue: 'PLAN_MANAGER', tone: 'grey' },
 ] as const;
 
 export default function HeroSection() {
@@ -54,13 +54,13 @@ export default function HeroSection() {
                     style={{
                       position: 'absolute', top: 12, right: 12,
                       fontSize: 10.5, fontWeight: 700, color: item.color,
-                      background: `${item.color}14`, padding: '4px 11px', borderRadius: 100,
+                      background: `color-mix(in srgb, ${item.color} 10%, var(--td-white))`, padding: '4px 11px', borderRadius: 100,
                       whiteSpace: 'nowrap',
                     }}
                   >
                     {item.time}
                   </span>
-                  <span className="quick-card-icon" style={{ background: item.color, color: '#fff' }}>
+                  <span className="quick-card-icon" style={{ background: item.color, color: 'var(--td-white)' }}>
                     <i className={`bi ${item.icon}`} aria-hidden="true" />
                   </span>
                   <h3 className="quick-card-title">{item.title}</h3>
@@ -71,11 +71,11 @@ export default function HeroSection() {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-4 fade-up">
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#15803D', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.25)', padding: '6px 14px', borderRadius: 100 }}>
-                <i className="bi bi-clock-history" style={{ color: '#16A34A', fontSize: 15 }} aria-hidden="true" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--td-pink)', background: 'color-mix(in srgb, var(--td-pink) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--td-pink) 25%, transparent)', padding: '6px 14px', borderRadius: 100 }}>
+                <i className="bi bi-clock-history" style={{ color: 'var(--td-pink)', fontSize: 15 }} aria-hidden="true" />
                 24/7
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#15803D', background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.25)', padding: '6px 14px', borderRadius: 100 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--td-pink)', background: 'color-mix(in srgb, var(--td-pink) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--td-pink) 25%, transparent)', padding: '6px 14px', borderRadius: 100 }}>
                 <span style={{ fontSize: 18, fontWeight: 800 }}>0%</span>
                 Platform Commission
               </span>
@@ -84,12 +84,13 @@ export default function HeroSection() {
 
           {/* Right: Role selection panel */}
           <div className="hero-role-panel">
-            <h2 className="hero-role-title">HOW WILL YOU USE SHIFTIFY?</h2>
+            <span className="hero-role-eyebrow">Choose your role</span>
+            <h2 className="hero-role-title">How will you use Shiftify?</h2>
 
             <div className="hero-role-list" role="list">
               {roles.map((role) => (
-                <a key={role.title} href={`/register?role=${role.roleValue}`} className="hero-role-row" role="listitem">
-                  <span className="hero-role-icon" style={{ background: role.bg, color: role.color }}>
+                <a key={role.title} href={`/register?role=${role.roleValue}`} className={`hero-role-row hero-role-row--${role.tone}`} role="listitem">
+                  <span className="hero-role-icon">
                     <i className={`bi ${role.icon}`} aria-hidden="true" />
                   </span>
                   <span className="hero-role-text">

@@ -16,7 +16,7 @@ import EmergencyFAB        from '@/components/landing/EmergencyFAB';
 
 export default function HomePage() {
   return (
-    <>
+    <div className="td-home">
       <Header />
       <HeroSection />
       <UrgencyLanesSection />
@@ -32,6 +32,6 @@ export default function HomePage() {
       <FinalCTASection />
       <Footer />
       <EmergencyFAB />
-    </>
+    </div>
   );
 }

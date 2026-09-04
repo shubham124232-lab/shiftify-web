@@ -1,11 +1,11 @@
 // components/landing/TrustSection.tsx
 const trustItems = [
-  { icon: 'bi-patch-check-fill',  color: '#2563EB', title: 'Verified Workers',    desc: 'Every support worker undergoes identity verification, reference checks, and NDIS worker screening before joining.' },
-  { icon: 'bi-shield-fill-check', color: '#16A34A', title: 'NDIS Compliant',      desc: 'Fully compliant with NDIS Quality and Safeguards Commission requirements. All providers are NDIS-registered.' },
-  { icon: 'bi-star-fill',         color: '#F59E0B', title: 'Ratings & Reviews',   desc: 'Transparent two-way reviews build accountability. See real feedback from real participants before you book.' },
-  { icon: 'bi-lightning-fill',    color: '#C2185B', title: 'Emergency Response',  desc: 'Average emergency shift match in under 4 minutes. Our dedicated response team is on standby 24 hours a day.' },
-  { icon: 'bi-person-vcard-fill', color: '#7C3AED', title: 'Background Checked',  desc: 'Police checks, Working with Children checks, and NDIS Worker Screening Clearance for every single worker.' },
-  { icon: 'bi-lock-fill',         color: '#0D9488', title: 'Secure Messaging',    desc: 'End-to-end encrypted messaging keeps your conversations private and your personal information safe.' },
+  { icon: 'bi-patch-check-fill',  color: 'var(--td-dark-text-soft)', title: 'Verified Workers',    desc: 'Every support worker undergoes identity verification, reference checks, and NDIS worker screening before joining.' },
+  { icon: 'bi-shield-fill-check', color: 'var(--td-pink)', title: 'NDIS Compliant',      desc: 'Fully compliant with NDIS Quality and Safeguards Commission requirements. All providers are NDIS-registered.' },
+  { icon: 'bi-star-fill',         color: 'var(--td-pink)', title: 'Ratings & Reviews',   desc: 'Transparent two-way reviews build accountability. See real feedback from real participants before you book.' },
+  { icon: 'bi-lightning-fill',    color: 'var(--td-pink)', title: 'Emergency Response',  desc: 'Average emergency shift match in under 4 minutes. Our dedicated response team is on standby 24 hours a day.' },
+  { icon: 'bi-person-vcard-fill', color: 'var(--td-black)', title: 'Background Checked',  desc: 'Police checks, Working with Children checks, and NDIS Worker Screening Clearance for every single worker.' },
+  { icon: 'bi-lock-fill',         color: 'var(--td-dark-text-soft)', title: 'Secure Messaging',    desc: 'End-to-end encrypted messaging keeps your conversations private and your personal information safe.' },
 ] as const;
 
 const stats = [
@@ -17,7 +17,7 @@ const stats = [
 
 export default function TrustSection() {
   return (
-    <section id="trust" className="section-py trust-section-bg" aria-labelledby="trust-heading">
+    <section id="trust" className="section-py trust-section-bg" aria-labelledby="trust-heading" style={{ display: 'none' }}>
       <div className="container-xl">
         <div className="grid lg:grid-cols-12 gap-10 items-center">
 
@@ -47,7 +47,7 @@ export default function TrustSection() {
                   <div className="trust-item" role="article">
                     <div
                       className="trust-icon"
-                      style={{ background: `${item.color}18`, color: item.color }}
+                      style={{ background: `color-mix(in srgb, ${item.color} 12%, var(--td-white))`, color: item.color }}
                       aria-hidden="true"
                     >
                       <i className={`bi ${item.icon}`} />

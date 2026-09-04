@@ -67,7 +67,7 @@ const personas: Persona[] = [
 
 export default function StoryboardSection() {
   return (
-    <section id="storyboard" className="section-py storyboard-section-bg" aria-labelledby="storyboard-heading">
+    <section id="storyboard" className="section-py storyboard-section-bg" aria-labelledby="storyboard-heading" style={{ display: 'none' }}>
       <div className="container-xl">
 
         <div className="mb-10 fade-up">

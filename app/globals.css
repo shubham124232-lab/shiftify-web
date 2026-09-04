@@ -2331,7 +2331,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ---- Marketplace Section ---- */
 .market-section-bg {
-  background: var(--td-light-bg-1);
+  background: var(--td-white);
 }
 .market-live-pill {
   display: inline-flex;
@@ -2385,7 +2385,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 10px;
   background: var(--td-white);
-  border: 1.5px solid var(--clr-border);
+  border: 1px solid color-mix(in srgb, var(--td-dark-text) 13%, transparent);
   border-radius: 100px;
   padding: 8px 10px 8px 20px;
   box-shadow: var(--shadow-md);
@@ -2426,7 +2426,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   background: var(--td-white);
-  border: 1.5px solid var(--clr-border);
+  border: 1px solid color-mix(in srgb, var(--td-dark-text) 13%, transparent);
   border-left: 4px solid var(--clr-primary-light);
   border-radius: var(--card-radius);
   padding: 24px;
@@ -2579,7 +2579,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ---- Service Cards ---- */
 .services-section-bg {
-  background: var(--td-white);
+  background: var(--td-light-bg-1);
 }
 .trust-section-bg {
   background: var(--clr-primary-xlight);
@@ -3028,7 +3028,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: Georgia, serif;
   margin-bottom: 12px;
 }
-.testi-section { background: var(--td-white); }
+.testi-section { background: var(--td-light-bg-1); }
 .testi-stats-row {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -3103,7 +3103,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ---- Master Pricing Section ---- */
 .master-pricing-bg {
-  background: var(--td-light-bg-1);
+  background: var(--td-white);
 }
 .mp-note-pill {
   display: inline-flex;
@@ -3189,7 +3189,7 @@ h1, h2, h3, h4, h5, h6 {
   flex: 1 1 220px;
   max-width: 280px;
   background: var(--td-white);
-  border: 1.5px solid var(--clr-border);
+  border: 1px solid color-mix(in srgb, var(--td-dark-text) 13%, transparent);
   border-radius: 18px;
   padding: 22px;
   transition: all var(--transition);

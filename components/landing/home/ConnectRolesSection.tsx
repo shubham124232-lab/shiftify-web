@@ -1,4 +1,4 @@
-import { IconPersonLine, IconGroupLine, IconDocumentSolid, IconBuildingsSolid, IconCalculatorSolid } from './PremiumIcons';
+import { IconPersonLine, IconGroupLine, IconDocumentLine, IconBuildingsLine, IconCalculatorLine } from './PremiumIcons';
 import type { SVGProps } from 'react';
 
 interface Role {
@@ -11,7 +11,7 @@ interface Role {
 
 const roles: Role[] = [
   {
-    Icon: IconBuildingsSolid,
+    Icon: IconBuildingsLine,
     title: 'Provider',
     offer: 'First 10 actions free',
     href: '/register?role=PROVIDER',
@@ -25,7 +25,7 @@ const roles: Role[] = [
     accent: 'var(--sf-urgent)',
   },
   {
-    Icon: IconDocumentSolid,
+    Icon: IconDocumentLine,
     title: 'Support Coordinator',
     offer: 'First 10 actions free',
     href: '/register?role=COORDINATOR',
@@ -39,7 +39,7 @@ const roles: Role[] = [
     accent: 'var(--sf-pink)',
   },
   {
-    Icon: IconCalculatorSolid,
+    Icon: IconCalculatorLine,
     title: 'Plan Manager',
     offer: 'Manage NDIS funding & budgets',
     href: '/register?role=PLAN_MANAGER',

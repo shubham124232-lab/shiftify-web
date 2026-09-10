@@ -6,9 +6,10 @@ import { IconLastMinute, IconRapid, IconRoutine, IconUrgent } from './PremiumIco
 /* The word that swaps inside the headline — one per timing lane, each in its
    own tier colour. */
 const rotatingWords = [
-  { word: 'rapid',     color: 'var(--sf-rapid)'   },
-  { word: 'urgent',    color: 'var(--sf-urgent)'  },
-  { word: 'last min',  color: 'var(--sf-lastmin)' },
+  { word: 'rapid',     color: 'var(--sf-rapid-core)'   },
+  { word: 'urgent',    color: 'var(--sf-urgent-core)'  },
+  { word: 'last min',  color: 'var(--sf-lastmin-core)' },
+  { word: 'routine',   color: 'var(--sf-routine-core)' },
 ] as const;
 
 const tabs = [

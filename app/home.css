@@ -32,6 +32,13 @@
   --sf-lastmin:    #F71967;
   --sf-routine:    #547FC4;
 
+  /* The same four, never re-tinted for dark grounds — for spots that must
+     show the real brand colour (e.g. the rotating word in the hero). */
+  --sf-rapid-core:   #FF2340;
+  --sf-urgent-core:  #FF8500;
+  --sf-lastmin-core: #F71967;
+  --sf-routine-core: #547FC4;
+
   /* Icon accents draw from that same set. */
   --sf-accent-pink:  var(--sf-lastmin);
   --sf-accent-grey:  var(--sf-soft);
@@ -1056,7 +1063,14 @@
   transition: transform .3s cubic-bezier(.16, 1, .3, 1);
 }
 .sf-plan:hover { transform: translateY(-4px); }
-.sf-plan.featured { background: var(--sf-ink); color: #fff; }
+/* The lead plan borrows the hero's ground: ink with soft pink glows. */
+.sf-plan.featured {
+  background:
+    radial-gradient(460px 240px at 86% 0%, rgba(247, 25, 103, .30), transparent 62%),
+    radial-gradient(340px 220px at 6% 100%, rgba(247, 25, 103, .18), transparent 60%),
+    linear-gradient(160deg, #0A0E15 0%, #05080D 52%, #0C0910 100%);
+  color: #fff;
+}
 /* On ink the icon needs the lighter tint of its colour to read. */
 .sf-plan.featured { --a: color-mix(in srgb, var(--tile-accent) 70%, #fff); }
 
@@ -1459,11 +1473,12 @@
 .sf-plat-head { margin-bottom: 28px; }
 .sf-plat-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  /* Both tiles the same size — equal columns, stretched to one row height. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 26px;
   align-items: stretch;
 }
-.sf-plat-slot { display: flex; min-width: 0; }
+.sf-plat-slot { display: flex; min-width: 0; align-items: stretch; }
 .sf-plat-slot > .sf-plat-tile { flex: 1; }
 
 .sf-plat-tile {

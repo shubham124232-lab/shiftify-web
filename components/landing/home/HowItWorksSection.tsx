@@ -3,12 +3,6 @@
 import { useEffect, useState } from 'react';
 import { IconLastMinute, IconRapid, IconRoutine, IconUrgent } from './PremiumIcons';
 
-const steps = [
-  { n: 1, title: 'Post or discover support',                  desc: 'Create a request or browse available shifts.' },
-  { n: 2, title: 'Match by location, timing and requirements', desc: 'Our smart matching connects you with the right people.' },
-  { n: 3, title: 'Connect and confirm securely',               desc: 'Chat, align details and confirm support — safely on Shiftify.' },
-] as const;
-
 /* One entry per timing lane. `onAccent` is the text colour that stays
    readable on the lane's filled button. */
 const lanes = [
@@ -18,6 +12,11 @@ const lanes = [
     heading: 'Support needed in the next hour. Post it now.',
     body: 'A short request alerts suitable people who are available now and within your chosen area.',
     cta: 'Post rapid request',
+    steps: [
+      { title: 'Post your immediate need', desc: 'Flag it as Rapid and it goes out right away.' },
+      { title: 'Nearby workers are notified first', desc: 'Matching narrows to workers who can start within the hour.' },
+      { title: 'Confirm as soon as someone responds', desc: 'Lock in the worker and shift details fast.' },
+    ],
   },
   {
     key: 'urgent', window: '1 – 4 hrs', name: 'Urgent support', Icon: IconUrgent,
@@ -25,6 +24,11 @@ const lanes = [
     heading: 'Need someone later today? Get matched fast.',
     body: 'Your request goes straight to shortlisted workers nearby who can start within the next few hours.',
     cta: 'Post urgent request',
+    steps: [
+      { title: 'Post your request with your timeframe', desc: 'Set the window you need covered.' },
+      { title: 'Matching searches a wider pool', desc: 'Workers free in the next few hours are notified.' },
+      { title: 'Review responses and confirm', desc: 'Pick the right worker before the window closes.' },
+    ],
   },
   {
     key: 'lastmin', window: '4 – 48 hrs', name: 'Last-minute support', Icon: IconLastMinute,
@@ -32,6 +36,11 @@ const lanes = [
     heading: 'Cover for tomorrow? Lock it in today.',
     body: 'Reoffer a cancelled shift or fill a gap before it turns urgent — matched workers nearby respond within hours.',
     cta: 'Post last-minute request',
+    steps: [
+      { title: 'Post a cancelled shift or short-notice gap', desc: 'Reoffer it before it turns urgent.' },
+      { title: 'Nearby workers see it on the live board', desc: 'Anyone free in that window can respond.' },
+      { title: 'Confirm and lock it in', desc: 'Matched workers nearby typically respond within hours.' },
+    ],
   },
   {
     key: 'routine', window: '48 hrs +', name: 'Routine support', Icon: IconRoutine,
@@ -39,6 +48,11 @@ const lanes = [
     heading: 'Planning ahead? Build a regular routine.',
     body: 'Set up recurring support and meet workers who fit your schedule, goals and preferences.',
     cta: 'Plan routine support',
+    steps: [
+      { title: 'Post your upcoming need', desc: 'Set date, time and requirements in advance.' },
+      { title: 'Matching runs over a longer window', desc: 'More workers can see and respond.' },
+      { title: 'Review, compare and confirm', desc: 'Take your time choosing the right match.' },
+    ],
   },
 ] as const;
 
@@ -84,10 +98,16 @@ export default function HowItWorksSection() {
               From meet to confirmed support — all in one place.
             </p>
 
-            <div className="sf-steps">
-              {steps.map((s) => (
-                <div key={s.n} className="sf-step">
-                  <span className="sf-step-num">{s.n}</span>
+            {/* The steps follow whichever lane the panel is showing. */}
+            <p className="sf-steps-lane">
+              <span className="sf-steps-lane-dot" aria-hidden="true" />
+              {lane.name} <em>({lane.window})</em>
+            </p>
+
+            <div key={lane.key} className="sf-steps">
+              {lane.steps.map((s, i) => (
+                <div key={s.title} className="sf-step" style={{ animationDelay: `${i * 90}ms` }}>
+                  <span className="sf-step-num">{i + 1}</span>
                   <h3>{s.title}</h3>
                   <p>{s.desc}</p>
                 </div>

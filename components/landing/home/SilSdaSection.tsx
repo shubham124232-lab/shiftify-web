@@ -20,11 +20,11 @@ export default function SilSdaSection() {
 
           <div className="sf-sil-media">
             <Image
-              src="/images/house-line.png"
-              alt="Line illustration of a modern two-storey home"
-              width={1518}
+              src="/images/house.png"
+              alt="Illustration of a modern two-storey home"
+              width={1774}
               height={887}
-              sizes="546px"
+              sizes="720px"
               className="sf-sil-img"
             />
           </div>

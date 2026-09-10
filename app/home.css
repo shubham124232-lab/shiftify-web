@@ -1052,7 +1052,7 @@
   flex-direction: column;
   background: var(--sf-white);
   border-radius: 24px;
-  padding: 32px 30px 30px;
+  padding: 62px 30px 30px;
   transition: transform .3s cubic-bezier(.16, 1, .3, 1);
 }
 .sf-plan:hover { transform: translateY(-4px); }
@@ -1062,7 +1062,7 @@
 
 .sf-plan-badge {
   position: absolute;
-  top: 26px; right: 26px;
+  top: 24px; right: 30px;
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 1.2px;
@@ -1204,7 +1204,28 @@
   gap: 44px;
   align-items: center;
 }
-.sf-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 26px; min-width: 0; }
+/* Lane label above the steps, and the steps fading in on lane change. */
+.sf-steps-lane {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin: 26px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--lane-accent);
+}
+.sf-steps-lane em { font-style: normal; font-weight: 600; color: rgba(255, 255, 255, .55); }
+.sf-steps-lane-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--lane-accent);
+}
+.sf-step { animation: sf-step-in .5s ease both; }
+@keyframes sf-step-in { from { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { .sf-step { animation: none; } }
+.sf-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 18px; min-width: 0; }
 .sf-steps > * { min-width: 0; }
 .sf-step { position: relative; }
 .sf-step-num {
@@ -1368,7 +1389,7 @@
    ============================================================ */
 /* No bottom padding: the house sits right on the section's bottom edge,
    as if standing on the next section. The copy keeps its own spacing. */
-.sf-sil { background: var(--sf-surface-mist); padding: 64px 0 0; }
+.sf-sil { background: #EDF3FF; padding: 64px 0 0; }
 .sf-sil-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1392,7 +1413,13 @@
   transform: translateX(110px) rotate(-4deg);
 }
 /* The illustration is a transparent PNG — let it sit straight on the section. */
-.sf-sil-media { min-width: 0; justify-self: end; width: 546px; max-width: 100%; }
+.sf-sil-media {
+  min-width: 0;
+  justify-self: end;
+  width: 720px;
+  max-width: 100%;
+  margin-bottom: -48px;
+}
 .sf-sil-img {
   display: block;
   width: 100%;
@@ -1405,10 +1432,30 @@
 /* ============================================================
    PLATINUM TILES
    Reveal: tiles rise in and a solid curtain wipes off each one.
-   Scroll: --p (0 to 1, set in JS) sweeps a glint across the tiles;
-   the tiles themselves stay locked together at equal height.
+   Shine: the metal sheen drifts, and a soft light tracks the pointer.
+   Scroll: --p (0 to 1, set in JS) drifts the crown watermark.
    ============================================================ */
-.sf-plat { background: var(--sf-white); padding: 64px 0 72px; overflow: hidden; }
+.sf-plat {
+  position: relative;
+  background: var(--sf-white);
+  padding: 64px 0 72px;
+  overflow: hidden;
+  /* Brushed platinum: a cool silver sweep plus fine vertical brushing. */
+  --metal: linear-gradient(100deg,
+    #d5d9df 0%, #f6f8fa 7%, #a9b0b9 15%, #e8ebef 23%, #949ba5 32%,
+    #fafbfc 41%, #b6bcc4 51%, #e3e7eb 61%, #8f96a1 71%, #f0f3f5 81%,
+    #b0b7bf 91%, #dde1e6 100%);
+  --metal-brush: repeating-linear-gradient(90deg, rgba(255, 255, 255, .16) 0 1px, rgba(5, 8, 13, .05) 1px 2px, transparent 2px 3px);
+  /* Top-to-bottom shade, so the plate curves into the light like real metal. */
+  --metal-shade: linear-gradient(180deg, rgba(255, 255, 255, .34) 0%, rgba(255, 255, 255, 0) 38%, rgba(5, 8, 13, .06) 72%, rgba(5, 8, 13, .16) 100%);
+  --metal-edge: #5f656e;
+  /* Brushed gold for the listing tile. */
+  --gold: linear-gradient(100deg,
+    #e9cd88 0%, #fff5d6 7%, #c0973a 15%, #f6e2a8 23%, #a37c22 32%,
+    #fffaea 41%, #d6b05c 51%, #f2e2ac 61%, #9c7519 71%, #fff0c8 81%,
+    #cdab53 91%, #eaddaf 100%);
+  --gold-edge: #6a4c12;
+}
 .sf-plat-head { margin-bottom: 28px; }
 .sf-plat-grid {
   display: grid;
@@ -1424,7 +1471,16 @@
   isolation: isolate;
   overflow: hidden;
   border-radius: 28px;
-  transition: transform .5s cubic-bezier(.16, 1, .3, 1), border-color .3s ease;
+  /* Bevelled edges plus a drop shadow, so each tile reads as a metal plate
+     resting on the page rather than a flat panel. */
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, .55),
+    inset 2px 0 0 rgba(255, 255, 255, .22),
+    inset -2px 0 0 rgba(5, 8, 13, .22),
+    inset 0 -2px 0 rgba(5, 8, 13, .4),
+    0 2px 4px rgba(5, 8, 13, .18),
+    0 26px 50px -24px rgba(5, 8, 13, .55);
+  transition: transform .5s cubic-bezier(.16, 1, .3, 1), box-shadow .4s ease, border-color .3s ease;
 }
 .sf-plat-tile > :not(.sf-plat-curtain):not(.sf-plat-glint):not(.sf-plat-watermark) { position: relative; z-index: 2; }
 
@@ -1440,17 +1496,61 @@
 }
 .sf-plat-listing .sf-plat-curtain { background: var(--sf-ink); }
 
-/* Glint: a flat, skewed band of light that tracks the scroll position. */
+/* Highlight, two layers:
+   1. The metal itself breathes — its sheen drifts slowly across the tile.
+   2. A soft light follows the pointer, the way a lamp moves over real metal. */
+.sf-plat-promo,
+.sf-plat-listing {
+  background-size: 200% 100%, 100% 100%, 200% 100%;
+  background-position: 0% 0%, 0% 0%, 0% 0%;
+  animation: sf-sheen 18s ease-in-out infinite;
+}
+@keyframes sf-sheen {
+  50% { background-position: 100% 0%, 0% 0%, 100% 0%; }
+}
 .sf-plat-glint {
   position: absolute;
-  top: -40%; bottom: -40%; left: 0;
-  width: 20%;
+  inset: 0;
   z-index: 1;
-  background: rgba(255, 255, 255, .07);
-  transform: translateX(calc(var(--p, 0) * 800% - 200%)) skewX(-20deg);
+  background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(255, 255, 255, .9) 0%,
+    rgba(255, 255, 255, .35) 35%,
+    rgba(255, 255, 255, 0) 65%);
+  opacity: 0;
   pointer-events: none;
+  transition: opacity .5s ease;
 }
-.sf-plat-listing .sf-plat-glint { background: color-mix(in srgb, var(--sf-pink) 6%, transparent); }
+.sf-plat-tile:hover .sf-plat-glint { opacity: 1; }
+/* Torch: a round pool of light sweeping left to right across the metal,
+   the way a phone flashlight is walked over a surface. */
+.sf-plat-tile::after {
+  content: '';
+  position: absolute;
+  top: -60%; bottom: -60%; left: 0;
+  width: 52%;
+  z-index: 1;
+  background: radial-gradient(closest-side ellipse at center,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, .8) 26%,
+    rgba(255, 255, 255, .45) 48%,
+    rgba(255, 255, 255, .16) 70%,
+    rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  animation: sf-torch 7s ease-in-out infinite;
+}
+.sf-plat-slot + .sf-plat-slot .sf-plat-tile::after { animation-delay: -3.5s; }
+@keyframes sf-torch {
+  0%        { transform: translateX(-90%) scale(.92); opacity: 0; }
+  10%       { opacity: 1; }
+  50%       { transform: translateX(120%) scale(1.06); opacity: 1; }
+  62%       { transform: translateX(220%) scale(.95); opacity: 0; }
+  100%      { transform: translateX(220%) scale(.95); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-plat-promo, .sf-plat-listing, .sf-plat-tile::after { animation: none; }
+  .sf-plat-tile::after { opacity: 0; }
+  .sf-plat-glint { transition: none; }
+}
 
 /* Start state only once JS has mounted, so no-JS visitors still see the tiles. */
 .sf-plat.is-ready .sf-plat-tile { opacity: 0; transform: translateY(90px); }
@@ -1466,7 +1566,17 @@
 }
 .sf-plat.is-in .sf-plat-slot + .sf-plat-slot .sf-plat-tile { transition-delay: .15s; }
 .sf-plat.is-in .sf-plat-slot + .sf-plat-slot .sf-plat-curtain { transition-delay: .65s; }
-.sf-plat.is-in .sf-plat-tile:hover { transform: translateY(-6px); transition-delay: 0s; }
+.sf-plat.is-in .sf-plat-tile:hover {
+  transform: translateY(-6px);
+  transition-delay: 0s;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, .65),
+    inset 2px 0 0 rgba(255, 255, 255, .26),
+    inset -2px 0 0 rgba(5, 8, 13, .24),
+    inset 0 -2px 0 rgba(5, 8, 13, .42),
+    0 3px 6px rgba(5, 8, 13, .2),
+    0 38px 64px -26px rgba(5, 8, 13, .6);
+}
 
 .sf-plat-chip {
   display: inline-flex;
@@ -1487,9 +1597,9 @@
   align-items: flex-start;
   justify-content: center;
   padding: 34px 40px 36px;
-  background: var(--sf-ink);
-  color: #fff;
-  border: 1px solid var(--sf-ink);
+  background: var(--metal-brush), var(--metal-shade), var(--metal);
+  color: var(--sf-ink);
+  border: 0;
 }
 .sf-plat-promo::before {
   content: '';
@@ -1505,17 +1615,17 @@
   right: -56px; bottom: -64px;
   width: 240px; height: 240px;
   z-index: 0;
-  color: #fff;
-  opacity: .07;
+  color: var(--sf-ink);
+  opacity: .1;
   transform: rotate(-14deg) translateY(calc((.5 - var(--p, .5)) * 50px));
   pointer-events: none;
 }
 .sf-plat-promo .sf-plat-chip {
-  color: var(--sf-ink);
-  background: var(--sf-surface-mist);
+  color: #fff;
+  background: var(--sf-ink);
   margin-bottom: 16px;
 }
-.sf-plat-promo .sf-plat-chip svg { color: var(--sf-pink); }
+.sf-plat-promo .sf-plat-chip svg { color: var(--sf-pink-soft); }
 .sf-plat-promo h3 {
   font-family: var(--font-display);
   font-size: clamp(26px, 2.4vw, 34px);
@@ -1528,7 +1638,7 @@
 .sf-plat-promo p {
   font-size: 15.5px;
   line-height: 1.6;
-  color: rgba(255, 255, 255, .7);
+  color: rgba(5, 8, 13, .8);
   max-width: 470px;
   margin: 0 0 18px;
 }
@@ -1539,11 +1649,11 @@
   gap: 8px 20px;
   margin: 0 0 22px;
   padding: 16px 0 0;
-  border-top: 1px solid rgba(255, 255, 255, .12);
+  border-top: 1px solid rgba(5, 8, 13, .18);
   width: 100%;
   max-width: 470px;
 }
-.sf-plat-perks li { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, .9); }
+.sf-plat-perks li { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: var(--sf-ink); }
 .sf-plat-perks i {
   display: grid; place-items: center;
   width: 20px; height: 20px; flex: none;
@@ -1560,10 +1670,9 @@
   gap: 16px;
   padding: 24px;
   color: var(--sf-text);
-  background: var(--sf-white);
-  border: 2px solid var(--sf-ink);
+  border: 0;
+  background: var(--metal-brush), var(--metal-shade), var(--gold);
 }
-.sf-home .sf-plat-listing:hover { border-color: var(--sf-pink); }
 .sf-plat-listing:focus-visible { outline: 3px solid var(--sf-pink); outline-offset: 3px; }
 .sf-plat-listing-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sf-plat-listing .sf-plat-chip { color: #fff; background: var(--sf-ink); }
@@ -1583,7 +1692,8 @@
   min-height: 110px;
   border-radius: 18px;
   color: var(--sf-ink);
-  background: var(--sf-surface-mist);
+  background: rgba(255, 255, 255, .58);
+  border: 1px solid rgba(255, 255, 255, .7);
 }
 .sf-plat-thumb svg { transition: transform .5s cubic-bezier(.34, 1.4, .64, 1); }
 .sf-plat-listing:hover .sf-plat-thumb svg { transform: scale(1.08); }
@@ -1634,6 +1744,15 @@
   transition: background .25s ease, transform .35s cubic-bezier(.34, 1.4, .64, 1);
 }
 .sf-plat-listing:hover .sf-plat-chev { background: var(--sf-pink); transform: rotate(45deg); }
+
+/* ---- Listing on gold: firmer text, frosted pills ---- */
+.sf-plat-listing .sf-plat-sponsored,
+.sf-plat-listing .sf-plat-loc { color: rgba(5, 8, 13, .78); }
+.sf-plat-listing .sf-plat-feats span {
+  color: var(--sf-ink);
+  background: rgba(255, 255, 255, .68);
+  border-color: rgba(5, 8, 13, .14);
+}
 
 @media (max-width: 1080px) {
   .sf-plat-grid { grid-template-columns: 1fr; }
@@ -1721,7 +1840,7 @@
   .sf-how-grid  { grid-template-columns: 1fr; gap: 34px; }
   .sf-sil-grid  { grid-template-columns: 1fr; gap: 16px; }
   .sf-sil-copy  { padding-bottom: 0; }
-  .sf-sil-media { justify-self: center; width: 494px; }
+  .sf-sil-media { justify-self: center; width: 620px; }
   .sf-sil-script { transform: rotate(-4deg); }
   .sf-card-grid { grid-template-columns: repeat(2, 1fr); }
   .sf-footer-grid { grid-template-columns: repeat(3, 1fr); }
@@ -1738,7 +1857,7 @@
   .sf-topbar-legend { display: none; }
   .sf-section { padding: 54px 0; }
   .sf-card-grid { grid-template-columns: 1fr; }
-  .sf-sil-media { width: 416px; }
+  .sf-sil-media { width: 100%; }
   .sf-sil-actions { flex-wrap: wrap; row-gap: 18px; }
   .sf-sil-script { margin-left: 4px; text-align: left; }
   .sf-steps { grid-template-columns: 1fr; gap: 18px; }

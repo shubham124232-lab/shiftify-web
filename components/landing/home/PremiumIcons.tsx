@@ -300,6 +300,17 @@ export const IconPulse = (p: IconProps) => (
   </Svg>
 );
 
+export const IconCrown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3.4 8.2 7.9 12 12 5.2l4.1 6.8 4.5-3.8-1.9 10.4H5.3z" {...soft} />
+    <path d="M3.4 8.2 7.9 12 12 5.2l4.1 6.8 4.5-3.8-1.9 10.4H5.3z" />
+    <path d="M5.6 21h12.8" />
+    <circle cx="12" cy="3.6" r="1.1" fill="currentColor" stroke="none" />
+    <circle cx="3" cy="6.9" r="1" fill="currentColor" stroke="none" />
+    <circle cx="21" cy="6.9" r="1" fill="currentColor" stroke="none" />
+  </Svg>
+);
+
 export const IconGem = (p: IconProps) => (
   <Svg {...p}>
     <path d="M6 3.4h12l3.4 5.2L12 20.6 2.6 8.6z" {...soft} />

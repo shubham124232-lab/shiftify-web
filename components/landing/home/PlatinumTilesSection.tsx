@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { IconGem, IconSilSda } from './PremiumIcons';
+import type { PointerEvent } from 'react';
+import { IconCrown, IconSilSda } from './PremiumIcons';
 
 /* Two motion layers:
    1. Reveal — the first time the section scrolls in, each tile rises into
       place and a solid curtain wipes off it.
    2. Scroll-linked — while the section is on screen, `--p` (0 → 1) tracks
-      how far it has travelled through the viewport. It drives a glint that
-      sweeps across the tiles and a gentle drift of the watermark.
+      how far it has travelled through the viewport, drifting the watermark.
+   3. Pointer light — `--mx`/`--my` move a soft highlight over the metal.
    Nothing is hidden until the component mounts, and reduced-motion users
    get the static layout. */
 export default function PlatinumTilesSection() {
@@ -56,6 +57,13 @@ export default function PlatinumTilesSection() {
     };
   }, []);
 
+  /* The pointer light: store the cursor position in tile coordinates. */
+  const trackLight = (e: PointerEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+  };
+
   return (
     <section
       ref={ref}
@@ -72,13 +80,13 @@ export default function PlatinumTilesSection() {
         <div className="sf-plat-grid">
 
           <div className="sf-plat-slot">
-            <div className="sf-plat-tile sf-plat-promo">
+            <div className="sf-plat-tile sf-plat-promo" onPointerMove={trackLight}>
               <span className="sf-plat-curtain" aria-hidden="true" />
               <span className="sf-plat-glint" aria-hidden="true" />
-              <IconGem className="sf-plat-watermark" aria-hidden="true" />
+              <IconCrown className="sf-plat-watermark" aria-hidden="true" />
 
               <span className="sf-plat-chip">
-                <IconGem width={15} height={15} /> Platinum tile
+                <IconCrown width={15} height={15} /> Platinum tile
               </span>
               <h3>Put your business at the top.</h3>
               <p>
@@ -98,13 +106,13 @@ export default function PlatinumTilesSection() {
           </div>
 
           <div className="sf-plat-slot">
-            <a href="/sil-sda" className="sf-plat-tile sf-plat-listing">
+            <a href="/sil-sda" className="sf-plat-tile sf-plat-listing" onPointerMove={trackLight}>
               <span className="sf-plat-curtain" aria-hidden="true" />
               <span className="sf-plat-glint" aria-hidden="true" />
 
               <div className="sf-plat-listing-head">
                 <span className="sf-plat-chip">
-                  <IconGem width={15} height={15} /> Platinum tile
+                  <IconCrown width={15} height={15} /> Platinum tile
                 </span>
                 <span className="sf-plat-sponsored">Sponsored</span>
               </div>

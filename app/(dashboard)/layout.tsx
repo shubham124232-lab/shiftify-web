@@ -14,6 +14,11 @@ import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
 // (so the user can actually go fix their profile without getting redirect-looped)
 const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability", "/help-safety", "/blocked-users"];
 
+// Pages accessible WITHOUT logging in at all — guest job-post draft flow.
+// See [[guest-draft-job-post-design]] memory. Rendered without the sidebar/
+// topbar chrome below, since there's no user to show it for.
+const PUBLIC_EXEMPT = ["/jobs/post"];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();
   const profileCompletion  = useAuthStore(s => s.profileCompletion);
@@ -29,12 +34,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isPublicExempt = PUBLIC_EXEMPT.some(p => pathname.startsWith(p));
+
   useEffect(() => {
     if (loading) return;
 
-    // 1. Not authenticated -> login
+    // 1. Not authenticated -> login (unless this page allows guests)
     if (!isAuth || !user) {
-      router.replace("/login");
+      if (!isPublicExempt) router.replace("/login");
       return;
     }
 
@@ -65,7 +72,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!isParticipant && user.status !== "ACTIVE") {
       router.replace("/subscription");
     }
-  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified]);
+  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified, isPublicExempt]);
+
+  // Guest on a publicly-exempt page (e.g. /jobs/post) -- render the page with
+  // no sidebar/topbar chrome, since there's no logged-in user to show it for.
+  if (!loading && (!isAuth || !user) && isPublicExempt) {
+    return <main className="min-h-screen bg-slate-50">{children}</main>;
+  }
 
   // Not authenticated and done loading -- render nothing, redirect fires above
   if (!loading && (!isAuth || !user)) return null;

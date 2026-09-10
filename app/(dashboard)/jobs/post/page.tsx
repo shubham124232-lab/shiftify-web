@@ -7,12 +7,14 @@
 // account creation) are unrelated pre-existing flows (/, /register) and are
 // not part of this page.
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { TIER_META, type PostingTier } from "@/lib/types/posting";
+import { saveGuestRole, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const TIER_ORDER: PostingTier[] = ["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
 
@@ -25,13 +27,45 @@ const TIER_DESCRIPTIONS: Record<PostingTier, string> = {
 
 export default function PostRequestTierPicker() {
   const router = useRouter();
-  const { activeRole } = useAuth();
+  const { activeRole, isAuth } = useAuth();
+  const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
+
+  useEffect(() => {
+    if (!isAuth) setGuestRole(loadGuestRole());
+  }, [isAuth]);
 
   if (activeRole && !["PARTICIPANT", "COORDINATOR"].includes(activeRole)) {
     return (
       <>
         <PageHeader title="Post a Support Request" />
         <div className="px-5 py-8 text-sm text-slate-500">Only participants and support coordinators can post support requests.</div>
+      </>
+    );
+  }
+
+  // Guest, no role chosen yet — ask before showing the tier list.
+  if (!isAuth && !guestRole) {
+    return (
+      <>
+        <PageHeader title="Post a Support Request" description="Who is this request for?" />
+        <div className="mx-auto max-w-2xl px-5 py-6 space-y-3">
+          <button
+            type="button"
+            onClick={() => { saveGuestRole("PARTICIPANT"); setGuestRole("PARTICIPANT"); }}
+            className="w-full text-left border rounded-xl px-5 py-4 transition-colors hover:border-brand-400 hover:bg-brand-50/40 border-slate-200"
+          >
+            <span className="text-base font-semibold text-slate-800">I need support myself</span>
+            <p className="text-sm text-slate-500 mt-1">Posting as a participant.</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => { saveGuestRole("COORDINATOR"); setGuestRole("COORDINATOR"); }}
+            className="w-full text-left border rounded-xl px-5 py-4 transition-colors hover:border-brand-400 hover:bg-brand-50/40 border-slate-200"
+          >
+            <span className="text-base font-semibold text-slate-800">I&apos;m posting for someone else</span>
+            <p className="text-sm text-slate-500 mt-1">Posting as a support coordinator.</p>
+          </button>
+        </div>
       </>
     );
   }

@@ -19,6 +19,8 @@ import { getStepsForRole } from '@/lib/registration';
 import { STEP_COMPONENTS }  from '@/lib/registration/stepComponents';
 import { sanitisePayload } from '@/lib/utils';
 import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
+import { peekGuestDraft } from '@/lib/store/guestJobDraft';
+import { TIER_META } from '@/lib/types/posting';
 
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
@@ -343,6 +345,18 @@ function RegisterPageInner() {
         if (current) useAuthStore.setState({ user: { ...current, status: UserStatus.ACTIVE } });
       }
       setShowOtp(false);
+
+      // Guest job-post draft saved before registering — send them back to finish
+      // posting instead of the profile page. See [[guest-draft-job-post-design]].
+      const draft = peekGuestDraft();
+      if (draft) {
+        if (role === UserRole.PARTICIPANT && typeof draft.state.suburb === 'string' && draft.state.suburb) {
+          try { await upsertProfile('PARTICIPANT', { defaultSuburb: draft.state.suburb }); } catch { /* best-effort prefill */ }
+        }
+        router.replace(`/jobs/post/${TIER_META[draft.tier].path}`);
+        return;
+      }
+
       // Registration ends here — role/details/OTP only. Push straight to /profile
       // for every role (including Participant, who is already ACTIVE by this point
       // and would otherwise skip the dashboard-layout gate entirely). Remaining

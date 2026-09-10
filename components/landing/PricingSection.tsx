@@ -26,7 +26,7 @@ const plans: Plan[] = [
     tabLabel: 'Participants',
     tiers: [
       {
-        label: 'Free', price: '$0', period: 'always', color: '#DB2777', isPrimary: true,
+        label: 'Free', price: '$0', period: 'always', color: 'var(--td-dark-text-soft)', isPrimary: true,
         features: [
           'Post jobs, search providers & workers',
           'View SIL / SDA listings',
@@ -41,19 +41,19 @@ const plans: Plan[] = [
     tabLabel: 'Support Coordinators',
     tiers: [
       {
-        label: 'Free', price: '$0', period: '5 posts / month', color: '#059669',
+        label: 'Free', price: '$0', period: '5 posts / month', color: 'var(--td-dark-text-soft)',
         features: ['Profile creation', 'Registration', '5 job posts per month'],
       },
       {
-        label: 'Basic', price: '$49.99', period: '/month', color: '#F97316', isPrimary: true,
+        label: 'Basic', price: '$49.99', period: '/month', color: 'var(--td-pink)', isPrimary: true,
         features: ['Post unlimited jobs', 'Manage participants', 'Receive applications', 'Live availability of SW and Providers'],
       },
       {
-        label: '+ Growth', price: '$29.99', period: 'add-on', color: '#2563EB',
+        label: '+ Growth', price: '$29.99', period: 'add-on', color: 'var(--td-black)',
         features: ['Access to participant opportunities', 'Access to provider list', 'Access to support worker list', 'Access to plan manager list', 'View SIL / SDA listings'],
       },
       {
-        label: '+ Speed', price: '$19.99', period: 'add-on', color: '#DB2777',
+        label: '+ Speed', price: '$19.99', period: 'add-on', color: 'var(--td-pink)',
         features: ['Filter "Available Now" workers', 'Faster response on urgent jobs'],
       },
     ],
@@ -64,23 +64,23 @@ const plans: Plan[] = [
     tabLabel: 'Providers',
     tiers: [
       {
-        label: 'Basic', price: '$99.99', period: '/month', color: '#0D9488', isPrimary: true,
+        label: 'Basic', price: '$99.99', period: '/month', color: 'var(--td-pink)', isPrimary: true,
         features: ['Access listings', 'Post jobs (replacement staff / shifts)', 'Be visible on platform (SC / PM / Participants)', 'Show Live Availability'],
       },
       {
-        label: '+ Growth', price: '$39.99', period: 'add-on', color: '#2563EB',
+        label: '+ Growth', price: '$39.99', period: 'add-on', color: 'var(--td-black)',
         features: ['Access to participant opportunities', 'Access to support worker list', 'Access to support coordinator list', 'Access to plan manager list'],
       },
       {
-        label: '+ Speed', price: '$29.99', period: 'add-on', color: '#DB2777',
+        label: '+ Speed', price: '$29.99', period: 'add-on', color: 'var(--td-pink)',
         features: ['Access to "Available Now" support workers and participants', 'Faster replacement staff filling', 'Priority in urgent staffing'],
       },
       {
-        label: 'SIL / SDA Listing', price: '$99–199', period: '/ 30 days', color: '#7C3AED',
+        label: 'SIL / SDA Listing', price: '$99–199', period: '/ 30 days', color: 'var(--td-black)',
         features: ['Post vacancy'],
       },
       {
-        label: 'Platinum Tile', price: '$399–599', period: '/ 30 days', color: '#DC2626',
+        label: 'Platinum Tile', price: '$399–599', period: '/ 30 days', color: 'var(--td-pink)',
         features: ['Top placement on SDA/SIL board', 'Top placement on main page', 'Only first 3 listings shown'],
       },
     ],
@@ -91,15 +91,15 @@ const plans: Plan[] = [
     tabLabel: 'Support Workers',
     tiers: [
       {
-        label: 'Free', price: '$0', period: '5 applications / month', color: '#059669',
+        label: 'Free', price: '$0', period: '5 applications / month', color: 'var(--td-dark-text-soft)',
         features: ['Profile creation', 'Registration', 'Visible on platform', 'Receive job invites', 'Apply to 5 jobs per month'],
       },
       {
-        label: 'Basic', price: '$49.99', period: '/month', color: '#059669', isPrimary: true,
+        label: 'Basic', price: '$49.99', period: '/month', color: 'var(--td-pink)', isPrimary: true,
         features: ['Apply to unlimited jobs', 'Access all job postings', 'Messaging access', 'Show live availability (normal schedule)'],
       },
       {
-        label: '+ Available Now', price: '$24.99', period: 'add-on', color: '#DB2777',
+        label: '+ Available Now', price: '$24.99', period: 'add-on', color: 'var(--td-pink)',
         features: ['Mark themselves as "Available Now"', 'Priority in urgent jobs', 'Higher chance of being selected for last-minute shifts'],
       },
     ],
@@ -110,7 +110,7 @@ const plans: Plan[] = [
     tabLabel: 'Plan Managers',
     tiers: [
       {
-        label: 'Basic', price: '$19.99', period: '/month', color: '#EC4899', isPrimary: true,
+        label: 'Basic', price: '$19.99', period: '/month', color: 'var(--td-pink)', isPrimary: true,
         features: [
           'Create profile',
           'Be visible to Support Coordinators, Providers & Participants',
@@ -124,10 +124,10 @@ const plans: Plan[] = [
 ];
 
 const legend = [
-  { tag: 'FREE',  label: 'Entry',          color: '#059669' },
-  { tag: 'BASIC', label: 'Operate',        color: '#F97316' },
-  { tag: 'GROWTH',label: 'Access network', color: '#2563EB' },
-  { tag: 'SPEED', label: 'Urgent action',  color: '#DB2777' },
+  { tag: 'FREE',  label: 'Entry',          color: 'var(--td-dark-text-soft)' },
+  { tag: 'BASIC', label: 'Operate',        color: 'var(--td-pink)' },
+  { tag: 'GROWTH',label: 'Access network', color: 'var(--td-black)' },
+  { tag: 'SPEED', label: 'Urgent action',  color: 'var(--td-pink)' },
 ] as const;
 
 export default function PricingSection() {
@@ -174,7 +174,7 @@ export default function PricingSection() {
               return (
                 <div key={t.label} className={`mp-tier-card${t.isPrimary ? ' primary' : ''}`}>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="mp-tier-label" style={{ color: t.isPrimary ? '#fff' : t.color, background: t.isPrimary ? `${t.color}33` : `${t.color}14` }}>
+                    <span className="mp-tier-label" style={{ color: t.isPrimary ? 'var(--td-white)' : t.color, background: t.isPrimary ? `color-mix(in srgb, ${t.color} 34%, transparent)` : `color-mix(in srgb, ${t.color} 12%, transparent)` }}>
                       {t.label}
                     </span>
                     {tagInfo && <span className="mp-tier-tagline">{tagInfo.label}</span>}
@@ -186,7 +186,7 @@ export default function PricingSection() {
                   <ul className="mp-tier-features">
                     {t.features.map((f) => (
                       <li key={f}>
-                        <FiCheckCircle size={14} style={{ color: t.color, flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
+                        <FiCheckCircle size={14} style={{ color: t.isPrimary ? 'var(--td-white)' : t.color, flexShrink: 0, marginTop: 2 }} aria-hidden="true" />
                         {f}
                       </li>
                     ))}

@@ -98,16 +98,16 @@ export default function NotificationsPage() {
         }
       />
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-        {error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828", marginBottom: 16 }}>{error}</div>}
+        {error && <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)", marginBottom: 16 }}>{error}</div>}
 
         {showPrefs && pref && (
           <Card style={{ marginBottom: 16 }}>
             <CardContent style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Channels</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--td-dark-text-soft)", marginBottom: 8 }}>Channels</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {CHANNEL_FIELDS.map(f => (
-                    <label key={f.key} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "#1e293b", cursor: "pointer" }}>
+                    <label key={f.key} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--td-ink-800)", cursor: "pointer" }}>
                       <input type="checkbox" checked={pref[f.key]} disabled={savingPref} onChange={() => togglePref(f.key)} />
                       {f.label}
                     </label>
@@ -115,20 +115,20 @@ export default function NotificationsPage() {
                 </div>
               </div>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 8 }}>Categories</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--td-dark-text-soft)", marginBottom: 8 }}>Categories</p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {CATEGORY_FIELDS.map(f => (
-                    <label key={f.key} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "#1e293b", cursor: "pointer" }}>
+                    <label key={f.key} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 13, color: "var(--td-ink-800)", cursor: "pointer" }}>
                       <input type="checkbox" checked={pref[f.key]} disabled={savingPref} onChange={() => togglePref(f.key)} style={{ marginTop: 2 }} />
                       <span>
                         <div style={{ fontWeight: 600 }}>{f.label}</div>
-                        <div style={{ fontSize: 12, color: "#94a3b8" }}>{f.description}</div>
+                        <div style={{ fontSize: 12, color: "var(--td-muted)" }}>{f.description}</div>
                       </span>
                     </label>
                   ))}
                 </div>
               </div>
-              <p style={{ fontSize: 11, color: "#94a3b8", margin: 0 }}>Safety alerts and incident notifications always send, regardless of these settings.</p>
+              <p style={{ fontSize: 11, color: "var(--td-muted)", margin: 0 }}>Safety alerts and incident notifications always send, regardless of these settings.</p>
             </CardContent>
           </Card>
         )}
@@ -136,12 +136,12 @@ export default function NotificationsPage() {
         <Card>
           <CardContent style={{ padding: 0 }}>
             {loading ? (
-              <p style={{ padding: 24, color: "#94a3b8", fontSize: 14 }}>Loading...</p>
+              <p style={{ padding: 24, color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
             ) : notifs.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 20px" }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-                <p style={{ fontSize: 15, fontWeight: 600, color: "#374151" }}>No notifications yet</p>
-                <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>You're all caught up.</p>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>No notifications yet</p>
+                <p style={{ fontSize: 13, color: "var(--td-muted)", marginTop: 4 }}>You're all caught up.</p>
               </div>
             ) : notifs.map((n, i) => (
               <div
@@ -149,22 +149,22 @@ export default function NotificationsPage() {
                 onClick={() => !n.read && markRead(n.id)}
                 style={{
                   display: "flex", gap: 14, padding: "14px 20px",
-                  borderBottom: i < notifs.length - 1 ? "1px solid #f1f5f9" : "none",
-                  background: n.read ? "#fff" : "rgba(194,24,91,0.03)",
+                  borderBottom: i < notifs.length - 1 ? "1px solid var(--td-grey)" : "none",
+                  background: n.read ? "var(--td-white)" : "rgba(183,37,88,0.03)",
                   cursor: n.read ? "default" : "pointer",
                   transition: "background 0.15s",
                 }}
               >
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--td-grey)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                   {TYPE_ICON[n.type] ?? "🔔"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                    <div style={{ fontSize: 14, fontWeight: n.read ? 400 : 700, color: "#1e293b" }}>{n.title}</div>
-                    {!n.read && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#c2185b", flexShrink: 0, marginTop: 5 }} />}
+                    <div style={{ fontSize: 14, fontWeight: n.read ? 400 : 700, color: "var(--td-ink-800)" }}>{n.title}</div>
+                    {!n.read && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--td-pink)", flexShrink: 0, marginTop: 5 }} />}
                   </div>
-                  <div style={{ fontSize: 13, color: "#64748b", marginTop: 2, lineHeight: 1.4 }}>{n.body}</div>
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>{new Date(n.createdAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
+                  <div style={{ fontSize: 13, color: "var(--td-muted-dark)", marginTop: 2, lineHeight: 1.4 }}>{n.body}</div>
+                  <div style={{ fontSize: 11, color: "var(--td-muted)", marginTop: 6 }}>{new Date(n.createdAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</div>
                 </div>
               </div>
             ))}

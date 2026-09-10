@@ -44,7 +44,7 @@ const LISTING_TYPES = [
 
 const FUNDING_TYPES = ["Self-managed", "Plan-managed", "NDIA-managed", "Private"];
 
-const inp: React.CSSProperties = { width: "100%", height: 42, padding: "0 12px", borderRadius: 8, border: "1.5px solid var(--clr-border)", fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box" };
+const inp: React.CSSProperties = { width: "100%", height: 42, padding: "0 12px", borderRadius: 8, border: "1.5px solid var(--clr-border)", fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box" };
 const lbl: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: "var(--clr-text)", marginBottom: 4 };
 
 export default function PostServicePage() {
@@ -106,7 +106,7 @@ export default function PostServicePage() {
                   <label key={opt.value} style={{
                     display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", cursor: "pointer",
                     border: `1.5px solid ${listingType === opt.value ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                    borderRadius: 10, background: listingType === opt.value ? "rgba(79,70,229,0.05)" : "#fff",
+                    borderRadius: 10, background: listingType === opt.value ? "rgba(183,37,88,0.05)" : "var(--td-white)",
                   }}>
                     <input type="radio" value={opt.value} {...register("listingType")} style={{ marginTop: 2 }} />
                     <div>
@@ -124,23 +124,23 @@ export default function PostServicePage() {
               <CardHeader><CardTitle>Service Details</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label style={lbl}>Listing Title <span style={{ color: "#ef4444" }}>*</span></label>
-                  <input {...register("title")} placeholder="e.g. Female Personal Care Capacity Available" style={{ ...inp, borderColor: errors.title ? "#ef4444" : undefined }} />
+                  <label style={lbl}>Listing Title <span style={{ color: "var(--td-pink)" }}>*</span></label>
+                  <input {...register("title")} placeholder="e.g. Female Personal Care Capacity Available" style={{ ...inp, borderColor: errors.title ? "var(--td-pink)" : undefined }} />
                   {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
                 </div>
                 <div>
-                  <label style={lbl}>Service Category <span style={{ color: "#ef4444" }}>*</span></label>
-                  <select {...register("serviceCategory")} style={{ ...inp, cursor: "pointer", borderColor: errors.serviceCategory ? "#ef4444" : undefined }}>
+                  <label style={lbl}>Service Category <span style={{ color: "var(--td-pink)" }}>*</span></label>
+                  <select {...register("serviceCategory")} style={{ ...inp, cursor: "pointer", borderColor: errors.serviceCategory ? "var(--td-pink)" : undefined }}>
                     <option value="">Select category…</option>
                     {JOB_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                   {errors.serviceCategory && <p className="text-xs text-red-500 mt-1">{errors.serviceCategory.message}</p>}
                 </div>
                 <div>
-                  <label style={lbl}>Description <span style={{ color: "#ef4444" }}>*</span></label>
+                  <label style={lbl}>Description <span style={{ color: "var(--td-pink)" }}>*</span></label>
                   <textarea {...register("description")} rows={4}
                     placeholder="Describe the support offered, typical participant fit, and anything applicants should know…"
-                    style={{ ...inp, height: "auto", padding: "10px 12px", resize: "vertical", borderColor: errors.description ? "#ef4444" : undefined }} />
+                    style={{ ...inp, height: "auto", padding: "10px 12px", resize: "vertical", borderColor: errors.description ? "var(--td-pink)" : undefined }} />
                   {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>}
                 </div>
               </CardContent>
@@ -151,8 +151,8 @@ export default function PostServicePage() {
               <CardHeader><CardTitle>Location &amp; Delivery Mode</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label style={lbl}>Suburb / Region <span style={{ color: "#ef4444" }}>*</span></label>
-                  <input {...register("suburb")} placeholder="e.g. Parramatta" style={{ ...inp, borderColor: errors.suburb ? "#ef4444" : undefined }} />
+                  <label style={lbl}>Suburb / Region <span style={{ color: "var(--td-pink)" }}>*</span></label>
+                  <input {...register("suburb")} placeholder="e.g. Parramatta" style={{ ...inp, borderColor: errors.suburb ? "var(--td-pink)" : undefined }} />
                   {errors.suburb && <p className="text-xs text-red-500 mt-1">{errors.suburb.message}</p>}
                 </div>
                 <div>
@@ -166,7 +166,7 @@ export default function PostServicePage() {
                       <label key={opt.value} style={{
                         flex: 1, padding: "10px 6px", borderRadius: 10, textAlign: "center", cursor: "pointer",
                         border: `1.5px solid ${serviceMode === opt.value ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                        background: serviceMode === opt.value ? "rgba(79,70,229,0.07)" : "#fff",
+                        background: serviceMode === opt.value ? "rgba(183,37,88,0.07)" : "var(--td-white)",
                         fontSize: 12, fontWeight: 600,
                         color: serviceMode === opt.value ? "var(--clr-primary)" : "var(--clr-text)",
                       }}>
@@ -190,14 +190,14 @@ export default function PostServicePage() {
                       <label key={ft} style={{
                         display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", cursor: "pointer",
                         border: `1.5px solid ${sel ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                        borderRadius: 8, background: sel ? "rgba(79,70,229,0.06)" : "#fff",
+                        borderRadius: 8, background: sel ? "rgba(183,37,88,0.06)" : "var(--td-white)",
                       }}>
                         <input type="checkbox" checked={sel} style={{ display: "none" }}
                           onChange={() => setValue("fundingTypes", sel ? fundingTypes.filter(f => f !== ft) : [...fundingTypes, ft], { shouldValidate: true })} />
                         <div style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                           border: `2px solid ${sel ? "var(--clr-primary)" : "var(--clr-border)"}`,
-                          background: sel ? "var(--clr-primary)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          {sel && <i className="bi bi-check-lg" style={{ color: "#fff", fontSize: 9 }} />}
+                          background: sel ? "var(--clr-primary)" : "var(--td-white)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {sel && <i className="bi bi-check-lg" style={{ color: "var(--td-white)", fontSize: 9 }} />}
                         </div>
                         <span style={{ fontSize: 13, fontWeight: 500 }}>{ft}</span>
                       </label>
@@ -211,8 +211,8 @@ export default function PostServicePage() {
             {/* Acknowledgement */}
             <label style={{
               display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 16px", cursor: "pointer",
-              border: `1.5px solid ${errors.acknowledgement ? "#ef4444" : "var(--clr-border)"}`,
-              borderRadius: 10, background: "#fff",
+              border: `1.5px solid ${errors.acknowledgement ? "var(--td-pink)" : "var(--clr-border)"}`,
+              borderRadius: 10, background: "var(--td-white)",
             }}>
               <input type="checkbox" {...register("acknowledgement")} style={{ marginTop: 2 }} />
               <span style={{ fontSize: 13, color: "var(--clr-text)", lineHeight: 1.5 }}>

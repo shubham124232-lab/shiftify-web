@@ -43,7 +43,7 @@ function PublishButton({ jobId, onDone }: { jobId: string; onDone: () => void })
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      {err && <span style={{ fontSize: 11, color: "#b91c1c" }}>{err}</span>}
+      {err && <span style={{ fontSize: 11, color: "var(--td-pink-hover)" }}>{err}</span>}
       <Button size="sm" disabled={publishing} onClick={publish}>
         {publishing ? "Publishing..." : "Publish"}
       </Button>
@@ -52,12 +52,12 @@ function PublishButton({ jobId, onDone }: { jobId: string; onDone: () => void })
 }
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  OPEN:      { bg: "#dbeafe", color: "#1d4ed8" },
-  ASSIGNED:  { bg: "#dcfce7", color: "#15803d" },
-  IN_PROGRESS: { bg: "#fef9c3", color: "#854d0e" },
-  COMPLETED: { bg: "#f1f5f9", color: "#475569" },
-  CONFIRMED: { bg: "#dcfce7", color: "#15803d" },
-  CANCELLED: { bg: "#fee2e2", color: "#b91c1c" },
+  OPEN:         { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
+  ASSIGNED:     { bg: "var(--td-grey)", color: "var(--td-ink-700)" },
+  IN_PROGRESS:  { bg: "var(--td-dark-text)", color: "var(--td-white)" },
+  CONFIRMED:    { bg: "var(--td-border)", color: "var(--td-dark-text)" },
+  COMPLETED:    { bg: "var(--td-grey-tint)", color: "var(--td-muted-dark)" },
+  CANCELLED:    { bg: "var(--td-pink)", color: "var(--td-white)" },
 };
 
 export default function MyJobsPage() {
@@ -119,9 +119,9 @@ export default function MyJobsPage() {
               onClick={() => setFilter(s)}
               style={{
                 padding: "5px 14px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: filter === s ? "2px solid #c2185b" : "1.5px solid #e2e8f0",
-                background: filter === s ? "rgba(194,24,91,0.08)" : "#fff",
-                color: filter === s ? "#c2185b" : "#64748b",
+                border: filter === s ? "2px solid var(--td-pink)" : "1.5px solid var(--td-border)",
+                background: filter === s ? "rgba(183,37,88,0.08)" : "var(--td-white)",
+                color: filter === s ? "var(--td-pink)" : "var(--td-muted-dark)",
               }}
             >
               {s ? s.replace("_", " ") : "All"}
@@ -153,14 +153,14 @@ export default function MyJobsPage() {
           ))}
         </div>
 
-        {error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828", marginBottom: 16 }}>{error}</div>}
+        {error && <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)", marginBottom: 16 }}>{error}</div>}
 
         {loading ? (
-          <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
+          <p style={{ color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
         ) : shown.length === 0 ? (
           <div style={{ textAlign: "center", padding: "48px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#374151" }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>
               {isProvider ? "No team jobs yet" : "No jobs yet"}
             </p>
             {canPost && <Link href="/jobs/post"><Button style={{ marginTop: 16 }}>Post your first job</Button></Link>}
@@ -171,13 +171,13 @@ export default function MyJobsPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {shown.map(job => {
-              const s = STATUS_STYLE[job.status] ?? { bg: "#f1f5f9", color: "#475569" };
+              const s = STATUS_STYLE[job.status] ?? { bg: "var(--td-grey)", color: "var(--td-dark-text-soft)" };
               return (
                 <Link key={job.id} href={`/jobs/${job.id}`} style={{ textDecoration: "none" }}>
-                  <div style={{ background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 12, padding: "14px 18px", display: "flex", gap: 14, alignItems: "center", cursor: "pointer" }}>
+                  <div style={{ background: "var(--td-white)", border: "1.5px solid var(--td-border)", borderRadius: 12, padding: "14px 18px", display: "flex", gap: 14, alignItems: "center", cursor: "pointer" }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", marginBottom: 4 }}>{job.title}</div>
-                      <div style={{ fontSize: 12, color: "#64748b" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 4 }}>{job.title}</div>
+                      <div style={{ fontSize: 12, color: "var(--td-muted-dark)" }}>
                         📍 {job.suburb}, {job.state}
                         {job.totalHours && <span> · {job.totalHours}h</span>}
                         {" · "}{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}

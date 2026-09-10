@@ -7,11 +7,17 @@ export const URGENCY_TABS: { value: string; label: string }[] = [
   { value: "ROUTINE",     label: "Routine" },
 ];
 
-export const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  RAPID:       { bg: "#fde2e2", color: "#e00f12" },
-  URGENT:      { bg: "#e6e0fd", color: "#4d2ae9" },
-  LAST_MINUTE: { bg: "#d7f3f1", color: "#1e9c94" },
-  ROUTINE:     { bg: "#f1f5f9", color: "#475569" },
+// `bg`/`color` are a soft chip pair (tinted background + readable ink on it).
+// `solid` is the same tier as a filled surface — use it wherever the urgency
+// colour becomes a background, rail or dot carrying white text, since `color`
+// is an ink value there and can be indistinguishable from the card.
+export interface UrgencyStyle { bg: string; color: string; solid: string }
+
+export const URGENCY_STYLE: Record<string, UrgencyStyle> = {
+  RAPID:        { bg: "var(--td-rapid-soft)",   color: "var(--td-rapid)",   solid: "var(--td-rapid)" },
+  URGENT:       { bg: "var(--td-urgent-soft)",  color: "var(--td-urgent)",  solid: "var(--td-urgent)" },
+  LAST_MINUTE:  { bg: "var(--td-lastmin-soft)", color: "var(--td-lastmin)", solid: "var(--td-lastmin)" },
+  ROUTINE:      { bg: "var(--td-routine-soft)", color: "var(--td-routine)", solid: "var(--td-routine)" },
 };
 
 export const SHIFT_TYPE_LABELS: Record<string, string> = {

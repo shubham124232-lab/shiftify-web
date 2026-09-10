@@ -282,7 +282,7 @@ function DocumentsTabPanel({ role }: { role: string }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(194,24,91,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(183,37,88,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <i className="bi bi-file-earmark-text" style={{ color: 'var(--clr-primary)', fontSize: 16 }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -406,7 +406,7 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(194,24,91,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(183,37,88,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <i className={`bi ${step.icon}`} style={{ color: 'var(--clr-primary)', fontSize: 16 }} />
           </div>
           <div>
@@ -419,13 +419,13 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
 
         {upgradeMsg && <div style={{ marginTop: 20 }}><UpgradePrompt message={upgradeMsg} /></div>}
         {err && (
-          <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C62828', marginTop: 20 }}>
+          <div style={{ background: 'var(--td-pink-soft)', border: '1px solid var(--td-pink-tint)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--td-pink-hover)', marginTop: 20 }}>
             {err}
           </div>
         )}
 
         {!err && hasBlockingErrors && (
-          <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C62828', marginTop: 20 }}>
+          <div style={{ background: 'var(--td-pink-soft)', border: '1px solid var(--td-pink-tint)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--td-pink-hover)', marginTop: 20 }}>
             Some fields need attention — check the highlighted fields above.
           </div>
         )}
@@ -438,12 +438,12 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
             style={{ height: 40, padding: '0 24px', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {saving && (
-              <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+              <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'var(--td-white)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
             )}
             {saving ? 'Saving…' : 'Save changes'}
           </button>
           {saved && (
-            <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 13, color: 'var(--td-dark-text-soft)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
               <i className="bi bi-check-circle-fill" /> Saved
             </span>
           )}
@@ -522,7 +522,7 @@ export default function ProfileEditPage() {
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', borderBottom: '1.5px solid #e5e7eb', marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', borderBottom: '1.5px solid var(--td-border)', marginBottom: 24 }}>
           {steps.map((step, i) => (
             <button
               key={i}
@@ -533,7 +533,7 @@ export default function ProfileEditPage() {
                 fontWeight: activeIndex === i ? 700 : 500,
                 cursor: 'pointer', background: 'none', border: 'none',
                 borderBottom: activeIndex === i ? '2.5px solid var(--clr-primary)' : '2.5px solid transparent',
-                color: activeIndex === i ? 'var(--clr-primary)' : '#64748b',
+                color: activeIndex === i ? 'var(--clr-primary)' : 'var(--td-muted-dark)',
                 marginBottom: -1.5, transition: 'color 0.15s', whiteSpace: 'nowrap',
               }}
             >
@@ -549,7 +549,7 @@ export default function ProfileEditPage() {
                 fontWeight: isDocTab ? 700 : 500,
                 cursor: 'pointer', background: 'none', border: 'none',
                 borderBottom: isDocTab ? '2.5px solid var(--clr-primary)' : '2.5px solid transparent',
-                color: isDocTab ? 'var(--clr-primary)' : '#64748b',
+                color: isDocTab ? 'var(--clr-primary)' : 'var(--td-muted-dark)',
                 marginBottom: -1.5, transition: 'color 0.15s', whiteSpace: 'nowrap',
               }}
             >
@@ -559,7 +559,7 @@ export default function ProfileEditPage() {
         </div>
 
         {/* Active panel */}
-        <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '28px 28px' }}>
+        <div style={{ background: 'var(--td-white)', border: '1.5px solid var(--td-border)', borderRadius: 12, padding: '28px 28px' }}>
           {isDocTab ? (
             <DocumentsTabPanel role={role} />
           ) : activeStep ? (

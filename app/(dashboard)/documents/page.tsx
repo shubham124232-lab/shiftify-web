@@ -23,8 +23,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 function expiryInfo(expiryDate: string | null): { label: string; bg: string; color: string } | null {
   if (!expiryDate) return null;
   const daysLeft = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / DAY_MS);
-  if (daysLeft < 0) return { label: "Expired", bg: "#fee2e2", color: "#b91c1c" };
-  if (daysLeft <= 30) return { label: `Expires in ${daysLeft}d`, bg: "#fef9c3", color: "#854d0e" };
+  if (daysLeft < 0) return { label: "Expired", bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" };
+  if (daysLeft <= 30) return { label: `Expires in ${daysLeft}d`, bg: "var(--td-grey)", color: "var(--td-ink-800)" };
   return null;
 }
 
@@ -39,10 +39,10 @@ const DOC_TYPES = [
 ];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  UPLOADED: { bg: "#dbeafe", color: "#1d4ed8", label: "Uploaded" },
-  VERIFIED: { bg: "#dcfce7", color: "#15803d", label: "Verified" },
-  REJECTED: { bg: "#fee2e2", color: "#b91c1c", label: "Rejected" },
-  PENDING:  { bg: "#fef9c3", color: "#854d0e", label: "Pending" },
+  UPLOADED:  { bg: "var(--td-grey)", color: "var(--td-ink-700)", label: "Uploaded" },
+  VERIFIED:  { bg: "var(--td-dark-text)", color: "var(--td-white)", label: "Verified" },
+  PENDING:   { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)", label: "Pending" },
+  REJECTED:  { bg: "var(--td-pink)", color: "var(--td-white)", label: "Rejected" },
 };
 
 export default function DocumentsPage() {
@@ -128,22 +128,22 @@ export default function DocumentsPage() {
           <CardContent>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Document type</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4 }}>Document type</label>
                 <select
                   value={selType}
                   onChange={e => setSelType(e.target.value)}
-                  style={{ width: "100%", height: 40, padding: "0 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, background: "#fff" }}
+                  style={{ width: "100%", height: 40, padding: "0 10px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, background: "var(--td-white)" }}
                 >
                   {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div style={{ minWidth: 160 }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Expiry date (optional)</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4 }}>Expiry date (optional)</label>
                 <input
                   type="date"
                   value={expiryDate}
                   onChange={e => setExpiryDate(e.target.value)}
-                  style={{ width: "100%", height: 40, padding: "0 10px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, background: "#fff" }}
+                  style={{ width: "100%", height: 40, padding: "0 10px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, background: "var(--td-white)" }}
                 />
               </div>
               <Button
@@ -156,12 +156,12 @@ export default function DocumentsPage() {
               </Button>
               <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: "none" }} onChange={handleUpload} />
             </div>
-            <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>Accepted: PDF, JPG, PNG. Max 10 MB.</p>
+            <p style={{ fontSize: 12, color: "var(--td-muted)", marginTop: 8 }}>Accepted: PDF, JPG, PNG. Max 10 MB.</p>
           </CardContent>
         </Card>
 
         {error && (
-          <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+          <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
             {error}
           </div>
         )}
@@ -171,12 +171,12 @@ export default function DocumentsPage() {
           <CardHeader><CardTitle>My documents ({docs.length})</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <p style={{ fontSize: 14, color: "#94a3b8" }}>Loading...</p>
+              <p style={{ fontSize: 14, color: "var(--td-muted)" }}>Loading...</p>
             ) : docs.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 0" }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
-                <p style={{ fontSize: 14, color: "#64748b", fontWeight: 600 }}>No documents uploaded yet</p>
-                <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>Upload your compliance documents above.</p>
+                <p style={{ fontSize: 14, color: "var(--td-muted-dark)", fontWeight: 600 }}>No documents uploaded yet</p>
+                <p style={{ fontSize: 13, color: "var(--td-muted)", marginTop: 4 }}>Upload your compliance documents above.</p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -185,19 +185,19 @@ export default function DocumentsPage() {
                   const typeLabel = DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType;
                   const expiry = expiryInfo(doc.expiryDate);
                   return (
-                    <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
+                    <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--td-grey)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                         📄
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#1e293b", marginBottom: 2 }}>{typeLabel}</div>
-                        <div style={{ fontSize: 12, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.fileName}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--td-ink-800)", marginBottom: 2 }}>{typeLabel}</div>
+                        <div style={{ fontSize: 12, color: "var(--td-muted-dark)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.fileName}</div>
+                        <div style={{ fontSize: 11, color: "var(--td-muted)", marginTop: 2 }}>
                           Uploaded {new Date(doc.uploadedAt).toLocaleDateString("en-AU")}
                           {doc.expiryDate && ` · Expires ${new Date(doc.expiryDate).toLocaleDateString("en-AU")}`}
                         </div>
                         {doc.rejectionReason && (
-                          <div style={{ fontSize: 12, color: "#b91c1c", marginTop: 4 }}>Rejected: {doc.rejectionReason}</div>
+                          <div style={{ fontSize: 12, color: "var(--td-pink-hover)", marginTop: 4 }}>Rejected: {doc.rejectionReason}</div>
                         )}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
@@ -213,7 +213,7 @@ export default function DocumentsPage() {
                       <button
                         type="button"
                         onClick={() => handleDelete(doc.id)}
-                        style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: 16, padding: 4, flexShrink: 0 }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "var(--td-muted)", fontSize: 16, padding: 4, flexShrink: 0 }}
                         title="Remove"
                       >
                         ✕
@@ -236,9 +236,9 @@ export default function DocumentsPage() {
               const have = !!match && !isExpired;
               const label = DOC_TYPES.find(t => t.value === req)?.label ?? req;
               return (
-                <div key={req} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+                <div key={req} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--td-grey)" }}>
                   <span style={{ fontSize: 16 }}>{have ? "✅" : isExpired ? "⚠" : "⭕"}</span>
-                  <span style={{ fontSize: 13, color: have ? "#15803d" : isExpired ? "#b91c1c" : "#64748b", fontWeight: have || isExpired ? 600 : 400 }}>
+                  <span style={{ fontSize: 13, color: have ? "var(--td-ink-700)" : isExpired ? "var(--td-pink-hover)" : "var(--td-muted-dark)", fontWeight: have || isExpired ? 600 : 400 }}>
                     {label}{isExpired ? " (expired — re-upload needed)" : ""}
                   </span>
                 </div>

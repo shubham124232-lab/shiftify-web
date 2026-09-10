@@ -8,17 +8,17 @@ function CheckboxDeclaration({ name, label }: { name: string; label: React.React
   return (
     <div>
       <label style={{ display: 'flex', gap: 12, cursor: 'pointer', padding: '14px',
-        border: `1.5px solid ${err ? '#ef4444' : val ? '#22c55e' : 'var(--clr-border)'}`,
-        borderRadius: 10, background: val ? '#F0FFF4' : '#fff', alignItems: 'flex-start' }}>
+        border: `1.5px solid ${err ? 'var(--td-pink)' : val ? 'var(--td-muted-dark)' : 'var(--clr-border)'}`,
+        borderRadius: 10, background: val ? 'var(--td-grey-tint)' : 'var(--td-white)', alignItems: 'flex-start' }}>
         <div style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0, marginTop: 1,
-          border: `2px solid ${val ? '#22c55e' : 'var(--clr-border)'}`,
-          background: val ? '#22c55e' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-          {val && <i className="bi bi-check-lg" style={{ color: '#fff', fontSize: 12 }} />}
+          border: `2px solid ${val ? 'var(--td-muted-dark)' : 'var(--clr-border)'}`,
+          background: val ? 'var(--td-muted-dark)' : 'var(--td-white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+          {val && <i className="bi bi-check-lg" style={{ color: 'var(--td-white)', fontSize: 12 }} />}
         </div>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <span style={{ fontSize: 13, color: 'var(--clr-text)', lineHeight: 1.5 }}>{label}</span>
       </label>
-      {err && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 4, marginLeft: 2 }}>{err}</p>}
+      {err && <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 4, marginLeft: 2 }}>{err}</p>}
     </div>
   );
 }
@@ -26,7 +26,7 @@ function CheckboxDeclaration({ name, label }: { name: string; label: React.React
 export function ParticipantStep05_Declaration() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.2)', borderRadius: 10, padding: 14 }}>
+      <div style={{ background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.2)', borderRadius: 10, padding: 14 }}>
         <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)', fontWeight: 600 }}>
           <i className="bi bi-info-circle" style={{ marginRight: 6 }} />
           You can upload NDIS plan documents from your Documents page at any time.

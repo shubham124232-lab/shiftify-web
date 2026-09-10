@@ -54,7 +54,7 @@ export function LiveShiftboardTeaser() {
               const catLabel = JOB_CATEGORIES.find((c) => c.value === j.category)?.label ?? j.category;
               const applicants = j._count?.applications ?? 0;
               return (
-                <div key={j.id} className="rounded-xl border border-slate-200 overflow-hidden flex flex-col" style={{ borderTop: `3px solid ${urg.color}` }}>
+                <div key={j.id} className="rounded-xl border border-slate-200 overflow-hidden flex flex-col" style={{ borderTop: `3px solid ${urg.solid}` }}>
                   <div className="p-3.5 flex-1">
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase" style={{ background: urg.bg, color: urg.color }}>

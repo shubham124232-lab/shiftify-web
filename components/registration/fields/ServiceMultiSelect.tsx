@@ -47,7 +47,7 @@ export function ServiceMultiSelect({ value, onChange, label, error }: Props) {
                       style={{
                         padding: '10px 12px', borderRadius: 8, textAlign: 'left',
                         border: selected ? '1.5px solid var(--clr-primary)' : '1.5px solid var(--clr-border)',
-                        background: selected ? 'rgba(79,70,229,0.07)' : '#fff',
+                        background: selected ? 'rgba(183,37,88,0.07)' : 'var(--td-white)',
                         cursor: 'pointer', fontSize: 12, fontWeight: selected ? 700 : 500,
                         color: selected ? 'var(--clr-primary)' : 'var(--clr-text)',
                         display: 'flex', alignItems: 'center', gap: 6,
@@ -65,7 +65,7 @@ export function ServiceMultiSelect({ value, onChange, label, error }: Props) {
           );
         })}
       </div>
-      {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 6, marginBottom: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 6, marginBottom: 0 }}>{error}</p>}
     </div>
   );
 }

@@ -5,7 +5,7 @@ const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWe
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 40, padding: '0 12px',
   borderRadius: 8, border: '1.5px solid var(--clr-border)',
-  fontSize: 13, outline: 'none', background: '#fff', boxSizing: 'border-box',
+  fontSize: 13, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box',
 };
 
 function CheckboxDeclaration({ name, label, required }: { name: string; label: string; required?: boolean }) {
@@ -15,15 +15,15 @@ function CheckboxDeclaration({ name, label, required }: { name: string; label: s
   return (
     <div>
       <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer',
-        padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${error ? '#ef4444' : checked ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-        background: checked ? 'rgba(79,70,229,0.04)' : '#fff', transition: 'all 0.15s' }}>
+        padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${error ? 'var(--td-pink)' : checked ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+        background: checked ? 'rgba(183,37,88,0.04)' : 'var(--td-white)', transition: 'all 0.15s' }}>
         <input type="checkbox" {...register(name)} style={{ marginTop: 2, accentColor: 'var(--clr-primary)', width: 16, height: 16, flexShrink: 0 }} />
         <span style={{ fontSize: 13, color: 'var(--clr-text)', lineHeight: 1.5 }}>
           {label}
-          {required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
+          {required && <span style={{ color: 'var(--td-pink)', marginLeft: 2 }}>*</span>}
         </span>
       </label>
-      {error && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 4, marginLeft: 2 }}>{error.message as string}</p>}
+      {error && <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 4, marginLeft: 2 }}>{error.message as string}</p>}
     </div>
   );
 }
@@ -40,26 +40,26 @@ function ReferencesSection() {
       </label>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {fields.map((field, i) => (
-          <div key={field.id} style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div key={field.id} style={{ background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--clr-primary)' }}>Referee {i + 1}</span>
               <button type="button" onClick={() => remove(i)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: 12, padding: '2px 6px' }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--td-pink)', fontSize: 12, padding: '2px 6px' }}>
                 Remove
               </button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div>
-                <label style={labelStyle}>Full Name <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={labelStyle}>Full Name <span style={{ color: 'var(--td-pink)' }}>*</span></label>
                 <input {...register(`references.${i}.name`)} placeholder="e.g. Jane Smith"
-                  style={{ ...inputStyle, borderColor: refErrors[i]?.name ? '#ef4444' : 'var(--clr-border)' }} />
-                {refErrors[i]?.name && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 2 }}>{refErrors[i].name.message}</p>}
+                  style={{ ...inputStyle, borderColor: refErrors[i]?.name ? 'var(--td-pink)' : 'var(--clr-border)' }} />
+                {refErrors[i]?.name && <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 2 }}>{refErrors[i].name.message}</p>}
               </div>
               <div>
-                <label style={labelStyle}>Relationship <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={labelStyle}>Relationship <span style={{ color: 'var(--td-pink)' }}>*</span></label>
                 <input {...register(`references.${i}.relationship`)} placeholder="e.g. Former Supervisor"
-                  style={{ ...inputStyle, borderColor: refErrors[i]?.relationship ? '#ef4444' : 'var(--clr-border)' }} />
-                {refErrors[i]?.relationship && <p style={{ fontSize: 11, color: '#ef4444', marginTop: 2 }}>{refErrors[i].relationship.message}</p>}
+                  style={{ ...inputStyle, borderColor: refErrors[i]?.relationship ? 'var(--td-pink)' : 'var(--clr-border)' }} />
+                {refErrors[i]?.relationship && <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 2 }}>{refErrors[i].relationship.message}</p>}
               </div>
               <div>
                 <label style={labelStyle}>Phone</label>
@@ -75,7 +75,7 @@ function ReferencesSection() {
         {fields.length < 2 && (
           <button type="button"
             onClick={() => append({ name: '', relationship: '', phone: '', email: '' })}
-            style={{ height: 40, borderRadius: 10, border: '1.5px dashed var(--clr-border)', background: '#fff', cursor: 'pointer', fontSize: 13, color: 'var(--clr-primary)', fontWeight: 600 }}>
+            style={{ height: 40, borderRadius: 10, border: '1.5px dashed var(--clr-border)', background: 'var(--td-white)', cursor: 'pointer', fontSize: 13, color: 'var(--clr-primary)', fontWeight: 600 }}>
             + Add Referee
           </button>
         )}
@@ -107,9 +107,9 @@ export function WorkerStep09_Compliance() {
         </div>
       </div>
 
-      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1.5px solid rgba(245,158,11,0.3)' }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#92400e', marginBottom: 4 }}>Important</div>
-        <p style={{ fontSize: 12, color: '#78350f', margin: 0, lineHeight: 1.6 }}>
+      <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(106,114,122,0.08)', border: '1.5px solid rgba(106,114,122,0.3)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--td-ink-800)', marginBottom: 4 }}>Important</div>
+        <p style={{ fontSize: 12, color: 'var(--td-dark-text)', margin: 0, lineHeight: 1.6 }}>
           Shiftify conducts background verification on all Support Workers. Your NDIS Worker Screening Check will be validated through the NDIS Worker Screening Database. You may not provide supports until verification is complete.
         </p>
       </div>

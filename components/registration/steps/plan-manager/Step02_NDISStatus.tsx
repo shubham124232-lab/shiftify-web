@@ -1,7 +1,7 @@
 'use client';
 import { useFormContext, Controller } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const REG_GROUPS = [
@@ -17,7 +17,7 @@ export function PmStep02_NDISStatus() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label style={labelStyle}>NDIS Registration Status <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>NDIS Registration Status <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
             { value: 'REGISTERED', label: 'Registered NDIS Plan Manager', desc: 'Hold current NDIS registration for plan management' },
@@ -26,7 +26,7 @@ export function PmStep02_NDISStatus() {
           ].map(opt => (
             <label key={opt.value} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
               border: `1.5px solid ${status === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-              background: status === opt.value ? 'rgba(79,70,229,0.06)' : '#fff' }}>
+              background: status === opt.value ? 'rgba(183,37,88,0.06)' : 'var(--td-white)' }}>
               <input type="radio" value={opt.value} {...register('ndisRegistrationStatus')} style={{ marginTop: 3, accentColor: 'var(--clr-primary)' }} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{opt.label}</div>
@@ -35,7 +35,7 @@ export function PmStep02_NDISStatus() {
             </label>
           ))}
         </div>
-        {errors.ndisRegistrationStatus && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.ndisRegistrationStatus.message as string}</p>}
+        {errors.ndisRegistrationStatus && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.ndisRegistrationStatus.message as string}</p>}
       </div>
 
       {(status === 'REGISTERED' || status === 'IN_PROGRESS') && (
@@ -59,7 +59,7 @@ export function PmStep02_NDISStatus() {
                       onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== g) : [...cur, g]); }}
                       style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                         border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                        background: sel ? 'rgba(79,70,229,0.1)' : '#fff', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                        background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
                       {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{g}
                     </button>
                   );

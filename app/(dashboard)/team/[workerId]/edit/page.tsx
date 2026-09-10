@@ -19,13 +19,13 @@ import { WorkerStep07_Financials } from "@/components/registration/steps/worker/
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4,
+  display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4,
 };
-const hint: React.CSSProperties = { fontSize: 11, color: "#94a3b8", marginTop: 4 };
+const hint: React.CSSProperties = { fontSize: 11, color: "var(--td-muted)", marginTop: 4 };
 
 const EXPERIENCE_LEVELS = [
   { value: "BEGINNER",     label: "Beginner (0-1 years)" },
@@ -315,13 +315,13 @@ export default function EditWorkerPage() {
       <>
         <PageHeader title="Edit Worker" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>Only providers can edit worker profiles.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>Only providers can edit worker profiles.</p>
         </div>
       </>
     );
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#94a3b8" }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading...</div>;
 
   return (
     <>
@@ -336,16 +336,16 @@ export default function EditWorkerPage() {
           <div
             style={{
               marginBottom: 20, borderRadius: 12, padding: "16px 18px",
-              background: readyToActivate ? "#E8F5E9" : "#FFFBEB",
-              border: readyToActivate ? "2px solid #A5D6A7" : "2px solid #FDE68A",
+              background: readyToActivate ? "var(--td-grey)" : "var(--td-grey-tint)",
+              border: readyToActivate ? "2px solid var(--td-border-hard)" : "2px solid var(--td-border)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: readyToActivate ? "#2E7D32" : "#92400E" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: readyToActivate ? "var(--td-ink-700)" : "var(--td-ink-800)" }}>
                   {readyToActivate ? "✓ Ready to Activate" : "Setup Incomplete — Draft"}
                 </div>
-                <p style={{ fontSize: 12, color: readyToActivate ? "#2E7D32" : "#92400E", marginTop: 4 }}>
+                <p style={{ fontSize: 12, color: readyToActivate ? "var(--td-ink-700)" : "var(--td-ink-800)", marginTop: 4 }}>
                   {readyToActivate
                     ? "All required details and documents are in place. Activate this worker to make them visible for job matching."
                     : `Still needed before this worker can be activated: ${onboardingMissing.join(", ")}`}
@@ -357,8 +357,8 @@ export default function EditWorkerPage() {
                 onClick={handleActivate}
                 style={{
                   height: 38, padding: "0 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "none",
-                  background: readyToActivate ? "#2E7D32" : "#e2e8f0",
-                  color: readyToActivate ? "#fff" : "#94a3b8",
+                  background: readyToActivate ? "var(--td-ink-700)" : "var(--td-border)",
+                  color: readyToActivate ? "var(--td-white)" : "var(--td-muted)",
                   cursor: readyToActivate && !activating ? "pointer" : "not-allowed",
                 }}
               >
@@ -366,7 +366,7 @@ export default function EditWorkerPage() {
               </button>
             </div>
             {activateError && (
-              <p style={{ fontSize: 12, color: "#C62828", marginTop: 10, fontWeight: 600 }}>✗ {activateError}</p>
+              <p style={{ fontSize: 12, color: "var(--td-pink-hover)", marginTop: 10, fontWeight: 600 }}>✗ {activateError}</p>
             )}
           </div>
         )}
@@ -377,9 +377,9 @@ export default function EditWorkerPage() {
             <CardHeader><CardTitle>Personal details</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {username && (
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Login username</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", fontFamily: "monospace" }}>{username}</span>
+                <div style={{ background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "var(--td-muted-dark)" }}>Login username</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--td-ink-800)", fontFamily: "monospace" }}>{username}</span>
                 </div>
               )}
               <div>
@@ -410,9 +410,9 @@ export default function EditWorkerPage() {
                         key={cat.value} type="button" onClick={() => toggleService(cat.value)}
                         style={{
                           padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          border: selected ? "2px solid #c2185b" : "1.5px solid #e2e8f0",
-                          background: selected ? "rgba(194,24,91,0.08)" : "#fff",
-                          color: selected ? "#c2185b" : "#64748b",
+                          border: selected ? "2px solid var(--td-pink)" : "1.5px solid var(--td-border)",
+                          background: selected ? "rgba(183,37,88,0.08)" : "var(--td-white)",
+                          color: selected ? "var(--td-pink)" : "var(--td-muted-dark)",
                         }}
                       >
                         {cat.label}
@@ -523,27 +523,27 @@ export default function EditWorkerPage() {
                   <input style={inp} type="date" {...extraForm.register("cprExpiry")} />
                 </div>
               </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--td-dark-text-soft)" }}>
                 <input type="checkbox" {...extraForm.register("infectionControlCompleted")} /> Infection Control Training completed
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--td-dark-text-soft)" }}>
                 <input type="checkbox" {...extraForm.register("manualHandlingCompleted")} /> Manual Handling Training completed
               </label>
             </CardContent>
           </Card>
 
           {error && (
-            <div style={{ background: "#FFF0F0", border: "2px solid #FFCDD2", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#C62828", fontWeight: 600 }}>
+            <div style={{ background: "var(--td-pink-soft)", border: "2px solid var(--td-pink-tint)", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "var(--td-pink-hover)", fontWeight: 600 }}>
               ✗ {error}
             </div>
           )}
           {success && (
-            <div style={{ background: "#E8F5E9", border: "2px solid #A5D6A7", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#2E7D32", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: "var(--td-grey)", border: "2px solid var(--td-border-hard)", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "var(--td-ink-700)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: 600 }}>✓ Worker profile saved successfully.</span>
               <button
                 type="button"
                 onClick={() => router.push("/team")}
-                style={{ background: "#2E7D32", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                style={{ background: "var(--td-ink-700)", color: "var(--td-white)", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               >
                 ← Back to team
               </button>
@@ -565,7 +565,7 @@ export default function EditWorkerPage() {
             </p>
 
             {docError && (
-              <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#C62828" }}>
+              <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "var(--td-pink-hover)" }}>
                 {docError}
               </div>
             )}
@@ -573,14 +573,14 @@ export default function EditWorkerPage() {
             {documents.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {documents.map(doc => (
-                  <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px" }}>
+                  <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid var(--td-border)", borderRadius: 8, padding: "8px 12px" }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{REQUIRED_DOCS.find(d => d.docType === doc.docType)?.label ?? doc.docType}</div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{doc.fileName} · {doc.status}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--td-ink-800)" }}>{REQUIRED_DOCS.find(d => d.docType === doc.docType)?.label ?? doc.docType}</div>
+                      <div style={{ fontSize: 11, color: "var(--td-muted)" }}>{doc.fileName} · {doc.status}</div>
                     </div>
                     <button
                       type="button" onClick={() => handleDeleteDocument(doc.id)}
-                      style={{ background: "none", border: "none", color: "#C62828", fontSize: 12, cursor: "pointer", fontWeight: 600 }}
+                      style={{ background: "none", border: "none", color: "var(--td-pink-hover)", fontSize: 12, cursor: "pointer", fontWeight: 600 }}
                     >
                       Remove
                     </button>
@@ -600,7 +600,7 @@ export default function EditWorkerPage() {
                 <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleUpload} disabled={uploading} style={{ fontSize: 13 }} />
               </div>
             </div>
-            {uploading && <p style={{ fontSize: 12, color: "#94a3b8" }}>Uploading...</p>}
+            {uploading && <p style={{ fontSize: 12, color: "var(--td-muted)" }}>Uploading...</p>}
           </CardContent>
         </Card>
 
@@ -608,7 +608,7 @@ export default function EditWorkerPage() {
         <Card style={{ marginTop: 20 }}>
           <CardHeader><CardTitle style={{ fontSize: 15 }}>Reset login password</CardTitle></CardHeader>
           <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 13, color: "#64748b" }}>Set a new password for this worker's account. Share the new password with them directly.</p>
+            <p style={{ fontSize: 13, color: "var(--td-muted-dark)" }}>Set a new password for this worker's account. Share the new password with them directly.</p>
             <div style={{ position: "relative" }}>
               <input
                 type={showNewPw ? "text" : "password"}
@@ -618,11 +618,11 @@ export default function EditWorkerPage() {
                 style={{ ...inp, paddingRight: 60 }}
               />
               <button type="button" onClick={() => setShowNewPw(v => !v)}
-                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--td-muted)", background: "none", border: "none", cursor: "pointer" }}>
                 {showNewPw ? "Hide" : "Show"}
               </button>
             </div>
-            {resetSuccess && <p style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>✓ Password updated successfully.</p>}
+            {resetSuccess && <p style={{ fontSize: 12, color: "var(--td-dark-text-soft)", fontWeight: 600 }}>✓ Password updated successfully.</p>}
             <button
               type="button"
               disabled={resetting || newPassword.length < 8}
@@ -634,7 +634,7 @@ export default function EditWorkerPage() {
                 } catch (err: any) { setError(err?.message ?? "Reset failed."); }
                 finally { setResetting(false); }
               }}
-              style={{ alignSelf: "flex-start", height: 38, padding: "0 18px", background: newPassword.length >= 8 ? "#374151" : "#e2e8f0", color: newPassword.length >= 8 ? "#fff" : "#94a3b8", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: newPassword.length >= 8 ? "pointer" : "not-allowed" }}
+              style={{ alignSelf: "flex-start", height: 38, padding: "0 18px", background: newPassword.length >= 8 ? "var(--td-dark-text-soft)" : "var(--td-border)", color: newPassword.length >= 8 ? "var(--td-white)" : "var(--td-muted)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: newPassword.length >= 8 ? "pointer" : "not-allowed" }}
             >
               {resetting ? "Resetting..." : "Reset password"}
             </button>

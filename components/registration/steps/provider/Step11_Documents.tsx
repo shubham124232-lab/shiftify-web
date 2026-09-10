@@ -4,7 +4,7 @@ import { useFormContext } from 'react-hook-form';
 import { FileUploadField } from '../../fields/FileUploadField';
 import { upsertProfile }   from '@/lib/api/profile';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 export function ProviderStep11_Documents() {
@@ -35,7 +35,7 @@ export function ProviderStep11_Documents() {
           <div style={{
             width: 72, height: 72, borderRadius: 12, flexShrink: 0, overflow: 'hidden',
             border: '1.5px solid var(--clr-border)',
-            background: logoUrl ? 'transparent' : 'rgba(79,70,229,0.07)',
+            background: logoUrl ? 'transparent' : 'rgba(183,37,88,0.07)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {logoUrl
@@ -62,8 +62,8 @@ export function ProviderStep11_Documents() {
       <div>
         <label style={labelStyle}>Website URL <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span></label>
         <input {...register('websiteUrl')} type="url" placeholder="https://yourorganisation.com.au"
-          style={{ ...inputStyle, borderColor: errors.websiteUrl ? '#ef4444' : undefined }} />
-        {errors.websiteUrl && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.websiteUrl.message as string}</p>}
+          style={{ ...inputStyle, borderColor: errors.websiteUrl ? 'var(--td-pink)' : undefined }} />
+        {errors.websiteUrl && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.websiteUrl.message as string}</p>}
       </div>
 
       {/* Social links */}

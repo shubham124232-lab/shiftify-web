@@ -15,7 +15,7 @@ interface Lane {
   items: string[];
   accent: string;
   accentBg: string;
-  glow: string;
+  surface?: 'grey';
 }
 
 const lanes: Lane[] = [
@@ -30,12 +30,12 @@ const lanes: Lane[] = [
     statLabel: 'Median match',
     liveText: '142 live now',
     items: ['Push + SMS blast to eligible workers', 'Auto-shortlist by proximity & skills', 'Direct-book if worker enabled'],
-    accent: '#DC2626',
-    accentBg: '#FEF2F2',
-    glow: 'rgba(220,38,38,0.3)',
+    accent: 'var(--td-pink)',
+    accentBg: 'color-mix(in srgb, var(--td-pink) 8%, var(--td-white))',
   },
   {
     id: 'urgent',
+    surface: 'grey',
     Icon: FiZap,
     window: '1 – 4 HRS',
     eyebrow: 'Same day',
@@ -45,9 +45,8 @@ const lanes: Lane[] = [
     statLabel: 'Avg fill',
     liveText: '318 live today',
     items: ['Urgent board with countdown timers', 'Premium rate cards', 'Coordinator can confirm on behalf'],
-    accent: '#C2185B',
-    accentBg: '#FFF0F5',
-    glow: 'rgba(194,24,91,0.3)',
+    accent: 'var(--td-black)',
+    accentBg: 'color-mix(in srgb, var(--td-black) 6%, var(--td-white))',
   },
   {
     id: 'lastmin',
@@ -60,17 +59,14 @@ const lanes: Lane[] = [
     statLabel: 'Refilled',
     liveText: '76 rebooks / day',
     items: ['One-click reoffer of cancelled shift', 'Rebook via provider capacity board', 'Auto-notify saved-search followers'],
-    accent: '#D97706',
-    accentBg: '#FFFBEB',
-    glow: 'rgba(217,119,6,0.3)',
+    accent: 'var(--td-dark-text-soft)',
+    accentBg: 'color-mix(in srgb, var(--td-dark-text-soft) 8%, var(--td-white))',
   },
 ];
 
 export default function UrgencyLanesSection() {
   return (
     <section id="urgency-lanes" className="section-py urgency-section-bg" aria-labelledby="urgency-heading">
-      <span className="urgency-orb urgency-orb-a" aria-hidden="true" />
-      <span className="urgency-orb urgency-orb-b" aria-hidden="true" />
       <div className="container-xl">
 
         <div className="grid lg:grid-cols-12 gap-5 items-start mb-10 fade-up">
@@ -93,12 +89,12 @@ export default function UrgencyLanesSection() {
           {lanes.map((lane) => (
             <div key={lane.id} className="fade-up">
               <div
-                className="urgency-card"
+                className={`urgency-card${lane.surface === 'grey' ? ' urgency-card--grey' : ''}`}
                 role="article"
                 aria-label={lane.title}
-                style={{ ...({ '--card-glow': lane.glow } as React.CSSProperties) }}
+                style={{ ...({ '--card-accent': lane.accent } as React.CSSProperties) }}
               >
-                <div className="urgency-topbar" style={{ background: lane.accent, boxShadow: `0 0 16px ${lane.glow}` }} aria-hidden="true" />
+                <div className="urgency-topbar" style={{ background: lane.accent }} aria-hidden="true" />
 
                 <div className="flex items-center justify-between mb-4">
                   <span className="urgency-badge-pill" style={{ background: lane.accentBg, color: lane.accent }}>

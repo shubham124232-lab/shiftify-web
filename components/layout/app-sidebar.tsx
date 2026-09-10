@@ -235,7 +235,7 @@ export function AppSidebar() {
       </aside>
 
       <aside className={cn(
-        "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_-12px_rgba(15,23,42,0.12)] transition-[width] duration-200 overflow-hidden",
+        "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)] transition-[width] duration-200 overflow-hidden",
         collapsed ? "w-16" : "w-56",
       )}>
         <SidebarContents />

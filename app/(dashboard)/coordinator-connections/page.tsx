@@ -133,7 +133,7 @@ export default function CoordinatorConnectionsPage() {
       <>
         <PageHeader title="Coordinator Connections" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>This page is only available to Coordinators and Participants.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>This page is only available to Coordinators and Participants.</p>
         </div>
       </>
     );
@@ -155,10 +155,10 @@ export default function CoordinatorConnectionsPage() {
           : "Coordinators connected to you, and what they're allowed to do."}
       />
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
-        {error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>{error}</div>}
+        {error && <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>{error}</div>}
 
         {loading ? (
-          <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
+          <p style={{ color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
         ) : (
           <>
             {postingApprovals.length > 0 && (
@@ -206,16 +206,16 @@ export default function CoordinatorConnectionsPage() {
             {pending.length > 0 && (
               <Card>
                 <CardContent style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-muted)", textTransform: "uppercase" }}>
                     Requests to respond to ({pending.length})
                   </div>
                   {pending.map(c => {
                     const otherName = isCoordinator ? c.participant.name : c.coordinator.name;
                     return (
-                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #fde68a", borderRadius: 10, background: "#fffbeb" }}>
+                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid var(--td-border)", borderRadius: 10, background: "var(--td-grey-tint)" }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 600 }}>{otherName}</div>
-                          {c.message && <div style={{ fontSize: 12, color: "#94a3b8" }}>&ldquo;{c.message}&rdquo;</div>}
+                          {c.message && <div style={{ fontSize: 12, color: "var(--td-muted)" }}>&ldquo;{c.message}&rdquo;</div>}
                         </div>
                         <Button size="sm" disabled={acting === c.id} onClick={() => respond(c.id, "ACCEPT")}>Accept</Button>
                         <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respond(c.id, "DECLINE")}>Decline</Button>
@@ -229,13 +229,13 @@ export default function CoordinatorConnectionsPage() {
             {sent.length > 0 && (
               <Card>
                 <CardContent style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-muted)", textTransform: "uppercase" }}>
                     Sent — awaiting response ({sent.length})
                   </div>
                   {sent.map(c => (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10, flexWrap: "wrap" }}>
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", border: "1.5px solid var(--td-border)", borderRadius: 10, flexWrap: "wrap" }}>
                       <div style={{ flex: 1, fontSize: 14, fontWeight: 600, minWidth: 120 }}>{isCoordinator ? c.participant.name : c.coordinator.name}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#92400e", background: "#fef9c3", padding: "2px 10px", borderRadius: 20 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--td-ink-800)", background: "var(--td-grey)", padding: "2px 10px", borderRadius: 20 }}>
                         {resentId === c.id ? "Resent" : "Pending"}
                       </span>
                       <Button size="sm" variant="outline" disabled={acting === c.id} onClick={() => resendRequest(c.id)}>Resend</Button>
@@ -251,24 +251,24 @@ export default function CoordinatorConnectionsPage() {
 
             <Card>
               <CardContent style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-muted)", textTransform: "uppercase" }}>
                   Active connections ({active.length})
                 </div>
                 {active.length === 0 ? (
-                  <p style={{ color: "#94a3b8", fontSize: 13 }}>No active connections yet.</p>
+                  <p style={{ color: "var(--td-muted)", fontSize: 13 }}>No active connections yet.</p>
                 ) : active.map(c => (
-                  <div key={c.id} style={{ border: "1.5px solid #e2e8f0", borderRadius: 10, padding: "12px 14px" }}>
+                  <div key={c.id} style={{ border: "1.5px solid var(--td-border)", borderRadius: 10, padding: "12px 14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: isParticipant ? 10 : 0 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#15803d" }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--td-grey)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "var(--td-ink-700)" }}>
                         {(isCoordinator ? c.participant.name : c.coordinator.name)[0]}
                       </div>
                       <div style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{isCoordinator ? c.participant.name : c.coordinator.name}</div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d", background: "#dcfce7", padding: "2px 10px", borderRadius: 20 }}>Active</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--td-ink-700)", background: "var(--td-grey)", padding: "2px 10px", borderRadius: 20 }}>Active</span>
                     </div>
                     {isParticipant && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8, paddingTop: 10, borderTop: "1px solid #f1f5f9" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8, paddingTop: 10, borderTop: "1px solid var(--td-grey)" }}>
                         {PERMISSION_LABELS.map(p => (
-                          <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#374151", cursor: "pointer" }}>
+                          <label key={p.key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--td-dark-text-soft)", cursor: "pointer" }}>
                             <input
                               type="checkbox" checked={Boolean(c[p.key])}
                               disabled={acting === c.id}

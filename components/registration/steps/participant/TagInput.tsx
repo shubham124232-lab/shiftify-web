@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 
 export function TagInput({ name, placeholder }: { name: string; placeholder?: string }) {
   const { control, formState: { errors } } = useFormContext();
@@ -22,9 +22,9 @@ export function TagInput({ name, placeholder }: { name: string; placeholder?: st
           <div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: tags.length > 0 ? 8 : 0 }}>
               {tags.map(t => (
-                <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--clr-primary)', color: '#fff', borderRadius: 14, padding: '4px 10px', fontSize: 12 }}>
+                <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--clr-primary)', color: 'var(--td-white)', borderRadius: 14, padding: '4px 10px', fontSize: 12 }}>
                   {t}
-                  <button type="button" onClick={() => remove(t)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>&times;</button>
+                  <button type="button" onClick={() => remove(t)} style={{ background: 'none', border: 'none', color: 'var(--td-white)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>&times;</button>
                 </span>
               ))}
             </div>
@@ -36,12 +36,12 @@ export function TagInput({ name, placeholder }: { name: string; placeholder?: st
                 placeholder={placeholder ?? 'Type and press Enter to add…'}
                 style={{ ...inputStyle, flex: 1 }}
               />
-              <button type="button" onClick={add} style={{ padding: '0 16px', borderRadius: 'var(--btn-radius)', background: 'var(--clr-primary)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Add</button>
+              <button type="button" onClick={add} style={{ padding: '0 16px', borderRadius: 'var(--btn-radius)', background: 'var(--clr-primary)', color: 'var(--td-white)', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Add</button>
             </div>
           </div>
         );
       }} />
-      {err && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{err}</p>}
+      {err && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{err}</p>}
     </>
   );
 }

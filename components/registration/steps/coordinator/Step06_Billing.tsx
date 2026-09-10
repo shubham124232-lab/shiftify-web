@@ -1,7 +1,7 @@
 'use client';
 import { useFormContext, Controller } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const PLAN_TYPES = [
@@ -17,7 +17,7 @@ export function CoordStep06_Billing() {
 
       {/* Participant plan types */}
       <div>
-        <label style={{ ...labelStyle, marginBottom: 8 }}>Participant Plan Types You Work With <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={{ ...labelStyle, marginBottom: 8 }}>Participant Plan Types You Work With <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', margin: '0 0 10px' }}>
           You will only be matched with participants whose funding type matches your selection.
         </p>
@@ -30,7 +30,7 @@ export function CoordStep06_Billing() {
                   display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
                   padding: '12px 14px', borderRadius: 10,
                   border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: sel ? 'rgba(79,70,229,0.05)' : '#fff',
+                  background: sel ? 'rgba(183,37,88,0.05)' : 'var(--td-white)',
                 }}>
                   <input type="checkbox" checked={sel}
                     onChange={() => {

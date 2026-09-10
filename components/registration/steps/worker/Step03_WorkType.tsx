@@ -5,7 +5,7 @@ import { FileUploadField } from '../../fields/FileUploadField';
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 42, padding: '0 12px',
   borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)',
-  fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box',
+  fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box',
 };
 const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5,
@@ -16,7 +16,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
   const val = watch(name) as boolean;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px',
-      border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+      border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--clr-text)' }}>{label}</div>
         {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2 }}>{desc}</div>}
@@ -29,7 +29,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
         }}>
           <div style={{
             position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18,
-            borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)',
           }} />
         </div>
         <span style={{ fontSize: 12, color: val ? 'var(--clr-primary)' : 'var(--clr-muted)', fontWeight: 600 }}>
@@ -51,7 +51,7 @@ export function WorkerStep03_WorkType() {
 
       {/* Employment type */}
       <div>
-        <label style={labelStyle}>Employment Type <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Employment Type <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {([
             { value: 'CONTRACTOR', label: 'Sole Trader / Contractor', icon: 'bi-person-workspace', desc: 'ABN required · invoice for work' },
@@ -63,7 +63,7 @@ export function WorkerStep03_WorkType() {
                 display: 'flex', flexDirection: 'column', gap: 6, padding: '14px 12px',
                 border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
                 borderRadius: 10, cursor: 'pointer',
-                background: selected ? 'rgba(79,70,229,0.06)' : '#fff', transition: 'all 0.15s',
+                background: selected ? 'rgba(183,37,88,0.06)' : 'var(--td-white)', transition: 'all 0.15s',
               }}>
                 <input type="radio" value={opt.value} {...register('workType')} style={{ display: 'none' }} />
                 <i className={`bi ${opt.icon}`} style={{ fontSize: 20, color: selected ? 'var(--clr-primary)' : 'var(--clr-muted)' }} />
@@ -73,19 +73,19 @@ export function WorkerStep03_WorkType() {
             );
           })}
         </div>
-        {errors.workType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.workType.message as string}</p>}
+        {errors.workType && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{errors.workType.message as string}</p>}
       </div>
 
       {/* ABN — conditional on CONTRACTOR */}
       {workType === 'CONTRACTOR' && (
         <div style={{
-          background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)',
+          background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.15)',
           borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <div>
-            <label style={labelStyle}>Australian Business Number (ABN) <span style={{ color: '#ef4444' }}>*</span></label>
-            <input {...register('abn')} placeholder="XX XXX XXX XXX" style={{ ...inputStyle, borderColor: errors.abn ? '#ef4444' : 'var(--clr-border)' }} />
-            {errors.abn && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.abn.message as string}</p>}
+            <label style={labelStyle}>Australian Business Number (ABN) <span style={{ color: 'var(--td-pink)' }}>*</span></label>
+            <input {...register('abn')} placeholder="XX XXX XXX XXX" style={{ ...inputStyle, borderColor: errors.abn ? 'var(--td-pink)' : 'var(--clr-border)' }} />
+            {errors.abn && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.abn.message as string}</p>}
           </div>
           <Toggle label="Registered for GST?" name="gstRegistered" />
         </div>
@@ -104,7 +104,7 @@ export function WorkerStep03_WorkType() {
 
       {/* PL Insurance details */}
       {hasPL && (
-        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.15)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--clr-primary)' }}>Public Liability Insurance Details</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
@@ -124,8 +124,8 @@ export function WorkerStep03_WorkType() {
 
       {/* Personal Accident Insurance details */}
       {hasPA && (
-        <div style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#16a34a' }}>Personal Accident Insurance Details</p>
+        <div style={{ background: 'rgba(106,114,122,0.04)', border: '1px solid rgba(106,114,122,0.2)', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--td-dark-text-soft)' }}>Personal Accident Insurance Details</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={labelStyle}>Policy Number</label>

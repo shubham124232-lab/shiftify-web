@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4,
+  display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4,
 };
-const hint: React.CSSProperties = { fontSize: 11, color: "#94a3b8", marginTop: 4 };
+const hint: React.CSSProperties = { fontSize: 11, color: "var(--td-muted)", marginTop: 4 };
 
 export default function NewWorkerPage() {
   const router = useRouter();
@@ -90,7 +90,7 @@ export default function NewWorkerPage() {
                   />
                   <button
                     type="button" onClick={() => setShowPw(v => !v)}
-                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}
+                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--td-muted)", background: "none", border: "none", cursor: "pointer" }}
                   >
                     {showPw ? "Hide" : "Show"}
                   </button>
@@ -101,13 +101,13 @@ export default function NewWorkerPage() {
           </Card>
 
           {error && (
-            <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+            <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
               {error}
             </div>
           )}
 
           {!canSubmit && missing.length > 0 && (
-            <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "#92400E" }}>
+            <div style={{ background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: "var(--td-ink-800)" }}>
               Still needed before you can create this worker: {missing.join(", ")}
             </div>
           )}

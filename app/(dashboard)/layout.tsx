@@ -85,14 +85,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
+      <div className="td-theme flex h-screen items-center justify-center text-slate-500">
         <Spinner /> <span className="ml-2">Loading</span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="td-theme flex h-screen">
       <AppSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppTopbar />

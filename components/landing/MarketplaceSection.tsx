@@ -4,21 +4,21 @@
 import { useState } from 'react';
 
 const listings = [
-  { type: 'emergency', title: 'Emergency — Personal Care',           location: 'Melbourne, VIC', time: 'Needed ASAP',            rate: '$45/hr', tags: ['Urgent', 'NDIS Funded'],   initials: 'TW', color: '#DC2626', name: 'Thomas W.' },
-  { type: 'regular',   title: 'Daily Living Assistance',             location: 'Sydney, NSW',    time: 'Mon–Fri, 9am–1pm',       rate: '$38/hr', tags: ['Ongoing', 'NDIS Funded'],   initials: 'LA', color: '#7C3AED', name: 'Laura A.'  },
-  { type: 'regular',   title: 'Overnight Support Worker',            location: 'Brisbane, QLD',  time: 'Fri & Sat nights',       rate: '$52/hr', tags: ['Sleepover', 'Complex Care'], initials: 'MK', color: '#0D9488', name: 'Michael K.' },
-  { type: 'emergency', title: 'Emergency — Community Access',        location: 'Perth, WA',      time: 'Today, 2pm–6pm',         rate: '$44/hr', tags: ['Urgent', 'Community'],      initials: 'SR', color: '#DC2626', name: 'Susan R.'  },
-  { type: 'regular',   title: 'Disability Transport',                location: 'Adelaide, SA',   time: 'Tue & Thu mornings',     rate: '$35/hr', tags: ['Transport', 'Ongoing'],     initials: 'JP', color: '#C2185B', name: 'James P.'  },
-  { type: 'regular',   title: 'Therapy Support — OT',                location: 'Canberra, ACT',  time: 'Flexible schedule',      rate: '$65/hr', tags: ['Allied Health', 'NDIS'],    initials: 'AH', color: '#1D4ED8', name: 'Aisha H.'  },
-  { type: 'urgent',    title: 'Urgent — Same-Day Personal Care',     location: 'Newcastle, NSW', time: 'Today, 4pm start',       rate: '$42/hr', tags: ['Urgent', 'Same-Day'],       initials: 'RK', color: '#7C3AED', name: 'Ravi K.'   },
-  { type: 'lastmin',   title: 'Last-Min Cancellation — Domestic',    location: 'Geelong, VIC',   time: 'Cancelled · rebook ASAP', rate: '$36/hr', tags: ['Cancellation', 'Rebook'],   initials: 'EN', color: '#EA580C', name: 'Ella N.'   },
+  { type: 'emergency', title: 'Emergency — Personal Care',           location: 'Melbourne, VIC', time: 'Needed ASAP',            rate: '$45/hr', tags: ['Urgent', 'NDIS Funded'],   initials: 'TW', color: 'var(--td-pink)', name: 'Thomas W.' },
+  { type: 'regular',   title: 'Daily Living Assistance',             location: 'Sydney, NSW',    time: 'Mon–Fri, 9am–1pm',       rate: '$38/hr', tags: ['Ongoing', 'NDIS Funded'],   initials: 'LA', color: 'var(--td-black)', name: 'Laura A.'  },
+  { type: 'regular',   title: 'Overnight Support Worker',            location: 'Brisbane, QLD',  time: 'Fri & Sat nights',       rate: '$52/hr', tags: ['Sleepover', 'Complex Care'], initials: 'MK', color: 'var(--td-dark-text-soft)', name: 'Michael K.' },
+  { type: 'emergency', title: 'Emergency — Community Access',        location: 'Perth, WA',      time: 'Today, 2pm–6pm',         rate: '$44/hr', tags: ['Urgent', 'Community'],      initials: 'SR', color: 'var(--td-pink)', name: 'Susan R.'  },
+  { type: 'regular',   title: 'Disability Transport',                location: 'Adelaide, SA',   time: 'Tue & Thu mornings',     rate: '$35/hr', tags: ['Transport', 'Ongoing'],     initials: 'JP', color: 'var(--td-pink)', name: 'James P.'  },
+  { type: 'regular',   title: 'Therapy Support — OT',                location: 'Canberra, ACT',  time: 'Flexible schedule',      rate: '$65/hr', tags: ['Allied Health', 'NDIS'],    initials: 'AH', color: 'var(--td-dark-text-soft)', name: 'Aisha H.'  },
+  { type: 'urgent',    title: 'Urgent — Same-Day Personal Care',     location: 'Newcastle, NSW', time: 'Today, 4pm start',       rate: '$42/hr', tags: ['Urgent', 'Same-Day'],       initials: 'RK', color: 'var(--td-black)', name: 'Ravi K.'   },
+  { type: 'lastmin',   title: 'Last-Min Cancellation — Domestic',    location: 'Geelong, VIC',   time: 'Cancelled · rebook ASAP', rate: '$36/hr', tags: ['Cancellation', 'Rebook'],   initials: 'EN', color: 'var(--td-dark-text-soft)', name: 'Ella N.'   },
 ] as const;
 
 const filters = [
-  { key: 'all',       label: 'All',                     icon: 'bi-grid-fill',              color: '#1A1A2E' },
-  { key: 'emergency', label: 'Emergency Shift',          icon: 'bi-lightning-charge-fill',  color: '#DC2626' },
-  { key: 'urgent',    label: 'Urgent Shift',             icon: 'bi-alarm-fill',             color: '#7C3AED' },
-  { key: 'lastmin',   label: 'Last-min cancellation Shift', icon: 'bi-arrow-repeat',        color: '#EA580C' },
+  { key: 'all',       label: 'All',                     icon: 'bi-grid-fill',              color: 'var(--td-dark-text)' },
+  { key: 'emergency', label: 'Emergency Shift',          icon: 'bi-lightning-charge-fill',  color: 'var(--td-pink)' },
+  { key: 'urgent',    label: 'Urgent Shift',             icon: 'bi-alarm-fill',             color: 'var(--td-black)' },
+  { key: 'lastmin',   label: 'Last-min cancellation Shift', icon: 'bi-arrow-repeat',        color: 'var(--td-dark-text-soft)' },
 ] as const;
 
 export default function MarketplaceSection() {
@@ -77,9 +77,9 @@ export default function MarketplaceSection() {
                 type="button"
                 className={`market-filter-btn${isActive ? ' active' : ''}`}
                 style={{
-                  background: isActive ? f.color : `${f.color}14`,
-                  borderColor: isActive ? f.color : `${f.color}33`,
-                  color: isActive ? '#fff' : f.color,
+                  background: isActive ? f.color : `color-mix(in srgb, ${f.color} 8%, var(--td-white))`,
+                  borderColor: isActive ? f.color : `color-mix(in srgb, ${f.color} 20%, transparent)`,
+                  color: isActive ? 'var(--td-white)' : f.color,
                 }}
                 onClick={() => setActiveFilter(f.key)}
               >
@@ -106,7 +106,7 @@ export default function MarketplaceSection() {
               >
                 {item.type === 'emergency' && (
                   <div className="badge-emergency mb-3" role="status">
-                    <span style={{ width: 6, height: 6, background: '#B91C1C', borderRadius: '50%', animation: 'blink 1s infinite' }} aria-hidden="true" />
+                    <span style={{ width: 6, height: 6, background: 'var(--td-pink)', borderRadius: '50%', animation: 'blink 1s infinite' }} aria-hidden="true" />
                     Emergency Shift
                   </div>
                 )}
@@ -122,7 +122,7 @@ export default function MarketplaceSection() {
                       </div>
                     </div>
                   </div>
-                  <div className="market-rate-pill" style={{ background: `${item.color}14`, color: item.color }}>
+                  <div className="market-rate-pill" style={{ background: `color-mix(in srgb, ${item.color} 8%, var(--td-white))`, color: item.color }}>
                     <div className="market-rate">{item.rate}</div>
                     <div className="market-rate-label">NDIS Rate</div>
                   </div>

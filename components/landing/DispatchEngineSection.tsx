@@ -21,7 +21,7 @@ function StepIllustration({ stepKey, color }: { stepKey: string; color: string }
           <span className="de-radar-ring r1" style={{ borderColor: color }} />
           <span className="de-radar-ring r2" style={{ borderColor: color }} />
           <span className="de-illus-ping-core" style={{ background: color }}>
-            <FiBell size={18} color="#fff" aria-hidden="true" />
+            <FiBell size={18} color="var(--td-white)" aria-hidden="true" />
           </span>
         </div>
         <div className="de-illus-avatars">
@@ -67,7 +67,7 @@ function StepIllustration({ stepKey, color }: { stepKey: string; color: string }
         {confirmStages.map((s, i) => (
           <div key={s} className="de-illus-stepper-item">
             <span className={`de-illus-stepper-dot${i <= 2 ? ' done' : ''}`} style={{ background: i <= 2 ? color : undefined }}>
-              {i <= 2 && <FiCheckCircle size={11} color="#fff" aria-hidden="true" />}
+              {i <= 2 && <FiCheckCircle size={11} color="var(--td-white)" aria-hidden="true" />}
             </span>
             {i < confirmStages.length - 1 && (
               <span className={`de-illus-stepper-line${i < 2 ? ' done' : ''}`} style={{ background: i < 2 ? color : undefined }} />
@@ -100,25 +100,25 @@ const steps: Step[] = [
   {
     key: 'signal', tag: 'POST', title: 'Signal', Icon: FiBell,
     desc: 'Participant, coordinator or provider posts a shift, request or cancellation. Workers post live availability.',
-    color: '#F87171', glow: 'rgba(239,68,68,0.45)',
+    color: 'var(--td-pink)', glow: 'color-mix(in srgb, var(--td-pink) 45%, transparent)',
     rightTag: '01 · SIGNAL', rightTitle: 'New signal received', rightSub: 'Broadcasting to eligible workers nearby', progress: 25,
   },
   {
     key: 'dispatch', tag: 'SCORE', title: 'Dispatch', Icon: FiRadio,
     desc: 'Hard filters (service, radius, delivery mode) plus scoring by urgency, overlap quality and response history.',
-    color: '#FBBF24', glow: 'rgba(245,158,11,0.45)',
+    color: 'var(--td-black)', glow: 'color-mix(in srgb, var(--td-black) 40%, transparent)',
     rightTag: '02 · DISPATCH', rightTitle: 'Scoring & shortlisting', rightSub: 'Ranking by proximity, skills and response history', progress: 50,
   },
   {
     key: 'match', tag: 'THREAD', title: 'Match', Icon: FiMessageCircle,
     desc: 'Threads open per shift. Participants confirm directly or coordinators confirm on behalf.',
-    color: '#F472B6', glow: 'rgba(236,72,153,0.45)',
+    color: 'var(--td-pink)', glow: 'color-mix(in srgb, var(--td-pink) 45%, transparent)',
     rightTag: '03 · MATCH', rightTitle: 'Thread opened', rightSub: 'Worker and participant confirming details live', progress: 75,
   },
   {
     key: 'confirm', tag: 'SYNC', title: 'Confirm', Icon: FiCheckCircle,
     desc: 'Requested → Proposed → Confirmed → Completed. All parties stay in sync with live status.',
-    color: '#34D399', glow: 'rgba(16,185,129,0.45)',
+    color: 'var(--td-black)', glow: 'color-mix(in srgb, var(--td-black) 40%, transparent)',
     rightTag: '04 · CONFIRMED', rightTitle: 'Booking locked', rightSub: 'Everyone in the thread sees status live', progress: 100,
   },
 ];
@@ -136,7 +136,7 @@ export default function DispatchEngineSection() {
   const active = steps[activeIdx];
 
   return (
-    <section id="dispatch-engine" className="section-py dispatch-engine-bg" aria-labelledby="de-heading">
+    <section id="dispatch-engine" className="section-py dispatch-engine-bg" aria-labelledby="de-heading" style={{ display: 'none' }}>
       <div className="de-wrap">
         <div className="de-frame fade-up">
           <div className="de-frame-inner">
@@ -175,7 +175,7 @@ export default function DispatchEngineSection() {
                     className={`de-node${idx === activeIdx ? ' active' : ''}`}
                     style={{ background: s.color, boxShadow: idx === activeIdx ? `0 0 0 8px ${s.glow}` : 'none' }}
                   >
-                    <s.Icon size={16} color="#fff" aria-hidden="true" />
+                    <s.Icon size={16} color="var(--td-white)" aria-hidden="true" />
                   </div>
                 ))}
               </div>
@@ -204,7 +204,7 @@ export default function DispatchEngineSection() {
 
                 <div className="de-status-panel" style={{ ...({ '--panel-glow': active.glow } as React.CSSProperties) }}>
                   <div className="de-status-header">
-                    <span className="de-status-tag" style={{ background: `${active.color}22`, color: active.color }}>
+                    <span className="de-status-tag" style={{ background: `color-mix(in srgb, ${active.color} 14%, var(--td-white))`, color: active.color }}>
                       <span className="dot" style={{ background: active.color }} aria-hidden="true" />
                       {active.rightTag}
                     </span>

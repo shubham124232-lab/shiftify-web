@@ -1,37 +1,33 @@
-import Header             from '@/components/landing/Header';
-import HeroSection         from '@/components/landing/HeroSection';
-import UrgencyLanesSection from '@/components/landing/UrgencyLanesSection';
-import DispatchEngineSection from '@/components/landing/DispatchEngineSection';
-import StoryboardSection   from '@/components/landing/StoryboardSection';
-import EcosystemRolesSection from '@/components/landing/EcosystemRolesSection';
-import ServicesSection     from '@/components/landing/ServicesSection';
-import TrustSection        from '@/components/landing/TrustSection';
-import MarketplaceSection  from '@/components/landing/MarketplaceSection';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import PricingSection      from '@/components/landing/PricingSection';
-import WorkerCommissionCtaSection from '@/components/landing/WorkerCommissionCtaSection';
-import FinalCTASection     from '@/components/landing/FinalCTASection';
-import Footer              from '@/components/landing/Footer';
-import EmergencyFAB        from '@/components/landing/EmergencyFAB';
+import './home.css';
+
+import HomeNav                from '@/components/landing/home/HomeNav';
+import HomeHero               from '@/components/landing/home/HomeHero';
+import AccessibilityBar       from '@/components/landing/home/AccessibilityBar';
+import TimingLanesSection     from '@/components/landing/home/TimingLanesSection';
+import ConnectRolesSection    from '@/components/landing/home/ConnectRolesSection';
+import HomeServicesSection    from '@/components/landing/home/HomeServicesSection';
+import PlansSection           from '@/components/landing/home/PlansSection';
+import HowItWorksSection      from '@/components/landing/home/HowItWorksSection';
+import SilSdaSection          from '@/components/landing/home/SilSdaSection';
+import PlatinumTilesSection   from '@/components/landing/home/PlatinumTilesSection';
+import HomeFinalCta           from '@/components/landing/home/HomeFinalCta';
+import HomeFooter             from '@/components/landing/home/HomeFooter';
 
 export default function HomePage() {
   return (
-    <div className="td-home">
-      <Header />
-      <HeroSection />
-      <UrgencyLanesSection />
-      <DispatchEngineSection />
-      <StoryboardSection />
-      <WorkerCommissionCtaSection />
-      <EcosystemRolesSection />
-      <ServicesSection />
-      <TrustSection />
-      <MarketplaceSection />
-      <TestimonialsSection />
-      <PricingSection />
-      <FinalCTASection />
-      <Footer />
-      <EmergencyFAB />
+    <div className="sf-home">
+      <HomeNav />
+      <HomeHero />
+      <AccessibilityBar />
+      <TimingLanesSection />
+      <ConnectRolesSection />
+      <HomeServicesSection />
+      <PlansSection />
+      <HowItWorksSection />
+      <SilSdaSection />
+      <PlatinumTilesSection />
+      <HomeFinalCta />
+      <HomeFooter />
     </div>
   );
 }

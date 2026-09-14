@@ -4,14 +4,15 @@ import HomeNav                from '@/components/landing/home/HomeNav';
 import HomeHero               from '@/components/landing/home/HomeHero';
 import AccessibilityBar       from '@/components/landing/home/AccessibilityBar';
 import TimingLanesSection     from '@/components/landing/home/TimingLanesSection';
-import ConnectRolesSection    from '@/components/landing/home/ConnectRolesSection';
 import HomeServicesSection    from '@/components/landing/home/HomeServicesSection';
-import PlansSection           from '@/components/landing/home/PlansSection';
+import CommunityStoriesSection from '@/components/landing/home/CommunityStoriesSection';
+import PricingSection         from '@/components/landing/home/PricingSection';
 import HowItWorksSection      from '@/components/landing/home/HowItWorksSection';
+import PlatinumPlacementSection from '@/components/landing/home/PlatinumPlacementSection';
+import ListingBoostCta        from '@/components/landing/home/ListingBoostCta';
 import SilSdaSection          from '@/components/landing/home/SilSdaSection';
-import PlatinumTilesSection   from '@/components/landing/home/PlatinumTilesSection';
-import HomeFinalCta           from '@/components/landing/home/HomeFinalCta';
-import HomeFooter             from '@/components/landing/home/HomeFooter';
+import LaneTicker            from '@/components/landing/home/LaneTicker';
+import SiteFooter             from '@/components/landing/home/SiteFooter';
 
 export default function HomePage() {
   return (
@@ -20,14 +21,15 @@ export default function HomePage() {
       <HomeHero />
       <AccessibilityBar />
       <TimingLanesSection />
-      <ConnectRolesSection />
-      <HomeServicesSection />
-      <PlansSection />
       <HowItWorksSection />
+      <HomeServicesSection />
+      <CommunityStoriesSection />
+      <PricingSection />
+      <PlatinumPlacementSection />
+      <ListingBoostCta />
       <SilSdaSection />
-      <PlatinumTilesSection />
-      <HomeFinalCta />
-      <HomeFooter />
+      <LaneTicker />
+      <SiteFooter />
     </div>
   );
 }

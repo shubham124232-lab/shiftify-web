@@ -38,8 +38,14 @@ function getStrength(pw: string): { level: 0|1|2|3; label: string; color: string
   return             { level: 3, label: 'Strong', color: '#22c55e' };
 }
 
-const inp: React.CSSProperties = { width:'100%',height:42,padding:'0 12px',borderRadius:'var(--btn-radius)',border:'1.5px solid var(--clr-border)',fontSize:14,outline:'none',background:'#fff',boxSizing:'border-box' };
-const lbl: React.CSSProperties = { display:'block',fontSize:12,fontWeight:600,color:'var(--clr-text)',marginBottom:5 };
+const inp: React.CSSProperties = { width:'100%',height:'var(--auth-input-h)',padding:'0 14px',borderRadius:12,border:'1.5px solid transparent',fontSize:14.5,outline:'none',background:'color-mix(in srgb, var(--td-grey) 62%, var(--td-white))',boxSizing:'border-box',transition:'background 0.18s, border-color 0.18s, box-shadow 0.18s' };
+const lbl: React.CSSProperties = { display:'block',fontSize:12,fontWeight:700,color:'var(--clr-text)',marginBottom:5,letterSpacing:-0.1 };
+const hint: React.CSSProperties = { fontSize:10.5,color:'var(--clr-muted)',margin:'3px 0 0',lineHeight:1.3 };
+const err: React.CSSProperties = { fontSize:10.5,color:'#ef4444',margin:'3px 0 0',lineHeight:1.3 };
+
+// Macro journey shown in the step rail above the card. The plan/payment/wizard
+// phases all sit after verification, so they collapse onto the last node.
+const RAIL_STEPS = ['Your role', 'Your details', 'Verify'] as const;
 
 // WizardStep: keyed per step so useForm remounts with correct schema each time
 interface WizardStepProps {
@@ -244,6 +250,9 @@ function RegisterPageInner() {
   const progressPct  = totalSteps > 1 ? Math.round((currentIndex / (totalSteps - 1)) * 100) : 100;
   const displayError = localError ?? authError;
 
+  // Rail: role -> details -> verify. Anything past the OTP modal stays on node 3.
+  const railIndex = phase === 'role' ? 0 : phase === 'details' && !showOtp ? 1 : 2;
+
   function handleRoleNext() {
     if (!role) return;
     clearError(); setLocalError(null); setPhase('details');
@@ -444,18 +453,60 @@ function RegisterPageInner() {
 
   const selectedPlanData = plans.find(p => p.id === selectedPlan);
 
-  return (
-    <AuthLayout mode="register">
+  const roleLabel = ROLE_CARDS.find(r => r.value === role)?.label ?? '';
 
-      {phase !== 'role' && (
-        <div style={{marginBottom:20}}>
-          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-            <span style={{fontSize:12,fontWeight:600,color:'var(--clr-muted)'}}>Step {currentIndex+1} of {totalSteps}</span>
-            <span style={{fontSize:11,color:'var(--clr-muted)'}}>
-              {phase==='details' ? 'Account Details' : phase==='wizard' ? (profileSteps[wizardStep]?.title ?? 'Profile Setup') : phase==='plan' ? 'Choose Plan' : 'Payment'}
-            </span>
+  // The ink header carries the step title, so no phase repeats it in the body.
+  const panelTitle =
+    phase === 'role'    ? 'How will you use Shiftify?' :
+    phase === 'details' ? `${roleLabel} details` :
+    phase === 'wizard'  ? (profileSteps[wizardStep]?.title ?? 'Your profile') :
+    phase === 'plan'    ? 'Choose your plan' :
+                          'Payment details';
+
+  const goBack =
+    phase === 'details' ? () => { setPhase('role'); clearError(); setLocalError(null); } :
+    phase === 'payment' ? () => setPhase('plan') :
+    phase === 'wizard'  ? handleWizardBack :
+                          null;
+
+  return (
+    <AuthLayout mode="register" variant="centered" maxWidth={880} flush>
+
+      <header className="auth-panel-head">
+        <div className="auth-panel-head-top">
+          {goBack && (
+            <button type="button" className="auth-back-ink" onClick={goBack} aria-label="Back to the previous step">
+              <i className="bi bi-arrow-left" aria-hidden="true" />
+            </button>
+          )}
+          <h1 className="auth-panel-title auth-panel-head-copy">{panelTitle}</h1>
+          <span className="auth-panel-count">
+            Step {railIndex + 1} <em>/ {RAIL_STEPS.length}</em>
+          </span>
+        </div>
+
+        <ol className="auth-steps" aria-label="Registration progress">
+          {RAIL_STEPS.map((label, i) => (
+            <li
+              key={label}
+              className={`auth-step ${i < railIndex ? 'is-done' : i === railIndex ? 'is-current' : 'is-next'}`}
+              aria-current={i === railIndex ? 'step' : undefined}
+            >
+              <span className="auth-step-bar" />
+              <span className="auth-step-name">{label}</span>
+            </li>
+          ))}
+        </ol>
+      </header>
+
+      <div className="auth-panel-body">
+
+      {(phase === 'wizard' || phase === 'plan' || phase === 'payment') && (
+        <div style={{marginBottom:18}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:7}}>
+            <span style={{fontSize:11.5,fontWeight:700,color:'var(--clr-text)'}}>Step {currentIndex+1} of {totalSteps}</span>
           </div>
-          <div style={{height:4,background:'var(--clr-border)',borderRadius:4}}>
+          <div style={{height:4,background:'var(--td-grey)',borderRadius:4,overflow:'hidden'}}>
             <div style={{height:'100%',width:`${progressPct}%`,background:'var(--clr-primary)',borderRadius:4,transition:'width 0.4s ease'}} />
           </div>
         </div>
@@ -464,163 +515,143 @@ function RegisterPageInner() {
       {/* ROLE */}
       {phase === 'role' && (
         <>
-          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:20}}>
-            <div style={{width:28,height:10,borderRadius:5,background:'var(--clr-primary)'}} />
-            <div style={{width:10,height:10,borderRadius:5,background:'var(--clr-border)'}} />
-            <span style={{fontSize:12,color:'var(--clr-muted)',fontWeight:600,marginLeft:4}}>Step 1</span>
-          </div>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:26,fontWeight:800,color:'var(--clr-text)',letterSpacing:-0.5,marginBottom:4}}>Create your account</h1>
-          <p style={{fontSize:14,color:'var(--clr-muted)',marginBottom:24}}>First, tell us how you&apos;ll use Shiftify</p>
+          <p className="auth-panel-intro">Pick the option that describes you — you can change this later.</p>
 
-          <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div className="auth-role-grid" role="radiogroup" aria-label="Account type">
             {ROLE_CARDS.map(card => {
               const sel = role===card.value;
               return (
-                <button key={card.value} type="button" onClick={() => setRole(card.value)}
-                  style={{display:'flex',alignItems:'center',gap:14,width:'100%',padding:'14px 16px',borderRadius:'var(--card-radius)',border:sel?'2px solid var(--clr-primary)':'1.5px solid var(--clr-border)',background:sel?'rgba(194,24,91,0.04)':'#fff',cursor:'pointer',textAlign:'left',transition:'all 0.18s'}}>
-                  <div style={{width:44,height:44,borderRadius:12,flexShrink:0,background:sel?'var(--clr-primary)':'var(--clr-surface)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,color:sel?'#fff':'var(--clr-primary)',transition:'all 0.18s'}}>
-                    <i className={`bi ${card.icon}`} />
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:700,color:'var(--clr-text)'}}>{card.label}</div>
-                    <div style={{fontSize:12,color:'var(--clr-muted)',marginTop:2}}>{card.tagline}</div>
-                  </div>
-                  <div style={{width:20,height:20,borderRadius:'50%',flexShrink:0,border:sel?'2px solid var(--clr-primary)':'2px solid var(--clr-border)',background:sel?'var(--clr-primary)':'#fff',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    {sel && <i className="bi bi-check-lg" style={{color:'#fff',fontSize:11}} />}
-                  </div>
+                <button key={card.value} type="button" role="radio" aria-checked={sel} onClick={() => setRole(card.value)}
+                  className={`auth-role-card${sel ? ' is-sel' : ''}`}>
+                  <span className="auth-role-card__icon"><i className={`bi ${card.icon}`} aria-hidden="true" /></span>
+                  <span style={{flex:1,minWidth:0}}>
+                    <span style={{display:'block',fontSize:15,fontWeight:800,color:'var(--clr-text)',letterSpacing:-0.25}}>{card.label}</span>
+                    <span style={{display:'block',fontSize:12,color:'var(--clr-muted)',marginTop:2,lineHeight:1.35}}>{card.tagline}</span>
+                  </span>
+                  <span className="auth-role-card__radio"><i className="bi bi-check-lg" aria-hidden="true" /></span>
                 </button>
               );
             })}
           </div>
 
           <button type="button" disabled={!role} onClick={handleRoleNext} className="btn-shiftify"
-            style={{width:'100%',height:46,fontSize:15,fontWeight:700,marginTop:20,opacity:role?1:0.5,cursor:role?'pointer':'not-allowed'}}>
+            style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:'clamp(14px, 2.2vh, 22px)',justifyContent:'center',opacity:role?1:0.45,cursor:role?'pointer':'not-allowed'}}>
             Continue
+            <i className="bi bi-arrow-right" aria-hidden="true" />
           </button>
-          <p style={{textAlign:'center',fontSize:13,color:'var(--clr-muted)',marginTop:20}}>
-            Already have an account?{' '}
-            <Link href="/login" style={{color:'var(--clr-primary)',fontWeight:700,textDecoration:'none'}}>Log in</Link>
-          </p>
         </>
       )}
 
       {/* DETAILS */}
       {phase === 'details' && (
         <>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-            <button type="button" onClick={() => { setPhase('role'); clearError(); setLocalError(null); }}
-              style={{background:'none',border:'none',cursor:'pointer',color:'var(--clr-primary)',padding:0}}>
-              <i className="bi bi-arrow-left" style={{fontSize:18}} />
-            </button>
-            <div>
-              <h1 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'var(--clr-text)',margin:0,letterSpacing:-0.3}}>
-                {ROLE_CARDS.find(r => r.value===role)?.label} Account
-              </h1>
-              <p style={{fontSize:13,color:'var(--clr-muted)',margin:0}}>Fill in your details to get started</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleRegister} noValidate style={{display:'flex',flexDirection:'column',gap:14}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <form onSubmit={handleRegister} noValidate className="auth-form">
+            <div className="auth-form-row">
               <div>
                 <label style={lbl}>First Name</label>
                 <input type="text" value={firstName} onChange={e=>{setFirstName(e.target.value);setFieldErrors(p=>({...p,firstName:''}));}} placeholder="Jane" style={{...inp,borderColor:fieldErrors.firstName?'#ef4444':undefined}} autoComplete="given-name" />
-                {fieldErrors.firstName && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.firstName}</p>}
+                {fieldErrors.firstName && <p style={err}>{fieldErrors.firstName}</p>}
               </div>
               <div>
                 <label style={lbl}>Last Name</label>
                 <input type="text" value={lastName} onChange={e=>{setLastName(e.target.value);setFieldErrors(p=>({...p,lastName:''}));}} placeholder="Smith" style={{...inp,borderColor:fieldErrors.lastName?'#ef4444':undefined}} autoComplete="family-name" />
-                {fieldErrors.lastName && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.lastName}</p>}
+                {fieldErrors.lastName && <p style={err}>{fieldErrors.lastName}</p>}
               </div>
             </div>
 
-            <div>
-              <label style={lbl}>Username <span style={{color:'#ef4444'}}>*</span></label>
-              <div style={{position:'relative'}}>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); setFieldErrors(p=>({...p,username:''})); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
-                  onBlur={handleUsernameBlur}
-                  placeholder="e.g. jane.smith"
-                  style={{...inp,borderColor:fieldErrors.username?'#ef4444':undefined}}
-                  autoComplete="username"
-                />
-                {usernameStatus === 'checking' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#64748b'}}>Checking…</span>}
-                {usernameStatus === 'available' && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#16a34a',fontWeight:700}}>✓ Available</span>}
-                {usernameStatus === 'taken'     && <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:11,color:'#dc2626',fontWeight:700}}>✗ Taken</span>}
+            <div className="auth-form-row">
+              <div>
+                <label style={lbl}>Username <span style={{color:'#ef4444'}}>*</span></label>
+                <div style={{position:'relative'}}>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'')); setUsernameStatus('idle'); setFieldErrors(p=>({...p,username:''})); if (usernameTimer.current) clearTimeout(usernameTimer.current); }}
+                    onBlur={handleUsernameBlur}
+                    placeholder="e.g. jane.smith"
+                    style={{...inp,paddingRight:76,borderColor:fieldErrors.username?'#ef4444':undefined}}
+                    autoComplete="username"
+                  />
+                  {usernameStatus === 'checking' && <span style={{position:'absolute',right:11,top:'50%',transform:'translateY(-50%)',fontSize:10.5,color:'#64748b'}}>Checking…</span>}
+                  {usernameStatus === 'available' && <span style={{position:'absolute',right:11,top:'50%',transform:'translateY(-50%)',fontSize:10.5,color:'#16a34a',fontWeight:700}}>✓ Available</span>}
+                  {usernameStatus === 'taken'     && <span style={{position:'absolute',right:11,top:'50%',transform:'translateY(-50%)',fontSize:10.5,color:'#dc2626',fontWeight:700}}>✗ Taken</span>}
+                </div>
+                {fieldErrors.username
+                  ? <p style={err}>{fieldErrors.username}</p>
+                  : <p style={hint}>Lowercase letters, numbers, dots and underscores</p>}
               </div>
-              {fieldErrors.username
-                ? <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.username}</p>
-                : <p style={{fontSize:11,color:'var(--clr-muted)',marginTop:3}}>Lowercase letters, numbers, dots and underscores only</p>}
-            </div>
-
-            <div>
-              <label style={lbl}>Phone Number <span style={{color:'#ef4444'}}>*</span></label>
-              <input type="tel" value={phone} onChange={e=>{setPhone(e.target.value);setFieldErrors(p=>({...p,phone:''}));}} placeholder="+61 4xx xxx xxx" style={{...inp,borderColor:fieldErrors.phone?'#ef4444':undefined}} autoComplete="tel" />
-              {fieldErrors.phone && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.phone}</p>}
+              <div>
+                <label style={lbl}>Phone Number <span style={{color:'#ef4444'}}>*</span></label>
+                <input type="tel" value={phone} onChange={e=>{setPhone(e.target.value);setFieldErrors(p=>({...p,phone:''}));}} placeholder="+61 4xx xxx xxx" style={{...inp,borderColor:fieldErrors.phone?'#ef4444':undefined}} autoComplete="tel" />
+                {fieldErrors.phone && <p style={err}>{fieldErrors.phone}</p>}
+              </div>
             </div>
 
             <div>
               <label style={lbl}>Email <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>
               <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder="you@example.com" style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
-              {fieldErrors.email && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.email}</p>}
+              {fieldErrors.email && <p style={err}>{fieldErrors.email}</p>}
             </div>
 
-            <div>
-              <label style={lbl}>Password</label>
-              <div style={{position:'relative'}}>
-                <input type={showPw?'text':'password'} value={password} onChange={e=>{setPassword(e.target.value);setFieldErrors(p=>({...p,password:''}));}}
-                  placeholder="Min. 8 characters" style={{...inp,paddingRight:42,borderColor:fieldErrors.password?'#ef4444':undefined}} autoComplete="new-password" />
-                <button type="button" onClick={() => setShowPw(v=>!v)}
-                  style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:16,padding:0}}>
-                  <i className={`bi ${showPw?'bi-eye-slash':'bi-eye'}`} />
-                </button>
-              </div>
-              {password.length > 0 && (
-                <div style={{marginTop:6}}>
-                  <div style={{display:'flex',gap:4,marginBottom:4}}>
-                    {[1,2,3].map(l => <div key={l} style={{flex:1,height:3,borderRadius:4,background:strength.level>=l?strength.color:'var(--clr-border)',transition:'background 0.2s'}} />)}
-                  </div>
-                  <span style={{fontSize:11,color:strength.color,fontWeight:600}}>{strength.label}</span>
+            <div className="auth-form-row">
+              <div>
+                {/* Strength reads out in the label row and as a bar sitting on the
+                    input's bottom edge, so typing never shifts the layout. */}
+                <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between'}}>
+                  <label style={lbl}>Password</label>
+                  {password.length > 0 && (
+                    <span style={{fontSize:10.5,fontWeight:800,color:strength.color,marginBottom:5}}>{strength.label}</span>
+                  )}
                 </div>
-              )}
-              {fieldErrors.password && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.password}</p>}
-            </div>
-
-            <div>
-              <label style={lbl}>Confirm Password</label>
-              <div style={{position:'relative'}}>
-                <input type={showCf?'text':'password'} value={confirm} onChange={e=>{setConfirm(e.target.value);setFieldErrors(p=>({...p,confirm:''}));}}
-                  placeholder="Repeat password" style={{...inp,paddingRight:42,borderColor:fieldErrors.confirm?'#ef4444':undefined}} autoComplete="new-password" />
-                <button type="button" onClick={() => setShowCf(v=>!v)}
-                  style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:16,padding:0}}>
-                  <i className={`bi ${showCf?'bi-eye-slash':'bi-eye'}`} />
-                </button>
+                <div style={{position:'relative'}}>
+                  <input type={showPw?'text':'password'} value={password} onChange={e=>{setPassword(e.target.value);setFieldErrors(p=>({...p,password:''}));}}
+                    placeholder="Min. 8 characters" style={{...inp,paddingRight:40,borderColor:fieldErrors.password?'#ef4444':undefined}} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowPw(v=>!v)} aria-label={showPw?'Hide password':'Show password'}
+                    style={{position:'absolute',right:11,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:15,padding:0}}>
+                    <i className={`bi ${showPw?'bi-eye-slash':'bi-eye'}`} />
+                  </button>
+                  {password.length > 0 && (
+                    <div aria-hidden="true" style={{position:'absolute',left:10,right:10,bottom:2,height:3,display:'flex',gap:3,pointerEvents:'none'}}>
+                      {[1,2,3].map(l => <div key={l} style={{flex:1,borderRadius:4,background:strength.level>=l?strength.color:'var(--clr-border)',transition:'background 0.2s'}} />)}
+                    </div>
+                  )}
+                </div>
+                {fieldErrors.password && <p style={err}>{fieldErrors.password}</p>}
               </div>
-              {fieldErrors.confirm && <p style={{fontSize:11,color:'#ef4444',marginTop:3}}>{fieldErrors.confirm}</p>}
+              <div>
+                <label style={lbl}>Confirm Password</label>
+                <div style={{position:'relative'}}>
+                  <input type={showCf?'text':'password'} value={confirm} onChange={e=>{setConfirm(e.target.value);setFieldErrors(p=>({...p,confirm:''}));}}
+                    placeholder="Repeat password" style={{...inp,paddingRight:40,borderColor:fieldErrors.confirm?'#ef4444':undefined}} autoComplete="new-password" />
+                  <button type="button" onClick={() => setShowCf(v=>!v)} aria-label={showCf?'Hide password':'Show password'}
+                    style={{position:'absolute',right:11,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--clr-muted)',fontSize:15,padding:0}}>
+                    <i className={`bi ${showCf?'bi-eye-slash':'bi-eye'}`} />
+                  </button>
+                </div>
+                {fieldErrors.confirm && <p style={err}>{fieldErrors.confirm}</p>}
+              </div>
             </div>
 
             {displayError && (
-              <div style={{background:'#FFF0F0',border:'1px solid #FFCDD2',borderRadius:10,padding:'10px 14px',fontSize:13,color:'#C62828',fontWeight:500}}>
+              <div style={{background:'#FFF0F0',border:'1px solid #FFCDD2',borderRadius:10,padding:'8px 12px',fontSize:12.5,color:'#C62828',fontWeight:500}}>
                 {displayError}
               </div>
             )}
 
-            <label style={{display:'flex',alignItems:'flex-start',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.5,cursor:'pointer'}}>
+            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.4,cursor:'pointer',marginTop:1}}>
               <input type="checkbox" checked={termsChecked}
                 onChange={e => { setTermsChecked(e.target.checked); setFieldErrors(p=>({...p,terms:''})); }}
-                style={{marginTop:2,flexShrink:0}} />
+                style={{flexShrink:0,accentColor:'var(--clr-primary)'}} />
               <span>
                 I agree to the{' '}
-                <Link href="/terms" style={{color:'var(--clr-primary)',textDecoration:'none'}}>Terms</Link>{' '}and{' '}
-                <Link href="/privacy" style={{color:'var(--clr-primary)',textDecoration:'none'}}>Privacy Policy</Link>.
+                <Link href="/terms" style={{color:'var(--clr-primary)',textDecoration:'none',fontWeight:700}}>Terms</Link>{' '}and{' '}
+                <Link href="/privacy" style={{color:'var(--clr-primary)',textDecoration:'none',fontWeight:700}}>Privacy Policy</Link>.
               </span>
             </label>
-            {fieldErrors.terms && <p style={{fontSize:11,color:'#ef4444',margin:0}}>{fieldErrors.terms}</p>}
+            {fieldErrors.terms && <p style={{...err,margin:0}}>{fieldErrors.terms}</p>}
 
             <button type="submit" disabled={submitting} className="btn-shiftify"
-              style={{width:'100%',height:46,fontSize:15,fontWeight:700,opacity:submitting?0.7:1,cursor:submitting?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:2,opacity:submitting?0.7:1,cursor:submitting?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
               {submitting && <span style={{width:15,height:15,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite',flexShrink:0}} />}
               {submitting ? 'Creating account...' : 'Create Account'}
             </button>
@@ -631,8 +662,7 @@ function RegisterPageInner() {
       {/* PLAN */}
       {phase === 'plan' && (
         <>
-          <h1 style={{fontFamily:'var(--font-display)',fontSize:24,fontWeight:800,color:'var(--clr-text)',letterSpacing:-0.5,marginBottom:4}}>Choose your plan</h1>
-          <p style={{fontSize:13,color:'var(--clr-muted)',marginBottom:24}}>All plans include a 14-day free trial. Cancel anytime.</p>
+          <p className="auth-panel-intro">All plans include a 14-day free trial. Cancel anytime.</p>
 
           {plansLoading && (
             <div style={{textAlign:'center',color:'var(--clr-muted)',padding:40,display:'flex',alignItems:'center',justifyContent:'center',gap:10}}>
@@ -727,20 +757,11 @@ function RegisterPageInner() {
       {/* PAYMENT */}
       {phase === 'payment' && (
         <>
-          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:20}}>
-            <button type="button" onClick={() => setPhase('plan')}
-              style={{background:'none',border:'none',cursor:'pointer',color:'var(--clr-primary)',padding:0}}>
-              <i className="bi bi-arrow-left" style={{fontSize:18}} />
-            </button>
-            <div>
-              <h1 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'var(--clr-text)',margin:0,letterSpacing:-0.3}}>Payment Details</h1>
-              {selectedPlanData && (
-                <p style={{fontSize:13,color:'var(--clr-muted)',margin:0}}>
-                  {planLabel(selectedPlanData)} &mdash; ${planPrice(selectedPlanData).toFixed(2)}{selectedPlanData.period ?? '/mo'}
-                </p>
-              )}
-            </div>
-          </div>
+          {selectedPlanData && (
+            <p className="auth-panel-intro">
+              {planLabel(selectedPlanData)} &mdash; ${planPrice(selectedPlanData).toFixed(2)}{selectedPlanData.period ?? '/mo'}
+            </p>
+          )}
 
           {/* Plan summary */}
           {selectedPlanData && (
@@ -829,15 +850,24 @@ function RegisterPageInner() {
         </>
       )}
 
+      </div>{/* /auth-panel-body */}
+
+      <footer className="auth-panel-foot">
+        <span><i className="bi bi-shield-lock-fill" aria-hidden="true" />Encrypted and NDIS compliant</span>
+        <span>
+          Already have an account? <Link href="/login">Log in</Link>
+        </span>
+      </footer>
+
       {/* OTP MODAL */}
       {showOtp && (
-        <div style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)',padding:20}}>
-          <div style={{background:'#fff',borderRadius:20,padding:'36px 32px',width:'100%',maxWidth:400,boxShadow:'0 24px 64px rgba(0,0,0,0.25)'}}>
+        <div className="td-auth" style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(20,24,28,0.55)',backdropFilter:'blur(4px)',padding:20}}>
+          <div style={{background:'#fff',border:'1px solid var(--clr-border)',borderRadius:22,padding:'36px 32px',width:'100%',maxWidth:410}}>
 
-            <div style={{width:56,height:56,borderRadius:16,background:'rgba(194,24,91,0.08)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
-              <i className="bi bi-phone-fill" style={{color:'var(--clr-primary)',fontSize:24}} />
+            <div style={{width:60,height:60,borderRadius:18,background:'var(--td-pink)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+              <i className="bi bi-phone-fill" style={{color:'#fff',fontSize:26}} />
             </div>
-            <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'var(--clr-text)',textAlign:'center',marginBottom:6}}>Verify your phone</h2>
+            <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'var(--clr-text)',textAlign:'center',marginBottom:6,letterSpacing:-0.4}}>Verify your phone</h2>
             <p style={{fontSize:13,color:'var(--clr-muted)',textAlign:'center',marginBottom:24,lineHeight:1.5}}>
               We sent a 6-digit code to <strong>{phone}</strong>
             </p>

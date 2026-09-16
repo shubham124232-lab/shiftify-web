@@ -947,299 +947,157 @@
 }
 
 /* ============================================================
-   COMMUNITY STORIES — a dark feature quote beside two light cards
+   COMMUNITY STORIES — three equal quote cards over a dark
+   reassurance bar. Flat surfaces: hairline borders, no shadows,
+   and one pink accent carried by the quote mark, the role pill
+   and the verified tick.
    ============================================================ */
 .sf-stories { background: var(--sf-surface-grey); }
 
-.sf-stories-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 32px;
-  margin-bottom: 34px;
-}
-.sf-stories-head .sf-h2 { margin-bottom: 10px; }
-.sf-stories-nav { display: flex; gap: 10px; flex: none; }
-.sf-story-nav {
-  display: grid;
-  place-items: center;
-  width: 44px; height: 44px;
-  padding: 0;
-  border-radius: 50%;
-  border: 1px solid var(--sf-line);
-  background: var(--sf-white);
-  color: var(--sf-heading);
-  font-size: 15px;
-  cursor: pointer;
-  transition: background .22s ease, color .22s ease, border-color .22s ease;
-}
-.sf-story-nav:hover { background: var(--sf-ink); border-color: var(--sf-ink); color: #fff; }
-.sf-story-nav:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sf-pink) 45%, transparent);
-  outline-offset: 3px;
-}
+.sf-stories-head { max-width: 780px; margin-bottom: 38px; }
+.sf-stories-head .sf-h2 { margin-bottom: 12px; }
 
 .sf-stories-grid {
   display: grid;
-  grid-template-columns: minmax(0, 57fr) minmax(0, 43fr);
-  grid-template-areas:
-    "lead side"
-    "dots link";
-  gap: 24px 26px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
   align-items: stretch;
 }
 
-/* --- featured dark card -------------------------------------- */
-.sf-story-lead {
-  grid-area: lead;
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 380px;
-  padding: 46px 48px 46px 56px;
-  border-radius: 22px;
-  background: var(--sf-ink);
-  overflow: hidden;
-}
-/* Brand rail down the leading edge. */
-.sf-story-rail {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 5px;
-  background: var(--sf-pink);
-}
-.sf-story-quote {
-  position: absolute;
-  top: 10px; left: 46px;
-  font-family: var(--font-display);
-  font-size: 132px;
-  line-height: 1;
-  font-weight: 800;
-  color: color-mix(in srgb, var(--sf-pink) 26%, transparent);
-  pointer-events: none;
-}
-.sf-story-index {
-  position: absolute;
-  top: 34px; right: 40px;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 1.4px;
-  color: #fff;
-}
-.sf-story-index em { font-style: normal; color: rgba(255, 255, 255, .42); }
-
-.sf-story-lead-in {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 38px;
-  min-width: 0;
-  animation: sf-story-in .5s cubic-bezier(.22, .8, .3, 1) both;
-}
-@keyframes sf-story-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: none; }
-}
-
-/* --- side cards ---------------------------------------------- */
-.sf-story-side {
-  grid-area: side;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-}
+/* --- quote card — everything on the centre axis --------------- */
 .sf-story-card {
   position: relative;
-  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 28px 30px;
+  text-align: center;
+  padding: 34px 30px 30px;
+  border-radius: 22px;
   border: 1px solid var(--sf-line-soft);
-  border-radius: 18px;
   background: var(--sf-white);
-  cursor: pointer;
-  transition: border-color .25s ease, transform .25s cubic-bezier(.22, .8, .3, 1), background .25s ease;
+  transition: border-color .24s ease;
 }
-.sf-story-card:hover {
-  border-color: var(--sf-pink);
-  background: color-mix(in srgb, var(--sf-pink) 3%, var(--sf-white));
-  transform: translateY(-3px);
-}
-.sf-story-card:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sf-pink) 45%, transparent);
-  outline-offset: 3px;
-}
-.sf-story-go {
-  position: absolute;
-  top: 26px; right: 26px;
-  display: grid;
-  place-items: center;
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--sf-pink) 35%, transparent);
-  color: var(--sf-pink);
-  font-size: 13px;
-  opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity .25s ease, transform .25s ease, background .25s ease, color .25s ease;
-}
-.sf-story-card:hover .sf-story-go {
-  opacity: 1;
-  transform: none;
-  background: var(--sf-pink);
-  border-color: var(--sf-pink);
-  color: #fff;
+.sf-story-card:hover { border-color: color-mix(in srgb, var(--sf-pink) 55%, transparent); }
+
+/* Opening mark, cropped to its own glyph so it reads as an ornament
+   rather than a line of text. */
+.sf-story-quote {
+  display: block;
+  height: 30px;
+  margin-bottom: 14px;
+  font-family: var(--font-display);
+  font-size: 62px;
+  font-weight: 800;
+  line-height: .78;
+  color: color-mix(in srgb, var(--sf-pink) 85%, transparent);
+  pointer-events: none;
+  user-select: none;
 }
 
-/* --- avatar --------------------------------------------------- */
+/* Thin pink ring with a breath of white before the portrait. */
+.sf-story-avatar-ring {
+  width: 132px;
+  height: 132px;
+  padding: 5px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--sf-pink) 30%, transparent);
+  background: var(--sf-white);
+}
 .sf-story-avatar {
   display: grid;
   place-items: center;
-  flex: none;
-  width: 86px; height: 86px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  background: var(--sf-surface-mist);
+  overflow: hidden;
+  background: var(--sf-surface-grey);
   color: var(--sf-muted);
-  transition: background .25s ease, color .25s ease;
 }
-.sf-story-avatar svg { width: 46px; height: 46px; }
-.sf-story-card:hover .sf-story-avatar {
-  background: color-mix(in srgb, var(--sf-pink) 12%, var(--sf-white));
-  color: var(--sf-pink);
-}
-/* A hairline ring set off from the featured avatar. */
-.sf-story-avatar-ring {
-  flex: none;
-  display: grid;
-  place-items: center;
-  padding: 9px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, .22);
-}
-.sf-story-avatar-lg { width: 152px; height: 152px; background: #fff; color: var(--sf-muted); }
-.sf-story-avatar-lg svg { width: 78px; height: 78px; }
+.sf-story-avatar svg { width: 66px; height: 66px; }
 
-/* --- copy ----------------------------------------------------- */
-.sf-story-copy { min-width: 0; }
-.sf-story-dash {
-  display: block;
-  width: 30px; height: 5px;
-  border-radius: 3px;
-  background: var(--sf-pink);
-  margin-bottom: 12px;
-}
 .sf-story-tag {
-  display: inline-block;
-  margin-bottom: 12px;
-  padding: 5px 12px;
-  border: 1px solid rgba(255, 255, 255, .22);
-  border-radius: 999px;
+  margin-bottom: 20px;
+  padding: 7px 18px;
+  border-radius: 100px;
+  background: color-mix(in srgb, var(--sf-pink) 10%, var(--sf-white));
+  color: var(--sf-pink);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, .78);
+  white-space: nowrap;
 }
-.sf-story-role {
-  font-family: var(--font-display);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -.4px;
-  color: var(--sf-heading);
-  margin: 0 0 6px;
-  transition: color .25s ease;
+
+/* Hairline between the quote and its attribution. The auto top margin
+   anchors rule + name to the card's base, so names line up across the
+   row however long the quotes run. */
+.sf-story-rule {
+  width: 38px;
+  height: 2px;
+  border-radius: 2px;
+  margin: auto 0 16px;
+  background: color-mix(in srgb, var(--sf-pink) 38%, transparent);
 }
-.sf-story-card:hover .sf-story-role { color: var(--sf-pink); }
+
 .sf-story-text {
-  font-size: 15px;
+  margin: 0 0 20px;
+  font-size: 19px;
+  font-weight: 500;
   line-height: 1.5;
-  color: var(--sf-soft);
-  margin: 0 0 10px;
+  letter-spacing: -0.25px;
+  color: var(--sf-heading);
+  text-wrap: balance;
 }
 .sf-story-who {
-  font-size: 13.5px;
-  letter-spacing: .2px;
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   color: var(--sf-muted);
-  margin: 0 0 14px;
 }
-.sf-story-lead .sf-story-role { font-size: 30px; letter-spacing: -1px; color: #fff; }
-.sf-story-lead .sf-story-text {
-  font-family: var(--font-display);
-  font-size: 21px;
-  line-height: 1.45;
-  color: rgba(255, 255, 255, .9);
-  margin-bottom: 20px;
-}
-.sf-story-lead .sf-story-who { color: rgba(255, 255, 255, .58); font-size: 15px; }
 
-/* --- verified pill -------------------------------------------- */
-.sf-story-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 15px 7px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--sf-pink) 11%, var(--sf-white));
-  color: var(--sf-pink-deep);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: .1px;
+/* --- dark reassurance bar ------------------------------------ */
+.sf-stories-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 18px;
+  background: var(--sf-ink);
+  overflow: hidden;
 }
-.sf-story-pill svg { width: 20px; height: 20px; flex: none; fill: var(--sf-pink); }
-.sf-story-lead .sf-story-pill {
-  padding: 9px 19px 9px 10px;
-  font-size: 14px;
-  background: color-mix(in srgb, var(--sf-pink) 30%, var(--sf-ink));
-  color: #fff;
-}
-.sf-story-lead .sf-story-pill svg { width: 22px; height: 22px; }
-
-/* --- progress dots and link ----------------------------------- */
-.sf-story-dots {
-  grid-area: dots;
+.sf-stories-bar li {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  gap: 16px;
+  padding: 20px 28px;
+  color: var(--sf-white);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
-.sf-story-dot {
-  position: relative;
-  width: 12px; height: 6px;
-  padding: 0;
-  border: none;
-  border-radius: 999px;
-  background: var(--sf-line);
-  overflow: hidden;
-  cursor: pointer;
-  transition: width .3s cubic-bezier(.22, .8, .3, 1), background .25s ease;
-}
-.sf-story-dot.is-on { width: 46px; }
-.sf-story-dot:not(.is-on):hover { background: var(--sf-muted); }
-.sf-story-dot-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 0;
-  border-radius: 999px;
-  background: var(--sf-pink);
-}
-.sf-story-dot.is-on .sf-story-dot-fill {
-  width: 100%;
-  animation: sf-story-fill linear both;
-}
-@keyframes sf-story-fill { from { width: 0; } to { width: 100%; } }
-.sf-story-dot:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sf-pink) 45%, transparent);
-  outline-offset: 4px;
+.sf-stories-bar li + li { border-left: 1px solid rgba(255, 255, 255, .12); }
+.sf-stories-bar-ico {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .07);
+  color: var(--sf-pink);
+  font-size: 22px;
 }
 
 .sf-home .sf-story-all {
-  grid-area: link;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 9px;
+  margin-top: 26px;
   font-size: 16px;
   font-weight: 700;
   color: var(--sf-pink);
@@ -1250,32 +1108,25 @@
 .sf-story-all i { transition: transform .22s ease; }
 .sf-home .sf-story-all:hover i { transform: translateX(4px); }
 
-@media (prefers-reduced-motion: reduce) {
-  .sf-story-lead-in { animation: none; }
-  .sf-story-dot.is-on .sf-story-dot-fill { animation: none; }
-}
-
 @media (max-width: 1080px) {
-  .sf-stories-grid {
-    grid-template-columns: 1fr;
-    grid-template-areas: "lead" "side" "dots" "link";
-  }
-  .sf-home .sf-story-all { justify-content: center; }
+  .sf-stories-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sf-stories-grid > :last-child { grid-column: 1 / -1; }
+  .sf-stories-bar { grid-template-columns: 1fr; }
+  .sf-stories-bar li + li { border-left: 0; border-top: 1px solid rgba(255, 255, 255, .12); }
 }
 @media (max-width: 760px) {
-  .sf-stories-head { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .sf-stories-grid { grid-template-columns: 1fr; }
+  .sf-stories-grid > :last-child { grid-column: auto; }
+  .sf-home .sf-story-all { justify-content: center; }
 }
 @media (max-width: 640px) {
-  .sf-story-lead { padding: 34px 24px 34px 30px; min-height: 0; }
-  .sf-story-lead-in { flex-direction: column; align-items: flex-start; gap: 22px; }
-  .sf-story-quote { font-size: 92px; left: 26px; }
-  .sf-story-index { top: 26px; right: 24px; }
-  .sf-story-avatar-lg { width: 104px; height: 104px; }
-  .sf-story-avatar-lg svg { width: 56px; height: 56px; }
-  .sf-story-lead .sf-story-role { font-size: 24px; }
-  .sf-story-lead .sf-story-text { font-size: 18px; }
-  .sf-story-card { flex-direction: column; align-items: flex-start; gap: 18px; }
-  .sf-story-go { top: 22px; right: 22px; opacity: 1; transform: none; }
+  .sf-story-card { padding: 28px 22px 26px; }
+  .sf-story-quote { font-size: 52px; height: 25px; margin-bottom: 12px; }
+  .sf-story-avatar-ring { width: 118px; height: 118px; }
+  .sf-story-avatar svg { width: 60px; height: 60px; }
+  .sf-story-text { font-size: 18px; }
+  .sf-stories-bar li { padding: 18px 20px; font-size: 15px; }
+  .sf-stories-bar-ico { width: 46px; height: 46px; font-size: 20px; }
 }
 
 
@@ -2468,12 +2319,94 @@
   letter-spacing: 0;
   color: var(--sf-muted);
 }
-.sf-price-note {
-  margin: 12px 0 0 108px;
+/* --- pay-per-use add-on panel ----------------------------------
+   Lifted out of the row list and given its own pink-tinted panel,
+   so the optional extras never read as a third subscription tier.
+   `Also available` items are bought separately from the add-on. */
+.sf-price-addon {
+  margin-top: 20px;
+  padding: 16px 18px 17px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--sf-pink) 24%, transparent);
+  background: color-mix(in srgb, var(--sf-pink) 4%, var(--sf-white));
+}
+.sf-price-addon-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sf-price-addon-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 6px 13px 6px 10px;
+  border-radius: 999px;
+  background: var(--sf-pink);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+.sf-price-addon-tag i { font-size: 11px; }
+.sf-price-addon-amount {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.6px;
+  font-variant-numeric: tabular-nums;
+  color: var(--sf-pink);
+  white-space: nowrap;
+}
+.sf-price-addon-amount em {
+  font-style: normal;
+  font-family: inherit;
   font-size: 13px;
-  letter-spacing: .1px;
+  font-weight: 600;
+  letter-spacing: 0;
+  opacity: .72;
+}
+.sf-price-addon-name {
+  margin: 11px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.3px;
+  line-height: 1.3;
+  color: var(--sf-heading);
+}
+.sf-price-addon-label {
+  margin: 13px 0 8px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
   color: var(--sf-muted);
 }
+.sf-price-addon-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sf-price-addon-label + .sf-price-addon-list { margin-top: 0; }
+.sf-price-addon-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: var(--sf-white);
+  border: 1px solid color-mix(in srgb, var(--sf-pink) 32%, transparent);
+  color: var(--sf-pink);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.sf-price-addon-list i { font-size: 12px; }
 
 /* --- buttons --------------------------------------------------- */
 .sf-home .sf-price-btn {
@@ -2514,7 +2447,10 @@
   padding-left: 24px;
   justify-content: space-between;
 }
-.sf-price-card .sf-price-btn-block { margin-top: 26px; }
+/* auto keeps the CTA on the card's bottom edge, so buttons line up
+   across a row even when the add-on panels differ in height. */
+.sf-price-card .sf-price-btn-block { margin-top: auto; }
+.sf-price-card .sf-price-addon { margin-bottom: 26px; }
 .sf-price-card .sf-price-btn-block { background: var(--sf-pink); }
 .sf-price-card .sf-price-btn-block:hover { background: var(--sf-pink-deep); }
 
@@ -2613,7 +2549,7 @@
   .sf-price-row { grid-template-columns: 1fr; gap: 8px; }
   .sf-price-value { flex-wrap: wrap; }
   .sf-price-amount { margin-left: 0; }
-  .sf-price-note { margin-left: 0; }
+  .sf-price-addon-top { flex-wrap: wrap; gap: 8px; }
   .sf-price-boost { flex-direction: column; align-items: flex-start; }
   .sf-price-boost-icon { border-right: none; padding-right: 0; }
 }

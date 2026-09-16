@@ -3595,3 +3595,264 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+
+/* ============================================================
+   AUTH PANEL — /register
+   ------------------------------------------------------------
+   One panel on the theme-grey canvas: an ink header carrying the
+   step title and a segmented progress bar, a white body for the
+   form, and a grey footer strip. Flat throughout — colour and
+   contrast do the work, not shadows.
+
+   Vertical measures clamp against vh so the panel fills a tall
+   window and compacts on a short laptop, keeping every step
+   inside one viewport without scrolling.
+   ============================================================ */
+.td-auth {
+  --clr-primary:        var(--td-pink);
+  --clr-primary-dark:   var(--td-black);
+  --clr-primary-light:  var(--td-pink-tint);
+  --clr-primary-xlight: var(--td-pink-soft);
+  --clr-emergency:      var(--td-pink);
+  --clr-emergency-dark: var(--td-black);
+  --clr-text:           var(--td-dark-text);
+  --clr-muted:          var(--td-dark-text-soft);
+  --clr-border:         var(--td-border);
+  --clr-bg:             var(--td-light-bg-1);
+  --clr-surface:        var(--td-grey-tint);
+
+  /* shared rhythm — inline styles read these too */
+  --auth-input-h: clamp(34px, 5.9vh, 50px);
+  --auth-gap:     clamp(6px,  1.4vh,  14px);
+  --auth-btn-h:   clamp(38px, 6.4vh, 54px);
+  --auth-pad-x:   clamp(20px, 2.4vw, 36px);
+
+  background: var(--td-light-bg-1);
+}
+/* Flat buttons — the marketing gradient + glow stay on the home page. */
+.td-auth .btn-shiftify         { background: var(--td-pink); box-shadow: none; }
+.td-auth .btn-shiftify:hover   { background: var(--td-black); box-shadow: none; transform: none; }
+.td-auth .btn-shiftify::before { background: none; }
+.td-auth .emergency-fab        { box-shadow: none; }
+.td-auth .emergency-fab:hover  { box-shadow: none; }
+
+.auth-centered {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  background: var(--td-light-bg-1);
+}
+/* margin:auto centres vertically but still lets a tall step scroll */
+.auth-shell {
+  width: 100%;
+  margin: auto;
+  padding: clamp(8px, 2.6vh, 30px) 20px clamp(10px, 2.8vh, 32px);
+}
+
+.auth-card {
+  background: var(--td-white);
+  border: 1px solid var(--td-border);
+  border-radius: 24px;
+  padding: clamp(14px, 2.7vh, 28px) var(--auth-pad-x) clamp(16px, 2.9vh, 30px);
+}
+/* Flush variant: the panel supplies its own edge-to-edge bands. */
+.auth-card.is-flush { padding: 0; overflow: hidden; }
+
+/* ---- Header band — a light tint, separated from the body by a
+        hairline, so the panel reads as layered chrome without the
+        weight of a solid dark block. ---- */
+.auth-panel-head {
+  background: var(--td-grey-tint);
+  border-bottom: 1px solid var(--td-border);
+  color: var(--td-dark-text);
+  padding: clamp(13px, 2.4vh, 26px) var(--auth-pad-x) clamp(12px, 2vh, 22px);
+}
+.auth-panel-head-top { display: flex; align-items: center; gap: 14px; }
+.auth-panel-head-copy { flex: 1; min-width: 0; }
+.auth-panel-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(18px, min(2vw, 3.4vh), 26px);
+  font-weight: 800;
+  letter-spacing: -.6px;
+  line-height: 1.15;
+  color: var(--td-dark-text);
+}
+.auth-panel-count {
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: var(--td-dark-text-soft);
+  white-space: nowrap;
+}
+.auth-panel-count em { font-style: normal; color: var(--td-muted); }
+
+.auth-back-ink {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--td-border-hard);
+  background: var(--td-white);
+  color: var(--td-ink-700);
+  font-size: 15px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.auth-back-ink:hover { background: var(--td-pink); border-color: var(--td-pink); color: var(--td-white); }
+
+/* ---- Segmented progress ---- */
+.auth-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: clamp(9px, 1.7vh, 18px) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.auth-step-bar {
+  display: block;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--td-grey);
+  transition: background .35s ease;
+}
+.auth-step.is-done .auth-step-bar    { background: color-mix(in srgb, var(--td-pink) 42%, var(--td-white)); }
+.auth-step.is-current .auth-step-bar { background: var(--td-pink); }
+.auth-step-name {
+  display: block;
+  margin-top: 9px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .2px;
+  color: var(--td-muted);
+  transition: color .35s ease;
+}
+.auth-step.is-done .auth-step-name    { color: var(--td-ink-700); }
+.auth-step.is-current .auth-step-name { color: var(--td-pink); }
+
+/* ---- White body ---- */
+.auth-panel-body {
+  padding: clamp(16px, 2.6vh, 28px) var(--auth-pad-x) clamp(16px, 2.6vh, 26px);
+}
+.auth-panel-intro {
+  margin: 0 0 clamp(10px, 1.8vh, 18px);
+  font-size: 13px;
+  color: var(--td-dark-text-soft);
+}
+
+/* Fields read as filled wells; focus lifts them to white with a pink edge. */
+.auth-panel-body input:focus,
+.auth-panel-body select:focus,
+.auth-panel-body textarea:focus {
+  background: var(--td-white) !important;
+  border-color: var(--td-pink) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--td-pink) 12%, transparent);
+}
+
+/* ---- Grey footer strip ---- */
+.auth-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 11px var(--auth-pad-x);
+  border-top: 1px solid var(--td-border);
+  background: var(--td-grey-tint);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--td-dark-text-soft);
+}
+.auth-panel-foot i { color: var(--td-pink); margin-right: 6px; }
+.auth-panel-foot a { color: var(--td-pink); font-weight: 800; text-decoration: none; }
+.auth-panel-foot a:hover { text-decoration: underline; }
+
+/* ---- Two-up field rows ---- */
+.auth-form     { display: flex; flex-direction: column; gap: var(--auth-gap); }
+.auth-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 1.4vw, 18px); align-items: start; }
+
+/* ---- Role picker (5 tiles: 2 + 2 + 1 full-width) ---- */
+.auth-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(7px, 1.7vh, 15px); }
+.auth-role-grid > :last-child { grid-column: 1 / -1; }
+.auth-role-card {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: clamp(8px, 2vh, 19px) clamp(13px, 1.2vw, 18px) clamp(8px, 2vh, 19px) clamp(16px, 1.4vw, 21px);
+  border-radius: 16px;
+  border: 1.5px solid var(--td-border);
+  background: var(--td-white);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition);
+}
+/* Accent rail down the leading edge of the selected tile. */
+.auth-role-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: transparent;
+  transition: background var(--transition);
+}
+.auth-role-card:hover { border-color: var(--td-border-hard); background: var(--td-grey-tint); }
+.auth-role-card.is-sel {
+  border-color: var(--td-pink);
+  background: var(--td-pink-soft);
+}
+.auth-role-card.is-sel::before { background: var(--td-pink); }
+.auth-role-card__icon {
+  width:  clamp(32px, 5.3vh, 48px);
+  height: clamp(32px, 5.3vh, 48px);
+  border-radius: 13px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(18px, 2.4vh, 22px);
+  background: var(--td-grey);
+  color: var(--td-ink-700);
+  transition: all var(--transition);
+}
+.auth-role-card.is-sel .auth-role-card__icon { background: var(--td-pink); color: var(--td-white); }
+.auth-role-card__radio {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid var(--td-border-hard);
+  background: var(--td-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: transparent;
+  transition: all var(--transition);
+}
+.auth-role-card.is-sel .auth-role-card__radio {
+  border-color: var(--td-pink);
+  background: var(--td-pink);
+  color: var(--td-white);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 560px) {
+  .auth-shell { padding: 14px 14px 92px; }   /* room for the emergency FAB */
+  .auth-card  { border-radius: 18px; }
+  .auth-panel-head-top { gap: 10px; }
+  .auth-panel-count { display: none; }
+  .auth-step-name { font-size: 11.5px; letter-spacing: 0; }
+  .auth-panel-foot { justify-content: center; text-align: center; }
+  .auth-form-row  { grid-template-columns: 1fr; gap: var(--auth-gap); }
+  .auth-role-grid { grid-template-columns: 1fr; }
+  .auth-role-grid > :last-child { grid-column: auto; }
+}

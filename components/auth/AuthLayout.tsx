@@ -6,6 +6,15 @@ import logoImg from '@/public/images/logo.png';
 interface AuthLayoutProps {
   children: React.ReactNode;
   mode?: 'login' | 'register';
+  /** 'split' keeps the branded left panel (login). 'centered' drops it and
+   *  centres the form on the theme-grey canvas (register). */
+  variant?: 'split' | 'centered';
+  /** Centered variant only: journey title + step rail rendered above the card. */
+  head?: React.ReactNode;
+  /** Centered variant only: width of the centred column. */
+  maxWidth?: number;
+  /** Drops the card's own padding so children can run edge to edge. */
+  flush?: boolean;
 }
 
 const trustBadges = [
@@ -20,14 +29,27 @@ const stats = [
   { num: '24/7', lbl: 'Emergency Cover'   },
 ] as const;
 
-export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps) {
-  const isLogin = mode === 'login';
+export default function AuthLayout({ children, mode = 'login', variant = 'split', head, maxWidth = 720, flush = false }: AuthLayoutProps) {
+  const isLogin  = mode === 'login';
+  const centered = variant === 'centered';
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--clr-bg)' }}>
+    <div
+      className={centered ? 'td-auth' : undefined}
+      style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: centered ? 'var(--td-light-bg-1)' : 'var(--clr-bg)' }}
+    >
 
       {/* Mini Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 999, background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--clr-border)', height: 68, display: 'flex', alignItems: 'center' }} role="banner">
+      <header
+        style={{
+          position: 'sticky', top: 0, zIndex: 999,
+          background: centered ? 'var(--td-white)' : 'rgba(255,255,255,0.96)',
+          backdropFilter: centered ? undefined : 'blur(12px)',
+          borderBottom: '1px solid var(--clr-border)',
+          height: 68, display: 'flex', alignItems: 'center',
+        }}
+        role="banner"
+      >
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <div style={{ width: '100%', padding: '0 1.5rem' }}>
           <div className="flex items-center justify-between">
@@ -35,8 +57,8 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
               <Image src={logoImg.src} alt="Shiftify" width={160} height={55} priority />
             </Link>
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 14, color: 'var(--clr-muted)', fontWeight: 500 }}>
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}
+              <span className="hidden sm:inline" style={{ fontSize: 14, color: 'var(--clr-muted)', fontWeight: 500 }}>
+                {isLogin ? 'Don’t have an account?' : 'Already have an account?'}
               </span>
               <Link href={isLogin ? '/register' : '/login'} className="btn-shiftify" style={{ fontSize: 13, padding: '8px 18px' }}>
                 {isLogin ? 'Sign Up' : 'Log In'}
@@ -46,7 +68,16 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
         </div>
       </header>
 
-      {/* Split Body */}
+      {centered ? (
+        /* Centered: a single column on the theme-grey canvas — no branded side panel */
+        <main id="main-content" className="auth-centered">
+          <div className="auth-shell" style={{ maxWidth }}>
+            {head}
+            <div className={flush ? 'auth-card is-flush' : 'auth-card'}>{children}</div>
+          </div>
+        </main>
+      ) : (
+      /* Split Body */
       <main id="main-content" style={{ flex: 1, display: 'flex', minHeight: 'calc(100vh - 68px)' }}>
 
         {/* Left: Branded Panel */}
@@ -114,6 +145,7 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
         </section>
 
       </main>
+      )}
 
       {/* Sticky Emergency FAB */}
       <button

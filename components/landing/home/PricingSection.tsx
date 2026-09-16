@@ -9,13 +9,17 @@ import {
 type Ico = (p: SVGProps<SVGSVGElement>) => JSX.Element;
 
 interface Row { label: string; name: string; price?: string; free?: boolean }
+/* The pay-per-use option, lifted out of the rows so it reads as a distinct
+   add-on rather than a third tier. `also` lists extras that are bought
+   separately — never included in the add-on's own price. */
+interface Addon { tag: string; name: string; price?: string; also: string[] }
 interface Card {
   key: string;
   role: string;
   blurb: string;
   Icon: Ico;
   rows: Row[];
-  note?: string;
+  addon: Addon;
   cta: string;
   href: string;
 }
@@ -29,9 +33,8 @@ const cards: Card[] = [
     rows: [
       { label: 'Start',    name: 'actions to get started · use anytime', free: true },
       { label: 'Continue', name: 'Shiftify Basic', price: '$49.99' },
-      { label: 'Flexible', name: 'Shift Pass',     price: '$9.99' },
     ],
-    note: 'Optional: Available Now',
+    addon: { tag: 'Add-on', name: 'Shift Pass', price: '$9.99', also: ['Available Now'] },
     cta: 'View Worker pricing',
     href: '/pricing/worker',
   },
@@ -43,9 +46,8 @@ const cards: Card[] = [
     rows: [
       { label: 'Start',    name: 'actions to get started · use anytime', free: true },
       { label: 'Continue', name: 'Shiftify Pro', price: '$49.99' },
-      { label: 'Flexible', name: 'Shift Pass',   price: '$19.99' },
     ],
-    note: 'Optional: Speed · Growth',
+    addon: { tag: 'Add-on', name: 'Shift Pass', price: '$19.99', also: ['Speed', 'Growth'] },
     cta: 'View Coordinator pricing',
     href: '/pricing/coordinator',
   },
@@ -57,9 +59,11 @@ const cards: Card[] = [
     rows: [
       { label: 'Start',    name: 'actions to get started · use anytime', free: true },
       { label: 'Continue', name: 'Provider plans', price: 'From $99.99' },
-      { label: 'Flexible', name: 'Shift Pass',     price: '$19.99' },
     ],
-    note: 'Featured Shifts · Direct Connect · Visibility options',
+    addon: {
+      tag: 'Add-on', name: 'Shift Pass', price: '$19.99',
+      also: ['Featured Shifts', 'Direct Connect', 'Visibility options'],
+    },
     cta: 'View Provider pricing',
     href: '/pricing/provider',
   },
@@ -71,16 +75,15 @@ const cards: Card[] = [
     rows: [
       { label: 'Start',    name: 'Free access' },
       { label: 'Continue', name: 'Shiftify Basic', price: '$19.99' },
-      { label: 'Flexible', name: 'Compare inclusions before choosing' },
     ],
-    note: 'Simple options for Plan Managers',
+    addon: {
+      tag: 'Flexible', name: 'Compare inclusions before choosing',
+      also: ['Simple options for Plan Managers'],
+    },
     cta: 'View Plan Manager pricing',
     href: '/pricing/plan-manager',
   },
 ];
-
-/* Monthly prices carry a period; per-use prices carry a unit. */
-const unit = (label: string) => (label === 'Flexible' ? '/use' : '/month');
 
 const IconMegaphone = (p: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
@@ -124,7 +127,7 @@ export default function PricingSection() {
         </div>
 
         <div className="sf-price-grid">
-          {cards.map(({ key, role, blurb, Icon, rows, note, cta, href }) => (
+          {cards.map(({ key, role, blurb, Icon, rows, addon, cta, href }) => (
             <article key={key} className="sf-price-card">
               <span className="sf-price-top" aria-hidden="true" />
 
@@ -145,7 +148,7 @@ export default function PricingSection() {
                       <span className={r.free ? 'sf-price-name is-soft' : 'sf-price-name'}>{r.name}</span>
                       {r.price && (
                         <span className="sf-price-amount">
-                          {r.price}<em>{unit(r.label)}</em>
+                          {r.price}<em>/month</em>
                         </span>
                       )}
                     </dd>
@@ -153,7 +156,33 @@ export default function PricingSection() {
                 ))}
               </dl>
 
-              {note && <p className="sf-price-note">{note}</p>}
+              <div className="sf-price-addon">
+                <div className="sf-price-addon-top">
+                  <span className="sf-price-addon-tag">
+                    {addon.price && <i className="bi bi-plus-lg" aria-hidden="true" />}
+                    {addon.tag}
+                  </span>
+                  {addon.price && (
+                    <span className="sf-price-addon-amount">
+                      {addon.price}<em>/use</em>
+                    </span>
+                  )}
+                </div>
+                <p className="sf-price-addon-name">{addon.name}</p>
+                {addon.also.length > 0 && (
+                  <>
+                    {addon.price && <p className="sf-price-addon-label">Also available</p>}
+                    <ul className="sf-price-addon-list">
+                      {addon.also.map((item) => (
+                        <li key={item}>
+                          <i className="bi bi-check-lg" aria-hidden="true" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
 
               <a href={href} className="sf-price-btn sf-price-btn-block">
                 {cta}

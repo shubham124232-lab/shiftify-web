@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   BadgeCheck, CalendarDays, HeartHandshake, MapPin, Navigation, Search, SlidersHorizontal, SunMoon, Zap, type LucideIcon,
 } from 'lucide-react';
@@ -8,8 +8,12 @@ import {
   DATE_PRESET_OPTIONS, RADIUS_OPTIONS, SHIFTBOARD_CATEGORY_FILTERS, TIME_OF_DAY_OPTIONS, WORKER_REQUIREMENT_FILTERS,
 } from '@/lib/constants/job-filters';
 import type { GeolocationStatus } from '@/lib/hooks/useGeolocation';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import type { ShiftboardFilters as Filters, TimeOfDay } from '@/lib/types/shiftboard';
 import { SHIFTBOARD_URGENCY, URGENCY_ORDER } from './urgency';
+
+// Must match the phone breakpoint in app/shiftboard.css.
+export const PHONE_QUERY = '(max-width: 767px)';
 
 // Short chip labels for the date presets — the full labels live in the constant.
 const DATE_CHIP_LABEL: Record<string, string> = {
@@ -45,23 +49,78 @@ function Check({ checked, onChange, children, meta, accent }: {
   );
 }
 
+export function countActiveFilters(filters: Filters): number {
+  const hasLocation = filters.nearLat != null && filters.nearLng != null;
+  return (filters.suburb.trim() ? 1 : 0) + (hasLocation ? 1 : 0) + (filters.datePreset ? 1 : 0)
+    + filters.timeOfDay.length + (filters.category ? 1 : 0) + (filters.urgency ? 1 : 0)
+    + Object.values(filters.requirements).filter(Boolean).length;
+}
+
+// How far (px) the sheet must be dragged down before letting go closes it.
+const DISMISS_DISTANCE = 110;
+
 export function ShiftboardFilters({
-  filters, onChange, onReset, geoStatus, onUseMyLocation,
+  filters, onChange, onReset, geoStatus, onUseMyLocation, open, onOpenChange, resultCount,
 }: {
   filters: Filters;
   onChange: (patch: Partial<Filters>) => void;
   onReset: () => void;
   geoStatus: GeolocationStatus;
   onUseMyLocation: () => void;
+  // Tablet: folds the panel open/closed. Phone: shows it as a bottom sheet.
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  resultCount: number | null;
 }) {
-  // Below the tablet breakpoint the panel folds behind a toggle so the shift
-  // list isn't pushed a full screen down.
-  const [open, setOpen] = useState(false);
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const sheetOpen = isPhone && open;
   const hasLocation = filters.nearLat != null && filters.nearLng != null;
   const requirementCount = Object.values(filters.requirements).filter(Boolean).length;
-  const activeCount =
-    (filters.suburb.trim() ? 1 : 0) + (hasLocation ? 1 : 0) + (filters.datePreset ? 1 : 0)
-    + filters.timeOfDay.length + (filters.category ? 1 : 0) + (filters.urgency ? 1 : 0) + requirementCount;
+  const activeCount = countActiveFilters(filters);
+
+  // ---- Phone bottom sheet: scroll lock, Escape, drag-down-to-dismiss ----
+  const sheetRef = useRef<HTMLElement>(null);
+  const dragStart = useRef<number | null>(null);
+  const dragY = useRef(0);
+  const [drag, setDrag] = useState(0);
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const { overflow } = document.body.style;
+    document.body.style.overflow = 'hidden';
+    sheetRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onOpenChange(false); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = overflow;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [sheetOpen, onOpenChange]);
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const move = (e: PointerEvent) => {
+      if (dragStart.current == null) return;
+      dragY.current = Math.max(0, e.clientY - dragStart.current);
+      setDrag(dragY.current);
+    };
+    const end = () => {
+      if (dragStart.current == null) return;
+      const shouldClose = dragY.current > DISMISS_DISTANCE;
+      dragStart.current = null;
+      dragY.current = 0;
+      setDrag(0);
+      if (shouldClose) onOpenChange(false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    return () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+    };
+  }, [sheetOpen, onOpenChange]);
 
   const toggleTimeOfDay = (v: TimeOfDay) => {
     const next = filters.timeOfDay.includes(v)
@@ -82,8 +141,24 @@ export function ShiftboardFilters({
     : hasLocation ? 'Using your location' : 'Use my current location';
 
   return (
-    <aside className={`sf-sb-filters${open ? ' open' : ''}`} aria-label="Filter shifts">
-      <div className="sf-sb-filters-head">
+    <>
+    {/* Fixed-position, so it never takes a cell in the page grid. Phone only. */}
+    <div className={`sf-sb-sheet-backdrop${sheetOpen ? ' open' : ''}`} onClick={() => onOpenChange(false)} aria-hidden="true" />
+    <aside
+      ref={sheetRef}
+      id="sf-sb-filters"
+      className={`sf-sb-filters${open ? ' open' : ''}${drag ? ' dragging' : ''}`}
+      style={drag ? { '--drag': `${drag}px` } as CSSProperties : undefined}
+      aria-label="Filter shifts"
+      {...(isPhone ? { role: 'dialog', 'aria-modal': true, 'aria-hidden': !open, tabIndex: -1 } : {})}
+    >
+      <div
+        className="sf-sb-filters-head"
+        onPointerDown={(e) => {
+          // Buttons in the header stay tappable; drag starts from anywhere else.
+          if (sheetOpen && !(e.target as HTMLElement).closest('button')) dragStart.current = e.clientY;
+        }}
+      >
         <h2 className="sf-sb-mono">
           <SlidersHorizontal aria-hidden="true" strokeWidth={2} />
           Filter shifts
@@ -96,9 +171,9 @@ export function ShiftboardFilters({
             className="sf-sb-filters-toggle"
             aria-expanded={open}
             aria-controls="sf-sb-filters-body"
-            onClick={() => setOpen((v) => !v)}
+            onClick={() => onOpenChange(!open)}
           >
-            {open ? 'Hide' : 'Show'}
+            {isPhone ? 'Done' : open ? 'Hide' : 'Show'}
           </button>
         </div>
       </div>
@@ -227,6 +302,14 @@ export function ShiftboardFilters({
           ))}
         </Group>
       </div>
+
+      {/* Phone sheet only: the primary action closes the sheet on the results. */}
+      <div className="sf-sb-sheet-footer">
+        <button type="button" className="sf-sb-sheet-cta" onClick={() => onOpenChange(false)}>
+          {resultCount == null ? 'Show shifts' : `Show ${resultCount} ${resultCount === 1 ? 'shift' : 'shifts'}`}
+        </button>
+      </div>
     </aside>
+    </>
   );
 }

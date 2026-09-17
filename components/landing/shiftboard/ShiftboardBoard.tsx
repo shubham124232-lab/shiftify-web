@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowUpRight, ChevronDown } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 import { PUBLIC_SORT_OPTIONS } from '@/lib/constants/job-filters';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
@@ -10,7 +10,8 @@ import {
   DEFAULT_SHIFTBOARD_FILTERS, type DatePreset, type ShiftboardFilters, type ShiftboardResponse, type ShiftboardUrgency,
 } from '@/lib/types/shiftboard';
 import { ShiftboardTabs } from './ShiftboardTabs';
-import { ShiftboardFilters as FiltersSidebar } from './ShiftboardFilters';
+import { ShiftboardFilters as FiltersSidebar, countActiveFilters } from './ShiftboardFilters';
+import { ShiftboardTabBar } from './ShiftboardTabBar';
 import { ShiftboardCard } from './ShiftboardCard';
 import { SaveSearchCard } from './SaveSearchCard';
 import { PlatinumBusinesses } from './PlatinumBusinesses';
@@ -71,6 +72,7 @@ export function ShiftboardBoard() {
   const [data, setData] = useState<ShiftboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const geo = useGeolocation();
 
   const patchFilters = useCallback((patch: Partial<ShiftboardFilters>) => {
@@ -110,6 +112,9 @@ export function ShiftboardBoard() {
           onReset={() => setFilters(DEFAULT_SHIFTBOARD_FILTERS)}
           geoStatus={geo.status}
           onUseMyLocation={geo.request}
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          resultCount={loading ? null : data?.total ?? null}
         />
 
         <div className="sf-sb-main">
@@ -138,6 +143,18 @@ export function ShiftboardBoard() {
             </div>
           </header>
 
+          {/* Phone only: iOS-style search field, bound to the same suburb filter. */}
+          <label className="sf-sb-ios-search">
+            <Search aria-hidden="true" strokeWidth={2.2} />
+            <input
+              type="search"
+              placeholder="Suburb or postcode"
+              aria-label="Search suburb or postcode"
+              value={filters.suburb}
+              onChange={(e) => patchFilters({ suburb: e.target.value })}
+            />
+          </label>
+
           <PlatinumBusinesses />
 
           <ShiftboardTabs
@@ -146,7 +163,7 @@ export function ShiftboardBoard() {
             counts={data?.counts ?? EMPTY_COUNTS}
           />
 
-          <h2 className="sf-sb-mono sf-sb-list-head">
+          <h2 className="sf-sb-mono sf-sb-list-head" id="sf-sb-shifts">
             Available shifts
             {!loading && data && <span className="sf-sb-list-count">{data.total}</span>}
           </h2>
@@ -172,7 +189,7 @@ export function ShiftboardBoard() {
         </div>
 
         <div className="sf-sb-side">
-          <div className="sf-sb-panel sf-sb-map-card">
+          <div className="sf-sb-panel sf-sb-map-card" id="sf-sb-map-card">
             <div className="sf-sb-panel-head">
               <h2 className="sf-sb-mono">Shifts near you</h2>
               <button type="button" className="sf-sb-link" onClick={() => setMapExpanded((v) => !v)} aria-expanded={mapExpanded}>
@@ -195,6 +212,13 @@ export function ShiftboardBoard() {
           <CommunityCard />
         </div>
       </div>
+
+      <ShiftboardTabBar
+        filtersOpen={filtersOpen}
+        activeFilters={countActiveFilters(filters)}
+        onOpenFilters={() => setFiltersOpen(true)}
+        onCloseFilters={() => setFiltersOpen(false)}
+      />
     </section>
   );
 }

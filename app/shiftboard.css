@@ -932,7 +932,9 @@
   .sf-home .sf-sb-row-cta svg { display: none; }
 }
 
-/* Tablet / phone: each row folds into a small two-column card. */
+/* Tablet only (phones get the iOS list below): each row folds into a small
+   two-column card. */
+@media (min-width: 768px) {
 @container sfsb (max-width: 680px) {
   .sf-home .sf-sb-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -950,6 +952,7 @@
 }
 @container sfsb (max-width: 440px) {
   .sf-home .sf-sb-row { grid-template-columns: minmax(0, 1fr); }
+}
 }
 
 .sf-home .sf-sb-row-skeleton {
@@ -1242,4 +1245,404 @@
   }
   .sf-home .sf-sb-head-side { align-items: flex-start; padding-bottom: 0; }
   .sf-home .sf-sb-map { height: 240px; }
+}
+
+/* ============================================================
+   Phone — iOS app feel (≤767px; keep in sync with PHONE_QUERY in
+   ShiftboardFilters.tsx). Large title, search field, chip tabs,
+   swipeable Platinum cards, an inset-grouped shift list, filters in
+   a bottom sheet and a translucent bottom tab bar. Still flat: the
+   only depth is the sheet backdrop and the bar's blur material.
+   ============================================================ */
+.sf-home .sf-sb-ios-search,
+.sf-home .sf-sb-tabbar,
+.sf-home .sf-sb-sheet-backdrop,
+.sf-home .sf-sb-sheet-footer { display: none; }
+
+@media (max-width: 767px) {
+  .sf-home:has(.sf-sb-tabbar) { padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
+  .sf-home .sf-sb {
+    padding: 112px 0 28px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sf-home .sf-sb-layout {
+    grid-template-areas: "main" "side";
+    gap: 22px;
+    padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  }
+
+  /* ---- Large title ---- */
+  .sf-home .sf-sb-head { gap: 14px; margin-bottom: 14px; }
+  .sf-home .sf-sb-eyebrow { font-size: 10.5px; color: var(--sf-soft); }
+  .sf-home .sf-sb-head h1 { font-size: 34px; letter-spacing: -.03em; margin: 6px 0 4px; }
+  .sf-home .sf-sb-lede { font-size: 15px; color: var(--sf-soft); }
+  .sf-home .sf-sb-head-side {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0;
+  }
+  .sf-home .sf-sb-count { font-size: 13px; }
+  .sf-home .sf-sb-sort { gap: 8px; font-size: 13px; color: var(--sf-soft); }
+  .sf-home .sf-sb-select-wrap.light select {
+    min-width: 0;
+    height: 34px;
+    padding: 0 30px 0 14px;
+    border-radius: 999px;
+    font-size: 16px; /* 16px+ stops iOS Safari zooming on focus */
+    font-weight: 600;
+  }
+  .sf-home .sf-sb-select-wrap.light > svg:last-child { right: 11px; width: 14px; height: 14px; }
+
+  /* ---- Search field ---- */
+  .sf-home .sf-sb-ios-search {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 40px;
+    margin-bottom: 16px;
+    padding: 0 12px;
+    border-radius: 11px;
+    background: rgba(118, 118, 128, .12);
+    cursor: text;
+  }
+  .sf-home .sf-sb-ios-search svg { width: 17px; height: 17px; flex: none; color: var(--sf-muted); }
+  .sf-home .sf-sb-ios-search input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    font: inherit;
+    font-size: 16px;
+    color: var(--sf-ink);
+  }
+  .sf-home .sf-sb-ios-search input::placeholder { color: var(--sf-muted); }
+  .sf-home .sf-sb-ios-search:focus-within { background: rgba(118, 118, 128, .18); }
+
+  /* ---- Platinum: swipeable cards ---- */
+  .sf-home .sf-sb-plat { margin-bottom: 18px; padding: 14px 0; border-radius: 16px; }
+  .sf-home .sf-sb-plat-head { padding: 0 16px 12px; }
+  .sf-home .sf-sb-plat-title { gap: 8px; font-size: 16px; }
+  .sf-home .sf-sb-plat-title svg { width: 24px; height: 24px; }
+  .sf-home .sf-sb-plat-tag { gap: 6px; font-size: 10px; }
+  .sf-home .sf-sb-plat-tag svg { width: 16px; height: 16px; }
+  .sf-home .sf-sb-plat-grid {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 2px 16px 6px;
+    scroll-padding: 0 16px;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .sf-home .sf-sb-plat-grid::-webkit-scrollbar { display: none; }
+  .sf-home .sf-sb-plat-card { flex: 0 0 84%; scroll-snap-align: start; }
+  .sf-home .sf-sb-plat-card:hover { transform: none; }
+
+  /* ---- Timing tabs: chips ---- */
+  .sf-home .sf-sb-tabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin: 0 -16px 22px;
+    padding: 2px 16px;
+    scroll-padding: 0 16px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .sf-home .sf-sb-tab {
+    flex: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 8px 0 11px;
+    border-radius: 999px;
+    scroll-snap-align: start;
+    transition: transform .15s ease, background-color .2s ease;
+  }
+  .sf-home .sf-sb-tab::before,
+  .sf-home .sf-sb-tab-window { display: none; }
+  .sf-home .sf-sb-tab-top { display: contents; }
+  .sf-home .sf-sb-tab-icon { order: 0; width: 18px; height: 18px; }
+  .sf-home .sf-sb-tab-label { order: 1; font-size: 14px; }
+  .sf-home .sf-sb-tab-count { order: 2; min-width: 22px; height: 22px; padding: 0 6px; font-size: 11.5px; }
+  .sf-home .sf-sb-tab:hover { border-color: var(--sf-line-soft); }
+  .sf-home .sf-sb-tab.active:hover { border-color: var(--sf-ink); }
+  .sf-home .sf-sb-tab:hover .sf-sb-tab-icon { transform: none; }
+  .sf-home .sf-sb-tab:active { transform: scale(.96); }
+
+  /* ---- Shifts: inset-grouped list ---- */
+  .sf-home .sf-sb-list-head { margin: 0 4px 8px; font-size: 11.5px; color: var(--sf-soft); }
+  .sf-home .sf-sb-list-head::after { display: none; }
+  .sf-home .sf-sb-list { gap: 0; overflow: hidden; background: #fff; border-radius: 14px; }
+
+  .sf-home .sf-sb-row {
+    grid-template-columns: 30px minmax(0, 1fr) auto 10px;
+    grid-template-areas:
+      "lane place when chev"
+      "lane cat   hours chev";
+    align-items: start;
+    gap: 3px 12px;
+    min-height: 0;
+    padding: 12px 14px 12px 16px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    transition: background-color .15s ease;
+  }
+  .sf-home .sf-sb-row:hover { background: transparent; }
+  .sf-home .sf-sb-row:active { background: var(--sf-surface-mist); }
+  /* Hairline separator inset to the text column, iOS style. */
+  .sf-home .sf-sb-row + .sf-sb-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 58px;
+    right: 0;
+    height: 1px;
+    background: var(--sf-line-soft);
+  }
+  /* Disclosure chevron. */
+  .sf-home .sf-sb-row::after {
+    content: '';
+    grid-area: chev;
+    align-self: center;
+    width: 8px;
+    height: 13px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 13' fill='none' stroke='%23C4C4C7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1.5 1.5 5 5-5 5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+
+  .sf-home .sf-sb-row-lane { grid-area: lane; position: static; align-self: center; padding: 0; }
+  .sf-home .sf-sb-row-lane svg { width: 26px; height: 26px; }
+  .sf-home .sf-sb-row:hover .sf-sb-row-lane svg { transform: none; }
+
+  .sf-home .sf-sb-row-cell { gap: 0; padding: 0; align-self: auto; }
+  .sf-home .sf-sb-row-cell::before,
+  .sf-home .sf-sb-row-cell > svg { display: none; }
+
+  .sf-home .sf-sb-row-place { grid-area: place; padding-right: 0; }
+  .sf-home .sf-sb-row-place strong { font-size: 16px; }
+  .sf-home .sf-sb-row-cell > div > .sf-sb-row-distance { font-size: 12.5px; }
+
+  .sf-home .sf-sb-row-cat { grid-area: cat; }
+  .sf-home .sf-sb-row-cat strong { font-size: 13px; font-weight: 500; color: var(--sf-soft); -webkit-line-clamp: 1; }
+  .sf-home .sf-sb-row-cat > div > span { display: none; }
+
+  .sf-home .sf-sb-row-when { grid-area: when; justify-content: flex-end; text-align: right; }
+  .sf-home .sf-sb-row-when strong { font-size: 13px; }
+  .sf-home .sf-sb-row-when > div > span { font-size: 12px; }
+
+  .sf-home .sf-sb-row-hours { grid-area: hours; flex-direction: row; align-items: center; justify-content: flex-end; align-self: center; }
+  .sf-home .sf-sb-row-stat b { font-family: var(--font-body); font-size: 13px; }
+  .sf-home .sf-sb-row-stat small { font-size: 12px; font-weight: 500; }
+  .sf-home .sf-sb-row-stat-label { display: none; }
+
+  /* The whole cell is the tap target; the button text stays for screen readers only. */
+  .sf-home .sf-sb-row-cta { position: absolute; inset: 0; z-index: 1; padding: 0; border: 0; }
+  .sf-home .sf-sb-row-cta::before { display: none; }
+  .sf-home .sf-sb-row-cta span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .sf-home .sf-sb-row-cta:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: -3px; }
+  .sf-home .sf-sb-row-cta:focus-visible span { outline: none; }
+
+  .sf-home .sf-sb-row-skeleton { height: 52px; margin: 10px 14px; border-radius: 10px; background: var(--sf-surface-grey); }
+  .sf-home .sf-sb-empty { border-radius: 14px; }
+
+  /* ---- Side panels ---- */
+  .sf-home .sf-sb-side { display: flex; gap: 16px; }
+  .sf-home .sf-sb-panel { border-radius: 16px; }
+  .sf-home .sf-sb-map { height: 240px; border-radius: 10px; }
+
+  /* ---- Filters: bottom sheet ---- */
+  .sf-home .sf-sb-sheet-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    background: rgba(5, 8, 13, .45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .3s ease, visibility 0s linear .3s;
+  }
+  .sf-home .sf-sb-sheet-backdrop.open { opacity: 1; visibility: visible; transition: opacity .3s ease; }
+
+  .sf-home .sf-sb-filters {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 44px);
+    padding: 0;
+    border: 0;
+    border-radius: 20px 20px 0 0;
+    outline: none;
+    transform: translateY(calc(100% + 24px));
+    visibility: hidden;
+    transition: transform .42s cubic-bezier(.32, .72, 0, 1), visibility 0s linear .42s;
+  }
+  .sf-home .sf-sb-filters.open {
+    transform: translateY(var(--drag, 0px));
+    visibility: visible;
+    transition: transform .42s cubic-bezier(.32, .72, 0, 1);
+  }
+  .sf-home .sf-sb-filters.dragging { transition: none; }
+  /* The pink top strip becomes the grabber. */
+  .sf-home .sf-sb-filters::before {
+    inset: 7px auto auto 50%;
+    width: 36px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .28);
+    transform: translateX(-50%);
+  }
+
+  /* Nav-bar header: Reset | title | Done. Dragging it pulls the sheet down. */
+  .sf-home .sf-sb-filters .sf-sb-filters-head,
+  .sf-home .sf-sb-filters:not(.open) .sf-sb-filters-head {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 22px 16px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
+    touch-action: none;
+  }
+  .sf-home .sf-sb-filters-actions { display: contents; }
+  .sf-home .sf-sb-filters-head .sf-sb-link {
+    order: 0;
+    justify-self: start;
+    font-size: 16px;
+    text-decoration: none;
+    color: var(--sf-pink-soft);
+  }
+  .sf-home .sf-sb-filters-head .sf-sb-link:disabled { color: #fff; }
+  .sf-home .sf-sb-filters-head h2 {
+    order: 1;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .sf-home .sf-sb-filters-head h2 > svg { display: none; }
+  .sf-home .sf-sb-filters-toggle,
+  .sf-home .sf-sb-filters.open .sf-sb-filters-toggle {
+    order: 2;
+    justify-self: end;
+    height: auto;
+    padding: 0;
+    border: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .sf-home .sf-sb-filters .sf-sb-filters-body {
+    display: block;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0 16px;
+  }
+  .sf-home .sf-sb-field input { font-size: 16px; }
+  .sf-home .sf-sb-check { padding: 10px 8px; font-size: 15px; }
+  .sf-home .sf-sb-segment button { height: 36px; }
+  .sf-home .sf-sb-chips button { height: 36px; padding: 0 14px; font-size: 14px; }
+
+  .sf-home .sf-sb-sheet-footer {
+    display: block;
+    flex: none;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, .12);
+  }
+  .sf-home .sf-sb-sheet-cta {
+    width: 100%;
+    height: 50px;
+    background: var(--sf-pink);
+    border: 0;
+    border-radius: 14px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: transform .15s ease;
+  }
+  .sf-home .sf-sb-sheet-cta:active { transform: scale(.98); }
+
+  /* ---- Bottom tab bar ---- */
+  .sf-home .sf-sb-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 4px max(8px, env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    background: rgba(255, 255, 255, .86);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-top: 1px solid rgba(0, 0, 0, .08);
+  }
+  .sf-home .sf-sb-tabbar button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 52px;
+    padding: 0;
+    background: none;
+    border: 0;
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--sf-muted);
+    cursor: pointer;
+  }
+  .sf-home .sf-sb-tabbar svg { width: 24px; height: 24px; transition: transform .15s ease; }
+  .sf-home .sf-sb-tabbar button:active svg { transform: scale(.88); }
+  .sf-home .sf-sb-tabbar button.on { color: var(--sf-pink); }
+  .sf-home .sf-sb-tabbar button:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: -4px; border-radius: 10px; }
+  .sf-home .sf-sb-tabbar-badge {
+    position: absolute;
+    top: 4px;
+    left: calc(50% + 6px);
+    min-width: 17px;
+    height: 17px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--sf-pink);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 17px;
+    color: #fff;
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .sf-home .sf-sb-filters,
+  .sf-home .sf-sb-filters.open,
+  .sf-home .sf-sb-sheet-backdrop { transition: none; }
 }

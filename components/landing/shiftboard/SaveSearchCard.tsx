@@ -43,7 +43,7 @@ export function SaveSearchCard({ filters, onApply }: { filters: ShiftboardFilter
   };
 
   return (
-    <div className="sf-sb-panel sf-sb-save">
+    <div className="sf-sb-panel sf-sb-save" id="sf-sb-save">
       <Bookmark className="sf-sb-save-icon" aria-hidden="true" strokeWidth={1.75} />
       <h2 className="sf-sb-mono">Save this search</h2>
       <p>Keep these filters on this device and jump back to matching shifts in one tap.</p>

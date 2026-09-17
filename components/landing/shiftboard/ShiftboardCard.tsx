@@ -70,7 +70,7 @@ export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?:
         </div>
       </div>
 
-      <div className="sf-sb-row-cell">
+      <div className="sf-sb-row-cell sf-sb-row-cat">
         <CategoryIcon aria-hidden="true" strokeWidth={1.75} />
         <div>
           <strong>{category?.label ?? job.category}</strong>
@@ -78,7 +78,7 @@ export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?:
         </div>
       </div>
 
-      <div className="sf-sb-row-cell">
+      <div className="sf-sb-row-cell sf-sb-row-when">
         <Calendar aria-hidden="true" strokeWidth={1.75} />
         <div>
           <strong>

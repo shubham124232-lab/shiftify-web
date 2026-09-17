@@ -4,7 +4,8 @@
 // now or within 60 minutes. Shortest journey: no mandatory long-form writing.
 // See [[participant-posting-journeys-spec]] memory for the source spec.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -17,6 +18,7 @@ import {
   EMPTY_PERSON, EMPTY_CATALOGUE, EMPTY_REQUIREMENTS, EMPTY_SAFETY, EMPTY_FUNDING,
   type PersonReceivingSupport, type CatalogueSelection, type WorkerRequirements, type SafetyChecklist, type FundingChoice,
 } from "@/lib/types/posting";
+import { saveGuestDraft, loadGuestDraft, clearGuestDraft, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 const TOTAL_STEPS = 10; // R-01..R-09 input steps + R-10 review
@@ -30,8 +32,10 @@ const DURATION_HOURS: Record<Duration, number | undefined> = {
 };
 
 export default function RapidJourney() {
-  const { activeRole } = useAuth();
-  const isCoordinator = activeRole === "COORDINATOR";
+  const router = useRouter();
+  const { activeRole, isAuth } = useAuth();
+  const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
+  const isCoordinator = activeRole === "COORDINATOR" || (!isAuth && guestRole === "COORDINATOR");
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
@@ -59,6 +63,32 @@ export default function RapidJourney() {
     return (p: Partial<T>) => setter({ ...current, ...p });
   }
 
+  // Guest: pick up role + any in-progress draft saved before login.
+  useEffect(() => {
+    if (isAuth) return;
+    setGuestRole(loadGuestRole());
+    const d = loadGuestDraft("RAPID") as Record<string, unknown> | null;
+    if (!d) return;
+    if (d.timing) setTiming(d.timing as Timing);
+    if (typeof d.chosenTime === "string") setChosenTime(d.chosenTime);
+    if (d.person) setPerson(d.person as PersonReceivingSupport);
+    if (d.catalogue) setCatalogue(d.catalogue as CatalogueSelection);
+    if (d.locationType) setLocationType(d.locationType as LocationType);
+    if (typeof d.suburb === "string") setSuburb(d.suburb);
+    if (typeof d.state === "string") setState(d.state);
+    if (typeof d.postcode === "string") setPostcode(d.postcode);
+    if (typeof d.addressLine === "string") setAddressLine(d.addressLine);
+    if (typeof d.meetingDetails === "string") setMeetingDetails(d.meetingDetails);
+    if (d.duration) setDuration(d.duration as Duration);
+    if (d.requirements) setRequirements(d.requirements as WorkerRequirements);
+    if (d.safety) setSafety(d.safety as SafetyChecklist);
+    if (d.funding) setFunding(d.funding as FundingChoice);
+    if (typeof d.agreeShare === "boolean") setAgreeShare(d.agreeShare);
+    if (typeof d.postingAuthorityConfirmed === "boolean") setPostingAuthorityConfirmed(d.postingAuthorityConfirmed);
+    if (typeof d.step === "number") setStep(d.step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuth]);
+
   function validate(): string | null {
     if (step === 0 && timing === "CHOOSE_TIME" && !chosenTime) return "Choose a time within the next 60 minutes.";
     if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
@@ -72,22 +102,38 @@ export default function RapidJourney() {
     return null;
   }
 
+  function draftState(atStep: number) {
+    return {
+      timing, chosenTime, person, catalogue, locationType, suburb, state, postcode, addressLine,
+      meetingDetails, duration, requirements, safety, funding, agreeShare, postingAuthorityConfirmed, step: atStep,
+    };
+  }
+
   function next() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(null);
     if (step === TOTAL_STEPS - 1) { void submit(); return; }
-    setStep((s) => s + 1);
+    const nextStep = step + 1;
+    if (!isAuth) saveGuestDraft("RAPID", guestRole ?? "PARTICIPANT", draftState(nextStep));
+    setStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function back() {
     setError(null);
-    setStep((s) => Math.max(0, s - 1));
+    const prevStep = Math.max(0, step - 1);
+    if (!isAuth) saveGuestDraft("RAPID", guestRole ?? "PARTICIPANT", draftState(prevStep));
+    setStep(prevStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function submit() {
+    if (!isAuth) {
+      saveGuestDraft("RAPID", guestRole ?? "PARTICIPANT", draftState(step));
+      router.push("/register");
+      return;
+    }
     setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const start = timing === "ASAP" ? new Date() : new Date(chosenTime);
@@ -126,6 +172,7 @@ export default function RapidJourney() {
         body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
+      clearGuestDraft();
       setSubmitted({ id: res.job.id, isDraft: false });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
@@ -151,7 +198,7 @@ export default function RapidJourney() {
     { title: "What is essential for this request?", label: "Continue" },
     { title: "Is there anything essential a worker must know before accepting?", label: "Continue" },
     { title: "How will this support be paid for?", label: "Review Rapid request" },
-    { title: "Check your Rapid Support request", label: "Post Rapid request — Free" },
+    { title: "Check your Rapid Support request", label: isAuth ? "Post Rapid request — Free" : "Sign up to post this request" },
   ];
 
   return (

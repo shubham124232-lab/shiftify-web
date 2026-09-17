@@ -4,7 +4,8 @@
 // needed over 4 hours, up to 48 hours. See
 // [[participant-posting-journeys-spec]] memory for the source spec.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -17,6 +18,7 @@ import {
   EMPTY_PERSON, EMPTY_CATALOGUE, EMPTY_REQUIREMENTS, EMPTY_SAFETY, EMPTY_FUNDING,
   type PersonReceivingSupport, type CatalogueSelection, type WorkerRequirements, type SafetyChecklist, type FundingChoice,
 } from "@/lib/types/posting";
+import { saveGuestDraft, loadGuestDraft, clearGuestDraft, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 const TOTAL_STEPS = 11;
@@ -27,8 +29,10 @@ const SHORT_NOTICE_REASONS = ["Cancellation", "Roster gap", "Appointment/change"
 const UPDATE_METHODS = ["Shiftify notifications", "SMS", "Email", "Contact the person posting this request", "Contact an authorised representative"];
 
 export default function LastMinuteJourney() {
-  const { activeRole } = useAuth();
-  const isCoordinator = activeRole === "COORDINATOR";
+  const router = useRouter();
+  const { activeRole, isAuth } = useAuth();
+  const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
+  const isCoordinator = activeRole === "COORDINATOR" || (!isAuth && guestRole === "COORDINATOR");
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
@@ -66,6 +70,38 @@ export default function LastMinuteJourney() {
     setUpdateMethods((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
   }
 
+  useEffect(() => {
+    if (isAuth) return;
+    setGuestRole(loadGuestRole());
+    const d = loadGuestDraft("LAST_MINUTE") as Record<string, unknown> | null;
+    if (!d) return;
+    if (d.timingOption) setTimingOption(d.timingOption as TimingOption);
+    if (typeof d.startDateTime === "string") setStartDateTime(d.startDateTime);
+    if (d.person) setPerson(d.person as PersonReceivingSupport);
+    if (d.catalogue) setCatalogue(d.catalogue as CatalogueSelection);
+    if (typeof d.reason === "string") setReason(d.reason);
+    if (typeof d.note === "string") setNote(d.note);
+    if (d.locationType) setLocationType(d.locationType as LocationType);
+    if (typeof d.suburb === "string") setSuburb(d.suburb);
+    if (typeof d.state === "string") setState(d.state);
+    if (typeof d.postcode === "string") setPostcode(d.postcode);
+    if (typeof d.addressLine === "string") setAddressLine(d.addressLine);
+    if (typeof d.travelDetails === "string") setTravelDetails(d.travelDetails);
+    if (typeof d.durationHours === "string") setDurationHours(d.durationHours);
+    if (typeof d.flexible === "boolean") setFlexible(d.flexible);
+    if (typeof d.flexWindow === "string") setFlexWindow(d.flexWindow);
+    if (d.requirements) setRequirements(d.requirements as WorkerRequirements);
+    if (d.safety) setSafety(d.safety as SafetyChecklist);
+    if (d.funding) setFunding(d.funding as FundingChoice);
+    if (Array.isArray(d.updateMethods)) setUpdateMethods(d.updateMethods as string[]);
+    if (typeof d.repName === "string") setRepName(d.repName);
+    if (typeof d.repContact === "string") setRepContact(d.repContact);
+    if (typeof d.agreeShare === "boolean") setAgreeShare(d.agreeShare);
+    if (typeof d.postingAuthorityConfirmed === "boolean") setPostingAuthorityConfirmed(d.postingAuthorityConfirmed);
+    if (typeof d.step === "number") setStep(d.step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuth]);
+
   function validate(): string | null {
     if (step === 0 && !startDateTime) return "Choose a date/time within the next 48 hours.";
     if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
@@ -82,17 +118,38 @@ export default function LastMinuteJourney() {
     return null;
   }
 
+  function draftState(atStep: number) {
+    return {
+      timingOption, startDateTime, person, catalogue, reason, note, locationType, suburb, state, postcode,
+      addressLine, travelDetails, durationHours, flexible, flexWindow, requirements, safety, funding,
+      updateMethods, repName, repContact, agreeShare, postingAuthorityConfirmed, step: atStep,
+    };
+  }
+
   function next() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(null);
     if (step === TOTAL_STEPS - 1) { void submit(); return; }
-    setStep((s) => s + 1);
+    const nextStep = step + 1;
+    if (!isAuth) saveGuestDraft("LAST_MINUTE", guestRole ?? "PARTICIPANT", draftState(nextStep));
+    setStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function back() { setError(null); setStep((s) => Math.max(0, s - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function back() {
+    setError(null);
+    const prevStep = Math.max(0, step - 1);
+    if (!isAuth) saveGuestDraft("LAST_MINUTE", guestRole ?? "PARTICIPANT", draftState(prevStep));
+    setStep(prevStep);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   async function submitCommon(asDraft: boolean) {
+    if (!isAuth) {
+      saveGuestDraft("LAST_MINUTE", guestRole ?? "PARTICIPANT", draftState(step));
+      router.push("/register");
+      return;
+    }
     setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const start = new Date(startDateTime);
@@ -129,6 +186,7 @@ export default function LastMinuteJourney() {
         body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
+      clearGuestDraft();
       setSubmitted({ id: res.job.id, isDraft: asDraft });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
@@ -158,7 +216,7 @@ export default function LastMinuteJourney() {
       belowError={shiftPassBlocked ? (
         <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); submit(); }} onDismiss={() => setShiftPassBlocked(false)} />
       ) : undefined}
-      nextLabel={step === TOTAL_STEPS - 2 ? "Review Last-Minute request" : step === TOTAL_STEPS - 1 ? "Post Last-Minute request — Free" : "Continue"}
+      nextLabel={step === TOTAL_STEPS - 2 ? "Review Last-Minute request" : step === TOTAL_STEPS - 1 ? (isAuth ? "Post Last-Minute request — Free" : "Sign up to post this request") : "Continue"}
       saving={saving}
     >
       {step === 0 && (

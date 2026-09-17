@@ -100,7 +100,7 @@ export default function HomeNav() {
           </div>
 
           <div className="sf-nav-actions">
-            <a href="#shiftboard" className="sf-nav-board">
+            <a href="/shiftboard" className="sf-nav-board">
               <i className="bi bi-broadcast-pin" aria-hidden="true" />
               Live shiftboard
             </a>
@@ -124,7 +124,7 @@ export default function HomeNav() {
           {links.map((l) => (
             <a key={l.label} href={l.href} onClick={() => setOpen(false)}>{l.label}</a>
           ))}
-          <a href="#shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>
+          <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>
           <a href="/register" className="sf-btn sf-btn-pink">Request support</a>
         </div>
       </div>

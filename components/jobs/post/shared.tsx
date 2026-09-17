@@ -679,6 +679,10 @@ export function RequirementsStep({
         <input className={cn(inp, "ml-6 w-64")} value={value.qualificationValue} onChange={(e) => onChange({ qualificationValue: e.target.value })} placeholder="Which qualification?" />
       )}
       <CheckboxRow checked={value.twoWorkers} onChange={(v) => onChange({ twoWorkers: v, none: false })} label="Two workers required" />
+      <CheckboxRow checked={value.certIIIOrAbove} onChange={(v) => onChange({ certIIIOrAbove: v, none: false })} label="Cert III or above" />
+      <CheckboxRow checked={value.restrictivePractices} onChange={(v) => onChange({ restrictivePractices: v, none: false })} label="Restrictive practices" />
+      <CheckboxRow checked={value.firstAid} onChange={(v) => onChange({ firstAid: v, none: false })} label="First aid" />
+      <CheckboxRow checked={value.alliedHealth} onChange={(v) => onChange({ alliedHealth: v, none: false })} label="Allied health background" />
     </div>
   );
 }
@@ -922,6 +926,10 @@ export function buildWorkerPreferencesPayload(req: WorkerRequirements) {
     language: req.language ? (req.languageValue || true) : undefined,
     qualification: req.qualification ? (req.qualificationValue || true) : undefined,
     twoWorkers: req.twoWorkers || undefined,
+    certIIIOrAbove: req.certIIIOrAbove || undefined,
+    restrictivePractices: req.restrictivePractices || undefined,
+    firstAid: req.firstAid || undefined,
+    alliedHealth: req.alliedHealth || undefined,
     workerOrProvider: req.workerOrProvider || undefined,
   };
 }

@@ -4,7 +4,8 @@
 // needed more than 48 hours ahead, one-time or recurring. The most detailed
 // journey. See [[participant-posting-journeys-spec]] memory for the source spec.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -19,6 +20,7 @@ import {
   type PersonReceivingSupport, type MultiCatalogueSelection, type SafetyChecklist, type FundingChoice,
   type RoutineWorkerChoice, type RoutinePreferences, type RoutinePreferenceKey,
 } from "@/lib/types/posting";
+import { saveGuestDraft, loadGuestDraft, clearGuestDraft, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 const TOTAL_STEPS = 13; // O-01..O-12 input steps + O-13 review
@@ -32,8 +34,10 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 interface OneOffDate { date: string; startTime: string; durationHours: string }
 
 export default function RoutineJourney() {
-  const { activeRole } = useAuth();
-  const isCoordinator = activeRole === "COORDINATOR";
+  const router = useRouter();
+  const { activeRole, isAuth } = useAuth();
+  const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
+  const isCoordinator = activeRole === "COORDINATOR" || (!isAuth && guestRole === "COORDINATOR");
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
@@ -87,6 +91,43 @@ export default function RoutineJourney() {
     setRoutinePrefs((prev) => ({ ...prev, [key]: { ...prev[key], ...v } }));
   }
 
+  useEffect(() => {
+    if (isAuth) return;
+    setGuestRole(loadGuestRole());
+    const d = loadGuestDraft("ROUTINE") as Record<string, unknown> | null;
+    if (!d) return;
+    if (d.pattern) setPattern(d.pattern as Pattern);
+    if (d.person) setPerson(d.person as PersonReceivingSupport);
+    if (d.catalogue) setCatalogue(d.catalogue as MultiCatalogueSelection);
+    if (typeof d.oneTimeDate === "string") setOneTimeDate(d.oneTimeDate);
+    if (typeof d.oneTimeDuration === "string") setOneTimeDuration(d.oneTimeDuration);
+    if (typeof d.ongoingStartDate === "string") setOngoingStartDate(d.ongoingStartDate);
+    if (Array.isArray(d.ongoingDays)) setOngoingDays(d.ongoingDays as string[]);
+    if (typeof d.ongoingStartTime === "string") setOngoingStartTime(d.ongoingStartTime);
+    if (typeof d.ongoingHoursPerVisit === "string") setOngoingHoursPerVisit(d.ongoingHoursPerVisit);
+    if (typeof d.ongoingFrequency === "string") setOngoingFrequency(d.ongoingFrequency);
+    if (typeof d.ongoingEndDate === "string") setOngoingEndDate(d.ongoingEndDate);
+    if (Array.isArray(d.multipleDates)) setMultipleDates(d.multipleDates as OneOffDate[]);
+    if (typeof d.scheduleFlexible === "boolean") setScheduleFlexible(d.scheduleFlexible);
+    if (d.locationType) setLocationType(d.locationType as LocationType);
+    if (typeof d.suburb === "string") setSuburb(d.suburb);
+    if (typeof d.state === "string") setState(d.state);
+    if (typeof d.postcode === "string") setPostcode(d.postcode);
+    if (typeof d.addressLine === "string") setAddressLine(d.addressLine);
+    if (typeof d.travelDetails === "string") setTravelDetails(d.travelDetails);
+    if (d.routineWorker) setRoutineWorker(d.routineWorker as RoutineWorkerChoice);
+    if (d.routinePrefs) setRoutinePrefs(d.routinePrefs as RoutinePreferences);
+    if (d.safety) setSafety(d.safety as SafetyChecklist);
+    if (d.funding) setFunding(d.funding as FundingChoice);
+    if (Array.isArray(d.responseMethods)) setResponseMethods(d.responseMethods as string[]);
+    if (Array.isArray(d.screeningQuestions)) setScreeningQuestions(d.screeningQuestions as string[]);
+    if (d.responseRoute) setResponseRoute(d.responseRoute as typeof responseRoute);
+    if (typeof d.agreeShare === "boolean") setAgreeShare(d.agreeShare);
+    if (typeof d.postingAuthorityConfirmed === "boolean") setPostingAuthorityConfirmed(d.postingAuthorityConfirmed);
+    if (typeof d.step === "number") setStep(d.step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuth]);
+
   function validate(): string | null {
     if (step === 1 && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
     if (step === 1 && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
@@ -108,15 +149,32 @@ export default function RoutineJourney() {
     return null;
   }
 
+  function draftState(atStep: number) {
+    return {
+      pattern, person, catalogue, oneTimeDate, oneTimeDuration, ongoingStartDate, ongoingDays, ongoingStartTime,
+      ongoingHoursPerVisit, ongoingFrequency, ongoingEndDate, multipleDates, scheduleFlexible, locationType,
+      suburb, state, postcode, addressLine, travelDetails, routineWorker, routinePrefs, safety, funding,
+      responseMethods, screeningQuestions, responseRoute, agreeShare, postingAuthorityConfirmed, step: atStep,
+    };
+  }
+
   function next() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(null);
     if (step === TOTAL_STEPS - 1) { void submit(); return; }
-    setStep((s) => s + 1);
+    const nextStep = step + 1;
+    if (!isAuth) saveGuestDraft("ROUTINE", guestRole ?? "PARTICIPANT", draftState(nextStep));
+    setStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  function back() { setError(null); setStep((s) => Math.max(0, s - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function back() {
+    setError(null);
+    const prevStep = Math.max(0, step - 1);
+    if (!isAuth) saveGuestDraft("ROUTINE", guestRole ?? "PARTICIPANT", draftState(prevStep));
+    setStep(prevStep);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function firstStartEnd(): { start: Date; end: Date; totalHours?: number } {
     if (pattern === "ONE_TIME") {
@@ -136,6 +194,11 @@ export default function RoutineJourney() {
   }
 
   async function submitCommon(asDraft: boolean) {
+    if (!isAuth) {
+      saveGuestDraft("ROUTINE", guestRole ?? "PARTICIPANT", draftState(step));
+      router.push("/register");
+      return;
+    }
     setSaving(true); setError(null); setShiftPassBlocked(false);
     try {
       const { start, end, totalHours } = firstStartEnd();
@@ -199,6 +262,7 @@ export default function RoutineJourney() {
         body.forParticipantUserId = person.existingParticipantId;
       }
       const res = await api.post<{ job: { id: string } }>("/jobs", body);
+      clearGuestDraft();
       setSubmitted({ id: res.job.id, isDraft: asDraft });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
@@ -227,7 +291,7 @@ export default function RoutineJourney() {
       belowError={shiftPassBlocked ? (
         <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); submit(); }} onDismiss={() => setShiftPassBlocked(false)} />
       ) : undefined}
-      nextLabel={step === TOTAL_STEPS - 1 ? "Post Routine request — Free" : "Continue"}
+      nextLabel={step === TOTAL_STEPS - 1 ? (isAuth ? "Post Routine request — Free" : "Sign up to post this request") : "Continue"}
       saving={saving}
     >
       {step === 0 && (

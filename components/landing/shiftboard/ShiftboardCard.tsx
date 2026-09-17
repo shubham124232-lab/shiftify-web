@@ -1,25 +1,18 @@
 'use client';
 
-import { MapPin, Car, GraduationCap, ShieldCheck, Heart, IdCard } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { ArrowRight, Calendar, HeartPulse, House, MapPin, Users, type LucideIcon } from 'lucide-react';
 import { JOB_CATEGORIES } from '@/lib/constants/categories';
 import type { ShiftboardJob } from '@/lib/types/shiftboard';
+import { SHIFTBOARD_URGENCY } from './urgency';
 
-const URGENCY_META: Record<ShiftboardJob['urgency'], { label: string; accent: string }> = {
-  RAPID:       { label: 'Rapid',       accent: 'var(--sf-rapid)' },
-  URGENT:      { label: 'Urgent',      accent: 'var(--sf-urgent)' },
-  LAST_MINUTE: { label: 'Last Minute', accent: 'var(--sf-lastmin)' },
-  ROUTINE:     { label: 'Routine',     accent: 'var(--sf-routine)' },
-};
-
-// Small icon per active requirement — kept local rather than importing the
-// dashboard's job-card helpers, since this is a marketing-chrome component.
-const REQUIREMENT_ICON: Record<string, typeof Car> = {
-  driversLicence: IdCard,
-  vehicle: Car,
-  certIIIOrAbove: GraduationCap,
-  restrictivePractices: ShieldCheck,
-  firstAid: ShieldCheck,
-  alliedHealth: Heart,
+// Home-based help gets a house, out-and-about help gets people.
+const GROUP_ICON: Record<string, LucideIcon> = {
+  'Personal Care': House,
+  'Domestic Support': House,
+  'Social Support': Users,
+  'Nursing': HeartPulse,
+  'Allied Health': HeartPulse,
 };
 
 function formatDay(iso: string): string {
@@ -32,51 +25,83 @@ function formatDay(iso: string): string {
   return d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-function formatTimeRange(startIso: string, endIso: string): string {
-  const opts: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
-  return `${new Date(startIso).toLocaleTimeString('en-AU', opts)} – ${new Date(endIso).toLocaleTimeString('en-AU', opts)}`;
+// "10:00am – 2:00pm" — en-AU puts a (narrow) space before am/pm; drop it.
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, '').toLowerCase();
 }
 
-export function ShiftboardCard({ job }: { job: ShiftboardJob }) {
-  const urg = URGENCY_META[job.urgency];
-  const catLabel = JOB_CATEGORIES.find((c) => c.value === job.category)?.label ?? job.category;
-  const activeRequirements = Object.entries(job.requirements).filter(([, v]) => v);
+function formatHours(job: ShiftboardJob): { value: number; unit: string } {
+  const hours = job.totalHours
+    ?? (new Date(job.scheduledEndAt).getTime() - new Date(job.scheduledStartAt).getTime()) / 3_600_000;
+  const value = Math.round(hours * 10) / 10;
+  return { value, unit: value === 1 ? 'hr' : 'hrs' };
+}
+
+function formatDistance(km: number): string {
+  return km < 1 ? 'Under 1 km away' : `${Math.round(km)} km away`;
+}
+
+// `index` staggers the rows' entrance animation.
+export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?: number }) {
+  const urg = SHIFTBOARD_URGENCY[job.urgency];
+  const category = JOB_CATEGORIES.find((c) => c.value === job.category);
+  const CategoryIcon = (category && GROUP_ICON[category.group]) ?? Users;
+  const day = formatDay(job.scheduledStartAt);
+  const hours = formatHours(job);
+  const isNew = Date.now() - new Date(job.createdAt).getTime() < 86_400_000;
 
   return (
-    <div className="sf-shiftboard-card" style={{ borderTopColor: urg.accent }}>
-      <div className="sf-shiftboard-card-head">
-        <span className="sf-shiftboard-badge" style={{ background: urg.accent }}>{urg.label}</span>
-        <span className="sf-shiftboard-card-workers">
-          <i className="bi bi-person-fill" aria-hidden="true" /> 1 support worker
-        </span>
+    <article className="sf-sb-row" style={{ '--lane': urg.color, '--i': index } as CSSProperties}>
+      {/* Icon only — the lane name stays available to screen readers and on hover. */}
+      <div className="sf-sb-row-lane" role="img" aria-label={`${urg.label} shift`} title={urg.label}>
+        <urg.Icon aria-hidden="true" strokeWidth={2} fill={urg.filled ? 'currentColor' : 'none'} />
       </div>
 
-      <div className="sf-shiftboard-card-location">
-        <MapPin className="h-4 w-4" strokeWidth={1.75} />
-        <span>{job.suburb}</span>
-        {job.distanceKm != null && <span className="sf-shiftboard-card-distance">{job.distanceKm} km away</span>}
-      </div>
-
-      <p className="sf-shiftboard-card-category">{catLabel}{job.subcategory ? ` · ${job.subcategory}` : ''}</p>
-
-      <div className="sf-shiftboard-card-meta">
-        <span>{formatDay(job.scheduledStartAt)}</span>
-        <span aria-hidden="true">·</span>
-        <span>{formatTimeRange(job.scheduledStartAt, job.scheduledEndAt)}</span>
-      </div>
-
-      {activeRequirements.length > 0 && (
-        <div className="sf-shiftboard-card-requirements">
-          {activeRequirements.map(([key]) => {
-            const Icon = REQUIREMENT_ICON[key] ?? ShieldCheck;
-            return <Icon key={key} className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />;
-          })}
+      <div className="sf-sb-row-cell sf-sb-row-place">
+        <div>
+          <strong>
+            {job.suburb}
+            {isNew && <em className="sf-sb-row-new">New</em>}
+          </strong>
+          <span className="sf-sb-row-distance">
+            <MapPin aria-hidden="true" strokeWidth={2} />
+            {job.distanceKm != null ? formatDistance(job.distanceKm) : job.state}
+          </span>
         </div>
-      )}
+      </div>
 
-      <a href="/register?role=SUPPORT_WORKER" className="sf-shiftboard-card-btn">
-        View details
+      <div className="sf-sb-row-cell">
+        <CategoryIcon aria-hidden="true" strokeWidth={1.75} />
+        <div>
+          <strong>{category?.label ?? job.category}</strong>
+          {job.subcategory && <span>{job.subcategory}</span>}
+        </div>
+      </div>
+
+      <div className="sf-sb-row-cell">
+        <Calendar aria-hidden="true" strokeWidth={1.75} />
+        <div>
+          <strong>
+            <b className={`sf-sb-row-day${day === 'Today' ? ' today' : day === 'Tomorrow' ? ' tomorrow' : ''}`}>{day}</b>
+          </strong>
+          <span>{formatTime(job.scheduledStartAt)} – {formatTime(job.scheduledEndAt)}</span>
+        </div>
+      </div>
+
+      <div className="sf-sb-row-cell sf-sb-row-hours">
+        <span className="sf-sb-row-stat">
+          <b>{hours.value}</b>
+          <small>{hours.unit}</small>
+        </span>
+        <span className="sf-sb-row-stat-label">Duration</span>
+      </div>
+
+      <a href="/register?role=SUPPORT_WORKER" className="sf-sb-row-cta" aria-label={`View details for the ${urg.label.toLowerCase()} shift in ${job.suburb}`}>
+        <span>
+          View details
+          <ArrowRight aria-hidden="true" strokeWidth={2.2} />
+        </span>
       </a>
-    </div>
+    </article>
   );
 }

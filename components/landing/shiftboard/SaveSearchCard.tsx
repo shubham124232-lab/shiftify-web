@@ -1,21 +1,40 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Bookmark, X } from 'lucide-react';
+import { SHIFTBOARD_CATEGORY_FILTERS } from '@/lib/constants/job-filters';
 import { listSavedSearches, saveSearch, removeSavedSearch, type SavedShiftboardSearch } from '@/lib/store/savedShiftboardSearches';
 import type { ShiftboardFilters } from '@/lib/types/shiftboard';
+import { SHIFTBOARD_URGENCY } from './urgency';
+
+// The card has a single button, so the saved entry is named from its filters.
+function describeSearch(f: ShiftboardFilters): string {
+  const parts = [
+    f.suburb.trim() || (f.nearLat != null ? `Within ${f.radiusKm} km` : ''),
+    f.urgency ? SHIFTBOARD_URGENCY[f.urgency].label : '',
+    SHIFTBOARD_CATEGORY_FILTERS.find((c) => c.value === f.category)?.label ?? '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'All shifts';
+}
 
 export function SaveSearchCard({ filters, onApply }: { filters: ShiftboardFilters; onApply: (f: ShiftboardFilters) => void }) {
   const [saved, setSaved] = useState<SavedShiftboardSearch[]>([]);
-  const [label, setLabel] = useState('');
+  const [justSaved, setJustSaved] = useState(false);
 
   // localStorage is per-viewer only — read after mount so this never runs
   // during SSR and never disagrees with a server-rendered empty state.
   useEffect(() => { setSaved(listSavedSearches()); }, []);
 
+  useEffect(() => {
+    if (!justSaved) return;
+    const t = setTimeout(() => setJustSaved(false), 2000);
+    return () => clearTimeout(t);
+  }, [justSaved]);
+
   const handleSave = () => {
-    saveSearch(label, filters);
+    saveSearch(describeSearch(filters), filters);
     setSaved(listSavedSearches());
-    setLabel('');
+    setJustSaved(true);
   };
 
   const handleRemove = (id: string) => {
@@ -24,25 +43,21 @@ export function SaveSearchCard({ filters, onApply }: { filters: ShiftboardFilter
   };
 
   return (
-    <div className="sf-shiftboard-save-card">
-      <h3>Save this search</h3>
-      <p>Get back to these filters quickly next time. Saved on this device.</p>
-      <div className="sf-shiftboard-save-row">
-        <input
-          type="text"
-          placeholder="Name this search"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-        />
-        <button type="button" onClick={handleSave}>Save</button>
-      </div>
+    <div className="sf-sb-panel sf-sb-save">
+      <Bookmark className="sf-sb-save-icon" aria-hidden="true" strokeWidth={1.75} />
+      <h2 className="sf-sb-mono">Save this search</h2>
+      <p>Keep these filters on this device and jump back to matching shifts in one tap.</p>
+      <button type="button" className="sf-sb-save-btn" onClick={handleSave} aria-live="polite">
+        {justSaved ? 'Search saved' : 'Save search'}
+      </button>
+
       {saved.length > 0 && (
-        <ul className="sf-shiftboard-save-list">
+        <ul className="sf-sb-saved">
           {saved.map((s) => (
             <li key={s.id}>
               <button type="button" onClick={() => onApply(s.filters)}>{s.label}</button>
               <button type="button" aria-label={`Remove ${s.label}`} onClick={() => handleRemove(s.id)}>
-                <i className="bi bi-x" aria-hidden="true" />
+                <X aria-hidden="true" />
               </button>
             </li>
           ))}

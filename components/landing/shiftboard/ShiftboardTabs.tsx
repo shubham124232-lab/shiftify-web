@@ -1,13 +1,13 @@
 'use client';
 
+import type { CSSProperties } from 'react';
+import { Zap } from 'lucide-react';
 import type { ShiftboardCounts, ShiftboardUrgency } from '@/lib/types/shiftboard';
+import { SHIFTBOARD_URGENCY, URGENCY_ORDER } from './urgency';
 
-const TABS: { value: ShiftboardUrgency | ''; label: string; icon: string }[] = [
-  { value: '',            label: 'All shifts',   icon: 'bi-lightning-charge-fill' },
-  { value: 'RAPID',       label: 'Rapid',         icon: 'bi-lightning-charge-fill' },
-  { value: 'URGENT',      label: 'Urgent',        icon: 'bi-exclamation-circle-fill' },
-  { value: 'LAST_MINUTE', label: 'Last Minute',   icon: 'bi-clock-fill' },
-  { value: 'ROUTINE',     label: 'Routine',       icon: 'bi-calendar2-week-fill' },
+const TABS = [
+  { value: '' as const, label: 'All shifts', window: 'Live now', color: 'var(--sf-pink)', Icon: Zap, filled: true, live: true },
+  ...URGENCY_ORDER.map((value) => ({ value, live: false, ...SHIFTBOARD_URGENCY[value] })),
 ];
 
 export function ShiftboardTabs({
@@ -18,20 +18,30 @@ export function ShiftboardTabs({
   counts: ShiftboardCounts;
 }) {
   return (
-    <div className="sf-shiftboard-tabs" role="tablist" aria-label="Filter shifts by timing">
-      {TABS.map((t) => {
-        const count = t.value === '' ? counts.ALL : counts[t.value];
+    <div className="sf-sb-tabs" role="tablist" aria-label="Filter shifts by timing">
+      {TABS.map(({ value, label, window, color, Icon, filled, live }) => {
+        const count = value === '' ? counts.ALL : counts[value];
+        const isActive = active === value;
         return (
           <button
-            key={t.value || 'all'}
+            key={value || 'all'}
             type="button"
             role="tab"
-            aria-selected={active === t.value}
-            className={`sf-shiftboard-tab${active === t.value ? ' active' : ''}`}
-            onClick={() => onChange(t.value)}
+            aria-selected={isActive}
+            aria-label={`${label}, ${count} ${count === 1 ? 'shift' : 'shifts'}, ${window}`}
+            className={`sf-sb-tab${isActive ? ' active' : ''}`}
+            style={{ '--tab-c': color } as CSSProperties}
+            onClick={() => onChange(value)}
           >
-            <i className={`bi ${t.icon}`} aria-hidden="true" />
-            {t.label} ({count})
+            <span className="sf-sb-tab-top">
+              <Icon className="sf-sb-tab-icon" aria-hidden="true" strokeWidth={2} fill={filled ? 'currentColor' : 'none'} />
+              <span className="sf-sb-tab-count" aria-hidden="true">{count}</span>
+            </span>
+            <span className="sf-sb-tab-label">{label}</span>
+            <span className="sf-sb-tab-window" aria-hidden="true">
+              {live && <span className="sf-sb-tab-live" />}
+              {window}
+            </span>
           </button>
         );
       })}

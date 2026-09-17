@@ -4,6 +4,7 @@
 
 export type ShiftboardUrgency = "RAPID" | "URGENT" | "LAST_MINUTE" | "ROUTINE";
 export type TimeOfDay = "MORNING" | "AFTERNOON" | "EVENING" | "OVERNIGHT";
+export type DatePreset = "today" | "tomorrow" | "week" | "month";
 
 export interface ShiftboardRequirements {
   driversLicence: boolean;
@@ -60,6 +61,10 @@ export interface ShiftboardFilters {
   shiftType: string;
   startFrom: string;
   startTo: string;
+  // Relative range ("Today", "Next 7 days"), resolved to real dates at request
+  // time so a saved search never goes stale. Optional because searches saved
+  // before this field existed don't carry it.
+  datePreset?: DatePreset | "";
   timeOfDay: TimeOfDay[];
   requirements: Partial<ShiftboardRequirements>;
   sortBy: "newest" | "urgency" | "startDate" | "nearest";
@@ -68,7 +73,7 @@ export interface ShiftboardFilters {
 
 export const DEFAULT_SHIFTBOARD_FILTERS: ShiftboardFilters = {
   suburb: "",
-  radiusKm: 50,
+  radiusKm: 25,
   nearLat: null,
   nearLng: null,
   urgency: "",
@@ -76,6 +81,7 @@ export const DEFAULT_SHIFTBOARD_FILTERS: ShiftboardFilters = {
   shiftType: "",
   startFrom: "",
   startTo: "",
+  datePreset: "",
   timeOfDay: [],
   requirements: {},
   sortBy: "urgency",

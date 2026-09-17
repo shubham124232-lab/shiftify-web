@@ -76,5 +76,27 @@ export const WORKER_REQUIREMENT_FILTERS: { value: string; label: string }[] = [
   { value: "alliedHealth",         label: "Allied health background" },
 ];
 
+export const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
+
+export const DATE_PRESET_OPTIONS: { value: "" | "today" | "tomorrow" | "week" | "month"; label: string }[] = [
+  { value: "",         label: "Any date" },
+  { value: "today",    label: "Today" },
+  { value: "tomorrow", label: "Tomorrow" },
+  { value: "week",     label: "Next 7 days" },
+  { value: "month",    label: "Next 30 days" },
+];
+
+// The shiftboard's plain-language category list. The endpoint takes a single
+// `category`, so each label maps to its closest JOB_CATEGORIES value and the
+// sidebar treats these as a pick-one list.
+export const SHIFTBOARD_CATEGORY_FILTERS: { value: string; label: string }[] = [
+  { value: "PERSONAL_CARE",        label: "Daily Living" },
+  { value: "COMMUNITY_ACCESS",     label: "Community Access" },
+  { value: "SOCIAL_RECREATIONAL",  label: "Social & Recreational" },
+  { value: "HIGH_INTENSITY",       label: "High Support Needs" },
+  { value: "NURSING_COMPLEX_CARE", label: "Complex Care" },
+  { value: "BEHAVIOUR_SUPPORT",    label: "Behaviour Support" },
+];
+
 export const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
 export const lbl = "block text-xs font-semibold text-slate-600 mb-1";

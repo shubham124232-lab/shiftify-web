@@ -1,9 +1,49 @@
 'use client';
 
-import { JOB_CATEGORIES } from '@/lib/constants/categories';
-import { TIME_OF_DAY_OPTIONS, WORKER_REQUIREMENT_FILTERS } from '@/lib/constants/job-filters';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  BadgeCheck, CalendarDays, HeartHandshake, MapPin, Navigation, Search, SlidersHorizontal, SunMoon, Zap, type LucideIcon,
+} from 'lucide-react';
+import {
+  DATE_PRESET_OPTIONS, RADIUS_OPTIONS, SHIFTBOARD_CATEGORY_FILTERS, TIME_OF_DAY_OPTIONS, WORKER_REQUIREMENT_FILTERS,
+} from '@/lib/constants/job-filters';
 import type { GeolocationStatus } from '@/lib/hooks/useGeolocation';
 import type { ShiftboardFilters as Filters, TimeOfDay } from '@/lib/types/shiftboard';
+import { SHIFTBOARD_URGENCY, URGENCY_ORDER } from './urgency';
+
+// Short chip labels for the date presets — the full labels live in the constant.
+const DATE_CHIP_LABEL: Record<string, string> = {
+  '': 'Any date', today: 'Today', tomorrow: 'Tomorrow', week: '7 days', month: '30 days',
+};
+
+function Group({ title, Icon, count, children }: { title: string; Icon: LucideIcon; count?: number; children: ReactNode }) {
+  return (
+    <div className="sf-sb-group">
+      <h3 className="sf-sb-group-title">
+        <Icon aria-hidden="true" strokeWidth={1.75} />
+        <span>{title}</span>
+        {count ? <span className="sf-sb-group-count" aria-label={`${count} selected`}>{count}</span> : null}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function Check({ checked, onChange, children, meta, accent }: {
+  checked: boolean;
+  onChange: () => void;
+  children: ReactNode;
+  meta?: ReactNode;
+  accent?: string;
+}) {
+  return (
+    <label className={`sf-sb-check${checked ? ' checked' : ''}`} style={accent ? { '--check-c': accent } as CSSProperties : undefined}>
+      <input type="checkbox" checked={checked} onChange={onChange} />
+      <span className="sf-sb-check-label">{children}</span>
+      {meta && <span className="sf-sb-check-meta">{meta}</span>}
+    </label>
+  );
+}
 
 export function ShiftboardFilters({
   filters, onChange, onReset, geoStatus, onUseMyLocation,
@@ -14,6 +54,15 @@ export function ShiftboardFilters({
   geoStatus: GeolocationStatus;
   onUseMyLocation: () => void;
 }) {
+  // Below the tablet breakpoint the panel folds behind a toggle so the shift
+  // list isn't pushed a full screen down.
+  const [open, setOpen] = useState(false);
+  const hasLocation = filters.nearLat != null && filters.nearLng != null;
+  const requirementCount = Object.values(filters.requirements).filter(Boolean).length;
+  const activeCount =
+    (filters.suburb.trim() ? 1 : 0) + (hasLocation ? 1 : 0) + (filters.datePreset ? 1 : 0)
+    + filters.timeOfDay.length + (filters.category ? 1 : 0) + (filters.urgency ? 1 : 0) + requirementCount;
+
   const toggleTimeOfDay = (v: TimeOfDay) => {
     const next = filters.timeOfDay.includes(v)
       ? filters.timeOfDay.filter((t) => t !== v)
@@ -28,91 +77,155 @@ export function ShiftboardFilters({
     onChange({ requirements: next });
   };
 
+  const locateLabel = geoStatus === 'pending'
+    ? 'Finding your location…'
+    : hasLocation ? 'Using your location' : 'Use my current location';
+
   return (
-    <aside className="sf-shiftboard-filters">
-      <div className="sf-shiftboard-filters-head">
-        <h2>Filter shifts</h2>
-        <button type="button" className="sf-shiftboard-reset" onClick={onReset}>Reset all</button>
+    <aside className={`sf-sb-filters${open ? ' open' : ''}`} aria-label="Filter shifts">
+      <div className="sf-sb-filters-head">
+        <h2 className="sf-sb-mono">
+          <SlidersHorizontal aria-hidden="true" strokeWidth={2} />
+          Filter shifts
+          {activeCount > 0 && <span className="sf-sb-active-count">{activeCount} active</span>}
+        </h2>
+        <div className="sf-sb-filters-actions">
+          <button type="button" className="sf-sb-link" onClick={onReset} disabled={activeCount === 0}>Reset all</button>
+          <button
+            type="button"
+            className="sf-sb-filters-toggle"
+            aria-expanded={open}
+            aria-controls="sf-sb-filters-body"
+            onClick={() => setOpen((v) => !v)}
+          >
+            {open ? 'Hide' : 'Show'}
+          </button>
+        </div>
       </div>
 
-      <div className="sf-shiftboard-filter-group">
-        <label className="sf-shiftboard-filter-label">Location</label>
-        <div className="sf-shiftboard-location-input">
-          <i className="bi bi-geo-alt" aria-hidden="true" />
-          <input
-            type="text"
-            placeholder="Search suburb or postcode"
-            value={filters.suburb}
-            onChange={(e) => onChange({ suburb: e.target.value })}
-          />
-        </div>
-        <label className="sf-shiftboard-checkbox-row">
-          <input
-            type="checkbox"
-            checked={geoStatus === 'granted'}
-            onChange={onUseMyLocation}
-          />
-          Use my current location
-        </label>
-        {geoStatus === 'denied' && (
-          <p className="sf-shiftboard-hint">Location blocked — search by suburb instead.</p>
-        )}
-        {(filters.nearLat != null && filters.nearLng != null) && (
-          <div className="sf-shiftboard-filter-subrow">
-            <label htmlFor="sf-radius">Within {filters.radiusKm} km</label>
+      <div className="sf-sb-filters-body" id="sf-sb-filters-body">
+        <Group title="Location" Icon={MapPin}>
+          <label className="sf-sb-field">
+            <Search aria-hidden="true" strokeWidth={2} />
             <input
-              id="sf-radius" type="range" min={5} max={100} step={5}
-              value={filters.radiusKm}
-              onChange={(e) => onChange({ radiusKm: Number(e.target.value) })}
+              type="search"
+              placeholder="Search suburb or postcode"
+              aria-label="Search suburb or postcode"
+              value={filters.suburb}
+              onChange={(e) => onChange({ suburb: e.target.value })}
             />
-          </div>
-        )}
-      </div>
-
-      <div className="sf-shiftboard-filter-group">
-        <label className="sf-shiftboard-filter-label">Date</label>
-        <div className="sf-shiftboard-date-row">
-          <input type="date" value={filters.startFrom.slice(0, 10)} onChange={(e) => onChange({ startFrom: e.target.value ? new Date(e.target.value).toISOString() : '' })} />
-          <input type="date" value={filters.startTo.slice(0, 10)} onChange={(e) => onChange({ startTo: e.target.value ? new Date(e.target.value).toISOString() : '' })} />
-        </div>
-      </div>
-
-      <div className="sf-shiftboard-filter-group">
-        <label className="sf-shiftboard-filter-label">Time of day</label>
-        {TIME_OF_DAY_OPTIONS.map((opt) => (
-          <label key={opt.value} className="sf-shiftboard-checkbox-row">
-            <input type="checkbox" checked={filters.timeOfDay.includes(opt.value)} onChange={() => toggleTimeOfDay(opt.value)} />
-            {opt.label}
           </label>
-        ))}
-      </div>
+          <button
+            type="button"
+            className={`sf-sb-locate${hasLocation ? ' on' : ''}`}
+            onClick={onUseMyLocation}
+            disabled={geoStatus === 'pending'}
+          >
+            {hasLocation
+              ? <span className="sf-sb-locate-dot" aria-hidden="true" />
+              : <Navigation aria-hidden="true" strokeWidth={2} />}
+            {locateLabel}
+          </button>
+          {(geoStatus === 'denied' || geoStatus === 'unsupported') && (
+            <p className="sf-sb-hint">Location unavailable — search by suburb instead.</p>
+          )}
+          <div className="sf-sb-sub">
+            <span className="sf-sb-sub-label" id="sf-sb-radius-label">Within</span>
+            <div className="sf-sb-segment" role="radiogroup" aria-labelledby="sf-sb-radius-label">
+              {RADIUS_OPTIONS.map((km) => (
+                <button
+                  key={km}
+                  type="button"
+                  role="radio"
+                  aria-checked={filters.radiusKm === km}
+                  className={filters.radiusKm === km ? 'on' : ''}
+                  onClick={() => onChange({ radiusKm: km })}
+                >
+                  {km}<small>km</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        </Group>
 
-      <div className="sf-shiftboard-filter-group">
-        <label className="sf-shiftboard-filter-label">Support category</label>
-        <select
-          className="sf-shiftboard-select"
-          value={filters.category}
-          onChange={(e) => onChange({ category: e.target.value })}
-        >
-          <option value="">All categories</option>
-          {JOB_CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
+        <Group title="Date" Icon={CalendarDays}>
+          <div className="sf-sb-chips" role="radiogroup" aria-label="Date">
+            {DATE_PRESET_OPTIONS.map((o) => {
+              const on = (filters.datePreset ?? '') === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-label={o.label}
+                  className={on ? 'on' : ''}
+                  onClick={() => onChange({ datePreset: o.value, startFrom: '', startTo: '' })}
+                >
+                  {DATE_CHIP_LABEL[o.value]}
+                </button>
+              );
+            })}
+          </div>
+        </Group>
+
+        <Group title="Time of day" Icon={SunMoon} count={filters.timeOfDay.length}>
+          {TIME_OF_DAY_OPTIONS.map((opt) => {
+            // "Morning (6am – 12pm)" → name on the left, hours on the right.
+            const [, name = opt.label, hours] = opt.label.match(/^(.*?)\s*\((.*)\)$/) ?? [];
+            return (
+              <Check
+                key={opt.value}
+                checked={filters.timeOfDay.includes(opt.value)}
+                onChange={() => toggleTimeOfDay(opt.value)}
+                meta={hours?.replace(/\s/g, '')}
+              >
+                {name}
+              </Check>
+            );
+          })}
+        </Group>
+
+        <Group title="Support category" Icon={HeartHandshake} count={filters.category ? 1 : 0}>
+          {SHIFTBOARD_CATEGORY_FILTERS.map((opt) => (
+            <Check
+              key={opt.value}
+              checked={filters.category === opt.value}
+              onChange={() => onChange({ category: filters.category === opt.value ? '' : opt.value })}
+            >
+              {opt.label}
+            </Check>
           ))}
-        </select>
-      </div>
+        </Group>
 
-      <div className="sf-shiftboard-filter-group">
-        <label className="sf-shiftboard-filter-label">Worker requirements</label>
-        {WORKER_REQUIREMENT_FILTERS.map((opt) => (
-          <label key={opt.value} className="sf-shiftboard-checkbox-row">
-            <input
-              type="checkbox"
+        <Group title="Shift type" Icon={Zap} count={filters.urgency ? 1 : 0}>
+          {URGENCY_ORDER.map((value) => {
+            const { label, color, Icon, filled } = SHIFTBOARD_URGENCY[value];
+            return (
+              <Check
+                key={value}
+                checked={filters.urgency === value}
+                onChange={() => onChange({ urgency: filters.urgency === value ? '' : value })}
+                accent={color}
+                meta={<Icon className="sf-sb-lane-icon" aria-hidden="true" strokeWidth={2} fill={filled ? 'currentColor' : 'none'} />}
+              >
+                {label}
+              </Check>
+            );
+          })}
+        </Group>
+
+        <Group title="Worker requirements" Icon={BadgeCheck} count={requirementCount}>
+          {WORKER_REQUIREMENT_FILTERS.map((opt) => (
+            <Check
+              key={opt.value}
               checked={Boolean(filters.requirements[opt.value as keyof Filters['requirements']])}
               onChange={() => toggleRequirement(opt.value)}
-            />
-            {opt.label}
-          </label>
-        ))}
+            >
+              {opt.label}
+            </Check>
+          ))}
+        </Group>
       </div>
     </aside>
   );

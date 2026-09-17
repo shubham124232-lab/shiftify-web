@@ -727,6 +727,22 @@
   margin: 18px 22px 0 0;
 }
 
+/* Links the mock board through to the real, dynamic /shiftboard page —
+   additive only, the mock's own design/markup above is unchanged. */
+.sf-board-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sf-pink);
+  background: var(--sf-white);
+  text-decoration: none;
+}
+.sf-board-cta:hover { text-decoration: underline; }
+
 /* ============================================================
    LANES — premium icon tiles
    ============================================================ */

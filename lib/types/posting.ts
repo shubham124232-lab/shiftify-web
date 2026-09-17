@@ -47,6 +47,11 @@ export interface WorkerRequirements {
   qualification: boolean;
   qualificationValue: string;
   twoWorkers: boolean;
+  // Live Shiftboard worker-requirement filters — shared by all 4 journeys.
+  certIIIOrAbove: boolean;
+  restrictivePractices: boolean;
+  firstAid: boolean;
+  alliedHealth: boolean;
   // Routine-only nuance: essential vs preferred tagging + worker/provider type.
   essentialVsPreferred?: Record<string, "ESSENTIAL" | "PREFERRED">;
   workerOrProvider?: "WORKER" | "PROVIDER" | "EITHER";
@@ -58,6 +63,7 @@ export const EMPTY_REQUIREMENTS: WorkerRequirements = {
   driversLicence: false, vehicle: false, wheelchairVehicle: false,
   language: false, languageValue: "", qualification: false, qualificationValue: "",
   twoWorkers: false,
+  certIIIOrAbove: false, restrictivePractices: false, firstAid: false, alliedHealth: false,
 };
 
 // Critical safety information checklist — shared by all 4 journeys.
@@ -137,7 +143,7 @@ export type RoutineWorkerChoice = "" | "WORKER" | "PROVIDER" | "EITHER" | "ONE_R
 export type RoutinePreferenceKey =
   | "genderPreference" | "language" | "culturalUnderstanding" | "driversLicence" | "vehicle"
   | "wheelchairVehicle" | "qualification" | "experience" | "training" | "nonSmoker" | "pets"
-  | "twoWorkers" | "other";
+  | "twoWorkers" | "certIIIOrAbove" | "restrictivePractices" | "firstAid" | "alliedHealth" | "other";
 
 export interface RoutinePreferenceItem {
   selected: boolean;
@@ -160,6 +166,10 @@ export const ROUTINE_PREFERENCE_LABELS: Record<RoutinePreferenceKey, string> = {
   nonSmoker: "Non-smoker",
   pets: "Comfortable with pets",
   twoWorkers: "Two workers required",
+  certIIIOrAbove: "Cert III or above",
+  restrictivePractices: "Restrictive practices",
+  firstAid: "First aid",
+  alliedHealth: "Allied health background",
   other: "Other",
 };
 

@@ -44,5 +44,37 @@ export const SORT_OPTIONS = [
   { value: "startDate", label: "Start date" },
 ];
 
+// ─── Public Live Shiftboard only (GET /public/shiftboard) ──────────────────
+// Kept separate from SORT_OPTIONS/URGENCY_STYLE above — those are the
+// authenticated dashboard's taxonomy and "nearest" only makes sense once a
+// visitor's location is known, which the dashboard feed never has.
+
+export const PUBLIC_SORT_OPTIONS = [
+  { value: "urgency", label: "Urgency" },
+  { value: "nearest", label: "Nearest" },
+  { value: "newest", label: "Most recent" },
+  { value: "startDate", label: "Start date" },
+];
+
+export const TIME_OF_DAY_OPTIONS: { value: "MORNING" | "AFTERNOON" | "EVENING" | "OVERNIGHT"; label: string }[] = [
+  { value: "MORNING",   label: "Morning (6am – 12pm)" },
+  { value: "AFTERNOON", label: "Afternoon (12pm – 6pm)" },
+  { value: "EVENING",   label: "Evening (6pm – 12am)" },
+  { value: "OVERNIGHT", label: "Overnight (12am – 6am)" },
+];
+
+// Matches the workerPreferences JSON keys the posting flow writes (see
+// Web/components/jobs/post/shared.tsx buildWorkerPreferencesPayload and
+// Web/lib/types/posting.ts ROUTINE_PREFERENCE_LABELS) — this is a job-side
+// "this shift requires X" filter, not a worker-profile filter.
+export const WORKER_REQUIREMENT_FILTERS: { value: string; label: string }[] = [
+  { value: "driversLicence",       label: "Driver's licence" },
+  { value: "vehicle",              label: "Own vehicle" },
+  { value: "certIIIOrAbove",       label: "Cert III or above" },
+  { value: "restrictivePractices", label: "Restrictive practices" },
+  { value: "firstAid",             label: "First aid" },
+  { value: "alliedHealth",         label: "Allied health background" },
+];
+
 export const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
 export const lbl = "block text-xs font-semibold text-slate-600 mb-1";

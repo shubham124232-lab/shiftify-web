@@ -229,6 +229,11 @@ export default function HomeHero() {
                 <div className="sf-board-stat"><b>102</b><span>Active shifts</span></div>
                 <div className="sf-board-stat"><b>0%</b><span>Commission</span></div>
               </div>
+
+              <a href="/shiftboard" className="sf-board-cta">
+                See the full live shiftboard
+                <i className="bi bi-arrow-right" aria-hidden="true" />
+              </a>
             </div>
 
             <p className="sf-script sf-board-note">One board.<br />Four timing lanes.</p>

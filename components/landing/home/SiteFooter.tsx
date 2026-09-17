@@ -6,7 +6,7 @@ const columns: { heading: string; links: [string, string][] }[] = [
     heading: 'Platform',
     links: [
       ['How it works',    '#how-it-works'],
-      ['Live Shiftboard', '#shiftboard'],
+      ['Live Shiftboard', '/shiftboard'],
       ['SIL & SDA',       '/sil-sda'],
       ['Pricing',         '#pricing'],
     ],

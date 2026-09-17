@@ -122,6 +122,34 @@ export const IconGroupLine = (p: IconProps) => (
   </Svg>
 );
 
+export const IconDocumentLine = (p: IconProps) => (
+  <Svg strokeWidth={1.8} {...p}>
+    <path d="M6.6 2.6h7.2l5.6 5.6V20a1.6 1.6 0 0 1-1.6 1.6H6.6A1.6 1.6 0 0 1 5 20V4.2a1.6 1.6 0 0 1 1.6-1.6Z" />
+    <path d="M13.8 2.6v4.6a1.4 1.4 0 0 0 1.4 1.4h4.2" />
+    <path d="M8.6 12.6h6.8M8.6 15.8h6.8M8.6 19h4" />
+  </Svg>
+);
+
+export const IconBuildingsLine = (p: IconProps) => (
+  <Svg strokeWidth={1.8} {...p}>
+    <path d="M3.2 21.4V3.8a1.2 1.2 0 0 1 1.2-1.2h7.2a1.2 1.2 0 0 1 1.2 1.2v17.6" />
+    <path d="M12.8 9h6a1.2 1.2 0 0 1 1.2 1.2v11.2" />
+    <path d="M2 21.4h20" />
+    <path d="M6 6.4h1.6M9.4 6.4H11M6 10.4h1.6M9.4 10.4H11M6 14.4h1.6M9.4 14.4H11" />
+    <path d="M15.6 12.8h1.4M15.6 16.4h1.4" />
+    <path d="M7 21.4v-3.2h3v3.2" />
+  </Svg>
+);
+
+export const IconCalculatorLine = (p: IconProps) => (
+  <Svg strokeWidth={1.8} {...p}>
+    <rect x="4.6" y="2.6" width="14.8" height="18.8" rx="2.4" />
+    <rect x="7.6" y="5.6" width="8.8" height="3.6" rx="1" />
+    <path d="M8.4 12.8h.01M12 12.8h.01M15.6 12.8h.01M8.4 16.2h.01M12 16.2h.01M8.4 19.4h.01M12 19.4h.01" />
+    <path d="M15.6 15.6v3.8" />
+  </Svg>
+);
+
 export const IconDocumentSolid = (p: IconProps) => (
   <Svg {...p}>
     <path d="M6.6 2.4h7.6l5.6 5.6v12a1.6 1.6 0 0 1-1.6 1.6H6.6A1.6 1.6 0 0 1 5 20V4a1.6 1.6 0 0 1 1.6-1.6Z" fill="currentColor" stroke="none" />
@@ -297,6 +325,17 @@ export const IconPulse = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="9.2" {...softer} />
     <path d="M2.8 12h4l2-5.4 3.4 10.8 2.2-5.4h6.8" />
+  </Svg>
+);
+
+export const IconCrown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3.4 8.2 7.9 12 12 5.2l4.1 6.8 4.5-3.8-1.9 10.4H5.3z" {...soft} />
+    <path d="M3.4 8.2 7.9 12 12 5.2l4.1 6.8 4.5-3.8-1.9 10.4H5.3z" />
+    <path d="M5.6 21h12.8" />
+    <circle cx="12" cy="3.6" r="1.1" fill="currentColor" stroke="none" />
+    <circle cx="3" cy="6.9" r="1" fill="currentColor" stroke="none" />
+    <circle cx="21" cy="6.9" r="1" fill="currentColor" stroke="none" />
   </Svg>
 );
 

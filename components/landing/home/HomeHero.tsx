@@ -5,10 +5,13 @@ import { IconLastMinute, IconRapid, IconRoutine, IconUrgent } from './PremiumIco
 
 /* The word that swaps inside the headline — one per timing lane, each in its
    own tier colour. */
+/* `glow` repeats the token value as a literal so the registered
+   --hero-accent property can animate between lanes. */
 const rotatingWords = [
-  { word: 'rapid',     color: 'var(--sf-rapid)'   },
-  { word: 'urgent',    color: 'var(--sf-urgent)'  },
-  { word: 'last min',  color: 'var(--sf-lastmin)' },
+  { word: 'rapid',     color: 'var(--sf-rapid-core)',   glow: '#FF2340' },
+  { word: 'urgent',    color: 'var(--sf-urgent-core)',  glow: '#FF8500' },
+  { word: 'last min',  color: 'var(--sf-lastmin-core)', glow: '#00A06A' },
+  { word: 'routine',   color: 'var(--sf-routine-core)', glow: '#547FC4' },
 ] as const;
 
 const tabs = [
@@ -20,9 +23,6 @@ const tabs = [
 
 type LaneKey = (typeof tabs)[number]['key'];
 const laneByKey = Object.fromEntries(tabs.map((t) => [t.key, t])) as Record<LaneKey, (typeof tabs)[number]>;
-
-/* How long each lane stays selected while the board cycles on its own. */
-const LANE_DWELL = 3400;
 
 type Shift = {
   lane: LaneKey;
@@ -53,14 +53,13 @@ const shifts: Shift[] = [
 const laneCount = (key: LaneKey) => shifts.filter((s) => s.lane === key).length;
 
 /* "All shifts" is a teaser of the mix, not the full list. */
-const ALL_LIMIT = 8;
+const ALL_LIMIT = 6;
 const allShifts = shifts.slice(0, ALL_LIMIT);
 
 export default function HomeHero() {
   const [index, setIndex] = useState(0);
   const [out, setOut] = useState(false);
   const [laneIndex, setLaneIndex] = useState(-1); // -1 = the full list
-  const [autoplay, setAutoplay] = useState(true);
 
   useEffect(() => {
     const swap = setInterval(() => {
@@ -73,28 +72,29 @@ export default function HomeHero() {
     return () => clearInterval(swap);
   }, []);
 
-  /* The board walks through the lanes by itself until someone picks one. */
-  useEffect(() => {
-    if (!autoplay) return;
-    const cycle = setInterval(
-      () => setLaneIndex((i) => (i >= tabs.length - 1 ? -1 : i + 1)),
-      LANE_DWELL,
-    );
-    return () => clearInterval(cycle);
-  }, [autoplay]);
-
   const current    = rotatingWords[index];
   const activeLane = laneIndex < 0 ? null : tabs[laneIndex].key;
   const visibleShifts = activeLane === null ? allShifts : shifts.filter((s) => s.lane === activeLane);
 
-  const pickLane = (i: number) => { setAutoplay(false); setLaneIndex(i); };
+  /* Lanes hold different numbers of shifts, so the list is padded out to ALL_LIMIT
+     with hidden copies of a real row — the board keeps one height on every tab. */
+  const rows = [
+    ...visibleShifts.map((s) => ({ shift: s, key: s.suburb, ghost: false })),
+    ...Array.from({ length: Math.max(0, ALL_LIMIT - visibleShifts.length) }, (_, i) => ({
+      shift: shifts[i % shifts.length],
+      key: `ghost-${i}`,
+      ghost: true,
+    })),
+  ];
+
+  const pickLane = (i: number) => setLaneIndex(i);
 
   return (
     <section
       className="sf-hero"
       id="main-content"
       aria-labelledby="sf-hero-heading"
-      style={{ ['--hero-accent' as string]: laneIndex < 0 ? 'var(--sf-pink)' : tabs[laneIndex].accent }}
+      style={{ ['--hero-accent' as string]: current.glow }}
     >
       <div className="sf-wrap">
         <div className="sf-hero-grid">
@@ -125,34 +125,6 @@ export default function HomeHero() {
               One live board for every support request — from rapid replacements to recurring
               weekly support. Four timing lanes, one verified network, direct connection.
             </p>
-
-            {/* Lane selector — drives the board on the right */}
-            <div className="sf-lanetabs" role="tablist" aria-label="Timing lanes">
-              {tabs.map((t, i) => (
-                <button
-                  key={t.key}
-                  role="tab"
-                  aria-selected={laneIndex === i}
-                  className={`sf-lanetab${laneIndex === i ? ' active' : ''}`}
-                  style={{ ['--lane-accent' as string]: t.accent }}
-                  onClick={() => pickLane(i)}
-                >
-                  <span className="sf-lanetab-dot" aria-hidden="true" />
-                  <span className="sf-lanetab-text">
-                    <b>{t.label}</b>
-                    <em>{t.sub}</em>
-                  </span>
-                  {laneIndex === i && autoplay && (
-                    <span
-                      key={laneIndex}
-                      className="sf-lanetab-progress"
-                      style={{ animationDuration: `${LANE_DWELL}ms` }}
-                      aria-hidden="true"
-                    />
-                  )}
-                </button>
-              ))}
-            </div>
 
             <div className="sf-hero-cta">
               <a href="/register" className="sf-btn sf-btn-pink">
@@ -211,17 +183,17 @@ export default function HomeHero() {
               </div>
 
               <ul className="sf-board-list">
-                {visibleShifts.map((s) => {
+                {rows.map(({ shift: s, key, ghost }) => {
                   const lane = laneByKey[s.lane];
                   return (
                     <li
-                      key={s.suburb}
-                      className="sf-shift"
+                      key={key}
+                      className={`sf-shift${ghost ? ' sf-shift-ghost' : ''}`}
+                      aria-hidden={ghost || undefined}
                       style={{ ['--row-accent' as string]: lane.accent }}
                     >
-                      <span className="sf-shift-lane">
+                      <span className="sf-shift-lane" title={lane.board}>
                         <lane.Icon className="sf-shift-lane-icon" />
-                        <span>{lane.board}</span>
                       </span>
 
                       <span className="sf-shift-place">

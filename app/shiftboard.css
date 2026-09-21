@@ -1215,11 +1215,12 @@
 .sf-home .sf-sb-row-icon-btn:hover { border-color: var(--sf-heading); color: var(--sf-heading); }
 .sf-home .sf-sb-row-icon-btn.on { border-color: var(--sf-pink); color: var(--sf-pink); }
 .sf-home .sf-sb-row-icon-btn:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: 2px; }
+/* One fixed width, so Manage / Apply now / View shift line up row to row. */
 .sf-home .sf-sb--app .sf-sb-row-cta {
-  width: auto;
-  min-width: 108px;
+  width: 116px;
+  min-width: 0;
   margin: 0;
-  padding: 0 16px;
+  padding: 0 8px;
   background: var(--sf-white);
   cursor: pointer;
 }

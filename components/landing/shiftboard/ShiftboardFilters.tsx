@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import {
-  BadgeCheck, CalendarDays, HeartHandshake, MapPin, Navigation, Search, SlidersHorizontal, SunMoon, Zap, type LucideIcon,
-} from 'lucide-react';
+import { ChevronRight, Navigation } from 'lucide-react';
 import {
   DATE_PRESET_OPTIONS, RADIUS_OPTIONS, SHIFTBOARD_CATEGORY_FILTERS, TIME_OF_DAY_OPTIONS, WORKER_REQUIREMENT_FILTERS,
 } from '@/lib/constants/job-filters';
@@ -15,19 +13,19 @@ import { SHIFTBOARD_URGENCY, URGENCY_ORDER } from './urgency';
 // Must match the phone breakpoint in app/shiftboard.css.
 export const PHONE_QUERY = '(max-width: 767px)';
 
-// Short chip labels for the date presets — the full labels live in the constant.
-const DATE_CHIP_LABEL: Record<string, string> = {
-  '': 'Any date', today: 'Today', tomorrow: 'Tomorrow', week: '7 days', month: '30 days',
-};
+// The panel shows the four short presets; "Next 30 days" stays API-only.
+const DATE_CHIPS: { value: string; label: string }[] = [
+  { value: '', label: 'Any date' },
+  { value: 'today', label: 'Today' },
+  { value: 'tomorrow', label: 'Tomorrow' },
+  { value: 'week', label: '7 days' },
+];
+const DISTANCE_CHIPS = RADIUS_OPTIONS.filter((km) => km <= 50);
 
-function Group({ title, Icon, count, children }: { title: string; Icon: LucideIcon; count?: number; children: ReactNode }) {
+function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="sf-sb-group">
-      <h3 className="sf-sb-group-title">
-        <Icon aria-hidden="true" strokeWidth={1.75} />
-        <span>{title}</span>
-        {count ? <span className="sf-sb-group-count" aria-label={`${count} selected`}>{count}</span> : null}
-      </h3>
+      <h3 className="sf-sb-group-title">{title}</h3>
       {children}
     </div>
   );
@@ -75,14 +73,16 @@ export function ShiftboardFilters({
   const isPhone = useMediaQuery(PHONE_QUERY);
   const sheetOpen = isPhone && open;
   const hasLocation = filters.nearLat != null && filters.nearLng != null;
-  const requirementCount = Object.values(filters.requirements).filter(Boolean).length;
   const activeCount = countActiveFilters(filters);
+  const advancedCount = filters.timeOfDay.length + (filters.urgency ? 1 : 0)
+    + Object.values(filters.requirements).filter(Boolean).length;
 
   // ---- Phone bottom sheet: scroll lock, Escape, drag-down-to-dismiss ----
   const sheetRef = useRef<HTMLElement>(null);
   const dragStart = useRef<number | null>(null);
   const dragY = useRef(0);
   const [drag, setDrag] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     if (!sheetOpen) return;
@@ -136,9 +136,15 @@ export function ShiftboardFilters({
     onChange({ requirements: next });
   };
 
+  // Filters apply live; the button just takes the visitor to the results.
+  const showResults = () => {
+    onOpenChange(false);
+    if (!isPhone) document.getElementById('sf-sb-shifts')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const locateLabel = geoStatus === 'pending'
     ? 'Finding your location…'
-    : hasLocation ? 'Using your location' : 'Use my current location';
+    : hasLocation ? 'Using your location' : 'Use my location';
 
   return (
     <>
@@ -159,13 +165,12 @@ export function ShiftboardFilters({
           if (sheetOpen && !(e.target as HTMLElement).closest('button')) dragStart.current = e.clientY;
         }}
       >
-        <h2 className="sf-sb-mono">
-          <SlidersHorizontal aria-hidden="true" strokeWidth={2} />
+        <h2>
           Filter shifts
-          {activeCount > 0 && <span className="sf-sb-active-count">{activeCount} active</span>}
+          <span className="sf-sb-active-count" aria-label={`${activeCount} active`}>{activeCount}</span>
         </h2>
         <div className="sf-sb-filters-actions">
-          <button type="button" className="sf-sb-link" onClick={onReset} disabled={activeCount === 0}>Reset all</button>
+          <button type="button" className="sf-sb-clear" onClick={onReset} disabled={activeCount === 0}>Clear all</button>
           <button
             type="button"
             className="sf-sb-filters-toggle"
@@ -179,53 +184,50 @@ export function ShiftboardFilters({
       </div>
 
       <div className="sf-sb-filters-body" id="sf-sb-filters-body">
-        <Group title="Location" Icon={MapPin}>
-          <label className="sf-sb-field">
-            <Search aria-hidden="true" strokeWidth={2} />
-            <input
-              type="search"
-              placeholder="Search suburb or postcode"
-              aria-label="Search suburb or postcode"
-              value={filters.suburb}
-              onChange={(e) => onChange({ suburb: e.target.value })}
-            />
-          </label>
+        <Group title="Location">
+          <input
+            className="sf-sb-input"
+            type="search"
+            placeholder="Suburb or postcode"
+            aria-label="Suburb or postcode"
+            value={filters.suburb}
+            onChange={(e) => onChange({ suburb: e.target.value })}
+          />
           <button
             type="button"
             className={`sf-sb-locate${hasLocation ? ' on' : ''}`}
             onClick={onUseMyLocation}
             disabled={geoStatus === 'pending'}
           >
-            {hasLocation
-              ? <span className="sf-sb-locate-dot" aria-hidden="true" />
-              : <Navigation aria-hidden="true" strokeWidth={2} />}
+            <Navigation aria-hidden="true" strokeWidth={2.2} fill="currentColor" />
             {locateLabel}
           </button>
           {(geoStatus === 'denied' || geoStatus === 'unsupported') && (
             <p className="sf-sb-hint">Location unavailable — search by suburb instead.</p>
           )}
-          <div className="sf-sb-sub">
-            <span className="sf-sb-sub-label" id="sf-sb-radius-label">Within</span>
-            <div className="sf-sb-segment" role="radiogroup" aria-labelledby="sf-sb-radius-label">
-              {RADIUS_OPTIONS.map((km) => (
-                <button
-                  key={km}
-                  type="button"
-                  role="radio"
-                  aria-checked={filters.radiusKm === km}
-                  className={filters.radiusKm === km ? 'on' : ''}
-                  onClick={() => onChange({ radiusKm: km })}
-                >
-                  {km}<small>km</small>
-                </button>
-              ))}
-            </div>
-          </div>
         </Group>
 
-        <Group title="Date" Icon={CalendarDays}>
+        <Group title="Distance">
+          <div className="sf-sb-chips dark" role="radiogroup" aria-label="Distance">
+            {DISTANCE_CHIPS.map((km) => (
+              <button
+                key={km}
+                type="button"
+                role="radio"
+                aria-checked={filters.radiusKm === km}
+                className={filters.radiusKm === km ? 'on' : ''}
+                onClick={() => onChange({ radiusKm: km })}
+              >
+                {km} km
+              </button>
+            ))}
+          </div>
+          {!hasLocation && <p className="sf-sb-hint">Distance applies once your location is on.</p>}
+        </Group>
+
+        <Group title="Date">
           <div className="sf-sb-chips" role="radiogroup" aria-label="Date">
-            {DATE_PRESET_OPTIONS.map((o) => {
+            {DATE_CHIPS.map((o) => {
               const on = (filters.datePreset ?? '') === o.value;
               return (
                 <button
@@ -233,35 +235,18 @@ export function ShiftboardFilters({
                   type="button"
                   role="radio"
                   aria-checked={on}
-                  aria-label={o.label}
+                  aria-label={DATE_PRESET_OPTIONS.find((d) => d.value === o.value)?.label ?? o.label}
                   className={on ? 'on' : ''}
-                  onClick={() => onChange({ datePreset: o.value, startFrom: '', startTo: '' })}
+                  onClick={() => onChange({ datePreset: o.value as Filters['datePreset'], startFrom: '', startTo: '' })}
                 >
-                  {DATE_CHIP_LABEL[o.value]}
+                  {o.label}
                 </button>
               );
             })}
           </div>
         </Group>
 
-        <Group title="Time of day" Icon={SunMoon} count={filters.timeOfDay.length}>
-          {TIME_OF_DAY_OPTIONS.map((opt) => {
-            // "Morning (6am – 12pm)" → name on the left, hours on the right.
-            const [, name = opt.label, hours] = opt.label.match(/^(.*?)\s*\((.*)\)$/) ?? [];
-            return (
-              <Check
-                key={opt.value}
-                checked={filters.timeOfDay.includes(opt.value)}
-                onChange={() => toggleTimeOfDay(opt.value)}
-                meta={hours?.replace(/\s/g, '')}
-              >
-                {name}
-              </Check>
-            );
-          })}
-        </Group>
-
-        <Group title="Support category" Icon={HeartHandshake} count={filters.category ? 1 : 0}>
+        <Group title="Support category">
           {SHIFTBOARD_CATEGORY_FILTERS.map((opt) => (
             <Check
               key={opt.value}
@@ -273,41 +258,75 @@ export function ShiftboardFilters({
           ))}
         </Group>
 
-        <Group title="Shift type" Icon={Zap} count={filters.urgency ? 1 : 0}>
-          {URGENCY_ORDER.map((value) => {
-            const { label, color, Icon, filled } = SHIFTBOARD_URGENCY[value];
-            return (
-              <Check
-                key={value}
-                checked={filters.urgency === value}
-                onChange={() => onChange({ urgency: filters.urgency === value ? '' : value })}
-                accent={color}
-                meta={<Icon className="sf-sb-lane-icon" aria-hidden="true" strokeWidth={2} fill={filled ? 'currentColor' : 'none'} />}
-              >
-                {label}
-              </Check>
-            );
-          })}
-        </Group>
+        <details
+          className="sf-sb-advanced"
+          open={advancedOpen}
+          onToggle={(e) => setAdvancedOpen(e.currentTarget.open)}
+        >
+          <summary>
+            <ChevronRight aria-hidden="true" strokeWidth={2.4} />
+            Advanced filters
+            {advancedCount > 0 && <span className="sf-sb-advanced-count">{advancedCount}</span>}
+          </summary>
 
-        <Group title="Worker requirements" Icon={BadgeCheck} count={requirementCount}>
-          {WORKER_REQUIREMENT_FILTERS.map((opt) => (
-            <Check
-              key={opt.value}
-              checked={Boolean(filters.requirements[opt.value as keyof Filters['requirements']])}
-              onChange={() => toggleRequirement(opt.value)}
-            >
-              {opt.label}
-            </Check>
-          ))}
-        </Group>
+          <div className="sf-sb-sub">
+            <h4>Time of day</h4>
+            {TIME_OF_DAY_OPTIONS.map((opt) => {
+              // "Morning (6am – 12pm)" → name on the left, hours on the right.
+              const [, name = opt.label, hours] = opt.label.match(/^(.*?)\s*\((.*)\)$/) ?? [];
+              return (
+                <Check
+                  key={opt.value}
+                  checked={filters.timeOfDay.includes(opt.value)}
+                  onChange={() => toggleTimeOfDay(opt.value)}
+                  meta={hours?.replace(/\s/g, '')}
+                >
+                  {name}
+                </Check>
+              );
+            })}
+          </div>
+
+          <div className="sf-sb-sub">
+            <h4>Shift type</h4>
+            {URGENCY_ORDER.map((value) => {
+              const { label, color } = SHIFTBOARD_URGENCY[value];
+              return (
+                <Check
+                  key={value}
+                  checked={filters.urgency === value}
+                  onChange={() => onChange({ urgency: filters.urgency === value ? '' : value })}
+                  accent={color}
+                  meta={<span className="sf-sb-lane-dot" aria-hidden="true" />}
+                >
+                  {label}
+                </Check>
+              );
+            })}
+          </div>
+
+          <div className="sf-sb-sub">
+            <h4>Worker requirements</h4>
+            {WORKER_REQUIREMENT_FILTERS.map((opt) => (
+              <Check
+                key={opt.value}
+                checked={Boolean(filters.requirements[opt.value as keyof Filters['requirements']])}
+                onChange={() => toggleRequirement(opt.value)}
+              >
+                {opt.label}
+              </Check>
+            ))}
+          </div>
+        </details>
       </div>
 
-      {/* Phone sheet only: the primary action closes the sheet on the results. */}
-      <div className="sf-sb-sheet-footer">
-        <button type="button" className="sf-sb-sheet-cta" onClick={() => onOpenChange(false)}>
-          {resultCount == null ? 'Show shifts' : `Show ${resultCount} ${resultCount === 1 ? 'shift' : 'shifts'}`}
+      <div className="sf-sb-filters-foot">
+        <button type="button" className="sf-sb-show-btn" onClick={showResults}>
+          {isPhone && resultCount != null
+            ? `Show ${resultCount} matching ${resultCount === 1 ? 'shift' : 'shifts'}`
+            : 'Show matching shifts'}
         </button>
+        <p>Only suburb-level locations are shown publicly.</p>
       </div>
     </aside>
     </>

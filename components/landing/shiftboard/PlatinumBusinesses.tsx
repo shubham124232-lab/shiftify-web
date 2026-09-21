@@ -1,61 +1,84 @@
-import type { CSSProperties } from 'react';
-import { ChevronRight, Crown, HandHeart, MapPin, Pin, Sprout, Sunrise, type LucideIcon } from 'lucide-react';
+'use client';
+
+import { useEffect, useReducer, useState } from 'react';
+import { ChevronRight, Crown, RotateCw } from 'lucide-react';
 
 interface PlatinumBusiness {
   name: string;
+  initials: string;
   tagline: string;
-  area: string;
   href: string;
-  Icon: LucideIcon;
-  color: string;
 }
 
 // Sample placements matching the approved design. There is no placements
 // endpoint yet — swap this list for API data once one exists.
 const BUSINESSES: PlatinumBusiness[] = [
-  { name: 'CareBridge Supports', tagline: 'In-home & community support', area: 'Western Sydney', href: '/platinum', Icon: HandHeart, color: 'var(--sf-pink)' },
-  { name: 'Everyday Ability',    tagline: 'Complex care & daily living', area: 'Sydney-wide',    href: '/platinum', Icon: Sprout,    color: 'var(--sf-lastmin)' },
-  { name: 'BrightPath Care',     tagline: 'Behaviour & social support',  area: 'Greater Sydney', href: '/platinum', Icon: Sunrise,   color: 'var(--sf-urgent)' },
+  { name: 'CareBridge Supports', initials: 'CB', tagline: 'In-home & community support', href: '/platinum' },
+  { name: 'Everyday Ability',    initials: 'EA', tagline: 'Complex care & daily living', href: '/platinum' },
+  { name: 'BrightPath Care',     initials: 'BC', tagline: 'Behaviour & social support',  href: '/platinum' },
 ];
 
+// Seconds each placement stays highlighted before the spotlight moves on.
+const ROTATE_EVERY = 4;
+
 export function PlatinumBusinesses() {
+  const [{ active, left }, step] = useReducer(
+    (s: { active: number; left: number }, action: 'tick' | 'rotate') =>
+      action === 'tick' && s.left > 1
+        ? { ...s, left: s.left - 1 }
+        : { active: (s.active + 1) % BUSINESSES.length, left: ROTATE_EVERY },
+    { active: 0, left: ROTATE_EVERY },
+  );
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const t = setInterval(() => step('tick'), 1000);
+    return () => clearInterval(t);
+  }, [paused]);
+
   return (
-    <section className="sf-sb-plat" aria-labelledby="sf-sb-plat-title">
+    <section
+      className="sf-sb-plat"
+      aria-labelledby="sf-sb-plat-title"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
       <div className="sf-sb-plat-head">
-        <h2 id="sf-sb-plat-title" className="sf-sb-plat-title">
-          <Crown aria-hidden="true" strokeWidth={1.75} />
-          <span>Platinum businesses</span>
+        <h2 id="sf-sb-plat-title">
+          <Crown aria-hidden="true" strokeWidth={2} fill="currentColor" />
+          Platinum businesses
         </h2>
-        <p className="sf-sb-mono sf-sb-plat-tag">
-          Sponsored · 30-day placement
-          <Pin aria-hidden="true" strokeWidth={1.75} />
+        <p>
+          <span>Sponsored · rotates in {left}s</span>
+          <button type="button" onClick={() => step('rotate')}>
+            <RotateCw aria-hidden="true" strokeWidth={2.6} />
+            Rotate
+          </button>
         </p>
       </div>
 
-      <div className="sf-sb-plat-grid">
-        {BUSINESSES.map(({ name, tagline, area, href, Icon, color }, i) => (
-          // Sweep delays are staggered so the light travels tile to tile.
-          <article key={name} className="sf-sb-plat-card" style={{ '--c': color, '--sweep-delay': `${i * 0.7}s` } as CSSProperties}>
-            <Icon className="sf-sb-plat-logo" aria-hidden="true" strokeWidth={1.5} />
-            <div className="sf-sb-plat-body">
-              <span className="sf-sb-plat-kicker">
-                <Crown aria-hidden="true" strokeWidth={2} />
-                Platinum partner
+      <ol className="sf-sb-plat-list">
+        {BUSINESSES.map(({ name, initials, tagline, href }, i) => (
+          <li key={name}>
+            <a
+              href={href}
+              className={`sf-sb-plat-item${i === active ? ' active' : ''}`}
+              aria-label={`${name} — ${tagline}`}
+            >
+              <span className="sf-sb-plat-rank" aria-hidden="true">{i + 1}</span>
+              <span className="sf-sb-plat-logo" aria-hidden="true">{initials}</span>
+              <span className="sf-sb-plat-text">
+                <strong>{name}</strong>
+                <small>{tagline}</small>
               </span>
-              <h3>{name}</h3>
-              <p>{tagline}</p>
-              <span className="sf-sb-plat-loc">
-                <MapPin aria-hidden="true" strokeWidth={2} fill="currentColor" stroke="var(--sf-white)" />
-                {area}
-              </span>
-            </div>
-            <a href={href} className="sf-sb-plat-btn" aria-label={`View ${name} profile`}>
-              View profile
-              <ChevronRight aria-hidden="true" strokeWidth={2} />
+              <ChevronRight className="sf-sb-plat-go" aria-hidden="true" strokeWidth={2.2} />
             </a>
-          </article>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }

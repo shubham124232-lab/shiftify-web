@@ -37,6 +37,9 @@ export interface Job {
   totalBudget?: number | null;
   budgetType?: string | null;
   _count?: { applications: number };
+  // Suburb centroid, when the feed provides one — plots the job on the map.
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export function timeAgo(dateStr: string): string {

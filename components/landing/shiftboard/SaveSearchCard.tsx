@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bookmark, X } from 'lucide-react';
+import { Heart, X } from 'lucide-react';
 import { SHIFTBOARD_CATEGORY_FILTERS } from '@/lib/constants/job-filters';
 import { listSavedSearches, saveSearch, removeSavedSearch, type SavedShiftboardSearch } from '@/lib/store/savedShiftboardSearches';
 import type { ShiftboardFilters } from '@/lib/types/shiftboard';
@@ -43,12 +43,14 @@ export function SaveSearchCard({ filters, onApply }: { filters: ShiftboardFilter
   };
 
   return (
-    <div className="sf-sb-panel sf-sb-save" id="sf-sb-save">
-      <Bookmark className="sf-sb-save-icon" aria-hidden="true" strokeWidth={1.75} />
-      <h2 className="sf-sb-mono">Save this search</h2>
-      <p>Keep these filters on this device and jump back to matching shifts in one tap.</p>
-      <button type="button" className="sf-sb-save-btn" onClick={handleSave} aria-live="polite">
-        {justSaved ? 'Search saved' : 'Save search'}
+    <div className="sf-sb-card sf-sb-save" id="sf-sb-save">
+      <h2>
+        <Heart aria-hidden="true" strokeWidth={2.2} />
+        Save this search
+      </h2>
+      <p>Keep these filters on this device for your next visit.</p>
+      <button type="button" className="sf-sb-outline-btn" onClick={handleSave} aria-live="polite">
+        {justSaved ? 'Search saved' : 'Save search on this device'}
       </button>
 
       {saved.length > 0 && (

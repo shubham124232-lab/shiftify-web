@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowUpRight, ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, House } from 'lucide-react';
 import { api } from '@/lib/api';
 import { PUBLIC_SORT_OPTIONS } from '@/lib/constants/job-filters';
 import { useGeolocation } from '@/lib/hooks/useGeolocation';
@@ -15,7 +15,6 @@ import { ShiftboardTabBar } from './ShiftboardTabBar';
 import { ShiftboardCard } from './ShiftboardCard';
 import { SaveSearchCard } from './SaveSearchCard';
 import { PlatinumBusinesses } from './PlatinumBusinesses';
-import { CommunityCard } from './CommunityCard';
 
 // Leaflet touches `window` at import time — must never be part of the
 // server-rendered tree.
@@ -106,6 +105,20 @@ export function ShiftboardBoard() {
   return (
     <section className="sf-sb">
       <div className="sf-sb-layout">
+        <header className="sf-sb-intro">
+          <h1>Live Shiftboard</h1>
+          <p>Explore support opportunities by timing, location and the work that suits you.</p>
+        </header>
+
+        <div className="sf-sb-top">
+          <PlatinumBusinesses />
+        </div>
+
+        <p className="sf-sb-public">
+          <span aria-hidden="true" />
+          Public opportunities across Australia
+        </p>
+
         <FiltersSidebar
           filters={filters}
           onChange={patchFilters}
@@ -118,44 +131,32 @@ export function ShiftboardBoard() {
         />
 
         <div className="sf-sb-main">
-          <header className="sf-sb-head">
-            <div>
-              <p className="sf-sb-mono sf-sb-eyebrow">Live shiftboard — Australia-wide</p>
-              <h1>Live Shiftboard</h1>
-              <p className="sf-sb-lede">Support opportunities near you.</p>
-            </div>
-            <div className="sf-sb-head-side">
-              <p className="sf-sb-count" aria-live="polite">
-                {loading ? 'Loading shifts…' : data ? `Showing ${data.jobs.length} of ${data.total} shifts` : ''}
-              </p>
-              <label className="sf-sb-sort">
-                Sort by
-                <span className="sf-sb-select-wrap light">
-                  <select
-                    value={filters.sortBy}
-                    onChange={(e) => patchFilters({ sortBy: e.target.value as ShiftboardFilters['sortBy'] })}
-                  >
-                    {PUBLIC_SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                  <ChevronDown aria-hidden="true" />
-                </span>
-              </label>
-            </div>
-          </header>
+          <p className="sf-sb-notice">
+            <span className="sf-sb-notice-icon"><House aria-hidden="true" strokeWidth={2} /></span>
+            Exact addresses and personal details are shared only after confirmation.
+          </p>
 
-          {/* Phone only: iOS-style search field, bound to the same suburb filter. */}
-          <label className="sf-sb-ios-search">
-            <Search aria-hidden="true" strokeWidth={2.2} />
-            <input
-              type="search"
-              placeholder="Suburb or postcode"
-              aria-label="Search suburb or postcode"
-              value={filters.suburb}
-              onChange={(e) => patchFilters({ suburb: e.target.value })}
-            />
-          </label>
-
-          <PlatinumBusinesses />
+          <div className="sf-sb-toolbar">
+            <label className="sf-sb-search">
+              <input
+                type="search"
+                placeholder="Search suburb or postcode"
+                aria-label="Search suburb or postcode"
+                value={filters.suburb}
+                onChange={(e) => patchFilters({ suburb: e.target.value })}
+              />
+            </label>
+            <label className="sf-sb-sort">
+              <span className="sf-sb-sr">Sort shifts</span>
+              <select
+                value={filters.sortBy}
+                onChange={(e) => patchFilters({ sortBy: e.target.value as ShiftboardFilters['sortBy'] })}
+              >
+                {PUBLIC_SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>Sort: {o.label}</option>)}
+              </select>
+              <ChevronDown aria-hidden="true" strokeWidth={2} />
+            </label>
+          </div>
 
           <ShiftboardTabs
             active={filters.urgency}
@@ -163,20 +164,22 @@ export function ShiftboardBoard() {
             counts={data?.counts ?? EMPTY_COUNTS}
           />
 
-          <h2 className="sf-sb-mono sf-sb-list-head" id="sf-sb-shifts">
-            Available shifts
-            {!loading && data && <span className="sf-sb-list-count">{data.total}</span>}
-          </h2>
+          <div className="sf-sb-list-head" id="sf-sb-shifts">
+            <h2>Available shifts</h2>
+            <p aria-live="polite">
+              {loading ? 'Loading…' : data ? `${data.total} ${data.total === 1 ? 'result' : 'results'}` : ''}
+            </p>
+          </div>
 
           {loading ? (
             <div className="sf-sb-list" aria-busy="true">
-              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="sf-sb-row-skeleton" />)}
+              {Array.from({ length: 5 }).map((_, i) => <div key={i} className="sf-sb-row-skeleton" />)}
             </div>
           ) : !data || data.jobs.length === 0 ? (
             <div className="sf-sb-empty">
               <p>{data ? 'No shifts match these filters right now.' : 'Shifts couldn’t be loaded right now. Please try again shortly.'}</p>
               {data && (
-                <button type="button" className="sf-sb-empty-btn" onClick={() => setFilters(DEFAULT_SHIFTBOARD_FILTERS)}>
+                <button type="button" className="sf-sb-outline-btn" onClick={() => setFilters(DEFAULT_SHIFTBOARD_FILTERS)}>
                   Reset filters
                 </button>
               )}
@@ -186,15 +189,20 @@ export function ShiftboardBoard() {
               {data.jobs.map((job, i) => <ShiftboardCard key={job.id} job={job} index={i} />)}
             </div>
           )}
+
+          <ul className="sf-sb-trust">
+            <li><strong>Privacy protected</strong>Personal details stay private until confirmation.</li>
+            <li><strong>Useful information first</strong>See timing, suburb and requirements before joining.</li>
+            <li><strong>Apply securely</strong>Sign in or create an account from the shift preview.</li>
+          </ul>
         </div>
 
         <div className="sf-sb-side">
-          <div className="sf-sb-panel sf-sb-map-card" id="sf-sb-map-card">
-            <div className="sf-sb-panel-head">
-              <h2 className="sf-sb-mono">Shifts near you</h2>
+          <div className="sf-sb-card sf-sb-map-card" id="sf-sb-map-card">
+            <div className="sf-sb-card-head">
+              <h2>Shifts near you</h2>
               <button type="button" className="sf-sb-link" onClick={() => setMapExpanded((v) => !v)} aria-expanded={mapExpanded}>
                 {mapExpanded ? 'Collapse map' : 'Expand map'}
-                <ArrowUpRight aria-hidden="true" strokeWidth={2} />
               </button>
             </div>
             <ShiftboardMap
@@ -203,13 +211,9 @@ export function ShiftboardBoard() {
               hasLocation={hasLocation}
               radiusKm={filters.radiusKm}
               expanded={mapExpanded}
-              locating={geo.status === 'pending'}
-              onRadiusChange={(km) => patchFilters({ radiusKm: km })}
-              onLocate={geo.request}
             />
           </div>
           <SaveSearchCard filters={filters} onApply={setFilters} />
-          <CommunityCard />
         </div>
       </div>
 

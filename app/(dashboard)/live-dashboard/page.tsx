@@ -1,93 +1,108 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import "../../home.css";
+import "../../shiftboard.css";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { type Job } from "@/components/jobs/job-card";
-import { LiveDashboardCard } from "@/components/jobs/live-dashboard-card";
-import { JobFiltersPanel, type LiveDashboardFilters } from "@/components/jobs/job-filters-panel";
-import { cn } from "@/lib/utils";
-import { UrgencySegmented } from "@/components/jobs/urgency-segmented";
-import type { LucideIcon } from "lucide-react";
-import { Search, SearchX, SlidersHorizontal, ChevronLeft, ChevronRight, CheckCircle2, Lock } from "lucide-react";
+import { SORT_OPTIONS } from "@/lib/constants/job-filters";
+import type { ShiftboardUrgency } from "@/lib/types/shiftboard";
+import { ShiftboardTabs } from "@/components/landing/shiftboard/ShiftboardTabs";
+import { PlatinumBusinesses } from "@/components/landing/shiftboard/PlatinumBusinesses";
+import type { MapPinJob } from "@/components/landing/shiftboard/ShiftboardMap";
+import {
+  LiveFilterCard, DEFAULT_LIVE_FILTERS, countLiveFilters, type LiveDashboardFilters,
+} from "@/components/jobs/live-dashboard/LiveFilterCard";
+import { LiveShiftRow } from "@/components/jobs/live-dashboard/LiveShiftRow";
 
-const defaultFilters: LiveDashboardFilters = {
-  category: "", shiftType: "", fundingType: "", isRecurring: "",
-  postedWithin: "", dateFrom: "", dateTo: "", sortBy: "urgency",
+// Leaflet touches `window` at import time — keep it out of the server render.
+const ShiftboardMap = dynamic(() => import("@/components/landing/shiftboard/ShiftboardMap"), {
+  ssr: false,
+  loading: () => <div className="sf-sb-map" aria-hidden="true" />,
+});
+
+const PAGE_SIZE = 20;
+// The dashboard feed has no per-lane counts; the "All" tab shows the total instead.
+const NO_COUNTS = { ALL: 0, RAPID: 0, URGENT: 0, LAST_MINUTE: 0, ROUTINE: 0 };
+const SYDNEY = { lat: -33.8688, lng: 151.2093 };
+
+// What each row's action means, shown only to the role that can meet it.
+const ROW_STATES = {
+  worker: [
+    { title: "Open for applications", sub: "Apply or accept the shift now." },
+    { title: "Application sent", sub: "You have applied — awaiting a response." },
+    { title: "Saved and hidden", sub: "Star a shift to keep it, or hide it from your feed." },
+  ],
+  poster: [
+    { title: "Your request", sub: "Open it to manage applications." },
+    { title: "View only", sub: "Workers and providers can apply to these." },
+    { title: "Details first", sub: "See timing, suburb and requirements before acting." },
+  ],
 };
-
-// Legend for the card footers. These are the real states a card can be in —
-// there is no access/lock level on a job — so each is shown only to the role
-// that can actually encounter it.
-type CardState = {
-  icon: LucideIcon;
-  roles: ("worker" | "poster")[];
-  title: string;
-  sub: string;
-};
-
-const CARD_STATES: CardState[] = [
-  { icon: CheckCircle2,      roles: ["worker"], title: "Open for applications", sub: "Apply or accept the shift now." },
-  { icon: CheckCircle2,      roles: ["worker"], title: "Application sent",      sub: "You have applied — awaiting a response." },
-  { icon: SlidersHorizontal, roles: ["poster"], title: "Your request",          sub: "Open it to manage applications." },
-  { icon: Lock,              roles: ["poster"], title: "View only",             sub: "Workers and providers can apply to this one." },
-];
 
 export default function LiveDashboardPage() {
   const { activeRole } = useAuth();
   const router = useRouter();
-  const [jobs,    setJobs]    = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [total,   setTotal]   = useState(0);
-  const [page,    setPage]    = useState(1);
-  const [error,   setError]   = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
-  const [suburb, setSuburb] = useState("");
   const [suburbInput, setSuburbInput] = useState("");
-  const [urgency, setUrgency] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<LiveDashboardFilters>(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState<LiveDashboardFilters>(defaultFilters);
+  const [suburb, setSuburb] = useState("");
+  const [urgency, setUrgency] = useState<ShiftboardUrgency | "">("");
+  const [sortBy, setSortBy] = useState("urgency");
+  const [filters, setFilters] = useState<LiveDashboardFilters>(DEFAULT_LIVE_FILTERS);
+  const [mapExpanded, setMapExpanded] = useState(false);
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
 
-  const load = useCallback((f: LiveDashboardFilters, sub: string, urg: string, p: number) => {
+  // Search as you type, without a request per keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => { setSuburb(suburbInput.trim()); setPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [suburbInput]);
+
+  const load = useCallback(() => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(p), limit: "20" });
-    if (sub)           params.set("suburb", sub);
-    if (urg)           params.set("urgency", urg);
-    if (f.category)    params.set("category", f.category);
-    if (f.isRecurring !== "") params.set("isRecurring", f.isRecurring);
-    if (f.shiftType)   params.set("shiftType", f.shiftType);
-    if (f.fundingType) params.set("fundingType", f.fundingType);
-    if (f.dateFrom)    params.set("startFrom", new Date(f.dateFrom).toISOString());
-    if (f.dateTo)      params.set("startTo", new Date(f.dateTo + "T23:59:59").toISOString());
-    if (f.postedWithin) params.set("postedWithinHours", String(parseInt(f.postedWithin) * 24));
-    if (f.sortBy)      params.set("sortBy", f.sortBy);
+    const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE), sortBy });
+    if (suburb)              params.set("suburb", suburb);
+    if (urgency)             params.set("urgency", urgency);
+    if (filters.category)    params.set("category", filters.category);
+    if (filters.isRecurring) params.set("isRecurring", filters.isRecurring);
+    if (filters.shiftType)   params.set("shiftType", filters.shiftType);
+    if (filters.fundingType) params.set("fundingType", filters.fundingType);
+    if (filters.dateFrom)    params.set("startFrom", new Date(filters.dateFrom + "T00:00:00").toISOString());
+    if (filters.dateTo)      params.set("startTo", new Date(filters.dateTo + "T23:59:59").toISOString());
+    if (filters.postedWithin) params.set("postedWithinHours", String(parseInt(filters.postedWithin) * 24));
 
     api.get<{ jobs: Job[]; total: number }>(`/jobs/live-dashboard?${params}`)
       .then(r => {
         setJobs(r.jobs ?? []);
         setTotal(r.total ?? (r.jobs ?? []).length);
+        setError(null);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, sortBy, suburb, urgency, filters]);
 
-  useEffect(() => { load(appliedFilters, suburb, urgency, page); }, [appliedFilters, suburb, urgency, page, load]);
+  useEffect(() => { load(); }, [load]);
 
-  function applyFilters() { setAppliedFilters({ ...filters }); setPage(1); setShowFilters(false); }
-  function resetFilters()  { setFilters(defaultFilters); setAppliedFilters(defaultFilters); setSuburb(""); setSuburbInput(""); setUrgency(""); setPage(1); }
+  function patchFilters(patch: Partial<LiveDashboardFilters>) { setFilters(f => ({ ...f, ...patch })); setPage(1); }
+  function resetFilters() { setFilters(DEFAULT_LIVE_FILTERS); setSuburbInput(""); setSuburb(""); setUrgency(""); setPage(1); }
 
   async function handleApply(id: string) {
     setApplying(id);
     setUpgradeMessage(null);
     try {
       await api.post(`/jobs/${id}/apply`, {});
-      load(appliedFilters, suburb, urgency, page);
+      load();
     } catch (e: unknown) {
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
         setUpgradeMessage(e.message);
@@ -121,202 +136,141 @@ export default function LiveDashboardPage() {
       else await api.patch(`/jobs/${job.id}/save`, { hidden: false });
     } catch (e: unknown) {
       setError((e as { message?: string })?.message ?? "Could not update hidden state.");
-      load(appliedFilters, suburb, urgency, page);
+      load();
     }
   }
 
-  const activeFilterCount = Object.entries(appliedFilters).filter(
-    ([k, v]) => k !== "sortBy" && v !== "" && v !== defaultFilters[k as keyof LiveDashboardFilters]
-  ).length;
-  // Suburb and urgency live outside `appliedFilters`, but the empty state has
-  // to offer "clear" whenever any of the three is narrowing the results.
-  const hasActiveSearch = activeFilterCount > 0 || suburb !== "" || urgency !== "";
-  const totalPages = Math.ceil(total / 20);
+  const hasActiveSearch = countLiveFilters(filters) > 0 || suburb !== "" || urgency !== "";
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Pins only for jobs the feed gives coordinates for.
+  const pins = useMemo<MapPinJob[]>(() => jobs
+    .filter(j => j.lat != null && j.lng != null)
+    .map(j => ({ id: j.id, title: j.title, suburb: j.suburb, urgency: j.urgency as ShiftboardUrgency, lat: j.lat as number, lng: j.lng as number })),
+  [jobs]);
+  const mapCenter = pins[0] ? { lat: pins[0].lat as number, lng: pins[0].lng as number } : SYDNEY;
 
   return (
-    <>
-      <div className="mx-auto px-6 py-7 space-y-6">
-        {/* Header: title, standing description, suburb search */}
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full bg-brand-600 ring-4 ring-brand-100" />
-              <h1 className="text-[28px] font-bold leading-none tracking-tight text-slate-900">Live Dashboard</h1>
-            </div>
-            <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-500">
-              Real-time support requests from across the platform.<br />
-              Find the right shift, when it suits you.
-            </p>
-          </div>
+    <div className="sf-home sf-sb-app">
+      <section className="sf-sb sf-sb--app">
+        <div className="sf-sb-layout">
+          <header className="sf-sb-intro">
+            <h1>Live Dashboard</h1>
+            <p>Real-time support requests from across the platform. Find the right shift, when it suits you.</p>
+          </header>
 
-          <form
-            onSubmit={(e) => { e.preventDefault(); setSuburb(suburbInput.trim()); setPage(1); }}
-            className="flex w-full gap-3 lg:w-auto"
-          >
-            <div className="relative w-full lg:w-[380px]">
-              <Search aria-hidden className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 shadow-card transition-colors placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
-                placeholder="Search by suburb…"
-                value={suburbInput}
-                onChange={(e) => setSuburbInput(e.target.value)}
+          {/* Platinum strip sits directly on top of the results card. */}
+          <div className="sf-sb-col">
+            <div className="sf-sb-top">
+              <PlatinumBusinesses />
+            </div>
+
+            <div className="sf-sb-main">
+              {upgradeMessage && <div className="sf-sb-banner"><UpgradePrompt message={upgradeMessage} /></div>}
+              {error && <p className="sf-sb-error" role="alert">{error}</p>}
+
+              <div className="sf-sb-toolbar">
+                <label className="sf-sb-search">
+                  <input
+                    type="search"
+                    placeholder="Search suburb or postcode"
+                    aria-label="Search suburb or postcode"
+                    value={suburbInput}
+                    onChange={e => setSuburbInput(e.target.value)}
+                  />
+                </label>
+                <label className="sf-sb-sort">
+                  <span className="sf-sb-sr">Sort shifts</span>
+                  <select value={sortBy} onChange={e => { setSortBy(e.target.value); setPage(1); }}>
+                    {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>Sort: {o.label}</option>)}
+                  </select>
+                  <ChevronDown aria-hidden="true" strokeWidth={2} />
+                </label>
+              </div>
+
+              <ShiftboardTabs
+                active={urgency}
+                onChange={v => { setUrgency(v); setPage(1); }}
+                counts={NO_COUNTS}
+                allSub={loading ? "Loading…" : urgency === "" ? `${total} available` : "Every timing"}
               />
-            </div>
-            <button
-              type="submit"
-              className="h-12 shrink-0 rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-card transition-colors hover:border-slate-300 hover:text-slate-900"
-            >
-              Search
-            </button>
-          </form>
-        </div>
 
-        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
-        {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+              <div className="sf-sb-list-head" id="sf-sb-shifts">
+                <h2>Open requests</h2>
+                <p aria-live="polite">
+                  {loading ? "Loading…" : `${total} ${total === 1 ? "result" : "results"}${totalPages > 1 ? ` · page ${page} of ${totalPages}` : ""}`}
+                </p>
+              </div>
 
-        {/* Urgency tabs + advanced filters */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <UrgencySegmented
-            value={urgency}
-            onChange={v => { setUrgency(v); setPage(1); }}
-            className="min-w-0 flex-1"
-          />
-          <div className="flex shrink-0 items-center gap-2">
-            {activeFilterCount > 0 && (
-              <button onClick={resetFilters} className="px-1 text-xs font-medium text-slate-500 transition-colors hover:text-brand-700">
-                Reset
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowFilters(v => !v)}
-              className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-xl border px-5 text-sm font-semibold transition-colors",
-                showFilters || activeFilterCount > 0
-                  ? "border-brand-200 bg-brand-50 text-brand-700"
-                  : "border-slate-200 bg-white text-slate-700 shadow-card hover:border-slate-300 hover:text-slate-900",
-              )}
-            >
-              <SlidersHorizontal className="h-4 w-4" strokeWidth={2.25} />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold tabular-nums text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {showFilters && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
-            <JobFiltersPanel filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
-          </div>
-        )}
-
-        {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-                <div className="space-y-3 p-4">
-                  <div className="h-5 w-20 animate-pulse rounded-full bg-slate-100" />
-                  <div className="space-y-2">
-                    <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                    <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" />
-                  </div>
-                  <div className="space-y-2 pt-1">
-                    <div className="h-3 w-3/4 animate-pulse rounded bg-slate-100" />
-                    <div className="h-3 w-1/2 animate-pulse rounded bg-slate-100" />
-                    <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
-                  </div>
-                  <div className="h-9 w-28 animate-pulse rounded-lg bg-slate-100" />
+              {loading ? (
+                <div className="sf-sb-list" aria-busy="true">
+                  {Array.from({ length: 5 }).map((_, i) => <div key={i} className="sf-sb-row-skeleton" />)}
                 </div>
-                <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3">
-                  <div className="h-8 w-full animate-pulse rounded-lg bg-slate-100" />
+              ) : jobs.length === 0 ? (
+                <div className="sf-sb-empty">
+                  <p>
+                    {hasActiveSearch
+                      ? "Nothing matches these filters right now. Try widening your search or clearing them."
+                      : "There are no open support requests on the platform right now. Check back shortly."}
+                  </p>
+                  {hasActiveSearch && (
+                    <button type="button" className="sf-sb-outline-btn" onClick={resetFilters}>Clear all filters</button>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 px-6 py-16 text-center">
-            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <SearchX className="h-6 w-6" />
-            </span>
-            <p className="text-base font-semibold text-slate-900">No open requests found</p>
-            <p className="mt-1 max-w-sm text-sm text-slate-500">
-              {hasActiveSearch
-                ? "Nothing matches these filters right now. Try widening your search or clearing them."
-                : "There are no open support requests on the platform right now. Check back shortly."}
-            </p>
-            {hasActiveSearch && (
-              <Button className="mt-5" variant="outline" onClick={resetFilters}>Clear all filters</Button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-[13px] text-slate-500">
-                Showing <span className="font-semibold tabular-nums text-slate-900">{jobs.length}</span> of{" "}
-                <span className="font-semibold tabular-nums text-slate-900">{total}</span> open request{total !== 1 ? "s" : ""}
-              </p>
-              {totalPages > 1 && (
-                <p className="shrink-0 text-[13px] tabular-nums text-slate-400">Page {page} of {totalPages}</p>
+              ) : (
+                <div className="sf-sb-list">
+                  {jobs.map((job, i) => (
+                    <LiveShiftRow
+                      key={job.id}
+                      job={job}
+                      index={i}
+                      canApply={canApply}
+                      applying={applying === job.id}
+                      onApply={() => handleApply(job.id)}
+                      onView={() => router.push(`/jobs/${job.id}`)}
+                      onToggleSave={() => handleToggleSave(job)}
+                      onToggleHide={() => handleToggleHide(job)}
+                    />
+                  ))}
+                </div>
               )}
-            </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {jobs.map(job => (
-                <LiveDashboardCard key={job.id} job={job} canApply={canApply} applying={applying === job.id}
-                  onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)}
-                  onToggleSave={() => handleToggleSave(job)} onToggleHide={() => handleToggleHide(job)} />
-              ))}
-            </div>
+              {totalPages > 1 && !loading && (
+                <nav className="sf-sb-pager" aria-label="Pages">
+                  <button type="button" className="sf-sb-outline-btn" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft aria-hidden="true" /> Previous
+                  </button>
+                  <span>{page} / {totalPages}</span>
+                  <button type="button" className="sf-sb-outline-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                    Next <ChevronRight aria-hidden="true" />
+                  </button>
+                </nav>
+              )}
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-2">
-                <Button variant="secondary" size="sm" className="h-9" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                  <ChevronLeft className="h-4 w-4" /> Previous
-                </Button>
-                <span className="px-3 text-[13px] font-medium tabular-nums text-slate-500">
-                  {page} / {totalPages}
-                </span>
-                <Button variant="secondary" size="sm" className="h-9" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                  Next <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-
-        {!loading && jobs.length > 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-card">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-              <h2 className="w-40 shrink-0 text-base font-bold leading-snug text-slate-900">
-                What the card<br />footer means
-              </h2>
-              <div className="grid flex-1 gap-6 sm:grid-cols-2">
-                {CARD_STATES.filter(s => s.roles.includes(canApply ? "worker" : "poster")).map(s => {
-                  const Icon = s.icon;
-                  return (
-                    <div key={s.title} className="flex items-start gap-3">
-                      <span
-                        aria-hidden
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-brand-600 ring-1 ring-brand-100"
-                      >
-                        <Icon className="h-5 w-5" strokeWidth={2.2} />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900">{s.title}</p>
-                        <p className="mt-0.5 text-[13px] leading-snug text-slate-500">{s.sub}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <ul className="sf-sb-trust">
+                {ROW_STATES[canApply ? "worker" : "poster"].map(s => (
+                  <li key={s.title}><strong>{s.title}</strong>{s.sub}</li>
+                ))}
+              </ul>
             </div>
           </div>
-        )}
-      </div>
-    </>
+
+          {/* Right rail: filters (closed until clicked) above the map. */}
+          <div className="sf-sb-rail">
+            <LiveFilterCard filters={filters} onChange={patchFilters} onReset={resetFilters} />
+
+            <div className="sf-sb-card sf-sb-map-card" id="sf-sb-map-card">
+              <div className="sf-sb-card-head">
+                <h2>Shifts near you</h2>
+                <button type="button" className="sf-sb-link" onClick={() => setMapExpanded(v => !v)} aria-expanded={mapExpanded}>
+                  {mapExpanded ? "Collapse map" : "Expand map"}
+                </button>
+              </div>
+              <ShiftboardMap jobs={pins} center={mapCenter} hasLocation={false} radiusKm={25} expanded={mapExpanded} />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

@@ -1,11 +1,14 @@
 "use client";
 
+import "../../../home.css";
+import "../../../shiftboard.css";
+
 import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-tiles";
-import { DashboardTabCard } from "@/components/dashboard/tab-card";
+import { MyRequestsCard, categoryLabel } from "@/components/dashboard/my-requests-card";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
 import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
@@ -15,7 +18,7 @@ import { getDashboard, type ParticipantDashboard } from "@/lib/api/dashboard";
 import { api } from "@/lib/api";
 import {
   Zap, Clock, CalendarClock, CalendarDays, Plus, RefreshCw,
-  MessageSquare, ClipboardList, SlidersHorizontal, User, Users,
+  MessageSquare, ClipboardList, SlidersHorizontal, User,
 } from "lucide-react";
 
 // ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
@@ -35,12 +38,8 @@ const PH_RECOMMENDED = [
 
 interface MyJob {
   id: string; title: string; status: string; category: string; postedAt: string;
-  isRecurring: boolean; scheduledStartAt: string;
+  isRecurring: boolean; scheduledStartAt: string; urgency?: string;
   _count: { applications: number };
-}
-
-function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" });
 }
 
 export default function ParticipantDashboard() {
@@ -85,135 +84,130 @@ export default function ParticipantDashboard() {
   ];
 
   return (
-    <div className="container-page space-y-6 py-8">
-      <DashboardHeader
-        name={(user.name || (user as any).username || "there").split(" ")[0]}
-        description="What support do you need today?"
-      />
-      <SetupBanner />
+    <div className="sf-home sf-dash">
+      <div className="container-page space-y-6 py-8">
+        <DashboardHeader
+          name={(user.name || (user as any).username || "there").split(" ")[0]}
+          description="What support do you need today?"
+        />
+        <SetupBanner />
 
-      {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
-      )}
+        {error && (
+          <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_1fr]">
-        {/* ── Main column ── */}
-        <div className="space-y-6">
-          <ActionTilesCard
-            title="Post a support request"
-            tiles={postTiles}
-            note="Shiftify is not an emergency service. If there is immediate danger, call 000."
-          />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_1fr]">
+          {/* ── Main column ── */}
+          <div className="space-y-6">
+            <ActionTilesCard
+              title="Post a support request"
+              tiles={postTiles}
+              note="Shiftify is not an emergency service. If there is immediate danger, call 000."
+            />
 
-          <DashboardTabCard
-            title="My support requests"
-            tabs={[
-              {
-                key: "active", label: "Active", count: loading ? undefined : (data?.openJobs?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.openJobs?.length
-                    ? <p className="py-4 text-sm text-slate-500">No open requests yet.</p>
-                    : data.openJobs.map((j) => (
-                      <DashboardListRow key={j.id} icon={<User className="h-5 w-5" />} title={j.title} subtitle={j.suburb} href={`/jobs/${j.id}`} rightLabel="View" />
-                    )),
-              },
-              {
-                key: "upcoming", label: "Upcoming", count: loading ? undefined : (data?.upcomingShifts?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.upcomingShifts?.length
-                    ? <p className="py-4 text-sm text-slate-500">No upcoming shifts.</p>
-                    : data.upcomingShifts.map((s) => (
-                      <DashboardListRow key={s.id} icon={<Users className="h-5 w-5" />} title={s.title} subtitle={fmtDateTime(s.scheduledStartAt)} href={`/jobs/${s.id}`} rightLabel="View details" />
-                    )),
-              },
-              {
-                key: "awaiting", label: "Awaiting Confirmation", count: loading ? undefined : (data?.awaitingConfirmation?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.awaitingConfirmation?.length
-                    ? <p className="py-4 text-sm text-slate-500">Nothing awaiting confirmation.</p>
-                    : data.awaitingConfirmation.map((s) => (
-                      <DashboardListRow key={s.id} icon={<Users className="h-5 w-5" />} title={s.title} subtitle={fmtDateTime(s.scheduledStartAt)} href={`/jobs/${s.id}`} rightLabel="Confirm" />
-                    )),
-              },
-              {
-                key: "drafts", label: "Drafts", count: jobsLoading ? undefined : drafts.length,
-                content: jobsLoading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !drafts.length
-                    ? <p className="py-4 text-sm text-slate-500">No drafts yet.</p>
-                    : drafts.map((d) => (
-                      <DashboardListRow key={d.id} icon={<ClipboardList className="h-5 w-5" />} title={d.title} subtitle={new Date(d.postedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} href={`/jobs/${d.id}`} rightLabel="Edit" />
-                    )),
-              },
-            ]}
-          />
+            <MyRequestsCard
+              title="My support requests"
+              tabs={[
+                {
+                  key: "active", label: "Active", empty: "No open requests yet.",
+                  items: loading ? null : (data?.openJobs ?? []).map((j) => ({
+                    id: j.id, href: `/jobs/${j.id}`, cta: "View",
+                    heading: [j.suburb, j.state].filter(Boolean).join(", "),
+                    sub: j.title || categoryLabel(j.category),
+                    urgency: j.urgency, startAt: j.scheduledStartAt, hours: j.totalHours,
+                  })),
+                },
+                {
+                  key: "upcoming", label: "Upcoming", empty: "No upcoming shifts.",
+                  items: loading ? null : (data?.upcomingShifts ?? []).map((s) => ({
+                    id: s.id, href: `/jobs/${s.id}`, cta: "View details",
+                    heading: s.suburb, sub: s.title, startAt: s.scheduledStartAt,
+                  })),
+                },
+                {
+                  key: "awaiting", label: "Awaiting confirmation", empty: "Nothing awaiting confirmation.",
+                  items: loading ? null : (data?.awaitingConfirmation ?? []).map((s) => ({
+                    id: s.id, href: `/jobs/${s.id}`, cta: "Confirm",
+                    heading: s.suburb, sub: s.title, startAt: s.scheduledStartAt,
+                  })),
+                },
+                {
+                  key: "drafts", label: "Drafts", empty: "No drafts yet.",
+                  // Drafts have no suburb yet, so the category leads.
+                  items: jobsLoading ? null : drafts.map((d) => ({
+                    id: d.id, href: `/jobs/${d.id}`, cta: "Edit",
+                    heading: categoryLabel(d.category), sub: d.title || "Untitled draft",
+                    urgency: d.urgency, startAt: d.scheduledStartAt, showStartsIn: false,
+                    meta: `Saved ${new Date(d.postedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`,
+                  })),
+                },
+              ]}
+            />
 
-          <Card>
-            <CardHeader><CardTitle>Recurring supports</CardTitle></CardHeader>
-            <CardContent className="py-2">
-              {jobsLoading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
-              ) : !recurring.length ? (
-                <p className="py-4 text-sm text-slate-500">No recurring supports set up.</p>
-              ) : (
-                recurring.slice(0, 5).map((r) => (
+            <Card>
+              <CardHeader><CardTitle>Recurring supports</CardTitle></CardHeader>
+              <CardContent className="py-2">
+                {jobsLoading ? (
+                  <p className="py-4 text-sm text-slate-400">Loading…</p>
+                ) : !recurring.length ? (
+                  <p className="py-4 text-sm text-slate-500">No recurring supports set up.</p>
+                ) : (
+                  recurring.slice(0, 5).map((r) => (
+                    <DashboardListRow
+                      key={r.id}
+                      icon={<CalendarDays className="h-5 w-5" />}
+                      title={r.title}
+                      subtitle={new Date(r.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                      href={`/jobs/${r.id}`}
+                      rightLabel="View"
+                    />
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Saved workers / providers</CardTitle></CardHeader>
+              <CardContent className="py-2">
+                {PH_SAVED_WORKERS.map((w) => (
                   <DashboardListRow
-                    key={r.id}
-                    icon={<CalendarDays className="h-5 w-5" />}
-                    title={r.title}
-                    subtitle={new Date(r.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
-                    href={`/jobs/${r.id}`}
-                    rightLabel="View"
+                    key={w.id}
+                    icon={<User className="h-5 w-5" />}
+                    title={w.name}
+                    subtitle={w.service}
+                    badge={<span className="text-xs font-semibold text-emerald-700">★ {w.rating}</span>}
                   />
-                ))
-              )}
-            </CardContent>
-          </Card>
+                ))}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader><CardTitle>Saved workers / providers</CardTitle></CardHeader>
-            <CardContent className="py-2">
-              {PH_SAVED_WORKERS.map((w) => (
-                <DashboardListRow
-                  key={w.id}
-                  icon={<User className="h-5 w-5" />}
-                  title={w.name}
-                  subtitle={w.service}
-                  badge={<span className="text-xs font-semibold text-emerald-700">★ {w.rating}</span>}
-                />
-              ))}
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader><CardTitle>Recommended for you</CardTitle></CardHeader>
+              <CardContent className="py-2">
+                {PH_RECOMMENDED.map((m) => (
+                  <DashboardListRow
+                    key={m.id}
+                    icon={<User className="h-5 w-5" />}
+                    title={m.name}
+                    subtitle={m.service}
+                    badge={
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        {m.match}% match
+                      </span>
+                    }
+                  />
+                ))}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader><CardTitle>Recommended for you</CardTitle></CardHeader>
-            <CardContent className="py-2">
-              {PH_RECOMMENDED.map((m) => (
-                <DashboardListRow
-                  key={m.id}
-                  icon={<User className="h-5 w-5" />}
-                  title={m.name}
-                  subtitle={m.service}
-                  badge={
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                      {m.match}% match
-                    </span>
-                  }
-                />
-              ))}
-            </CardContent>
-          </Card>
+            <LiveShiftboardTeaser />
+          </div>
 
-          <LiveShiftboardTeaser />
-        </div>
-
-        {/* ── Right rail ── */}
-        <div className="space-y-6">
-          <QuickActionsPanel actions={quickActions} className="max-w-xs" />
-          <ProfileProgressCard />
+          {/* ── Right rail ── */}
+          <div className="space-y-6">
+            <QuickActionsPanel actions={quickActions} className="max-w-xs" />
+            <ProfileProgressCard />
+          </div>
         </div>
       </div>
     </div>

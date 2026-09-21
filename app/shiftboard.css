@@ -1224,6 +1224,7 @@
   background: var(--sf-white);
   cursor: pointer;
 }
+.sf-home .sf-sb--app .sf-sb-row-cta:hover:not(:disabled) { background: var(--sf-heading); color: var(--sf-white); }
 .sf-home .sf-sb--app .sf-sb-row-cta.primary { background: var(--sf-pink); border-color: var(--sf-pink); color: var(--sf-white); }
 .sf-home .sf-sb--app .sf-sb-row-cta.primary:hover { background: var(--sf-pink-deep); border-color: var(--sf-pink-deep); }
 .sf-home .sf-sb--app .sf-sb-row-cta:disabled { opacity: .6; cursor: progress; }

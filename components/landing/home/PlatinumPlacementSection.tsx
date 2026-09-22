@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react';
+import { Fragment, type SVGProps } from 'react';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -65,6 +65,10 @@ const points: Point[] = [
   { Icon: IconExternal, lead: 'Direct link to your business profile',   chip: 'One tap'   },
 ];
 
+/* Placeholder repeats: two filter groups and two shift cards. */
+const TWO = [0, 1];
+const SHIFT_LANES = ['rapid', 'urgent'];
+
 export default function PlatinumPlacementSection() {
   return (
     <section id="platinum-placement" className="sf-section sf-place" aria-labelledby="sf-place-heading">
@@ -124,13 +128,66 @@ export default function PlatinumPlacementSection() {
           </div>
 
           <div className="sf-place-media">
-            <span className="sf-place-media-rail" aria-hidden="true" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/ddd.png"
-              alt="The Live Shiftboard showing three rotating Platinum business placements above available shifts"
-              loading="lazy"
-            />
+            <div className="sf-laptop">
+              <div className="sf-laptop-lid">
+                <span className="sf-laptop-cam" aria-hidden="true" />
+                <div className="sf-laptop-screen">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/images/liveshiftboard.png"
+                    alt="The Live Shiftboard showing three rotating Platinum business placements above available shifts"
+                    loading="lazy"
+                  />
+                  {/* Skeleton continues the board's three columns below the screenshot. */}
+                  <div className="sf-place-skel" aria-hidden="true">
+                    <div className="sf-place-skel-col is-filters">
+                      <div className="sf-place-skel-card">
+                        {TWO.map((i) => (
+                          <Fragment key={i}>
+                            <div className="sf-place-skel-chips">
+                              <span className={`sf-place-skel-chip ${i === 1 ? 'is-pink' : ''}`} />
+                              <span className="sf-place-skel-chip" />
+                              <span className={`sf-place-skel-chip ${i === 0 ? 'is-on' : ''}`} />
+                              {i % 2 === 0 && <span className="sf-place-skel-chip" />}
+                            </div>
+                            <span className="sf-place-skel-rule" />
+                            <span className={`sf-place-skel-bar is-head ${i % 2 ? 'is-w35' : 'is-w25'}`} />
+                          </Fragment>
+                        ))}
+                        <span className="sf-place-skel-input" />
+                      </div>
+                    </div>
+
+                    <div className="sf-place-skel-col is-shifts">
+                      <div className="sf-place-skel-card">
+                        {SHIFT_LANES.map((lane) => (
+                          <div key={lane} className={`sf-place-skel-shift is-${lane}`}>
+                            <span className="sf-place-skel-dot" />
+                            <span className="sf-place-skel-lines">
+                              <span className="sf-place-skel-bar is-head is-w35" />
+                              <span className="sf-place-skel-bar is-w55" />
+                              <span className="sf-place-skel-bar is-w45" />
+                            </span>
+                            <span className="sf-place-skel-btn" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="sf-place-skel-col is-side">
+                      <div className="sf-place-skel-card is-closed">
+                        <span className="sf-place-skel-bar is-head is-w55" />
+                        <span className="sf-place-skel-bar is-w90" />
+                        <span className="sf-place-skel-btn is-wide" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="sf-laptop-base" aria-hidden="true">
+                <span className="sf-laptop-notch" />
+              </div>
+            </div>
           </div>
 
         </div>

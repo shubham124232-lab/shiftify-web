@@ -1,104 +1,150 @@
-import type { SVGProps } from 'react';
-import {
-  IconPersonLine,
-  IconGroupLine,
-  IconBuildingsLine,
-  IconDocumentLine,
-} from './PremiumIcons';
+import type { ReactNode } from 'react';
 
-type Ico = (p: SVGProps<SVGSVGElement>) => JSX.Element;
+/* One price inside a table cell: amount, unit and a small note beneath. */
+interface Price { amount: string; unit?: string; note?: string }
 
-interface Row { label: string; name: string; price?: string; free?: boolean }
-/* The pay-per-use option, lifted out of the rows so it reads as a distinct
-   add-on rather than a third tier. `also` lists extras that are bought
-   separately — never included in the add-on's own price. */
-interface Addon { tag: string; name: string; price?: string; also: string[] }
-interface Card {
+interface Role {
   key: string;
-  role: string;
-  blurb: string;
-  Icon: Ico;
-  rows: Row[];
-  addon: Addon;
-  cta: string;
-  href: string;
+  name: string;
+  start: string;
+  /* Subscription first, then the pay-as-you-go Shift Pass (if any). */
+  continue: Price[];
+  addon: string;
+  bestFor: string;
+  free?: boolean;
 }
 
-const cards: Card[] = [
+const roles: Role[] = [
+  {
+    key: 'participant',
+    name: 'Participant',
+    start: 'Free, always',
+    continue: [],
+    addon: '',
+    bestFor: 'Anyone booking support',
+    free: true,
+  },
   {
     key: 'worker',
-    role: 'Support Worker',
-    blurb: 'Find and apply for support opportunities.',
-    Icon: IconPersonLine,
-    rows: [
-      { label: 'Start',    name: 'actions to get started · use anytime', free: true },
-      { label: 'Continue', name: 'Shiftify Basic', price: '$49.99' },
+    name: 'Support Worker',
+    start: '10 free applications',
+    continue: [
+      { amount: '$49.99', unit: '/mo', note: 'Shiftify Basic subscription' },
+      { amount: '$9.99', unit: '/use', note: 'Shift Pass, pay as you go' },
     ],
-    addon: { tag: 'Add-on', name: 'Shift Pass', price: '$9.99', also: ['Available Now'] },
-    cta: 'View Worker pricing',
-    href: '/pricing/worker',
+    addon: 'Available Now — $24.99/mo',
+    bestFor: 'Independent support workers',
   },
   {
     key: 'coordinator',
-    role: 'Support Coordinator',
-    blurb: 'Find suitable support for participants.',
-    Icon: IconGroupLine,
-    rows: [
-      { label: 'Start',    name: 'actions to get started · use anytime', free: true },
-      { label: 'Continue', name: 'Shiftify Pro', price: '$49.99' },
+    name: 'Support Coordinator',
+    start: '10 free actions',
+    continue: [
+      { amount: '$49.99', unit: '/mo', note: 'Shiftify Pro subscription' },
+      { amount: '$19.99', unit: '/use', note: 'Shift Pass, pay as you go' },
     ],
-    addon: { tag: 'Add-on', name: 'Shift Pass', price: '$19.99', also: ['Speed', 'Growth'] },
-    cta: 'View Coordinator pricing',
-    href: '/pricing/coordinator',
+    addon: 'Speed · Growth — unlocks worker list',
+    bestFor: 'Coordinators sourcing support',
   },
   {
     key: 'provider',
-    role: 'Provider',
-    blurb: 'Post shifts and connect through the marketplace.',
-    Icon: IconBuildingsLine,
-    rows: [
-      { label: 'Start',    name: 'actions to get started · use anytime', free: true },
-      { label: 'Continue', name: 'Provider plans', price: 'From $99.99' },
+    name: 'Provider',
+    start: '10 free actions',
+    continue: [
+      { amount: 'From $99.99', unit: '/mo', note: 'Starter · Team · Growth · Scale' },
+      { amount: '$19.99', unit: '/use', note: 'Shift Pass, pay as you go' },
     ],
-    addon: {
-      tag: 'Add-on', name: 'Shift Pass', price: '$19.99',
-      also: ['Featured Shifts', 'Direct Connect', 'Visibility options'],
-    },
-    cta: 'View Provider pricing',
-    href: '/pricing/provider',
+    addon: 'Marketplace add-ons below',
+    bestFor: 'Businesses posting shifts',
   },
   {
     key: 'plan-manager',
-    role: 'Plan Manager',
-    blurb: 'Choose the access level that suits your service.',
-    Icon: IconDocumentLine,
-    rows: [
-      { label: 'Start',    name: 'Free access' },
-      { label: 'Continue', name: 'Shiftify Basic', price: '$19.99' },
+    name: 'Plan Manager',
+    start: 'Public dashboard, view only',
+    continue: [
+      { amount: '$19.99', unit: '/mo', note: 'Shiftify Basic — required for database access' },
     ],
-    addon: {
-      tag: 'Flexible', name: 'Compare inclusions before choosing',
-      also: ['Simple options for Plan Managers'],
-    },
-    cta: 'View Plan Manager pricing',
-    href: '/pricing/plan-manager',
+    addon: 'Compare inclusion tiers',
+    bestFor: 'Plan management services',
   },
 ];
 
-const IconMegaphone = (p: SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7}
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...p}>
-    <path d="M3 10.4v3.2a1.6 1.6 0 0 0 1.6 1.6H7l8.6 4.4V6L7 10.4H4.6A1.6 1.6 0 0 0 3 10.4Z" />
-    <path d="M18.8 8.6a4.4 4.4 0 0 1 0 6.8" />
-    <path d="M7 15.2V20a1.4 1.4 0 0 0 1.4 1.4h1.2" />
-  </svg>
-);
+interface Option {
+  key: string;
+  icon: string;
+  title: string;
+  price?: string;
+  body?: string;
+  rows?: [string, string][];
+  foot?: string;
+}
 
-const Go = () => (
-  <span className="sf-price-go" aria-hidden="true">
-    <i className="bi bi-arrow-right" />
-  </span>
-);
+const options: Option[] = [
+  {
+    key: 'connect',
+    icon: 'bi-link-45deg',
+    title: 'Direct Connect',
+    price: '$9.99',
+    body: 'Charged only when a worker accepts. Up to 3 concurrent invites per shift — the rest withdraw free.',
+  },
+  {
+    key: 'featured',
+    icon: 'bi-flag',
+    title: 'Featured Shift',
+    rows: [
+      ['Rapid', '$19.99 / 60 min'],
+      ['Urgent', '$14.99 / 24 hr'],
+      ['Last-Minute', '$9.99 / 48 hr'],
+      ['Routine', '$21.99 / 7 days'],
+    ],
+  },
+  {
+    key: 'platinum',
+    icon: 'bi-star',
+    title: 'Platinum Tile Sponsorship',
+    rows: [
+      ['Metro', '$499.99/mo'],
+      ['State', '$999.99/mo'],
+      ['National', '$1,499.99/mo'],
+    ],
+    foot: '25–35% off on multi-month terms.',
+  },
+  {
+    key: 'listings',
+    icon: 'bi-clipboard2',
+    title: 'SIL / SDA Listings',
+    rows: [
+      ['Standard', '$199 / 30 days'],
+      ['Featured', '$399 / 30 days'],
+    ],
+  },
+];
+
+/* Featured Shift rows carry their lane colour. */
+const laneClass: Record<string, string> = {
+  Rapid: 'is-rapid',
+  Urgent: 'is-urgent',
+  'Last-Minute': 'is-lastmin',
+  Routine: 'is-routine',
+};
+
+const Empty = () => <span className="sf-cmp-dash" aria-label="Not applicable">—</span>;
+
+function ContinueCell({ prices }: { prices: Price[] }) {
+  if (prices.length === 0) return <Empty />;
+  const out: ReactNode[] = [];
+  prices.forEach((p, i) => {
+    if (i > 0) out.push(<span key={`or-${i}`} className="sf-cmp-or">or</span>);
+    out.push(
+      <span key={p.amount + i} className="sf-cmp-price">
+        <strong className={i > 0 ? 'is-pass' : undefined}>{p.amount}</strong>
+        {p.unit && <em>{p.unit}</em>}
+        {p.note && <small>{p.note}</small>}
+      </span>,
+    );
+  });
+  return <>{out}</>;
+}
 
 export default function PricingSection() {
   return (
@@ -107,108 +153,89 @@ export default function PricingSection() {
 
         <div className="sf-pricing-head">
           <span className="sf-eyebrow">Pricing</span>
-          <h2 id="sf-pricing-heading" className="sf-h2">Pricing made clear.</h2>
-          <p className="sf-lede">Find your role, see how you can start, then explore the option that suits you.</p>
+          <h2 id="sf-pricing-heading" className="sf-h2">Compare pricing for every role at a glance.</h2>
         </div>
 
-        {/* Participants sit above the paid roles — always free. */}
-        <div className="sf-price-free">
-          <span className="sf-price-rail" aria-hidden="true" />
-          <span className="sf-price-icon sf-price-icon-free" aria-hidden="true"><IconGroupLine /></span>
-          <div className="sf-price-free-copy">
-            <h3 className="sf-price-free-role">Participants and authorised representatives</h3>
-            <p className="sf-price-free-sub">Search, connect and book support at no cost — always.</p>
-          </div>
-          <span className="sf-price-free-tag">Always free</span>
-          <a href="/signup/participant" className="sf-price-btn">
-            Get support
-            <Go />
-          </a>
-        </div>
-
-        <div className="sf-price-grid">
-          {cards.map(({ key, role, blurb, Icon, rows, addon, cta, href }) => (
-            <article key={key} className="sf-price-card">
-              <span className="sf-price-top" aria-hidden="true" />
-
-              <header className="sf-price-card-head">
-                <span className="sf-price-icon" aria-hidden="true"><Icon /></span>
-                <div className="sf-price-card-copy">
-                  <h3 className="sf-price-role">{role}</h3>
-                  <p className="sf-price-blurb">{blurb}</p>
-                </div>
-              </header>
-
-              <dl className="sf-price-rows">
-                {rows.map((r) => (
-                  <div key={r.label} className="sf-price-row">
-                    <dt className="sf-price-label">{r.label}</dt>
-                    <dd className="sf-price-value">
-                      {r.free && <span className="sf-price-free-pill">10 free</span>}
-                      <span className={r.free ? 'sf-price-name is-soft' : 'sf-price-name'}>{r.name}</span>
-                      {r.price && (
-                        <span className="sf-price-amount">
-                          {r.price}<em>/month</em>
-                        </span>
-                      )}
-                    </dd>
-                  </div>
+        <div className="sf-cmp-scroll" role="region" aria-label="Pricing by role" tabIndex={0}>
+          <table className="sf-cmp">
+            <thead>
+              <tr>
+                <td className="sf-cmp-corner" />
+                {roles.map((r) => (
+                  <th key={r.key} scope="col" className={`sf-cmp-role is-${r.key}`}>{r.name}</th>
                 ))}
-              </dl>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Start</th>
+                {roles.map((r) => (
+                  <td key={r.key} className={r.free ? 'is-free' : undefined}>
+                    <span className="sf-cmp-start">{r.start}</span>
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">Continue</th>
+                {roles.map((r) => (
+                  <td key={r.key} className={r.free ? 'is-free' : undefined}>
+                    <ContinueCell prices={r.continue} />
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">Add-on</th>
+                {roles.map((r) => (
+                  <td key={r.key} className={r.free ? 'is-free' : undefined}>
+                    {r.addon ? r.addon : <Empty />}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <th scope="row">Best for</th>
+                {roles.map((r) => (
+                  <td key={r.key} className={r.free ? 'is-free sf-cmp-best' : 'sf-cmp-best'}>{r.bestFor}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-              <div className="sf-price-addon">
-                <div className="sf-price-addon-top">
-                  <span className="sf-price-addon-tag">
-                    {addon.price && <i className="bi bi-plus-lg" aria-hidden="true" />}
-                    {addon.tag}
-                  </span>
-                  {addon.price && (
-                    <span className="sf-price-addon-amount">
-                      {addon.price}<em>/use</em>
-                    </span>
-                  )}
-                </div>
-                <p className="sf-price-addon-name">{addon.name}</p>
-                {addon.also.length > 0 && (
-                  <>
-                    {addon.price && <p className="sf-price-addon-label">Also available</p>}
-                    <ul className="sf-price-addon-list">
-                      {addon.also.map((item) => (
-                        <li key={item}>
-                          <i className="bi bi-check-lg" aria-hidden="true" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-              </div>
+        <div className="sf-mkt-head">
+          <h3 className="sf-mkt-title">
+            Provider Marketplace Options
+            <span className="sf-mkt-badge">Provider only</span>
+          </h3>
+          <p className="sf-mkt-sub">
+            Optional tools for Providers to connect with workers, promote shifts and advertise SIL/SDA vacancies.
+          </p>
+        </div>
 
-              <a href={href} className="sf-price-btn sf-price-btn-block">
-                {cta}
-                <Go />
-              </a>
+        <div className="sf-mkt-grid">
+          {options.map((o) => (
+            <article key={o.key} className={`sf-mkt-card is-${o.key}`}>
+              <i className={`bi ${o.icon} sf-mkt-icon`} aria-hidden="true" />
+              <h4 className="sf-mkt-card-title">{o.title}</h4>
+              {o.price && <p className="sf-mkt-price">{o.price}</p>}
+              {o.body && <p className="sf-mkt-body">{o.body}</p>}
+              {o.rows && (
+                <dl className="sf-mkt-rows">
+                  {o.rows.map(([label, value]) => (
+                    <div key={label} className={`sf-mkt-row ${laneClass[label] ?? ''}`}>
+                      <dt>{label}</dt>
+                      <dd>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {o.foot && <p className="sf-mkt-foot">{o.foot}</p>}
             </article>
           ))}
         </div>
 
-        {/* Visibility upsell bar. */}
-        <div className="sf-price-boost">
-          <span className="sf-price-boost-icon" aria-hidden="true"><IconMegaphone /></span>
-          <h3 className="sf-price-boost-title">Need extra visibility?</h3>
-          <p className="sf-price-boost-list">
-            Featured Shifts <em>·</em> SIL/SDA Listing Boost <em>·</em> Platinum Business Placement
-          </p>
-          <a href="/pricing/visibility" className="sf-price-boost-btn">
-            View visibility options
-            <Go />
-          </a>
-        </div>
-
-        <a href="/pricing" className="sf-price-all">
-          See complete pricing and inclusions
-          <i className="bi bi-arrow-right" aria-hidden="true" />
-        </a>
+        <p className="sf-mkt-note">
+          Matching is included as standard. Featured Shift provides optional additional visibility.
+        </p>
 
       </div>
     </section>

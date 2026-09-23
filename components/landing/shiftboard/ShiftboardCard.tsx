@@ -1,14 +1,16 @@
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { JOB_CATEGORIES } from '@/lib/constants/categories';
 import type { ShiftboardJob } from '@/lib/types/shiftboard';
 import { SHIFTBOARD_URGENCY } from './urgency';
 import { formatDay, formatHours, formatStartsIn, formatTime } from './format';
+import { ShiftPreviewDialog } from './ShiftPreviewDialog';
 
 export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?: number }) {
   const urg = SHIFTBOARD_URGENCY[job.urgency];
   const category = JOB_CATEGORIES.find((c) => c.value === job.category);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <article className="sf-sb-row" style={{ '--lane': urg.color, '--i': index } as CSSProperties}>
@@ -29,9 +31,17 @@ export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?:
         </ul>
       </div>
 
-      <a href="/register?role=SUPPORT_WORKER" className="sf-sb-row-cta" aria-label={`View the ${urg.label.toLowerCase()} shift in ${job.suburb}`}>
+      <button
+        type="button"
+        className="sf-sb-row-cta"
+        aria-haspopup="dialog"
+        aria-label={`View the ${urg.label.toLowerCase()} shift in ${job.suburb}`}
+        onClick={() => setPreviewOpen(true)}
+      >
         View shift
-      </a>
+      </button>
+
+      {previewOpen && <ShiftPreviewDialog job={job} onClose={() => setPreviewOpen(false)} />}
     </article>
   );
 }

@@ -27,13 +27,13 @@
 .sf-home .sf-sb-layout {
   max-width: 1840px;
   margin: 0 auto;
-  padding: 0 clamp(24px, 3vw, 58px);
+  padding: 0px 15px;
   display: grid;
   grid-template-columns: clamp(268px, 18vw, 344px) minmax(0, 1fr) clamp(290px, 22.5vw, 430px);
   grid-template-areas:
     "intro   top  public"
     "filters main side";
-  column-gap: 24px;
+  column-gap: 13px;
   row-gap: 13px;
   align-items: start;
 }

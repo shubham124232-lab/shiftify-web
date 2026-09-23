@@ -50,7 +50,9 @@
   background: var(--sf-white);
   color: var(--sf-text);
   font-family: var(--font-body);
-  overflow-x: hidden;
+  /* clip, not hidden: hidden turns this into a scroll box and breaks
+     position: sticky for everything inside (shiftboard side columns). */
+  overflow-x: clip;
 }
 
 .sf-home *, .sf-home *::before, .sf-home *::after { box-sizing: border-box; }

@@ -785,6 +785,35 @@
 .sf-home .sf-sb-saved button:last-child svg { width: 15px; height: 15px; }
 .sf-home .sf-sb-saved button:last-child:hover { color: var(--sf-pink); }
 
+/* Sticky side columns: filters (left) and map + save (right) stay in view
+   while the results scroll. Capped to the viewport so a tall column
+   scrolls inside itself instead of hiding its bottom.
+   Only while each sits beside the results: filters from 901px (below
+   that it folds / becomes the phone sheet), side cards from 1361px
+   (below that they drop under the results). */
+@media (min-width: 901px) {
+  .sf-home .sf-sb-filters { --sb-stick: 84px; } /* below the fixed nav once it has tightened on scroll */
+  .sf-home .sf-sb-filters:not(.sf-sb-filters--rail) {
+    position: sticky;
+    top: var(--sb-stick);
+    max-height: calc(100vh - var(--sb-stick) - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+@media (min-width: 1361px) {
+  .sf-home .sf-sb-side {
+    --sb-stick: 84px;
+    position: sticky;
+    top: var(--sb-stick);
+    max-height: calc(100vh - var(--sb-stick) - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sf-home .sf-sb-row,
   .sf-home .sf-sb-row-skeleton { animation: none; }
@@ -1269,6 +1298,19 @@
   .sf-home .sf-sb--app .sf-sb-row { flex-wrap: wrap; }
   .sf-home .sf-sb--app .sf-sb-row-body { flex-basis: calc(100% - 64px); }
   .sf-home .sf-sb--app .sf-sb-row-actions { margin-left: 60px; }
+}
+/* Sticky rail while it sits beside the results. The app shell's <main>
+   is the scroll box, so top is from its edge; max-height leaves room
+   for the 64px topbar, and a tall rail (filters open) scrolls itself. */
+@container sf-app (min-width: 821px) {
+  .sf-home .sf-sb--app .sf-sb-rail {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 64px - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
 }
 /* One column: filters above the results, map below them. */
 @container sf-app (max-width: 820px) {

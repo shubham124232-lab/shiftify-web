@@ -3,6 +3,7 @@
 import type { CSSProperties } from 'react';
 import type { ShiftboardCounts, ShiftboardUrgency } from '@/lib/types/shiftboard';
 import { SHIFTBOARD_URGENCY, URGENCY_ORDER } from './urgency';
+import { LaneIcon } from './rowIcons';
 
 export function ShiftboardTabs({
   active, onChange, counts, allSub,
@@ -27,7 +28,7 @@ export function ShiftboardTabs({
       </button>
 
       {URGENCY_ORDER.map((value) => {
-        const { label, window, color, Icon, filled } = SHIFTBOARD_URGENCY[value];
+        const { label, window, color } = SHIFTBOARD_URGENCY[value];
         const count = counts[value];
         const isActive = active === value;
         return (
@@ -42,7 +43,7 @@ export function ShiftboardTabs({
             onClick={() => onChange(value)}
           >
             <span className="sf-sb-tab-label">
-              <Icon className="sf-sb-tab-icon" aria-hidden="true" strokeWidth={2.2} fill={filled ? 'currentColor' : 'none'} />
+              <LaneIcon urgency={value} className="sf-sb-tab-icon" />
               {label}
             </span>
             <span className="sf-sb-tab-window" aria-hidden="true">{window}</span>

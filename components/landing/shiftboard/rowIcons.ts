@@ -1,13 +1,19 @@
 import { createElement } from 'react';
 import { JOB_CATEGORIES } from '@/lib/constants/categories';
 import type { ShiftboardUrgency } from '@/lib/types/shiftboard';
-import { SHIFTBOARD_URGENCY } from './urgency';
+import { IconLastMinute, IconRapid, IconRoutine, IconUrgent } from '../home/PremiumIcons';
 
-// Shift-row icons shared by the public shiftboard and the Live Dashboard.
-// The lane icon is drawn exactly like the timing tabs above the list.
+// Lane icons shared by the home hero board, the public shiftboard (rows and
+// timing tabs) and the Live Dashboard: the home page's duotone set.
+const LANE_ICON: Record<ShiftboardUrgency, typeof IconRapid> = {
+  RAPID: IconRapid,
+  URGENT: IconUrgent,
+  LAST_MINUTE: IconLastMinute,
+  ROUTINE: IconRoutine,
+};
+
 export function LaneIcon({ urgency, className }: { urgency: ShiftboardUrgency; className?: string }) {
-  const { Icon, filled } = SHIFTBOARD_URGENCY[urgency];
-  return createElement(Icon, { className, 'aria-hidden': true, strokeWidth: 2.2, fill: filled ? 'currentColor' : 'none' });
+  return createElement(LANE_ICON[urgency], { className });
 }
 
 const GROUP_ICON: Record<string, string> = {

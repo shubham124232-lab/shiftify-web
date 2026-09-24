@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { IconRapid } from './PremiumIcons';
 import { LaneIcon } from '../shiftboard/rowIcons';
 
 /* The word that swaps inside the headline — one per timing lane, each in its
@@ -164,6 +165,7 @@ export default function HomeHero() {
                   aria-pressed={activeLane === null}
                   onClick={() => pickLane(-1)}
                 >
+                  <IconRapid className="sf-board-filter-icon" />
                   All shifts ({allShifts.length})
                 </button>
                 {tabs.map((t, i) => (

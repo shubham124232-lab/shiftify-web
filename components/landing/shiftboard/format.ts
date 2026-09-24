@@ -29,18 +29,17 @@ export function formatHours(hours: number): string {
   return `${value} ${value === 1 ? 'hour' : 'hours'}`;
 }
 
-// Countdown while the start is close, then plain day words.
+// Countdown for anything starting today, then plain day words.
 export function formatStartsIn(iso: string): string {
   const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60_000);
   if (mins <= 0) return 'Started';
   if (mins < 60) return `Starts in ${mins} min`;
-  if (mins < 180) {
+  const delta = dayDelta(iso);
+  if (delta === 0) {
     const h = Math.floor(mins / 60);
     const m = mins % 60;
     return `Starts in ${h} ${h === 1 ? 'hr' : 'hrs'}${m ? ` ${m} min` : ''}`;
   }
-  const delta = dayDelta(iso);
-  if (delta === 0) return 'Starts today';
   if (delta === 1) return 'Starts tomorrow';
   return `Starts in ${delta} days`;
 }

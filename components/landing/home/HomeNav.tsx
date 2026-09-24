@@ -3,13 +3,12 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-/* Role links carry the same colour as their tile in the roles strip. */
 const links = [
-  { label: 'How it works', href: '#how-it-works', dot: null                },
-  { label: 'Participants', href: '#roles',        dot: 'var(--sf-pink)'    },
-  { label: 'Coordinators', href: '#roles',        dot: 'var(--sf-routine)' },
-  { label: 'Providers',    href: '#roles',        dot: 'var(--sf-ink)'     },
-  { label: 'Workers',      href: '#roles',        dot: 'var(--sf-urgent)'  },
+  { label: 'How it works', href: '#how-it-works' },
+  { label: 'Participants', href: '#roles' },
+  { label: 'Coordinators', href: '#roles' },
+  { label: 'Providers',    href: '#roles' },
+  { label: 'Workers',      href: '#roles' },
 ] as const;
 
 /* Top strip: one timing lane at a time, then the full legend on the right. */
@@ -93,7 +92,6 @@ export default function HomeNav() {
                 onMouseEnter={(e) => movePill(e.currentTarget)}
                 onFocus={(e) => movePill(e.currentTarget)}
               >
-                {l.dot && <span className="sf-nav-dot" style={{ background: l.dot }} aria-hidden="true" />}
                 {l.label}
               </a>
             ))}

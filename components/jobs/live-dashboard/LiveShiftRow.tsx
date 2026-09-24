@@ -2,12 +2,14 @@
 
 import type { CSSProperties } from 'react';
 import { EyeOff, Star } from 'lucide-react';
-import { JOB_CATEGORIES } from '@/lib/constants/categories';
 import type { Job } from '@/components/jobs/job-card';
 import { SHIFTBOARD_URGENCY } from '@/components/landing/shiftboard/urgency';
 import { formatDay, formatHours, formatStartsIn, formatTime } from '@/components/landing/shiftboard/format';
+import { LANE_ICON, categoryIcon, findCategory } from '@/components/landing/shiftboard/rowIcons';
 import type { ShiftboardUrgency } from '@/lib/types/shiftboard';
 
+// Same row as the public shiftboard (.sf-shift--board), plus the signed-in
+// actions: save, hide and apply / manage.
 export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, onToggleSave, onToggleHide }: {
   job: Job;
   index: number;
@@ -18,11 +20,15 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
   onToggleSave: () => void;
   onToggleHide: () => void;
 }) {
-  const urg = SHIFTBOARD_URGENCY[job.urgency as ShiftboardUrgency] ?? SHIFTBOARD_URGENCY.ROUTINE;
-  const category = JOB_CATEGORIES.find((c) => c.value === job.category)?.label ?? job.category;
+  const urgency = (job.urgency in SHIFTBOARD_URGENCY ? job.urgency : 'ROUTINE') as ShiftboardUrgency;
+  const urg = SHIFTBOARD_URGENCY[urgency];
+  const LaneIcon = LANE_ICON[urgency];
+  const category = findCategory(job.category);
   const applied = !!job.ownApplication;
   const isOwner = !!job.isOwnRequest;
-  const hours = job.estimatedHours != null ? formatHours(Number(job.estimatedHours)) : null;
+  const hours = job.estimatedHours != null
+    ? Number(job.estimatedHours)
+    : job.scheduledEndAt ? (new Date(job.scheduledEndAt).getTime() - new Date(job.scheduledStartAt).getTime()) / 3_600_000 : null;
   const rate = job.budgetPerHour
     ? `$${Number(job.budgetPerHour).toFixed(2)} / hr`
     : job.budgetType === 'TOTAL' && job.totalBudget ? `$${Number(job.totalBudget).toFixed(2)} total` : null;
@@ -34,56 +40,69 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
   const cta = isOwner ? 'Manage' : primary ? 'Apply now' : 'View shift';
 
   return (
-    <article className="sf-sb-row" style={{ '--lane': urg.color, '--i': index } as CSSProperties}>
-      <span className="sf-sb-row-icon" role="img" aria-label={`${urg.label} shift`} title={urg.label}>
-        <urg.Icon aria-hidden="true" strokeWidth={2} fill={urg.filled ? 'currentColor' : 'none'} />
+    <article
+      className="sf-shift sf-shift--board"
+      style={{ '--row-accent': urg.color, animationDelay: `${index * 40}ms` } as CSSProperties}
+    >
+      <span className="sf-shift-lane" role="img" aria-label={`${urg.label} shift`} title={urg.label}>
+        <LaneIcon className="sf-shift-lane-icon" />
       </span>
 
-      <div className="sf-sb-row-body">
-        <h3>
-          <a href={`/jobs/${job.id}`} onClick={(e) => { e.preventDefault(); onView(); }}>
-            {job.suburb}{job.state ? `, ${job.state}` : ''}
-          </a>
-          {status && <span className="sf-sb-row-status">{status}</span>}
-        </h3>
-        <p className="sf-sb-row-cat">{job.title || category}</p>
-        <ul className="sf-sb-row-meta">
-          <li>
-            {formatDay(job.scheduledStartAt)}, {formatTime(job.scheduledStartAt)}
-            {job.scheduledEndAt ? `–${formatTime(job.scheduledEndAt)}` : ''}
-          </li>
-          {hours && <li>{hours}</li>}
-          {rate && <li>{rate}</li>}
-          <li className="sf-sb-row-starts">{formatStartsIn(job.scheduledStartAt)}</li>
-        </ul>
-      </div>
+      <span className="sf-shift-place">
+        <b>
+          <a href={`/jobs/${job.id}`} onClick={(e) => { e.preventDefault(); onView(); }}>{job.suburb}</a>
+        </b>
+        <em>{job.state}</em>
+        {status && <span className="sf-shift-status">{status}</span>}
+      </span>
 
-      <div className="sf-sb-row-actions">
+      <span className="sf-shift-cell sf-shift-service">
+        <i className={`bi ${categoryIcon(job.category)}`} aria-hidden="true" />
+        <span><b>{category?.label ?? job.category}</b><em>{job.title || category?.group}</em></span>
+      </span>
+
+      <span className="sf-shift-cell sf-shift-when">
+        <i className="bi bi-calendar3" aria-hidden="true" />
+        <span>
+          <b>{formatDay(job.scheduledStartAt)}</b>
+          <em>{formatTime(job.scheduledStartAt)}{job.scheduledEndAt ? ` – ${formatTime(job.scheduledEndAt)}` : ''}</em>
+        </span>
+      </span>
+
+      <span className="sf-shift-cell sf-shift-starts">
+        <i className="bi bi-hourglass-split" aria-hidden="true" />
+        <span>
+          <b>{formatStartsIn(job.scheduledStartAt)}</b>
+          <em>{[hours != null ? formatHours(hours) : null, rate].filter(Boolean).join(' · ')}</em>
+        </span>
+      </span>
+
+      <span className="sf-shift-actions">
         {canApply && !isOwner && (
           <>
             <button
               type="button"
-              className={`sf-sb-row-icon-btn${job.saved ? ' on' : ''}`}
+              className={`sf-shift-icon-btn${job.saved ? ' on' : ''}`}
               onClick={onToggleSave}
               aria-label={job.saved ? 'Remove from saved' : 'Save shift'}
               aria-pressed={!!job.saved}
             >
               <Star aria-hidden="true" strokeWidth={2} fill={job.saved ? 'currentColor' : 'none'} />
             </button>
-            <button type="button" className="sf-sb-row-icon-btn" onClick={onToggleHide} aria-label="Hide shift">
+            <button type="button" className="sf-shift-icon-btn" onClick={onToggleHide} aria-label="Hide shift">
               <EyeOff aria-hidden="true" strokeWidth={2} />
             </button>
           </>
         )}
         <button
           type="button"
-          className={`sf-sb-row-cta${primary ? ' primary' : ''}`}
+          className={`sf-shift-btn${primary ? ' primary' : ''}`}
           onClick={primary ? onApply : onView}
           disabled={applying}
         >
           {applying ? 'Applying…' : cta}
         </button>
-      </div>
+      </span>
     </article>
   );
 }

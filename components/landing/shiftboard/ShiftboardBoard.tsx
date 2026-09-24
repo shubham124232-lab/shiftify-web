@@ -185,8 +185,10 @@ export function ShiftboardBoard() {
               )}
             </div>
           ) : (
-            <div className="sf-sb-list">
-              {data.jobs.map((job, i) => <ShiftboardCard key={job.id} job={job} index={i} />)}
+            <div className="sf-sb-shifts">
+              <div className="sf-sb-list sf-sb-list--grid">
+                {data.jobs.map((job, i) => <ShiftboardCard key={job.id} job={job} index={i} />)}
+              </div>
             </div>
           )}
 

@@ -218,20 +218,22 @@ export default function LiveDashboardPage() {
                   )}
                 </div>
               ) : (
-                <div className="sf-sb-list">
-                  {jobs.map((job, i) => (
-                    <LiveShiftRow
-                      key={job.id}
-                      job={job}
-                      index={i}
-                      canApply={canApply}
-                      applying={applying === job.id}
-                      onApply={() => handleApply(job.id)}
-                      onView={() => router.push(`/jobs/${job.id}`)}
-                      onToggleSave={() => handleToggleSave(job)}
-                      onToggleHide={() => handleToggleHide(job)}
-                    />
-                  ))}
+                <div className="sf-sb-shifts">
+                  <div className="sf-sb-list sf-sb-list--grid">
+                    {jobs.map((job, i) => (
+                      <LiveShiftRow
+                        key={job.id}
+                        job={job}
+                        index={i}
+                        canApply={canApply}
+                        applying={applying === job.id}
+                        onApply={() => handleApply(job.id)}
+                        onView={() => router.push(`/jobs/${job.id}`)}
+                        onToggleSave={() => handleToggleSave(job)}
+                        onToggleHide={() => handleToggleHide(job)}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 

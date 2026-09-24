@@ -288,13 +288,6 @@
 }
 .sf-home .sf-nav-links a:hover,
 .sf-home .sf-nav-links a:focus-visible { color: var(--sf-ink); outline: none; }
-.sf-nav-dot {
-  width: 7px; height: 7px;
-  flex: none;
-  border-radius: 50%;
-  transition: transform .25s ease;
-}
-.sf-nav-links a:hover .sf-nav-dot { transform: scale(1.35); }
 /* Tighten the track before the links fold into the mobile menu. */
 @media (max-width: 1200px) {
   .sf-home .sf-nav-links a { font-size: 14px; padding: 8px 11px; gap: 6px; }
@@ -3372,11 +3365,11 @@
   margin: 0 0 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--sf-line);
-  font-size: 14.5px;
+  font-size: 22px;
   color: var(--sf-heading);
 }
 .sf-ft-aus-icon { width: 22px; height: 17px; flex: none; color: var(--sf-pink); }
-.sf-ft-note { font-size: 15px; line-height: 1.5; margin: 0; color: var(--sf-soft); }
+.sf-ft-note { font-size: 23px; line-height: 1.25; margin: 0; color: var(--sf-pink); }
 
 /* --- bottom bar -------------------------------------------------- */
 .sf-ft-bottom {

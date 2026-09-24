@@ -112,11 +112,11 @@ export default function SiteFooter() {
                 </a>
               ))}
             </div>
-            <p className="sf-ft-aus">
+            <p className="sf-script sf-ft-aus">
               <IconAus className="sf-ft-aus-icon" />
               Proudly Australian
             </p>
-            <p className="sf-ft-note">Built for a more<br />inclusive Australia.</p>
+            <p className="sf-script sf-ft-note">Built for a more<br />inclusive Australia.</p>
           </div>
         </div>
 

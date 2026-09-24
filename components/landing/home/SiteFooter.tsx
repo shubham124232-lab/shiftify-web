@@ -14,10 +14,11 @@ const columns: { heading: string; links: [string, string][] }[] = [
   {
     heading: 'Users',
     links: [
-      ['Participants',         '/register?role=PARTICIPANT'],
-      ['Support workers',      '/register?role=SUPPORT_WORKER'],
-      ['Support coordinators', '/register?role=COORDINATOR'],
       ['Providers',            '/register?role=PROVIDER'],
+      ['Support Workers',      '/register?role=SUPPORT_WORKER'],
+      ['Support Coordinators', '/register?role=COORDINATOR'],
+      ['Participants',         '/register?role=PARTICIPANT'],
+      ['Plan Managers',        '/register?role=PLAN_MANAGER'],
     ],
   },
   {

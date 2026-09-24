@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useReducer, useState } from 'react';
-import { ChevronRight, Gem, RotateCw } from 'lucide-react';
+import { ChevronRight, Gem } from 'lucide-react';
 
 interface PlatinumBusiness {
   name: string;
@@ -22,18 +22,12 @@ const BUSINESSES: PlatinumBusiness[] = [
 const ROTATE_EVERY = 4;
 
 export function PlatinumBusinesses() {
-  const [{ active }, step] = useReducer(
-    (s: { active: number; left: number }, action: 'tick' | 'rotate') =>
-      action === 'tick' && s.left > 1
-        ? { ...s, left: s.left - 1 }
-        : { active: (s.active + 1) % BUSINESSES.length, left: ROTATE_EVERY },
-    { active: 0, left: ROTATE_EVERY },
-  );
+  const [active, next] = useReducer((i: number) => (i + 1) % BUSINESSES.length, 0);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => step('tick'), 1000);
+    const t = setInterval(next, ROTATE_EVERY * 1000);
     return () => clearInterval(t);
   }, [paused]);
 
@@ -51,12 +45,6 @@ export function PlatinumBusinesses() {
           <Gem aria-hidden="true" strokeWidth={2} />
           Platinum businesses
         </h2>
-        <p>
-          <button type="button" onClick={() => step('rotate')}>
-            <RotateCw aria-hidden="true" strokeWidth={2.6} />
-            Rotate
-          </button>
-        </p>
       </div>
 
       <ol className="sf-sb-plat-list">

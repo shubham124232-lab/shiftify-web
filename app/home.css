@@ -272,16 +272,17 @@
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -.1px;
+  white-space: nowrap;
   color: var(--sf-soft);
-  padding: 9px 16px;
+  padding: 9px 14px;
   border-radius: 999px;
   transition: color .2s ease;
 }
 .sf-home .sf-nav-links a:hover,
 .sf-home .sf-nav-links a:focus-visible { color: var(--sf-ink); outline: none; }
 /* Tighten the track before the links fold into the mobile menu. */
-@media (max-width: 1200px) {
-  .sf-home .sf-nav-links a { font-size: 14px; padding: 8px 11px; gap: 6px; }
+@media (max-width: 1440px) {
+  .sf-home .sf-nav-links a { font-size: 14px; padding: 8px 10px; gap: 6px; }
   .sf-home .sf-nav-board { font-size: 14.5px; padding: 9px 6px; }
 }
 .sf-nav-actions { display: flex; align-items: center; gap: 8px; }
@@ -324,6 +325,13 @@
 }
 .sf-home .sf-nav-mobile a:hover { background: var(--sf-surface-grey); }
 .sf-nav-mobile .sf-btn { width: 100%; margin-top: 8px; }
+/* Six role links need room: fold them into the menu button sooner.
+   Sits after the base nav rules so it wins over them. */
+@media (max-width: 1240px) {
+  .sf-home .sf-nav-links, .sf-home .sf-nav-board { display: none; }
+  .sf-home .sf-nav-toggle { display: block; }
+  .sf-home .sf-nav-actions { margin-left: auto; }
+}
 
 /* Phones: logo + "Request support" + menu button must fit in one row with no
    sideways scroll — tighter gutters, a smaller logo and a compact CTA. */

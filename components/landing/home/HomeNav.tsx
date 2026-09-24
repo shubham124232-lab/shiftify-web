@@ -3,12 +3,15 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
+// Role links follow the footer's Users order. Anchors are rooted at "/" so
+// they still reach the home page sections from /shiftboard.
 const links = [
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'Participants', href: '#roles' },
-  { label: 'Coordinators', href: '#roles' },
-  { label: 'Providers',    href: '#roles' },
-  { label: 'Workers',      href: '#roles' },
+  { label: 'How it works',         href: '/#how-it-works' },
+  { label: 'Providers',            href: '/#roles' },
+  { label: 'Support Workers',      href: '/#roles' },
+  { label: 'Support Coordinators', href: '/#roles' },
+  { label: 'Participants',         href: '/#roles' },
+  { label: 'Plan Managers',        href: '/#roles' },
 ] as const;
 
 /* `hideBoardLink` drops the Live shiftboard shortcut on the board page itself. */

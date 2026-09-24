@@ -121,32 +121,6 @@
   color: var(--sf-heading);
 }
 .sf-home .sf-sb-plat-head h2 svg { width: 18px; height: 18px; color: #A8763C; fill: #E8BE84; }
-.sf-home .sf-sb-plat-head p {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--sb-fs-sm);
-  color: color-mix(in srgb, var(--sf-urgent) 70%, var(--sf-heading));
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.sf-home .sf-sb-plat-head button {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  height: 22px;
-  padding: 0 7px;
-  background: var(--sf-white);
-  border: 1px solid var(--sf-line);
-  border-radius: 6px;
-  font-size: var(--sb-fs-xs);
-  font-weight: 600;
-  color: var(--sf-heading);
-  cursor: pointer;
-}
-.sf-home .sf-sb-plat-head button svg { width: 11px; height: 11px; }
-.sf-home .sf-sb-plat-head button:hover { border-color: var(--sf-heading); }
-
 .sf-home .sf-sb-plat-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1077,7 +1051,9 @@ html:has(.sf-sb-preview[open]) { overflow: hidden; }
 
 /* Sticky side columns: filters (left) and map + save (right) stay in view
    while the results scroll. Capped to the viewport so a tall column
-   scrolls inside itself instead of hiding its bottom.
+   scrolls inside itself instead of hiding its bottom. No overscroll
+   containment: once a column reaches its end the scroll carries on to the
+   page, so the column sticks and every field comes into view.
    Only while each sits beside the results: filters from 901px (below
    that it folds / becomes the phone sheet), side cards from 1361px
    (below that they drop under the results). */
@@ -1088,7 +1064,6 @@ html:has(.sf-sb-preview[open]) { overflow: hidden; }
     top: var(--sb-stick);
     max-height: calc(100vh - var(--sb-stick) - 16px);
     overflow-y: auto;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
   }
 }
@@ -1099,7 +1074,6 @@ html:has(.sf-sb-preview[open]) { overflow: hidden; }
     top: var(--sb-stick);
     max-height: calc(100vh - var(--sb-stick) - 16px);
     overflow-y: auto;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
   }
 }
@@ -1597,7 +1571,6 @@ html:has(.sf-sb-preview[open]) { overflow: hidden; }
     top: 16px;
     max-height: calc(100vh - 64px - 32px);
     overflow-y: auto;
-    overscroll-behavior: contain;
     scrollbar-width: thin;
   }
 }

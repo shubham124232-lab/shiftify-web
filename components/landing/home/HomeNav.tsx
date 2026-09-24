@@ -11,20 +11,10 @@ const links = [
   { label: 'Workers',      href: '#roles' },
 ] as const;
 
-/* Top strip: one timing lane at a time, then the full legend on the right. */
-const lanes = [
-  { key: 'rapid',   label: 'Rapid',    ticker: 'Rapid · now to 60 minutes',  color: 'var(--sf-rapid)'   },
-  { key: 'urgent',  label: 'Urgent',   ticker: 'Urgent · 1 to 4 hours',      color: 'var(--sf-urgent)'  },
-  { key: 'lastmin', label: 'Last-min', ticker: 'Last-minute · 4 to 48 hours', color: 'var(--sf-lastmin)' },
-  { key: 'routine', label: 'Routine',  ticker: 'Routine · 48 hours +',       color: 'var(--sf-routine)' },
-] as const;
-
-const TICK = 3200;
-
-export default function HomeNav() {
+/* `hideBoardLink` drops the Live shiftboard shortcut on the board page itself. */
+export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boolean }) {
   const [open, setOpen]         = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [tick, setTick]         = useState(0);
 
   /* Once the page scrolls, the top strip folds away and the bar tightens. */
   useEffect(() => {
@@ -34,13 +24,6 @@ export default function HomeNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const t = setInterval(() => setTick((i) => (i + 1) % lanes.length), TICK);
-    return () => clearInterval(t);
-  }, []);
-
-  const lane = lanes[tick];
 
   /* A single pill glides to whichever link is hovered or focused. */
   const [pill, setPill] = useState<{ x: number; w: number } | null>(null);
@@ -52,20 +35,9 @@ export default function HomeNav() {
         <div className="sf-topbar-inner">
           <span className="sf-topbar-live">
             <span className="sf-live-dot" aria-hidden="true" />
-            <span className="sf-topbar-live-word">Live</span>
-            <span className="sf-topbar-sep" aria-hidden="true">·</span>
-            <span key={lane.key} className="sf-topbar-ticker">
-              {lane.ticker}
-            </span>
+            <span className="sf-topbar-live-word">24/7 Live</span>
           </span>
-          <span className="sf-topbar-legend" aria-label="Timing lanes">
-            {lanes.map((l) => (
-              <span key={l.key} className="sf-topbar-lane">
-                <span className="sf-topbar-dot" style={{ background: l.color }} aria-hidden="true" />
-                {l.label}
-              </span>
-            ))}
-          </span>
+          <span className="sf-topbar-note">0% platform commission</span>
         </div>
       </div>
 
@@ -98,10 +70,12 @@ export default function HomeNav() {
           </div>
 
           <div className="sf-nav-actions">
-            <a href="/shiftboard" className="sf-nav-board">
-              <i className="bi bi-broadcast-pin" aria-hidden="true" />
-              Live shiftboard
-            </a>
+            {!hideBoardLink && (
+              <a href="/shiftboard" className="sf-nav-board">
+                <i className="bi bi-broadcast-pin" aria-hidden="true" />
+                Live shiftboard
+              </a>
+            )}
             <a href="/register" className="sf-btn sf-btn-pink sf-btn-sm">
               <i className="bi bi-send-fill" aria-hidden="true" />
               Request support
@@ -122,7 +96,7 @@ export default function HomeNav() {
           {links.map((l) => (
             <a key={l.label} href={l.href} onClick={() => setOpen(false)}>{l.label}</a>
           ))}
-          <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>
+          {!hideBoardLink && <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>}
           <a href="/register" className="sf-btn sf-btn-pink">Request support</a>
         </div>
       </div>

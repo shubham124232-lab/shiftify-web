@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useReducer, useState } from 'react';
-import { ChevronRight, Crown, RotateCw } from 'lucide-react';
+import { ChevronRight, Gem, RotateCw } from 'lucide-react';
 
 interface PlatinumBusiness {
   name: string;
@@ -48,7 +48,7 @@ export function PlatinumBusinesses() {
     >
       <div className="sf-sb-plat-head">
         <h2 id="sf-sb-plat-title">
-          <Crown aria-hidden="true" strokeWidth={2} fill="currentColor" />
+          <Gem aria-hidden="true" strokeWidth={2} />
           Platinum businesses
         </h2>
         <p>

@@ -13,6 +13,7 @@ import { ShiftboardTabs } from './ShiftboardTabs';
 import { ShiftboardFilters as FiltersSidebar, countActiveFilters } from './ShiftboardFilters';
 import { ShiftboardTabBar } from './ShiftboardTabBar';
 import { ShiftboardCard } from './ShiftboardCard';
+import { LiveClock } from './LiveClock';
 import { SaveSearchCard } from './SaveSearchCard';
 import { PlatinumBusinesses } from './PlatinumBusinesses';
 
@@ -114,10 +115,7 @@ export function ShiftboardBoard() {
           <PlatinumBusinesses />
         </div>
 
-        <p className="sf-sb-public">
-          <span aria-hidden="true" />
-          Public opportunities across Australia
-        </p>
+        <LiveClock className="sf-sb-clock" />
 
         <FiltersSidebar
           filters={filters}

@@ -2,7 +2,7 @@
    --sf-* tokens defined there. Its own stylesheet: the hero's .sf-board*
    classes are a cramped decorative mock and are not reused here.
 
-   Layout: title | platinum strip | public note
+   Layout: title | platinum strip | live time card
            filter card | results card | map + save cards
    Flat — white cards on a pale pearl ground, hairline borders, no gradients
    or shadows. Lane colours only mark timing (tabs, row icons, map pins). */
@@ -19,7 +19,7 @@
   --sb-fs-lg:   18px;   /* card headings */
   --sb-fs-xl:   22px;   /* section heading, dialog title */
   background: var(--sb-ground);
-  padding: 127px 0 40px;
+  padding: 141px 0 40px;
   color: var(--sf-text);
 }
 /* :where() keeps this reset at zero weight, so component margins still win. */
@@ -52,43 +52,57 @@
 .sf-home .sf-sb-intro { grid-area: intro; }
 .sf-home .sf-sb-intro h1 {
   font-family: var(--font-display);
-  font-size: clamp(30px, 2.2vw, 40px);
+  font-size: clamp(26px, 1.9vw, 32px);
   font-weight: 700;
-  line-height: 1.02;
-  letter-spacing: -.035em;
+  line-height: 1.15;
+  letter-spacing: -.02em;
   color: var(--sf-heading);
 }
 .sf-home .sf-sb-intro p {
   margin-top: 6px;
   font-size: var(--sb-fs-base);
   line-height: 1.45;
-  color: var(--sf-soft);
+  color: var(--sf-muted);
 }
 
 .sf-home .sf-sb-top { grid-area: top; min-width: 0; }
 
-.sf-home .sf-sb-public {
+/* Live time card: the visitor's Australian local time, e.g. "5:36 PM AEST". */
+.sf-home .sf-sb-clock {
   grid-area: public;
-  align-self: start;
-  justify-self: center;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 40px;
-  font-size: var(--sb-fs-base);
-  color: var(--sf-soft);
+  align-self: center;
+  justify-self: stretch;
+  display: grid;
+  place-items: center;
+  min-height: 64px;
+  padding: 12px 16px;
+  background: var(--sf-white);
+  border: 1px solid var(--sf-line-soft);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(17, 19, 24, .06);
+  font-family: var(--font-body);
+  font-size: 19px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--sf-heading);
+  white-space: nowrap;
 }
-.sf-home .sf-sb-public span {
-  width: 11px; height: 11px; border-radius: 50%; background: var(--sf-pink); flex: none;
-}
+.sf-home .sf-sb-clock b,
+.sf-home .sf-sb-clock small { font: inherit; color: inherit; margin: 0; }
 
 /* ---- Platinum strip ---- */
+/* Metallic frame: a warm gold-silver rim in the border box and a polished
+   silver face — a soft light spot at the top, no grain lines. */
 .sf-home .sf-sb-plat {
-  --gold: color-mix(in srgb, var(--sf-urgent) 55%, var(--sf-white));
-  background: color-mix(in srgb, var(--sf-urgent) 3%, var(--sf-white));
-  border: 1.5px solid var(--gold);
-  border-radius: 12px;
+  --gold: #C9A57A;
+  border: 3px solid transparent;
+  border-radius: 14px;
   padding: 10px 10px 10px;
+  background:
+    radial-gradient(ellipse 60% 70% at 45% 0%, rgba(255, 255, 255, .95), transparent 70%) padding-box,
+    linear-gradient(180deg, #ECECEA 0%, #F8F8F7 30%, #E4E4E1 62%, #F1F1EF 100%) padding-box,
+    linear-gradient(135deg, #E7C49A 0%, #FFF4E4 22%, #C99E6F 46%, #FBE6CB 70%, #D2AA7E 100%) border-box;
+  box-shadow: 0 2px 10px rgba(120, 90, 50, .14);
 }
 .sf-home .sf-sb-plat-head {
   display: flex;
@@ -101,11 +115,11 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: var(--sb-fs-base);
+  font-size: var(--sb-fs-md);
   font-weight: 600;
   color: var(--sf-heading);
 }
-.sf-home .sf-sb-plat-head h2 svg { width: 12px; height: 12px; color: var(--sf-urgent); }
+.sf-home .sf-sb-plat-head h2 svg { width: 18px; height: 18px; color: #A8763C; fill: #E8BE84; }
 .sf-home .sf-sb-plat-head p {
   display: inline-flex;
   align-items: center;
@@ -144,15 +158,16 @@
   height: 68px;
   padding: 0 12px 0 10px;
   background: var(--sf-white);
-  border: 1px solid var(--sf-line);
+  border: 1px solid var(--sf-line-soft);
   border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(17, 19, 24, .08);
   color: var(--sf-heading);
   text-decoration: none;
-  transition: background .4s ease, border-color .4s ease;
+  transition: border-color .3s ease, box-shadow .3s ease;
 }
 .sf-home .sf-sb-plat-item:hover { border-color: var(--gold); }
-/* Spotlight: one placement at a time, marked by a dark border only. */
-.sf-home .sf-sb-plat-item.active { border-color: var(--sf-heading); }
+/* Spotlight: the active placement gets a warm metal rim. */
+.sf-home .sf-sb-plat-item.active { border-color: var(--gold); box-shadow: 0 2px 8px rgba(120, 90, 50, .16); }
 .sf-home .sf-sb-plat-item:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: 2px; }
 .sf-home .sf-sb-plat-go { transition: color .4s ease; }
 .sf-home .sf-sb-plat-logo {
@@ -517,13 +532,12 @@
   min-width: 0;
   height: 70px;
   padding: 0 6px;
-  /* Separate tiles: hairline border, lane colour along the top edge. */
+  /* Separate white tiles with a hairline border; only the icon carries the lane colour. */
   background: var(--sf-white);
   border: 1px solid var(--sf-line);
-  border-top: 3px solid var(--tab-c);
   border-radius: 10px;
   cursor: pointer;
-  transition: background .15s ease;
+  transition: background .15s ease, border-color .15s ease;
 }
 .sf-home .sf-sb-tab:hover { background: var(--sb-tint); }
 .sf-home .sf-sb-tab:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: -3px; }
@@ -538,17 +552,14 @@
 }
 .sf-home .sf-sb-tab-icon { width: 14px; height: 14px; flex: none; color: var(--tab-c); }
 .sf-home .sf-sb-tab-window { font-size: var(--sb-fs-sm); color: var(--sf-muted); white-space: nowrap; }
-/* Active: the whole tile fills with its lane colour (ink for All shifts). */
+/* Active: neutral light-grey tile with a grey border — the icon keeps its colour. */
 .sf-home .sf-sb-tab.active,
 .sf-home .sf-sb-tab.active:hover {
-  background: var(--tab-c);
-  border-color: var(--tab-c);
+  background: var(--sb-tint);
+  border-color: color-mix(in srgb, var(--sf-heading) 35%, var(--sf-line));
 }
-.sf-home .sf-sb-tab.active .sf-sb-tab-label,
-.sf-home .sf-sb-tab.active .sf-sb-tab-icon { color: var(--sf-white); }
-.sf-home .sf-sb-tab.active .sf-sb-tab-window { color: color-mix(in srgb, var(--sf-white) 85%, transparent); }
+.sf-home .sf-sb-tab.active .sf-sb-tab-label { font-weight: 600; }
 .sf-home .sf-sb-tab.active:focus-visible { outline-offset: 2px; }
-.sf-home .sf-sb-tab-all { border-top-color: var(--sf-heading); }
 
 /* ---- List ---- */
 .sf-home .sf-sb-list-head {
@@ -1065,7 +1076,7 @@ html:has(.sf-sb-preview[open]) { overflow: hidden; }
       "filters main"
       "filters side";
   }
-  .sf-home .sf-sb-public { display: none; }
+  .sf-home .sf-sb-clock { display: none; }
   .sf-home .sf-sb-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sf-home .sf-sb-tab-label { font-size: 15px; }
 }
@@ -1135,7 +1146,7 @@ html:has(.sf-sb-preview[open]) { overflow: hidden; }
     grid-template-areas: "intro" "top" "main" "side";
     padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
   }
-  .sf-home .sf-sb-intro h1 { font-size: 28px; }
+  .sf-home .sf-sb-intro h1 { font-size: 22px; }
   .sf-home .sf-sb-intro p { margin-top: 6px; font-size: 12.5px; }
 
   /* Platinum: a swipeable strip. */

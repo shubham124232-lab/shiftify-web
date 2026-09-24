@@ -195,7 +195,7 @@
 .sf-topbar {
   background: var(--sf-ink);
   color: rgba(255, 255, 255, .7);
-  height: 36px;
+  height: 40px;
   overflow: hidden;
   transition: height .3s ease;
 }
@@ -205,28 +205,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  height: 36px;
+  height: 40px;
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 28px;
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-size: 12px;
-  letter-spacing: .1em;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: .02em;
   text-transform: uppercase;
 }
-.sf-topbar-live { display: inline-flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
-.sf-topbar-live-word { color: var(--sf-live); }
-.sf-topbar-sep { color: rgba(255, 255, 255, .4); }
-.sf-topbar-ticker {
-  color: rgba(255, 255, 255, .85);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  animation: sf-rise-in .45s ease both;
-}
-@keyframes sf-rise-in { from { opacity: 0; transform: translateY(6px); } }
-.sf-topbar-legend { display: inline-flex; align-items: center; gap: 16px; white-space: nowrap; }
-.sf-topbar-lane { display: inline-flex; align-items: center; gap: 6px; }
-.sf-topbar-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.sf-topbar-live { display: inline-flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+.sf-topbar-live .sf-live-dot { width: 11px; height: 11px; }
+.sf-topbar-live-word { font-size: 16px; color: #fff; }
+.sf-topbar-note { color: rgba(255, 255, 255, .85); white-space: nowrap; }
 
 /* ---- Main bar ---- */
 /* Same container as .sf-wrap so the bar lines up with the page content. */
@@ -246,8 +237,8 @@
 .sf-nav-shell.scrolled .sf-nav { padding: 8px 0; }
 
 .sf-nav-brand { display: inline-flex; align-items: center; flex: none; }
-.sf-nav-brand img { height: 56px; width: auto; display: block; transition: height .3s ease; }
-.sf-nav-shell.scrolled .sf-nav-brand img { height: 46px; }
+.sf-nav-brand img { height: 64px; width: auto; display: block; transition: height .3s ease; }
+.sf-nav-shell.scrolled .sf-nav-brand img { height: 52px; }
 
 /* Links sit in an outlined track; one soft grey pill glides to the hovered link. */
 .sf-nav-links {
@@ -353,6 +344,12 @@
 /* Very narrow phones: the CTA lives in the menu instead. */
 @media (max-width: 359px) {
   .sf-nav-actions .sf-btn-sm { display: none; }
+}
+/* Phones: tighten the black strip so both labels always fit on one line. */
+@media (max-width: 420px) {
+  .sf-topbar-inner { padding: 0 14px; gap: 10px; font-size: 10px; letter-spacing: .03em; }
+  .sf-topbar-live-word { font-size: 13px; }
+  .sf-topbar-note { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 }
 
 /* ============================================================
@@ -573,7 +570,7 @@
 }
 .sf-board-filter:hover { border-color: color-mix(in srgb, var(--lane-accent) 45%, var(--sf-line-soft)); }
 .sf-board-filter:focus-visible { outline: 2px solid var(--lane-accent); outline-offset: 2px; }
-.sf-board-filter-icon { width: 19px; height: 19px; flex: none; color: var(--lane-accent); }
+.sf-board-filter-icon { width: 15px; height: 15px; flex: none; color: var(--lane-accent); }
 .sf-board-filter.active {
   color: #fff;
   background: var(--lane-accent);
@@ -676,7 +673,7 @@
   line-height: 1.15;
   text-transform: uppercase;
 }
-.sf-shift-lane-icon { width: 26px; height: 26px; flex: none; }
+.sf-shift-lane-icon { width: 22px; height: 22px; flex: none; }
 
 .sf-shift-place { min-width: 0; }
 .sf-shift-place b {
@@ -1652,7 +1649,6 @@
 }
 @media (max-width: 680px) {
   .sf-hero { padding: 136px 0 56px; }
-  .sf-topbar-legend { display: none; }
   .sf-section { padding: 54px 0; }
   .sf-card-grid { grid-template-columns: 1fr; }
   .sf-sil-media { width: 100%; }

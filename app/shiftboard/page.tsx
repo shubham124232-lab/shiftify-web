@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function ShiftboardPage() {
   return (
     <div className="sf-home">
-      <HomeNav />
+      <HomeNav hideBoardLink />
       <ShiftboardBoard />
       <SiteFooter />
     </div>

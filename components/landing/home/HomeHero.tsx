@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { IconLastMinute, IconRapid, IconRoutine, IconUrgent } from './PremiumIcons';
+import { LaneIcon } from '../shiftboard/rowIcons';
 
 /* The word that swaps inside the headline — one per timing lane, each in its
    own tier colour. */
@@ -15,10 +15,10 @@ const rotatingWords = [
 ] as const;
 
 const tabs = [
-  { label: 'Rapid',       board: 'Rapid',       sub: 'Now · 6 hours',   key: 'rapid',   accent: 'var(--sf-rapid)',   Icon: IconRapid      },
-  { label: 'Urgent',      board: 'Urgent',      sub: '6 – 48 hours',    key: 'urgent',  accent: 'var(--sf-urgent)',  Icon: IconUrgent     },
-  { label: 'Last-minute', board: 'Last Minute', sub: '4 – 48 hours',    key: 'lastmin', accent: 'var(--sf-lastmin)', Icon: IconLastMinute },
-  { label: 'Routine',     board: 'Routine',     sub: 'Beyond 48 hours', key: 'routine', accent: 'var(--sf-routine)', Icon: IconRoutine    },
+  { label: 'Rapid',       board: 'Rapid',       sub: 'Now · 6 hours',   key: 'rapid',   accent: 'var(--sf-rapid)',   urgency: 'RAPID'       },
+  { label: 'Urgent',      board: 'Urgent',      sub: '6 – 48 hours',    key: 'urgent',  accent: 'var(--sf-urgent)',  urgency: 'URGENT'      },
+  { label: 'Last-minute', board: 'Last Minute', sub: '4 – 48 hours',    key: 'lastmin', accent: 'var(--sf-lastmin)', urgency: 'LAST_MINUTE' },
+  { label: 'Routine',     board: 'Routine',     sub: 'Beyond 48 hours', key: 'routine', accent: 'var(--sf-routine)', urgency: 'ROUTINE'     },
 ] as const;
 
 type LaneKey = (typeof tabs)[number]['key'];
@@ -164,7 +164,6 @@ export default function HomeHero() {
                   aria-pressed={activeLane === null}
                   onClick={() => pickLane(-1)}
                 >
-                  <IconRapid className="sf-board-filter-icon" />
                   All shifts ({allShifts.length})
                 </button>
                 {tabs.map((t, i) => (
@@ -176,7 +175,7 @@ export default function HomeHero() {
                     aria-pressed={laneIndex === i}
                     onClick={() => pickLane(i)}
                   >
-                    <t.Icon className="sf-board-filter-icon" />
+                    <LaneIcon urgency={t.urgency} className="sf-board-filter-icon" />
                     {t.board} ({laneCount(t.key)})
                   </button>
                 ))}
@@ -193,7 +192,7 @@ export default function HomeHero() {
                       style={{ ['--row-accent' as string]: lane.accent }}
                     >
                       <span className="sf-shift-lane" title={lane.board}>
-                        <lane.Icon className="sf-shift-lane-icon" />
+                        <LaneIcon urgency={lane.urgency} className="sf-shift-lane-icon" />
                       </span>
 
                       <span className="sf-shift-place">

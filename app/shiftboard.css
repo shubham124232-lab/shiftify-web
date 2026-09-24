@@ -53,7 +53,7 @@
 .sf-home .sf-sb-intro h1 {
   font-family: var(--font-display);
   font-size: clamp(26px, 1.9vw, 32px);
-  font-weight: 700;
+  font-weight: 400;
   line-height: 1.15;
   letter-spacing: -.02em;
   color: var(--sf-heading);
@@ -91,18 +91,19 @@
 .sf-home .sf-sb-clock small { font: inherit; color: inherit; margin: 0; }
 
 /* ---- Platinum strip ---- */
-/* Metallic frame: a warm gold-silver rim in the border box and a polished
-   silver face — a soft light spot at the top, no grain lines. */
+/* Platinum frame: a bright neutral silver rim in the border box (light and
+   dark bands like polished metal) and a polished silver face with a soft light
+   spot at the top. Neutral greys only — no gold, no blue cast, no grain lines. */
 .sf-home .sf-sb-plat {
-  --gold: #C9A57A;
+  --metal: #C9A57A;
   border: 3px solid transparent;
   border-radius: 14px;
   padding: 10px 10px 10px;
   background:
     radial-gradient(ellipse 60% 70% at 45% 0%, rgba(255, 255, 255, .95), transparent 70%) padding-box,
     linear-gradient(180deg, #ECECEA 0%, #F8F8F7 30%, #E4E4E1 62%, #F1F1EF 100%) padding-box,
-    linear-gradient(135deg, #E7C49A 0%, #FFF4E4 22%, #C99E6F 46%, #FBE6CB 70%, #D2AA7E 100%) border-box;
-  box-shadow: 0 2px 10px rgba(120, 90, 50, .14);
+    linear-gradient(135deg, #E7C49A 0%, #FFF4E4 20%, #C99E6F 42%, #FBE6CB 62%, #B98C5C 82%, #E2BE92 100%) border-box;
+  box-shadow: 0 4px 16px rgba(120, 90, 50, .16);
 }
 .sf-home .sf-sb-plat-head {
   display: flex;
@@ -151,23 +152,72 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
+/* Platinum plates: a bright, glossy silver face (soft top gloss, no lines or
+   bands) framed by a gold rim, with a glint of light that sweeps across every
+   plate in turn so the metal visibly shines. */
 .sf-home .sf-sb-plat-item {
   display: flex;
   align-items: center;
   gap: 12px;
   height: 68px;
   padding: 0 12px 0 10px;
-  background: var(--sf-white);
-  border: 1px solid var(--sf-line-soft);
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(17, 19, 24, .08);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1.5px solid transparent;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .85) 0%, rgba(255, 255, 255, 0) 55%) padding-box,
+    linear-gradient(160deg, #FFFFFF 0%, #F2F2F0 35%, #E0E0DD 72%, #EEEEEC 100%) padding-box,
+    linear-gradient(135deg, #F3DCBE 0%, #D4AE80 30%, #FFF4E4 52%, #C29566 78%, #EBCFAA 100%) border-box;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -2px 3px rgba(0, 0, 0, .06),
+    0 2px 5px rgba(120, 90, 50, .14);
   color: var(--sf-heading);
   text-decoration: none;
-  transition: border-color .3s ease, box-shadow .3s ease;
+  transition: box-shadow .3s ease, filter .3s ease;
 }
-.sf-home .sf-sb-plat-item:hover { border-color: var(--gold); }
-/* Spotlight: the active placement gets a warm metal rim. */
-.sf-home .sf-sb-plat-item.active { border-color: var(--gold); box-shadow: 0 2px 8px rgba(120, 90, 50, .16); }
+.sf-home .sf-sb-plat-item:hover { filter: brightness(1.04); }
+/* The glint: a bright diagonal flash sweeping across; each plate is offset. */
+.sf-home .sf-sb-plat-item::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: -60%;
+  width: 38%;
+  z-index: -1;
+  background: linear-gradient(100deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, .55) 35%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 255, 255, .55) 65%,
+    rgba(255, 255, 255, 0) 100%);
+  transform: skewX(-20deg);
+  animation: sf-plat-sweep 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+.sf-home .sf-sb-plat-list li:nth-child(2) .sf-sb-plat-item::after { animation-delay: .6s; }
+.sf-home .sf-sb-plat-list li:nth-child(3) .sf-sb-plat-item::after { animation-delay: 1.2s; }
+@keyframes sf-plat-sweep {
+  0%        { left: -60%; }
+  45%, 100% { left: 130%; }
+}
+/* Spotlight: the active plate gets a deeper gold rim and a stronger lift. */
+.sf-home .sf-sb-plat-item.active {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .85) 0%, rgba(255, 255, 255, 0) 55%) padding-box,
+    linear-gradient(160deg, #FFFFFF 0%, #F2F2F0 35%, #E0E0DD 72%, #EEEEEC 100%) padding-box,
+    linear-gradient(135deg, #EBCB9F 0%, #B8894F 28%, #FCE9CF 50%, #9E7240 76%, #D8B284 100%) border-box;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -2px 3px rgba(0, 0, 0, .07),
+    0 4px 12px rgba(120, 90, 50, .22);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-home .sf-sb-plat-item::after { animation: none; display: none; }
+}
 .sf-home .sf-sb-plat-item:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: 2px; }
 .sf-home .sf-sb-plat-go { transition: color .4s ease; }
 .sf-home .sf-sb-plat-logo {
@@ -182,7 +232,7 @@
 .sf-home .sf-sb-plat-text strong,
 .sf-home .sf-sb-plat-text small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sf-home .sf-sb-plat-text strong { font-size: var(--sb-fs-base); font-weight: 500; }
-.sf-home .sf-sb-plat-text small { font-size: var(--sb-fs-xs); color: var(--sf-muted); }
+.sf-home .sf-sb-plat-text small { font-size: var(--sb-fs-xs); color: #4A4A47; }
 .sf-home .sf-sb-plat-go { width: 15px; height: 15px; flex: none; color: var(--sf-heading); }
 
 @keyframes sf-sb-fade { from { opacity: 0; transform: translateY(3px); } }

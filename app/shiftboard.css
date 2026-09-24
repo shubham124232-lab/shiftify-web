@@ -151,12 +151,8 @@
   transition: background .4s ease, border-color .4s ease;
 }
 .sf-home .sf-sb-plat-item:hover { border-color: var(--gold); }
-/* Spotlight: one placement at a time, cycling 1 → 2 → 3 in brand pink. */
-.sf-home .sf-sb-plat-item.active {
-  background: color-mix(in srgb, var(--sf-pink) 8%, var(--sf-white));
-  border-color: var(--sf-pink);
-}
-.sf-home .sf-sb-plat-item.active .sf-sb-plat-go { color: var(--sf-pink); }
+/* Spotlight: one placement at a time, marked by a dark border only. */
+.sf-home .sf-sb-plat-item.active { border-color: var(--sf-heading); }
 .sf-home .sf-sb-plat-item:focus-visible { outline: 2px solid var(--sf-pink); outline-offset: 2px; }
 .sf-home .sf-sb-plat-go { transition: color .4s ease; }
 .sf-home .sf-sb-plat-logo {
@@ -171,7 +167,7 @@
 .sf-home .sf-sb-plat-text strong,
 .sf-home .sf-sb-plat-text small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sf-home .sf-sb-plat-text strong { font-size: var(--sb-fs-base); font-weight: 500; }
-.sf-home .sf-sb-plat-text small { font-size: var(--sb-fs-xs); color: var(--sf-pink); }
+.sf-home .sf-sb-plat-text small { font-size: var(--sb-fs-xs); color: var(--sf-muted); }
 .sf-home .sf-sb-plat-go { width: 15px; height: 15px; flex: none; color: var(--sf-heading); }
 
 @keyframes sf-sb-fade { from { opacity: 0; transform: translateY(3px); } }

@@ -90,6 +90,7 @@ export default function SiteFooter() {
               <Image src="/images/logo.png" alt="Shiftify" width={466} height={265} />
             </span>
             <p className="sf-ft-tag">A more connected tomorrow.</p>
+            <p className="sf-script sf-ft-note">Built for a more<br />inclusive Australia.</p>
           </div>
 
           {columns.map((col) => (
@@ -112,11 +113,16 @@ export default function SiteFooter() {
                 </a>
               ))}
             </div>
-            <p className="sf-script sf-ft-aus">
-              <IconAus className="sf-ft-aus-icon" />
-              Proudly Australian
-            </p>
-            <p className="sf-script sf-ft-note">Built for a more<br />inclusive Australia.</p>
+            <aside className="sf-ft-ack" aria-labelledby="sf-ft-ack-heading">
+              <div className="sf-ft-ack-head">
+                <Image src="/images/acknowledgement-country.png" alt="" width={580} height={477} />
+                <h3 id="sf-ft-ack-heading">Acknowledgement of Country</h3>
+              </div>
+              <p>
+                Shiftify acknowledges the Traditional Custodians of the lands on which we live and
+                work, and pays respect to Elders past and present.
+              </p>
+            </aside>
           </div>
         </div>
 

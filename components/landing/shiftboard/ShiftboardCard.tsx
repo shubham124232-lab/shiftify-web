@@ -4,12 +4,11 @@ import { useState, type CSSProperties } from 'react';
 import type { ShiftboardJob } from '@/lib/types/shiftboard';
 import { SHIFTBOARD_URGENCY } from './urgency';
 import { formatDay, formatHours, formatStartsIn, formatTime } from './format';
-import { LANE_ICON, categoryIcon, findCategory } from './rowIcons';
+import { LaneIcon, categoryIcon, findCategory } from './rowIcons';
 import { ShiftPreviewDialog } from './ShiftPreviewDialog';
 
 export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?: number }) {
   const urg = SHIFTBOARD_URGENCY[job.urgency];
-  const LaneIcon = LANE_ICON[job.urgency];
   const category = findCategory(job.category);
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -24,7 +23,7 @@ export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?:
       style={{ '--row-accent': urg.color, animationDelay: `${index * 40}ms` } as CSSProperties}
     >
       <span className="sf-shift-lane" role="img" aria-label={`${urg.label} shift`} title={urg.label}>
-        <LaneIcon className="sf-shift-lane-icon" />
+        <LaneIcon urgency={job.urgency} className="sf-shift-lane-icon" />
       </span>
 
       <span className="sf-shift-place">

@@ -3317,7 +3317,8 @@
   padding: 52px 0 46px;
 }
 .sf-ft-col { padding: 0 28px; border-left: 1px solid var(--sf-line); }
-.sf-ft-brand-col { padding-right: 28px; }
+/* Column runs the full row height; the script note sits at its foot. */
+.sf-ft-brand-col { display: flex; flex-direction: column; align-items: flex-start; padding-right: 28px; }
 .sf-ft-logo {
   display: inline-flex;
   align-items: center;
@@ -3358,18 +3359,25 @@
 }
 .sf-home .sf-ft-social a:hover { background: var(--sf-pink); border-color: var(--sf-pink); color: #fff; }
 
-.sf-ft-aus {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--sf-line);
-  font-size: 22px;
+.sf-ft-aus-icon { width: 22px; height: 17px; flex: none; color: var(--sf-pink); }
+.sf-ft-note { font-size: 23px; line-height: 1.25; margin: auto 0 0; padding-top: 18px; color: var(--sf-pink); transform: rotate(-3deg); transform-origin: left center; }
+
+.sf-ft-ack {
+  padding: 14px;
+  border: 1px solid var(--sf-line);
+  border-radius: 10px;
+  background: var(--sf-white);
+}
+.sf-ft-ack-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sf-ft-ack-head img { width: 38px; height: auto; flex: none; display: block; }
+.sf-ft-ack h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
   color: var(--sf-heading);
 }
-.sf-ft-aus-icon { width: 22px; height: 17px; flex: none; color: var(--sf-pink); }
-.sf-ft-note { font-size: 23px; line-height: 1.25; margin: 0; color: var(--sf-pink); }
+.sf-ft-ack p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--sf-soft); }
 
 /* --- bottom bar -------------------------------------------------- */
 .sf-ft-bottom {

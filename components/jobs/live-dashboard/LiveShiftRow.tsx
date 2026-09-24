@@ -5,7 +5,7 @@ import { EyeOff, Star } from 'lucide-react';
 import type { Job } from '@/components/jobs/job-card';
 import { SHIFTBOARD_URGENCY } from '@/components/landing/shiftboard/urgency';
 import { formatDay, formatHours, formatStartsIn, formatTime } from '@/components/landing/shiftboard/format';
-import { LANE_ICON, categoryIcon, findCategory } from '@/components/landing/shiftboard/rowIcons';
+import { LaneIcon, categoryIcon, findCategory } from '@/components/landing/shiftboard/rowIcons';
 import type { ShiftboardUrgency } from '@/lib/types/shiftboard';
 
 // Same row as the public shiftboard (.sf-shift--board), plus the signed-in
@@ -22,7 +22,6 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
 }) {
   const urgency = (job.urgency in SHIFTBOARD_URGENCY ? job.urgency : 'ROUTINE') as ShiftboardUrgency;
   const urg = SHIFTBOARD_URGENCY[urgency];
-  const LaneIcon = LANE_ICON[urgency];
   const category = findCategory(job.category);
   const applied = !!job.ownApplication;
   const isOwner = !!job.isOwnRequest;
@@ -45,7 +44,7 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
       style={{ '--row-accent': urg.color, animationDelay: `${index * 40}ms` } as CSSProperties}
     >
       <span className="sf-shift-lane" role="img" aria-label={`${urg.label} shift`} title={urg.label}>
-        <LaneIcon className="sf-shift-lane-icon" />
+        <LaneIcon urgency={urgency} className="sf-shift-lane-icon" />
       </span>
 
       <span className="sf-shift-place">

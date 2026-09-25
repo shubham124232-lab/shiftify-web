@@ -175,7 +175,7 @@ export default function PlatinumPlacementSection() {
                     </div>
 
                     <div className="sf-place-skel-col is-side">
-                      <div className="sf-place-skel-card is-closed">
+                      <div className="sf-place-skel-card">
                         <span className="sf-place-skel-bar is-head is-w55" />
                         <span className="sf-place-skel-bar is-w90" />
                         <span className="sf-place-skel-btn is-wide" />

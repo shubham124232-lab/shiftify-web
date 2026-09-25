@@ -2585,7 +2585,7 @@
 .sf-laptop-screen {
   overflow: hidden;
   border-radius: 4px;
-  background: #F6F6F7;
+  background: #F6F6F6;
   container-type: inline-size;
 }
 .sf-laptop-base {
@@ -2617,7 +2617,7 @@
 
 /* The whole screenshot shows; the skeleton below continues its three
    columns (filters · shifts · side) at the same scale.
-   --u is one screenshot pixel (the image is 1856px wide). */
+   --u is one screenshot pixel (the image is 1907px wide). */
 .sf-laptop-screen img {
   display: block;
   width: 100%;
@@ -2626,20 +2626,20 @@
 
 /* --- placeholder columns under the screenshot ------------------ */
 .sf-place-skel {
-  --u: calc(100cqw / 1856);
+  --u: calc(100cqw / 1907);
   --skel-bar: #E9EAEC;
   display: grid;
-  grid-template-columns: 345fr 28fr 954fr 28fr 432fr;
+  grid-template-columns: 345fr 17fr 1139fr 17fr 345fr;
   align-items: stretch;
-  padding: 0 calc(var(--u) * 40) calc(var(--u) * 32) calc(var(--u) * 31);
-  background: #F6F6F7;
+  padding: 0 calc(var(--u) * 28) calc(var(--u) * 32) calc(var(--u) * 16);
+  background: #F6F6F6;
 }
 .sf-place-skel-col { display: flex; flex-direction: column; gap: calc(var(--u) * 20); min-width: 0; }
 .sf-place-skel-col.is-filters { grid-column: 1; }
 .sf-place-skel-col.is-shifts  { grid-column: 3; }
 .sf-place-skel-col.is-side    { grid-column: 5; }
 
-/* Filter and shift cards are cut open at the top by the screenshot's
+/* All three column cards are cut open at the top by the screenshot's
    bottom edge, so they carry on and close here. */
 .sf-place-skel-card {
   flex: 1;
@@ -2657,15 +2657,7 @@
   padding-top: calc(var(--u) * 11);
   border-color: var(--sf-heading);
 }
-/* Side cards start fresh below the screenshot's Save-search card. */
-.sf-place-skel-card.is-closed {
-  flex: none;
-  border-top: 1px solid var(--sf-line);
-  border-radius: calc(var(--u) * 20);
-  padding-top: calc(var(--u) * 22);
-}
-.is-side .sf-place-skel-card.is-closed:last-child { flex: 1; }
-.is-side { padding-top: calc(var(--u) * 20); }
+.is-side .sf-place-skel-card { padding-top: calc(var(--u) * 20); }
 
 .sf-place-skel-bar {
   display: block;

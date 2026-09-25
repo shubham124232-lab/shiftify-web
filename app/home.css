@@ -2193,24 +2193,7 @@
   color: #fff;
   text-align: center;
 }
-/* Lane-coloured tick under each role name. */
-.sf-cmp-role::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 36px;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  transform: translateX(-50%);
-  background: var(--role-accent, var(--sf-pink));
-}
-.sf-cmp-role.is-participant  { --role-accent: var(--sf-pink); background: var(--sf-pink); }
-.sf-cmp-role.is-worker       { --role-accent: var(--sf-routine); }
-.sf-cmp-role.is-coordinator  { --role-accent: var(--sf-lastmin); }
-.sf-cmp-role.is-provider     { --role-accent: var(--sf-urgent); }
-.sf-cmp-role.is-plan-manager { --role-accent: var(--sf-rapid); }
-.sf-cmp-role.is-participant::after { background: #fff; }
+.sf-cmp-role.is-participant { background: var(--sf-pink); }
 
 .sf-cmp tbody th {
   padding: 22px 20px;

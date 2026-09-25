@@ -31,24 +31,23 @@ type Shift = {
   km: number;
   service: string;
   detail: string;
-  serviceIcon: 'people' | 'house';
   day: 'Today' | 'Tomorrow';
   time: string;
 };
 
 const shifts: Shift[] = [
-  { lane: 'rapid',   suburb: 'Parramatta',   km: 2,  service: 'Community Access',      detail: 'Social outing',            serviceIcon: 'people', day: 'Today',    time: '10:00am – 2:00pm' },
-  { lane: 'urgent',  suburb: 'Penrith',      km: 18, service: 'Daily Living',          detail: 'Personal care',            serviceIcon: 'house',  day: 'Today',    time: '4:00pm – 10:00pm' },
-  { lane: 'lastmin', suburb: 'Liverpool',    km: 14, service: 'Community Access',      detail: 'Appointments',             serviceIcon: 'people', day: 'Today',    time: '1:00pm – 5:00pm'  },
-  { lane: 'routine', suburb: 'Blacktown',    km: 12, service: 'Social & Recreational', detail: 'Group activity',           serviceIcon: 'people', day: 'Tomorrow', time: '9:00am – 3:00pm'  },
-  { lane: 'rapid',   suburb: 'Campbelltown', km: 28, service: 'High Support Needs',    detail: 'In-home support',          serviceIcon: 'people', day: 'Today',    time: '6:00pm – 11:00pm' },
-  { lane: 'urgent',  suburb: 'North Shore',  km: 10, service: 'Daily Living',          detail: 'Meal prep & household',    serviceIcon: 'house',  day: 'Tomorrow', time: '7:00am – 11:00am' },
-  { lane: 'lastmin', suburb: 'Cronulla',     km: 24, service: 'Community Access',      detail: 'Beach / outdoor activity', serviceIcon: 'people', day: 'Today',    time: '3:00pm – 7:00pm'  },
-  { lane: 'routine', suburb: 'Castle Hill',  km: 15, service: 'Behaviour Support',     detail: 'In-home support',          serviceIcon: 'people', day: 'Tomorrow', time: '2:00pm – 8:00pm'  },
-  { lane: 'rapid',   suburb: 'Bankstown',    km: 6,  service: 'Daily Living',          detail: 'Personal care',            serviceIcon: 'house',  day: 'Today',    time: '12:00pm – 4:00pm' },
-  { lane: 'urgent',  suburb: 'Ryde',         km: 8,  service: 'Daily Living',          detail: 'Evening personal care',    serviceIcon: 'house',  day: 'Today',    time: '7:00pm – 10:00pm' },
-  { lane: 'rapid',   suburb: 'Hornsby',      km: 19, service: 'Community Access',      detail: 'Medical appointment',      serviceIcon: 'people', day: 'Today',    time: '2:30pm – 6:30pm'  },
-  { lane: 'urgent',  suburb: 'Bondi',        km: 16, service: 'Social & Recreational', detail: 'Community outing',         serviceIcon: 'people', day: 'Tomorrow', time: '8:00am – 12:00pm' },
+  { lane: 'rapid',   suburb: 'Parramatta',   km: 2,  service: 'Community Access',      detail: 'Social outing',             day: 'Today',    time: '10:00am – 2:00pm' },
+  { lane: 'urgent',  suburb: 'Penrith',      km: 18, service: 'Daily Living',          detail: 'Personal care',             day: 'Today',    time: '4:00pm – 10:00pm' },
+  { lane: 'lastmin', suburb: 'Liverpool',    km: 14, service: 'Community Access',      detail: 'Appointments',              day: 'Today',    time: '1:00pm – 5:00pm'  },
+  { lane: 'routine', suburb: 'Blacktown',    km: 12, service: 'Social & Recreational', detail: 'Group activity',            day: 'Tomorrow', time: '9:00am – 3:00pm'  },
+  { lane: 'rapid',   suburb: 'Campbelltown', km: 28, service: 'High Support Needs',    detail: 'In-home support',           day: 'Today',    time: '6:00pm – 11:00pm' },
+  { lane: 'urgent',  suburb: 'North Shore',  km: 10, service: 'Daily Living',          detail: 'Meal prep & household',     day: 'Tomorrow', time: '7:00am – 11:00am' },
+  { lane: 'lastmin', suburb: 'Cronulla',     km: 24, service: 'Community Access',      detail: 'Beach / outdoor activity',  day: 'Today',    time: '3:00pm – 7:00pm'  },
+  { lane: 'routine', suburb: 'Castle Hill',  km: 15, service: 'Behaviour Support',     detail: 'In-home support',           day: 'Tomorrow', time: '2:00pm – 8:00pm'  },
+  { lane: 'rapid',   suburb: 'Bankstown',    km: 6,  service: 'Daily Living',          detail: 'Personal care',             day: 'Today',    time: '12:00pm – 4:00pm' },
+  { lane: 'urgent',  suburb: 'Ryde',         km: 8,  service: 'Daily Living',          detail: 'Evening personal care',     day: 'Today',    time: '7:00pm – 10:00pm' },
+  { lane: 'rapid',   suburb: 'Hornsby',      km: 19, service: 'Community Access',      detail: 'Medical appointment',       day: 'Today',    time: '2:30pm – 6:30pm'  },
+  { lane: 'urgent',  suburb: 'Bondi',        km: 16, service: 'Social & Recreational', detail: 'Community outing',          day: 'Tomorrow', time: '8:00am – 12:00pm' },
 ];
 
 const laneCount = (key: LaneKey) => shifts.filter((s) => s.lane === key).length;
@@ -203,12 +202,10 @@ export default function HomeHero() {
                       </span>
 
                       <span className="sf-shift-cell sf-shift-service">
-                        <i className={`bi ${s.serviceIcon === 'house' ? 'bi-house' : 'bi-people'}`} aria-hidden="true" />
                         <span><b>{s.service}</b><em>{s.detail}</em></span>
                       </span>
 
                       <span className="sf-shift-cell sf-shift-when">
-                        <i className="bi bi-calendar3" aria-hidden="true" />
                         <span><b>{s.day}</b><em>{s.time}</em></span>
                       </span>
 

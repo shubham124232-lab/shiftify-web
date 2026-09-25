@@ -5,7 +5,7 @@ import { EyeOff, Star } from 'lucide-react';
 import type { Job } from '@/components/jobs/job-card';
 import { SHIFTBOARD_URGENCY } from '@/components/landing/shiftboard/urgency';
 import { formatDay, formatHours, formatStartsIn, formatTime } from '@/components/landing/shiftboard/format';
-import { LaneIcon, categoryIcon, findCategory } from '@/components/landing/shiftboard/rowIcons';
+import { LaneIcon, findCategory } from '@/components/landing/shiftboard/rowIcons';
 import type { ShiftboardUrgency } from '@/lib/types/shiftboard';
 
 // Same row as the public shiftboard (.sf-shift--board), plus the signed-in
@@ -56,12 +56,10 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
       </span>
 
       <span className="sf-shift-cell sf-shift-service">
-        <i className={`bi ${categoryIcon(job.category)}`} aria-hidden="true" />
         <span><b>{category?.label ?? job.category}</b><em>{job.title || category?.group}</em></span>
       </span>
 
       <span className="sf-shift-cell sf-shift-when">
-        <i className="bi bi-calendar3" aria-hidden="true" />
         <span>
           <b>{formatDay(job.scheduledStartAt)}</b>
           <em>{formatTime(job.scheduledStartAt)}{job.scheduledEndAt ? ` – ${formatTime(job.scheduledEndAt)}` : ''}</em>
@@ -69,7 +67,6 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
       </span>
 
       <span className="sf-shift-cell sf-shift-starts">
-        <i className="bi bi-hourglass-split" aria-hidden="true" />
         <span>
           <b>{formatStartsIn(job.scheduledStartAt)}</b>
           <em>{[hours != null ? formatHours(hours) : null, rate].filter(Boolean).join(' · ')}</em>

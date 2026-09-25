@@ -5,17 +5,17 @@ import { ChevronRight, Gem } from 'lucide-react';
 
 interface PlatinumBusiness {
   name: string;
-  logo: string;
+  initials: string;
   tagline: string;
   href: string;
 }
 
-// Sample placements with dummy logos. There is no placements endpoint yet —
+// Sample placements with initials as logos. There is no placements endpoint yet —
 // swap this list for API data once one exists.
 const BUSINESSES: PlatinumBusiness[] = [
-  { name: 'CareBridge Supports', logo: '/images/platinum/carebridge.svg',       tagline: 'In-home & community support', href: '/platinum' },
-  { name: 'Everyday Ability',    logo: '/images/platinum/everyday-ability.svg', tagline: 'Complex care & daily living', href: '/platinum' },
-  { name: 'BrightPath Care',     logo: '/images/platinum/brightpath.svg',       tagline: 'Behaviour & social support',  href: '/platinum' },
+  { name: 'CareBridge Supports', initials: 'CB', tagline: 'In-home & community support', href: '/platinum' },
+  { name: 'Everyday Ability',    initials: 'EA', tagline: 'Complex care & daily living', href: '/platinum' },
+  { name: 'BrightPath Care',     initials: 'BP', tagline: 'Behaviour & social support',  href: '/platinum' },
 ];
 
 // Seconds each placement stays highlighted before the spotlight moves on.
@@ -45,17 +45,18 @@ export function PlatinumBusinesses() {
           <Gem aria-hidden="true" strokeWidth={2} />
           Platinum businesses
         </h2>
+        <span className="sf-sb-plat-note">Sponsored · rotates monthly</span>
       </div>
 
       <ol className="sf-sb-plat-list">
-        {BUSINESSES.map(({ name, logo, tagline, href }, i) => (
+        {BUSINESSES.map(({ name, initials, tagline, href }, i) => (
           <li key={name}>
             <a
               href={href}
               className={`sf-sb-plat-item${i === active ? ' active' : ''}`}
               aria-label={`${name} — ${tagline}`}
             >
-              <img className="sf-sb-plat-logo" src={logo} alt="" width={44} height={44} />
+              <span className="sf-sb-plat-logo" aria-hidden="true">{initials}</span>
               <span className="sf-sb-plat-text">
                 <strong>{name}</strong>
                 <small>{tagline}</small>

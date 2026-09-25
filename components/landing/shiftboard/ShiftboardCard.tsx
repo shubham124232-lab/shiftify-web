@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from 'react';
 import type { ShiftboardJob } from '@/lib/types/shiftboard';
 import { SHIFTBOARD_URGENCY } from './urgency';
 import { formatDay, formatHours, formatStartsIn, formatTime } from './format';
-import { LaneIcon, categoryIcon, findCategory } from './rowIcons';
+import { LaneIcon, findCategory } from './rowIcons';
 import { ShiftPreviewDialog } from './ShiftPreviewDialog';
 
 export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?: number }) {
@@ -32,17 +32,14 @@ export function ShiftboardCard({ job, index = 0 }: { job: ShiftboardJob; index?:
       </span>
 
       <span className="sf-shift-cell sf-shift-service">
-        <i className={`bi ${categoryIcon(job.category)}`} aria-hidden="true" />
         <span><b>{category?.label ?? job.category}</b><em>{job.subcategory || category?.group}</em></span>
       </span>
 
       <span className="sf-shift-cell sf-shift-when">
-        <i className="bi bi-calendar3" aria-hidden="true" />
         <span><b>{formatDay(job.scheduledStartAt)}</b><em>{formatTime(job.scheduledStartAt)} – {formatTime(job.scheduledEndAt)}</em></span>
       </span>
 
       <span className="sf-shift-cell sf-shift-starts">
-        <i className="bi bi-hourglass-split" aria-hidden="true" />
         <span><b>{formatStartsIn(job.scheduledStartAt)}</b><em>{formatHours(hours)}</em></span>
       </span>
 

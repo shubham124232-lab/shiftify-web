@@ -89,6 +89,7 @@
 }
 .sf-home .sf-sb-clock b,
 .sf-home .sf-sb-clock small { font: inherit; color: inherit; margin: 0; }
+.sf-home .sf-sb-clock small { font-size: var(--sb-fs-xs); color: #8A8A86; }
 
 /* ---- Platinum strip ---- */
 /* Platinum frame: a clean near-white face inside a thin polished-gold rim
@@ -669,13 +670,13 @@
 }
 @keyframes sf-sb-pulse { to { opacity: .45; } }
 
-/* Public board rows reuse the home hero's .sf-shift row, plus a "starts in" column.
-   The list owns the columns and each row is a subgrid, so the "starts in" and
-   button columns are only as wide as their widest entry and still line up. */
+/* Public board rows reuse the home hero's .sf-shift row; "starts in" sits under the time.
+   The list owns the columns and each row is a subgrid, so the
+   when and button columns are only as wide as their widest entry and still line up. */
 .sf-home .sf-sb-shifts { container-type: inline-size; }
 .sf-home .sf-sb-list--grid {
   display: grid;
-  grid-template-columns: max-content minmax(110px, 1fr) minmax(150px, 1.5fr) minmax(130px, 1.2fr) max-content max-content;
+  grid-template-columns: max-content minmax(110px, 1fr) minmax(150px, 2fr) max-content max-content;
   column-gap: 14px;
   row-gap: 10px;
 }
@@ -691,11 +692,14 @@
   box-shadow: 0 10px 22px -16px color-mix(in srgb, var(--row-accent) 70%, transparent);
 }
 .sf-home .sf-shift--board .sf-shift-lane-icon { width: 26px; height: 26px; }
-.sf-home .sf-shift--board .sf-shift-place { padding-left: 3px; }
-.sf-home .sf-shift--board .sf-shift-place b { font-size: var(--sb-fs-md); }
+.sf-home .sf-shift--board .sf-shift-place { margin-left: -6px; }
+.sf-home .sf-shift--board .sf-shift-place b { font-size: var(--sb-fs-md); font-weight: 500; }
 .sf-home .sf-shift--board .sf-shift-place em { font-size: var(--sb-fs-sm); }
 .sf-home .sf-shift--board .sf-shift-cell { font-size: var(--sb-fs-sm); }
-.sf-home .sf-shift--board .sf-shift-cell b { font-size: var(--sb-fs-base); }
+.sf-home .sf-shift--board .sf-shift-cell b { font-family: var(--font-display); font-size: var(--sb-fs-md); font-weight: 500; }
+/* Text columns sit at the top so their first lines (place, service, day) share one line. */
+.sf-home .sf-shift--board :is(.sf-shift-place, .sf-shift-cell) { align-self: start; }
+.sf-home .sf-shift--board .sf-shift-place b { line-height: 20px; }
 .sf-home .sf-shift--board .sf-shift-service em,
 .sf-home .sf-shift--board .sf-shift-service b {
   overflow: hidden;
@@ -718,8 +722,8 @@
 }
 .sf-home .sf-shift--board .sf-shift-cell > i::before { display: block; line-height: 1; }
 .sf-home .sf-shift--board .sf-shift-cell b { line-height: 20px; }
-.sf-home .sf-shift--board .sf-shift-starts { padding-right: 28px; }
-.sf-home .sf-shift--board .sf-shift-starts b { white-space: nowrap; }
+.sf-home .sf-shift--board .sf-shift-when { padding-right: 48px; }
+.sf-home .sf-shift--board .sf-shift-when .sf-shift-starts-in { margin-top: 2px; white-space: nowrap; }
 .sf-home .sf-shift--board .sf-shift-btn {
   display: inline-flex;
   align-items: center;
@@ -777,15 +781,14 @@
 
 @container (max-width: 820px) {
   .sf-home .sf-sb-list--grid {
-    grid-template-columns: max-content minmax(80px, .9fr) minmax(110px, 1.3fr) minmax(110px, 1.1fr) max-content max-content;
+    grid-template-columns: max-content minmax(80px, .9fr) minmax(110px, 1.6fr) max-content max-content;
     column-gap: 10px;
   }
   .sf-home .sf-shift--board { padding: 12px; }
 }
 @container (max-width: 600px) {
   .sf-home .sf-sb-list--grid { grid-template-columns: max-content 1fr max-content max-content; }
-  .sf-home .sf-shift--board .sf-shift-service,
-  .sf-home .sf-shift--board .sf-shift-when { display: none; }
+  .sf-home .sf-shift--board .sf-shift-service { display: none; }
   .sf-home .sf-shift--board .sf-shift-btn { padding: 8px 10px; }
 }
 

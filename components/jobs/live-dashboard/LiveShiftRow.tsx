@@ -63,13 +63,7 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
         <span>
           <b>{formatDay(job.scheduledStartAt)}</b>
           <em>{formatTime(job.scheduledStartAt)}{job.scheduledEndAt ? ` – ${formatTime(job.scheduledEndAt)}` : ''}</em>
-        </span>
-      </span>
-
-      <span className="sf-shift-cell sf-shift-starts">
-        <span>
-          <b>{formatStartsIn(job.scheduledStartAt)}</b>
-          <em>{[hours != null ? formatHours(hours) : null, rate].filter(Boolean).join(' · ')}</em>
+          <em className="sf-shift-starts-in">{[formatStartsIn(job.scheduledStartAt), hours != null ? formatHours(hours) : null, rate].filter(Boolean).join(' ')}</em>
         </span>
       </span>
 

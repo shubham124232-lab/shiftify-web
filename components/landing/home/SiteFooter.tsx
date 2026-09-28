@@ -64,12 +64,12 @@ export default function SiteFooter() {
         {/* Closing call to action */}
         <section className="sf-ft-cta" aria-labelledby="sf-ft-cta-heading">
           <div className="sf-ft-cta-copy">
-            <span className="sf-ft-cta-eyebrow">A stronger, more connected NDIS community</span>
+            <span className="sf-ft-cta-eyebrow">A stronger, more connected support community</span>
             <h2 id="sf-ft-cta-heading" className="sf-ft-cta-title">
               Ready to make the <em>right</em> connection?
             </h2>
             <p className="sf-ft-cta-sub">
-              Join thousands of Australians using Shiftify for flexible, reliable and trusted NDIS support.
+              Shiftify is an independent technology platform connecting Australia&apos;s disability support community.
             </p>
           </div>
           <div className="sf-ft-cta-actions">

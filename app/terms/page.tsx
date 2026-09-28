@@ -32,10 +32,10 @@ export default function TermsPage() {
           <section>
             <h2 style={sectionHeading}>2. What Shiftify Is</h2>
             <p>
-              Shiftify is a marketplace connecting NDIS participants, support workers, support coordinators, providers
-              and plan managers. Shiftify does not employ support workers, does not provide disability support itself,
-              and is not a registered NDIS provider. Arrangements for support are made directly between the parties
-              using the Platform.
+              Shiftify is an independent technology platform connecting participants, support workers, support
+              coordinators, providers and plan managers. Shiftify is not operated, endorsed or approved by the NDIA or
+              the NDIS. Shiftify does not employ support workers and does not provide disability support itself.
+              Arrangements for support are made directly between the parties using the Platform.
             </p>
           </section>
 

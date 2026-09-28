@@ -18,15 +18,15 @@ interface AuthLayoutProps {
 }
 
 const trustBadges = [
-  { icon: 'bi-shield-fill-check',       label: 'NDIS Registered & Compliant', sub: 'Fully certified platform'  },
-  { icon: 'bi-patch-check-fill',         label: 'Verified Support Workers',    sub: '100% background checked'   },
-  { icon: 'bi-lightning-charge-fill',    label: 'Emergency Response 24/7',     sub: 'Average 8-min response'    },
+  { icon: 'bi-shield-fill-check',       label: 'Independent Platform',        sub: 'Not endorsed by the NDIA or NDIS' },
+  { icon: 'bi-patch-check-fill',         label: 'Credentials on Profiles',     sub: 'Workers submit required documents' },
+  { icon: 'bi-lightning-charge-fill',    label: 'Live Shiftboard',             sub: 'Post, find and respond to shifts'  },
 ] as const;
 
 const stats = [
-  { num: '12K+', lbl: 'Support Workers'   },
-  { num: '98%',  lbl: 'Satisfaction Rate' },
-  { num: '24/7', lbl: 'Emergency Cover'   },
+  { num: '4',  lbl: 'Job priority labels' },
+  { num: '5',  lbl: 'Account types'       },
+  { num: '0%', lbl: 'Shift commission'    },
 ] as const;
 
 export default function AuthLayout({ children, mode = 'login', variant = 'split', head, maxWidth = 720, flush = false }: AuthLayoutProps) {
@@ -94,14 +94,14 @@ export default function AuthLayout({ children, mode = 'login', variant = 'split'
           <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 100, padding: '7px 16px', fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: '#fff', marginBottom: 28 }}>
               <span style={{ width: 7, height: 7, background: '#fff', borderRadius: '50%', animation: 'blink 1.5s infinite' }} />
-              Trusted NDIS Marketplace
+              Independent Support Platform
             </div>
 
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 2.8vw, 38px)', fontWeight: 800, lineHeight: 1.15, letterSpacing: -1, color: '#fff', marginBottom: 16 }}>
-              Support when <span style={{ color: '#FFCDD2' }}>every minute</span> matters
+              Support, <span style={{ color: '#FFCDD2' }}>right where</span> it&apos;s needed
             </h2>
             <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.78)', lineHeight: 1.75, fontWeight: 500, marginBottom: 36, maxWidth: 360 }}>
-              Connecting participants, support workers, and providers across Australia — fast, safe, and NDIS compliant.
+              An independent technology platform connecting participants, support coordinators, providers and support workers across Australia&apos;s disability support community.
             </p>
 
             {/* Trust Badges */}
@@ -132,7 +132,7 @@ export default function AuthLayout({ children, mode = 'login', variant = 'split'
             {/* Live chip */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 100, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff' }}>
               <span style={{ width: 7, height: 7, background: '#fff', borderRadius: '50%', animation: 'blink 1.5s infinite' }} />
-              247 support requests active right now
+              Live Shiftboard · Australia-wide
             </div>
           </div>
         </aside>
@@ -147,16 +147,9 @@ export default function AuthLayout({ children, mode = 'login', variant = 'split'
       </main>
       )}
 
-      {/* Sticky Emergency FAB */}
-      <button
-        className="emergency-fab"
-        aria-label="Emergency Support — Get immediate help"
-        onClick={() => { window.location.href = '/#emergency'; }}
-      >
-        <span aria-hidden="true">🆘</span>
-        Emergency Support
-        <span style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%', animation: 'blink 1s infinite' }} aria-hidden="true" />
-      </button>
+      <p role="note" style={{ margin: 0, padding: '12px 16px', textAlign: 'center', fontSize: 12, color: 'var(--clr-muted)' }}>
+        Shiftify is not an emergency service. If someone is in immediate danger, call 000.
+      </p>
 
     </div>
   );

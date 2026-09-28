@@ -15,7 +15,7 @@ export function ProviderStep09_Pricing() {
         <label style={labelStyle}>Pricing Model</label>
         <select {...register('pricingModel')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>
-          <option value="NDIS_PRICE_GUIDE">As per NDIS Price Guide</option>
+          <option value="NDIS_PRICE_GUIDE">As per applicable price limits</option>
           <option value="CUSTOM">Custom Pricing</option>
         </select>
       </div>

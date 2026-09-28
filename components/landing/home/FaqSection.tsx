@@ -5,28 +5,28 @@ interface Faq { q: string; a: string }
 
 const faqs: Faq[] = [
   {
-    q: 'Is Shiftify an NDIS registered provider?',
-    a: 'Shiftify is a marketplace, not a service provider. We connect you with registered providers and independent support workers, and we show each one’s registration status on their profile so you always know who you are booking.',
+    q: 'Is Shiftify operated or approved by the NDIA or NDIS?',
+    a: 'No. Shiftify is independent and is not operated, endorsed or approved by the NDIA or the NDIS. We are a technology platform that connects participants, support coordinators, providers and support workers. We do not deliver support ourselves, and each provider’s registration status is shown on their own profile.',
   },
   {
-    q: 'How do you check that a support worker is safe?',
-    a: 'Before a profile goes live we verify the NDIS Worker Screening Check, a National Police Check, First Aid and CPR certificates, and insurance cover. Expiry dates are tracked, and a worker is taken off the board the day a document lapses.',
+    q: 'What do support workers submit before they can accept shifts?',
+    a: 'Workers submit their Worker Screening Check, a National Police Check, First Aid and CPR certificates, and insurance details. Expiry dates are tracked, and an expired document counts as not submitted. Shiftify does not guarantee the accuracy of submitted documents, so review each profile and make your own checks.',
   },
   {
     q: 'Can I use Shiftify with my plan type?',
-    a: 'Yes — self-managed and plan-managed participants can book directly. Agency-managed participants can browse and connect with registered providers only, and your coordinator can arrange bookings on your behalf.',
+    a: 'Yes — self-managed and plan-managed participants can book directly. Agency-managed participants can browse and connect with registered providers only, and your coordinator can arrange bookings on your behalf. Eligibility depends on your individual plan and the applicable rules.',
   },
   {
-    q: 'Are the rates within the NDIS Price Guide?',
-    a: 'Every rate shown on the board sits at or below the current NDIS Pricing Arrangements and Price Limits for that support item. Rates for evenings, weekends and public holidays follow the same guide.',
+    q: 'Who sets the rates?',
+    a: 'Rates are agreed between the people involved, not set by Shiftify. If you are using plan funding, check that a rate fits your plan and the applicable price limits. Funding eligibility depends on your individual plan and the applicable rules.',
   },
   {
     q: 'What does Shiftify cost?',
-    a: 'Participants are always free — no plan step and no payment step. Support Workers, Support Coordinators and Providers each get 10 introductory actions free, then choose a subscription. There is 0% commission per shift, so workers keep 100% of their pay.',
+    a: 'Participants do not pay to use Shiftify. Support Workers, Support Coordinators and Providers each get 10 introductory actions, then choose a subscription or pass — see Pricing for the costs. Shiftify charges 0% commission per shift; subscription, pass and any optional add-on fees are separate.',
   },
   {
     q: 'What happens if a worker cancels?',
-    a: 'Cancelled shifts convert into a Rapid request in one tap. Every eligible worker on live availability nearby is alerted straight away, and you can compare and confirm a replacement from the same screen.',
+    a: 'A cancelled shift can be re-posted as a Rapid request in one tap. Eligible workers on live availability nearby may be alerted, and you review the responses and confirm a replacement yourself. A post does not guarantee a response or cover.',
   },
 ];
 

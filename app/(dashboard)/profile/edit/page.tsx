@@ -53,7 +53,7 @@ const ROLE_DOC_ROWS: Record<string, DocRowConfig[]> = {
       ],
     },
     {
-      docType: 'NDIS_SCREENING', label: 'NDIS Worker Screening', uploadRequired: true,
+      docType: 'NDIS_SCREENING', label: 'Worker Screening Check', uploadRequired: true,
       metadataFields: [
         { name: 'referenceNumber', label: 'Reference Number', type: 'text', required: true },
         { name: 'expiryDate',      label: 'Expiry Date',      type: 'date', required: true },
@@ -135,7 +135,7 @@ const ROLE_DOC_ROWS: Record<string, DocRowConfig[]> = {
       ],
     },
     {
-      docType: 'NDIS_SCREENING', label: 'NDIS Worker Screening', uploadRequired: false,
+      docType: 'NDIS_SCREENING', label: 'Worker Screening Check', uploadRequired: false,
       metadataFields: [
         { name: 'referenceNumber', label: 'Reference Number', type: 'text', required: true },
         { name: 'expiryDate',      label: 'Expiry Date',      type: 'date', required: true },

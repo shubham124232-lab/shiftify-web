@@ -74,7 +74,7 @@ export function WorkerStep07_Financials() {
         <select {...register('hourlyRateType')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>
           <option value="FIXED">Fixed Rate</option>
-          <option value="NDIS_PRICE_GUIDE">NDIS Price Guide Rate</option>
+          <option value="NDIS_PRICE_GUIDE">Applicable price-limit rate</option>
           <option value="NEGOTIABLE">Negotiable</option>
         </select>
       </div>
@@ -104,7 +104,7 @@ export function WorkerStep07_Financials() {
           <option value="">Select…</option>
           <option value="NONE">No travel charges</option>
           <option value="INCLUDED">Included in hourly rate</option>
-          <option value="CHARGED_SEPARATELY">Charged separately (NDIS rates)</option>
+          <option value="CHARGED_SEPARATELY">Charged separately (applicable rates)</option>
         </select>
       </div>
 

@@ -19,7 +19,7 @@ const QUALIFICATIONS = [
 const BASIC_DOCS = [
   { docType: 'POLICE_CHECK',   label: 'Police Check',                helpText: 'Recommended for participant-facing coordinators.', showIssueDate: true, showExpiryDate: true },
   { docType: 'WWCC',           label: 'Working With Children Check', helpText: 'Required if coordinating for participants under 18.', showReferenceNumber: true, referenceNumberLabel: 'WWCC Number', showExpiryDate: true },
-  { docType: 'NDIS_SCREENING', label: 'NDIS Worker Screening Check', helpText: 'Required for direct participant contact.', showReferenceNumber: true, referenceNumberLabel: 'Clearance Number', showExpiryDate: true },
+  { docType: 'NDIS_SCREENING', label: 'Worker Screening Check',      helpText: 'Required for direct participant contact.', showReferenceNumber: true, referenceNumberLabel: 'Clearance Number', showExpiryDate: true },
 ] as const;
 
 export function CoordStep02_NDIS() {

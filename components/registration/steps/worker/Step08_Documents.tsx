@@ -29,7 +29,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 
 const DOCS = [
   { docType: 'POLICE_CHECK',            label: 'Police Check',                required: true,  showIssueDate: true,  showExpiryDate: true },
-  { docType: 'NDIS_SCREENING',          label: 'NDIS Worker Screening Check', required: true,  showReferenceNumber: true, referenceNumberLabel: 'Clearance Number', showExpiryDate: true },
+  { docType: 'NDIS_SCREENING',          label: 'Worker Screening Check',      required: true,  showReferenceNumber: true, referenceNumberLabel: 'Clearance Number', showExpiryDate: true },
   { docType: 'WWCC',                    label: 'Working with Children Check',  required: false, showReferenceNumber: true, referenceNumberLabel: 'WWCC Number',      showExpiryDate: true },
   { docType: 'FIRST_AID',               label: 'First Aid Certificate',        required: false, showExpiryDate: true },
   { docType: 'CPR',                     label: 'CPR Certificate',              required: false, showExpiryDate: true },
@@ -55,7 +55,7 @@ export function WorkerStep08_Documents() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <p style={{ fontSize: 13, color: 'var(--clr-muted)', margin: 0 }}>
-        Upload your compliance documents. Police Check and NDIS Screening are required to go live on the marketplace.
+        Upload your compliance documents. Police Check and Worker Screening Check are required to go live on the marketplace.
       </p>
 
       <div>

@@ -7,7 +7,7 @@ import { ShiftboardBoard } from '@/components/landing/shiftboard/ShiftboardBoard
 
 export const metadata: Metadata = {
   title: 'Live Shiftboard',
-  description: 'Browse real, open NDIS support shifts near you across Australia — updated live.',
+  description: 'Browse open support shifts across Australia on the Live Shiftboard — updated live.',
 };
 
 export default function ShiftboardPage() {

@@ -70,7 +70,7 @@ export function WorkerStep05_Availability() {
 
       {/* Emergency availability */}
       <Toggle
-        label="Available for emergency shifts"
+        label="Available for short-notice shifts"
         name="emergencyAvailability"
         desc="You may be contacted for urgent or same-day jobs in your area"
       />

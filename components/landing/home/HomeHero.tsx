@@ -109,7 +109,7 @@ export default function HomeHero() {
             </span>
 
             <h1 id="sf-hero-heading" className="sf-hero-title">
-              NDIS support,<br />
+              Disability support,<br />
               matched to the<br />
               <span
                 className={`sf-rotate${out ? ' out' : ''}`}

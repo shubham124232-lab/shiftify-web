@@ -50,9 +50,9 @@ export default function Header() {
                 Join Shiftify
               </span>
             </a>
-            <a href="#emergency" className="btn-emergency ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Rapid Support — Get help immediately">
-              <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
-              Rapid
+            <a href="/shiftboard" className="btn-shiftify ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Open the Live Shiftboard">
+              <i className="bi bi-broadcast" aria-hidden="true" />
+              Live Shiftboard
             </a>
           </div>
 

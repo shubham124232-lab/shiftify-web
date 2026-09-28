@@ -151,7 +151,7 @@ function WorkerCard({
           <span key={s} className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-600">{s}</span>
         ))}
         {worker.emergencyAvailability && (
-          <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">Emergency shifts</span>
+          <span className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">Short-notice shifts</span>
         )}
         {worker.acceptsSleepoverShifts && (
           <span className="px-2 py-0.5 rounded-full bg-violet-100 text-xs text-violet-700">Sleepover</span>

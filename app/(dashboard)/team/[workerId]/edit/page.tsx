@@ -36,7 +36,7 @@ const EXPERIENCE_LEVELS = [
 
 const REQUIRED_DOCS = [
   { docType: "POLICE_CHECK",   label: "Police Check" },
-  { docType: "NDIS_SCREENING", label: "NDIS Worker Screening Check" },
+  { docType: "NDIS_SCREENING", label: "Worker Screening Check" },
   { docType: "WWCC",           label: "Working with Children Check (WWCC)" },
   { docType: "FIRST_AID",      label: "First Aid Certificate" },
 ];
@@ -482,11 +482,11 @@ export default function EditWorkerPage() {
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <label style={lbl}>NDIS Screening Number</label>
+                  <label style={lbl}>Worker Screening Check Number</label>
                   <input style={inp} {...extraForm.register("ndisScreeningNumber")} />
                 </div>
                 <div>
-                  <label style={lbl}>NDIS Screening Expiry</label>
+                  <label style={lbl}>Worker Screening Check Expiry</label>
                   <input style={inp} type="date" {...extraForm.register("ndisScreeningExpiry")} />
                 </div>
                 <div>

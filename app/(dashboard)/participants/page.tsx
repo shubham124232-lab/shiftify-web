@@ -121,7 +121,7 @@ export default function ParticipantsPage() {
       <PageHeader
         title="My Participants"
         description="Participants you support and can post jobs on behalf of."
-        actions={<Button onClick={() => router.push("/participants/new")}>+ Add Participant</Button>}
+        actions={<div className="flex gap-2"><Button variant="outline" onClick={() => router.push("/participants/connect")}>Connect existing participant</Button><Button onClick={() => router.push("/participants/new")}>+ Add Participant</Button></div>}
       />
       <div className="mx-auto max-w-3xl px-5 py-6 flex flex-col gap-5">
 

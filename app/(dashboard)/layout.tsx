@@ -9,6 +9,7 @@ import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
 import { Spinner } from "@/components/ui/spinner";
 import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
+import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 
 // Pages inside the dashboard that should be accessible even with an incomplete profile
 // (so the user can actually go fix their profile without getting redirect-looped)
@@ -18,6 +19,18 @@ const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability",
 // See [[guest-draft-job-post-design]] memory. Rendered without the sidebar/
 // topbar chrome below, since there's no user to show it for.
 const PUBLIC_EXEMPT = ["/jobs/post"];
+
+// Areas that belong to specific roles (mirrors the "only available to …" notices on those pages).
+const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
+  { prefix: "/connect-invites",         roles: ["SUPPORT_WORKER"] },
+  { prefix: "/connections",             roles: ["PLAN_MANAGER"] },
+  { prefix: "/load-board",              roles: ["PLAN_MANAGER"] },
+  { prefix: "/job-invites",             roles: ["SUPPORT_WORKER", "PROVIDER"] },
+  { prefix: "/coordinator-connections", roles: ["COORDINATOR", "PARTICIPANT"] },
+  { prefix: "/participants",            roles: ["COORDINATOR"] },
+  { prefix: "/team",                    roles: ["PROVIDER"] },
+  { prefix: "/provider",                roles: ["PROVIDER"] },
+];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();
@@ -42,6 +55,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // 1. Not authenticated -> login (unless this page allows guests)
     if (!isAuth || !user) {
       if (!isPublicExempt) router.replace("/login");
+      return;
+    }
+
+    // Role dashboards are per active role: a Worker opening /dashboard/provider (or a
+    // stale bookmark after a role switch) is sent to the dashboard for their own role.
+    const roleDashboards = Object.values(ROLE_DASHBOARD_PATHS) as string[];
+    const onRoleDashboard = roleDashboards.find((p) => pathname === p || pathname.startsWith(p + "/"));
+    if (onRoleDashboard) {
+      const own = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS];
+      if (own && onRoleDashboard !== own) {
+        router.replace(own);
+        return;
+      }
+      if (!own) {
+        router.replace("/admin"); // ADMIN has no role dashboard
+        return;
+      }
+    }
+
+    // Role-specific management areas: opening one with the wrong active role goes back to that
+    // role's own dashboard (the API enforces the same rule on every call).
+    const roleOnly = ROLE_ONLY_AREAS.find((a) => pathname === a.prefix || pathname.startsWith(a.prefix + "/"));
+    const ownDashboard = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS];
+    if (roleOnly && ownDashboard && !roleOnly.roles.includes(user.activeRole as string)) {
+      router.replace(ownDashboard);
       return;
     }
 

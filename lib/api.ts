@@ -70,7 +70,8 @@ function friendlyMessage(status: number, code: string, raw: string, details?: un
       }
       return 'Some information you entered is invalid. Please review your answers and try again.';
     }
-    case 'CONFLICT_ERROR':
+    case 'CONFLICT':
+    case 'CONFLICT_ERROR': // legacy alias — the backend sends CONFLICT
       // Conflict messages (e.g. "ABN already registered") are already human-readable.
       return raw;
     case 'NOT_FOUND':
@@ -97,7 +98,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000';
 export const http = axios.create({
   baseURL:         BASE_URL,
   withCredentials: true,          // sends HttpOnly refresh cookie on every request
-  timeout:         15_000,
+  timeout:         Number(process.env.NEXT_PUBLIC_API_TIMEOUT_MS) || 15_000, // override only for slow remote dev databases
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -163,6 +164,18 @@ async function silentRefresh(): Promise<string | null> {
 
 // ─── Response interceptor — 401 retry ─────────────────────────────────────────
 
+// Credential / OTP endpoints answer 401 for "wrong password" or "wrong code" — that
+// is a login failure to show to the user, never an expired session. These must not
+// go through refresh-and-retry (which would also re-send the login request).
+// Authenticated /auth/* calls (switch-role, add role, send verification code) are
+// ordinary calls and keep the silent refresh.
+const AUTH_CALLS_WITH_BEARER = ['/auth/switch-role', '/auth/roles', '/auth/verify/request', '/auth/verify/resend'];
+function isCredentialEndpoint(url?: string): boolean {
+  if (!url) return false;
+  const path = url.split('?')[0];
+  return path.startsWith('/auth/') && !AUTH_CALLS_WITH_BEARER.includes(path);
+}
+
 http.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
@@ -171,7 +184,7 @@ http.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !original._retry &&
-      original.url !== '/auth/refresh'
+      !isCredentialEndpoint(original.url)
     ) {
       original._retry = true;
 
@@ -206,14 +219,17 @@ http.interceptors.response.use(
     const data   = (error.response?.data as { error?: { code?: string; message?: string; details?: unknown } } | undefined)?.error;
     const code   = data?.code ?? 'NETWORK_ERROR';
     const raw    = data?.message ?? error.message;
-    const message = friendlyMessage(status, code, raw, data?.details);
+    // Wrong password / wrong code: show the server's own message, not "session expired".
+    const message = status === 401 && isCredentialEndpoint(error.config?.url)
+      ? raw
+      : friendlyMessage(status, code, raw, data?.details);
 
     // Field-level validation errors (bad phone/email/etc.) are expected and
     // already shown to the user verbatim above — no need to log those. Any
     // unexpected error (network failure, 500, unknown shape) gets logged in
     // full so it's visible in devtools even though the user only sees the
     // generic "try again" message.
-    if (code !== 'VALIDATION_ERROR' && code !== 'CONFLICT_ERROR') {
+    if (code !== 'VALIDATION_ERROR' && code !== 'CONFLICT' && code !== 'CONFLICT_ERROR' && !(status === 401 && isCredentialEndpoint(error.config?.url))) {
       console.error('[shiftify-api] request failed:', {
         url: error.config?.url,
         method: error.config?.method,

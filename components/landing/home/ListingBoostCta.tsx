@@ -22,11 +22,11 @@ export default function ListingBoostCta() {
             <span className="sf-boost-eyebrow">Promote the right thing</span>
             <h2 id="sf-boost-cta-heading" className="sf-boost-title">Promoting a SIL or SDA property?</h2>
             <p className="sf-boost-sub">
-              Use Listing Boost to give one accommodation listing greater visibility in relevant SIL/SDA results.
+              Use a Featured Listing to give one accommodation listing greater visibility in relevant SIL/SDA results.
             </p>
           </div>
           <div className="sf-boost-actions">
-            <a href="/sil-sda/listing-boost" className="sf-boost-cta-btn">Explore Listing Boost</a>
+            <a href="/sil-sda/listing-boost" className="sf-boost-cta-btn">Explore Featured Listing</a>
             <a href="/sil-sda/options" className="sf-boost-cta-link">
               See SIL &amp; SDA options
               <i className="bi bi-arrow-right" aria-hidden="true" />

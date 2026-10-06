@@ -215,7 +215,7 @@ export default function JobsBrowsePage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [savedOnly, setSavedOnly] = useState(false);
 
-  const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
+  const canPost = ["PARTICIPANT", "COORDINATOR", "PROVIDER"].includes(activeRole ?? "");
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
 
   const load = useCallback((f: Filters, p: number, saved: boolean) => {
@@ -264,20 +264,9 @@ export default function JobsBrowsePage() {
     }
   }
 
-  async function handleApply(id: string) {
-    setApplying(id);
-    setUpgradeMessage(null);
-    try {
-      await api.post(`/jobs/${id}/apply`, {});
-      load(appliedFilters, page, savedOnly);
-    } catch (e: unknown) {
-      if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
-        setUpgradeMessage(e.message);
-      } else {
-        setError((e as { message?: string })?.message ?? "Apply failed.");
-      }
-    }
-    finally { setApplying(null); }
+  // Connecting needs the single acknowledgement (SW v3.0 Window 1), which lives on the request page.
+  function handleApply(id: string) {
+    router.push(`/jobs/${id}`);
   }
 
   async function handleToggleSave(job: Job) {
@@ -314,12 +303,12 @@ export default function JobsBrowsePage() {
   return (
     <>
       <PageHeader
-        title="Browse Jobs"
+        title={activeRole === "SUPPORT_WORKER" ? "Find Shifts" : activeRole === "PROVIDER" ? "Find Support Opportunities" : "Browse Jobs"}
         description={`${total} open support request${total !== 1 ? "s" : ""}`}
         actions={
           <div className="flex gap-2">
             {canApply && <Link href="/jobs/alerts"><Button variant="outline">🔔 My Alerts</Button></Link>}
-            {canPost && <Link href="/jobs/post"><Button>+ Post a Request</Button></Link>}
+            {canPost && <Link href="/jobs/post"><Button>{activeRole === "PROVIDER" ? "+ Post Staffing Request" : "+ Post a Request"}</Button></Link>}
           </div>
         }
       />
@@ -328,14 +317,24 @@ export default function JobsBrowsePage() {
         {saveMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">{saveMessage}</div>}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
         {canApply && (
-          <div className="flex gap-2 mb-4">
-            {([["false", "All jobs"], ["true", "Saved"]] as [string, string][]).map(([v, l]) => (
-              <button key={v} type="button" onClick={() => { setSavedOnly(v === "true"); setPage(1); }}
-                className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
-                  String(savedOnly) === v ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
-                {l}
-              </button>
-            ))}
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {([["", "Best matches"], ["RAPID", "Rapid"], ["URGENT", "Urgent"], ["LAST_MINUTE", "Last-Minute"], ["ROUTINE", "Routine"], ["SAVED", "Saved"]] as [string, string][]).map(([v, l]) => {
+              const active = v === "SAVED" ? savedOnly : !savedOnly && appliedFilters.urgency === v;
+              return (
+                <button key={v} type="button"
+                  onClick={() => {
+                    setSavedOnly(v === "SAVED");
+                    const urgency = v === "SAVED" ? "" : v;
+                    setFilters(p => ({ ...p, urgency }));
+                    setAppliedFilters(p => ({ ...p, urgency }));
+                    setPage(1);
+                  }}
+                  className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
+                    active ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+                  {l}
+                </button>
+              );
+            })}
           </div>
         )}
         <div className="flex gap-8">
@@ -372,7 +371,7 @@ export default function JobsBrowsePage() {
               </div>
             ) : jobs.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-base font-semibold text-slate-700">No open jobs found</p>
+                <p className="text-base font-semibold text-slate-700">{canApply ? "No open requests found" : "No open jobs found"}</p>
                 <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or check back later.</p>
                 {activeFilterCount > 0 && <Button className="mt-4" variant="outline" onClick={resetFilters}>Clear Filters</Button>}
               </div>

@@ -21,20 +21,15 @@ import {
   MessageSquare, ClipboardList, SlidersHorizontal, User,
 } from "lucide-react";
 
-// ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// Saved Workers and Recommended-for-you have NO backend feature behind them at
-// all (no favorites model, no matching engine) — genuinely still placeholders.
-const PH_SAVED_WORKERS = [
-  { id: "w1", name: "Sarah M.", service: "Personal Care",       rating: 4.9 },
-  { id: "w2", name: "James T.", service: "Community Access",    rating: 4.7 },
-  { id: "w3", name: "Priya K.", service: "Domestic Assistance", rating: 4.8 },
-];
-
-const PH_RECOMMENDED = [
-  { id: "m1", name: "Alex R.",  match: 96, service: "Personal Care, Transport" },
-  { id: "m2", name: "Chloe B.", match: 91, service: "Community Access"         },
-];
-// ──────────────────────────────────────────────────────────────────────────────
+interface SavedPro {
+  id: string;
+  professionalUserId: string;
+  professional: {
+    name: string;
+    workerProfile: { rating: number; totalReviews: number; servicesOffered: string[] | null } | null;
+    providerProfile: { averageRating: number; totalRatings: number; coreServices: string[] | null; businessName: string | null } | null;
+  };
+}
 
 interface MyJob {
   id: string; title: string; status: string; category: string; postedAt: string;
@@ -48,6 +43,8 @@ export default function ParticipantDashboard() {
   const [myJobs,  setMyJobs]  = useState<MyJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [jobsLoading, setJobsLoading] = useState(true);
+  const [savedPros, setSavedPros] = useState<SavedPro[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,14 +56,18 @@ export default function ParticipantDashboard() {
       .then((r) => setMyJobs(r.jobs ?? []))
       .catch(() => {})
       .finally(() => setJobsLoading(false));
+    api.get<{ saved: SavedPro[] }>("/saved-professionals")
+      .then((r) => setSavedPros(r.saved ?? []))
+      .catch(() => {})
+      .finally(() => setSavedLoading(false));
   }, []);
 
   if (!user) return null;
 
   const drafts    = myJobs.filter((j) => j.status === "DRAFT");
   const recurring = myJobs.filter((j) => j.isRecurring && j.status !== "DRAFT" && j.status !== "CANCELLED");
-  const applicationsReceived = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
-  const unread = data?.unreadNotifications ?? 0;
+  const applicationsReceived = data?.stats?.applicationsReceived ?? 0;
+  const unread = data?.stats?.unreadMessages ?? 0;
 
   const postTiles: ActionTile[] = [
     { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
@@ -79,7 +80,7 @@ export default function ParticipantDashboard() {
     { key: "post-another", icon: Plus,            label: "Post another request",  href: "/jobs/post" },
     { key: "repeat",       icon: RefreshCw,        label: "Repeat a past request", href: "#", disabled: true },
     { key: "messages",     icon: MessageSquare,    label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
-    { key: "applications", icon: ClipboardList,     label: applicationsReceived > 0 ? `Applications received (${applicationsReceived})` : "Applications received", href: "/jobs/my" },
+    { key: "applications", icon: ClipboardList,     label: applicationsReceived > 0 ? `Responses received (${applicationsReceived})` : "Responses received", href: "/jobs/my" },
     { key: "preferences",  icon: SlidersHorizontal, label: "Update preferences",   href: "/profile/edit" },
   ];
 
@@ -109,7 +110,7 @@ export default function ParticipantDashboard() {
               title="My support requests"
               tabs={[
                 {
-                  key: "active", label: "Active", empty: "No open requests yet.",
+                  key: "active", label: "Active", empty: "No open requests yet.", total: data?.stats?.activeRequests,
                   items: loading ? null : (data?.openJobs ?? []).map((j) => ({
                     id: j.id, href: `/jobs/${j.id}`, cta: "View",
                     heading: [j.suburb, j.state].filter(Boolean).join(", "),
@@ -118,14 +119,14 @@ export default function ParticipantDashboard() {
                   })),
                 },
                 {
-                  key: "upcoming", label: "Upcoming", empty: "No upcoming shifts.",
+                  key: "upcoming", label: "Upcoming", empty: "No upcoming shifts.", total: data?.stats?.upcomingBookings,
                   items: loading ? null : (data?.upcomingShifts ?? []).map((s) => ({
                     id: s.id, href: `/jobs/${s.id}`, cta: "View details",
                     heading: s.suburb, sub: s.title, startAt: s.scheduledStartAt,
                   })),
                 },
                 {
-                  key: "awaiting", label: "Awaiting confirmation", empty: "Nothing awaiting confirmation.",
+                  key: "awaiting", label: "Awaiting confirmation", empty: "Nothing awaiting confirmation.", total: data?.stats?.awaitingConfirmation,
                   items: loading ? null : (data?.awaitingConfirmation ?? []).map((s) => ({
                     id: s.id, href: `/jobs/${s.id}`, cta: "Confirm",
                     heading: s.suburb, sub: s.title, startAt: s.scheduledStartAt,
@@ -169,34 +170,30 @@ export default function ParticipantDashboard() {
             <Card>
               <CardHeader><CardTitle>Saved workers / providers</CardTitle></CardHeader>
               <CardContent className="py-2">
-                {PH_SAVED_WORKERS.map((w) => (
-                  <DashboardListRow
-                    key={w.id}
-                    icon={<User className="h-5 w-5" />}
-                    title={w.name}
-                    subtitle={w.service}
-                    badge={<span className="text-xs font-semibold text-emerald-700">★ {w.rating}</span>}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle>Recommended for you</CardTitle></CardHeader>
-              <CardContent className="py-2">
-                {PH_RECOMMENDED.map((m) => (
-                  <DashboardListRow
-                    key={m.id}
-                    icon={<User className="h-5 w-5" />}
-                    title={m.name}
-                    subtitle={m.service}
-                    badge={
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                        {m.match}% match
-                      </span>
-                    }
-                  />
-                ))}
+                {savedLoading ? (
+                  <p className="py-3 text-sm text-slate-400">Loading…</p>
+                ) : savedPros.length === 0 ? (
+                  <p className="py-3 text-sm text-slate-500">
+                    You haven&apos;t saved anyone yet. <a href="/find" className="font-semibold text-emerald-700">Find workers</a>
+                  </p>
+                ) : (
+                  savedPros.slice(0, 3).map((p) => {
+                    const wp = p.professional.workerProfile;
+                    const pp = p.professional.providerProfile;
+                    const services = (wp?.servicesOffered ?? pp?.coreServices ?? []).slice(0, 2).join(", ");
+                    const rating = wp && wp.totalReviews > 0 ? wp.rating : pp && pp.totalRatings > 0 ? pp.averageRating : null;
+                    return (
+                      <DashboardListRow
+                        key={p.id}
+                        icon={<User className="h-5 w-5" />}
+                        title={pp?.businessName || p.professional.name}
+                        subtitle={services || undefined}
+                        href="/saved-professionals"
+                        badge={rating !== null ? <span className="text-xs font-semibold text-emerald-700">★ {Number(rating).toFixed(1)}</span> : undefined}
+                      />
+                    );
+                  })
+                )}
               </CardContent>
             </Card>
 

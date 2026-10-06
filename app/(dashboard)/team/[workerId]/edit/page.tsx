@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, FormProvider } from "react-hook-form";
 import { api } from "@/lib/api";
-import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,12 +33,24 @@ const EXPERIENCE_LEVELS = [
   { value: "EXPERT",       label: "Expert (7+ years)" },
 ];
 
+// Mirrors Backend REQUIRED_DOCS_BY_ROLE.SUPPORT_WORKER — activation is gated on
+// exactly these, so the checklist and dropdown must list the same set.
 const REQUIRED_DOCS = [
-  { docType: "POLICE_CHECK",   label: "Police Check" },
-  { docType: "NDIS_SCREENING", label: "Worker Screening Check" },
-  { docType: "WWCC",           label: "Working with Children Check (WWCC)" },
-  { docType: "FIRST_AID",      label: "First Aid Certificate" },
+  { docType: "POLICE_CHECK",                 label: "Police Check" },
+  { docType: "NDIS_SCREENING",               label: "Worker Screening Check" },
+  { docType: "FIRST_AID",                    label: "First Aid Certificate" },
+  { docType: "CPR",                          label: "CPR Certificate" },
+  { docType: "MANUAL_HANDLING",              label: "Manual Handling Certificate" },
+  { docType: "DRIVERS_LICENCE",              label: "Driver's Licence" },
+  { docType: "PUBLIC_LIABILITY_INSURANCE",   label: "Public Liability Insurance" },
+  { docType: "PERSONAL_ACCIDENT_INSURANCE",  label: "Personal Accident Insurance" },
+  { docType: "QUALIFICATION_CERTIFICATE",    label: "Qualification Certificate" },
 ];
+// Accepted for upload but not required for activation.
+const OPTIONAL_DOCS = [
+  { docType: "WWCC", label: "Working with Children Check (WWCC)" },
+];
+const ALL_DOCS = [...REQUIRED_DOCS, ...OPTIONAL_DOCS];
 
 interface ChildDocument {
   id: string;
@@ -222,10 +233,12 @@ export default function EditWorkerPage() {
         servicesOffered, experienceLevel: experienceLevel || undefined,
         serviceAreas: serviceAreas.length ? serviceAreas : undefined,
         travelRadiusKm: radiusNum,
-        ...extra,
+        // Blank date/select inputs arrive as "" — the profile schema rejects those (Invalid date / Invalid enum value).
+        // hasDriversLicence/ownVehicle are form-only toggles; the strict schema takes hasVehicle/driversLicence* below instead.
+        ...Object.fromEntries(Object.entries(extra).filter(([k, v]) => v !== "" && k !== "hasDriversLicence" && k !== "ownVehicle")),
         hasVehicle: extra.ownVehicle,
         driversLicenceType: extra.hasDriversLicence ? extra.driversLicenceType : undefined,
-        driversLicenceExpiry: extra.hasDriversLicence ? extra.driversLicenceExpiry : undefined,
+        driversLicenceExpiry: extra.hasDriversLicence ? (extra.driversLicenceExpiry || undefined) : undefined,
       }).catch(profileErr => {
         console.warn("Profile save warning:", profileErr?.message);
         throw profileErr;
@@ -250,15 +263,12 @@ export default function EditWorkerPage() {
     if (!file || !workerId) return;
     setUploading(true); setDocError(null);
     try {
-      const presign = await presignUpload("compliance", file.name, file.type);
-      await putFileToR2(presign.uploadUrl, file);
-      await api.post("/upload/register-document", {
-        fileKey:   presign.fileKey,
-        fileName:  file.name,
-        mimeType:  file.type,
-        sizeBytes: file.size,
-        docType:   uploadType,
-      });
+      // Attach to the managed worker (not the signed-in Provider): this route
+      // stores the file and creates the Document against :workerId.
+      const form = new FormData();
+      form.append("docType", uploadType);
+      form.append("file", file);
+      await api.post(`/users/${workerId}/documents`, form, { headers: { "Content-Type": "multipart/form-data" } });
       loadDocuments();
     } catch (err: any) {
       setDocError(err?.message ?? "Upload failed.");
@@ -575,7 +585,7 @@ export default function EditWorkerPage() {
                 {documents.map(doc => (
                   <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid var(--td-border)", borderRadius: 8, padding: "8px 12px" }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--td-ink-800)" }}>{REQUIRED_DOCS.find(d => d.docType === doc.docType)?.label ?? doc.docType}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--td-ink-800)" }}>{ALL_DOCS.find(d => d.docType === doc.docType)?.label ?? doc.docType}</div>
                       <div style={{ fontSize: 11, color: "var(--td-muted)" }}>{doc.fileName} · {doc.status}</div>
                     </div>
                     <button
@@ -593,7 +603,7 @@ export default function EditWorkerPage() {
               <div style={{ flex: "1 1 220px" }}>
                 <label style={lbl}>Document type</label>
                 <select style={inp} value={uploadType} onChange={e => setUploadType(e.target.value)}>
-                  {REQUIRED_DOCS.map(d => <option key={d.docType} value={d.docType}>{d.label}</option>)}
+                  {ALL_DOCS.map(d => <option key={d.docType} value={d.docType}>{d.label}</option>)}
                 </select>
               </div>
               <div>

@@ -28,6 +28,7 @@ function InviteCard({
   acting: boolean;
   onRespond: (id: string, action: "ACCEPT" | "DECLINE") => void;
 }) {
+  const [ack, setAck] = useState(false);
   const paid = invite.amountAud != null;
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5">
@@ -39,16 +40,20 @@ function InviteCard({
       </div>
       <p className="text-sm text-slate-600 mb-3">
         {invite.invitedBy.name} invited you to this request.
-        {paid && <span className="font-semibold text-slate-800"> Accepting charges ${Number(invite.amountAud).toFixed(2)} — Direct Connect not included.</span>}
+        {paid && <span className="text-slate-500"> This is a Direct Connect — there is no charge to you and it does not use your free allowance.</span>}
       </p>
       {invite.message && (
         <p className="text-sm text-slate-700 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 mb-3">
           &ldquo;{invite.message}&rdquo;
         </p>
       )}
+      <label className="flex items-start gap-2 text-xs text-slate-600 mb-3 cursor-pointer">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-brand-600" checked={ack} onChange={e => setAck(e.target.checked)} />
+        I have reviewed this request and confirm that I am available and can meet the stated requirements.
+      </label>
       <div className="flex gap-2">
-        <Button size="sm" disabled={acting} onClick={() => onRespond(invite.id, "ACCEPT")}>
-          {paid ? `Accept — $${Number(invite.amountAud).toFixed(2)}` : "Accept"}
+        <Button size="sm" disabled={acting || !ack} onClick={() => onRespond(invite.id, "ACCEPT")}>
+          "Connect"
         </Button>
         <Button size="sm" variant="ghost" disabled={acting} onClick={() => onRespond(invite.id, "DECLINE")}>
           Decline
@@ -82,7 +87,7 @@ export default function JobInvitesPage() {
     setActing(id);
     setError(null);
     try {
-      await api.patch(`/job-invites/${id}/respond`, { action });
+      await api.patch(`/job-invites/${id}/respond`, action === "ACCEPT" ? { action, acknowledged: true } : { action });
       if (action === "ACCEPT") setJustConnected(invites.find(i => i.id === id) ?? null);
       load();
     } catch (e) {
@@ -95,7 +100,7 @@ export default function JobInvitesPage() {
   if (!canView) {
     return (
       <>
-        <PageHeader title="Job Invitations" />
+        <PageHeader title="Invitations" />
         <div className="mx-auto max-w-3xl px-5 py-6">
           <p className="text-sm text-slate-500">This page is only available to Support Workers and Providers.</p>
         </div>
@@ -109,7 +114,7 @@ export default function JobInvitesPage() {
   return (
     <>
       <PageHeader
-        title="Job Invitations"
+        title={activeRole === UserRole.SUPPORT_WORKER ? "Invitations" : "Job Invitations"}
         description="Coordinators and providers who want you specifically for a request send invites here."
       />
       <div className="mx-auto max-w-3xl px-5 py-6">

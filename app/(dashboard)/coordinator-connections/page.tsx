@@ -216,6 +216,11 @@ export default function CoordinatorConnectionsPage() {
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 600 }}>{otherName}</div>
                           {c.message && <div style={{ fontSize: 12, color: "var(--td-muted)" }}>&ldquo;{c.message}&rdquo;</div>}
+                          {isParticipant && (
+                            <div style={{ fontSize: 12, color: "var(--td-muted)" }}>
+                              Permissions requested: {PERMISSION_LABELS.filter(p => c.requestedPermissions?.[p.key as string]).map(p => p.label).join(", ") || "view your approved information only"}
+                            </div>
+                          )}
                         </div>
                         <Button size="sm" disabled={acting === c.id} onClick={() => respond(c.id, "ACCEPT")}>Accept</Button>
                         <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respond(c.id, "DECLINE")}>Decline</Button>

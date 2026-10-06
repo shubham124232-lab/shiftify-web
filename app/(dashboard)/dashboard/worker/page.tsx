@@ -25,27 +25,38 @@ interface ExpiringDoc {
   expiryDate: string | null;
 }
 
-// SW doc Window 15 — Available Now status card on the dashboard right rail.
-function AvailableNowCard() {
+// SW v3.0 Window 15 — Available Now card. Active: ON status and expiry.
+// Inactive or not purchased: the optional $24.99 Power Up prompt (Pricing V2 §3.5 — requires Basic).
+// `state` comes from GET /dashboard/summary (already loaded by the page) — no separate /users/me call.
+function AvailableNowCard({ state, stateLoading }: { state?: { isAvailableNow: boolean; availableNowUntil: string | null }; stateLoading: boolean }) {
   const [available, setAvailable] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [until, setUntil] = useState<string | null>(null);
+  const [owned, setOwned] = useState(false);
+  const [subsLoading, setSubsLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const loading = stateLoading || subsLoading;
 
   useEffect(() => {
-    api.get<{ user: any }>("/users/me")
-      .then(r => setAvailable(!!r.user?.workerProfile?.isAvailableNow))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    if (!state) return;
+    setAvailable(!!state.isAvailableNow);
+    setUntil(state.availableNowUntil ?? null);
+  }, [state]);
+
+  useEffect(() => {
+    api.get<{ subscriptions: { plan?: { key?: string } }[] }>("/subscriptions/me/all")
+      .catch(() => ({ subscriptions: [] as { plan?: { key?: string } }[] }))
+      .then((subs) => setOwned((subs.subscriptions ?? []).some(x => (x.plan?.key ?? "").startsWith("WORKER_AVAILABLE_NOW"))))
+      .finally(() => setSubsLoading(false));
   }, []);
 
-  async function toggle() {
+  async function turnOff() {
     setToggling(true);
     try {
-      const next = !available;
-      await api.patch("/users/me/profile/worker", { isAvailableNow: next });
-      setAvailable(next);
+      await api.patch("/users/me/profile/worker", { isAvailableNow: false });
+      setAvailable(false);
+      setUntil(null);
     } catch {
-      // profile-page toggle handles error detail; dashboard card fails silently
+      // the availability page shows error detail; the dashboard card fails silently
     } finally {
       setToggling(false);
     }
@@ -55,21 +66,57 @@ function AvailableNowCard() {
     <Card>
       <CardContent className="pt-5 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-800">{available ? "🟢 Available Now" : "Available Now"}</p>
+          <p className="text-sm font-semibold text-slate-800">{available ? "🟢 Available Now is ON" : "Available Now"}</p>
           <p className="text-xs text-slate-500 mt-0.5">
-            {loading ? "Loading…" : available ? "Requesters can see you're free right now." : "Signal you're free to start right now."}
+            {loading ? "Loading…"
+              : available ? (until ? `Until ${new Date(until).toLocaleString("en-AU", { timeStyle: "short", dateStyle: "short" })}` : "Visible to requesters until you turn it off or it expires.")
+              : owned ? "Publish immediate, time-limited availability."
+              : "Optional Power Up — let requesters see you're free right now."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={toggle}
-          disabled={loading || toggling}
-          className={`h-7 px-3 rounded-full text-xs font-semibold border transition-colors ${
-            available ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"
-          }`}
-        >
-          {toggling ? "…" : available ? "Turn off" : "Turn on"}
-        </button>
+        {!loading && (available ? (
+          <div className="flex gap-2">
+            <a href="/availability" className="h-7 px-3 rounded-full text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">Edit</a>
+            <button type="button" onClick={turnOff} disabled={toggling}
+              className="h-7 px-3 rounded-full text-xs font-semibold border border-emerald-300 bg-emerald-50 text-emerald-700">
+              {toggling ? "…" : "Turn off"}
+            </button>
+          </div>
+        ) : owned ? (
+          <a href="/availability" className="h-7 px-3 rounded-full text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">Turn on</a>
+        ) : (
+          <a href="/subscription" className="h-7 px-3 rounded-full text-xs font-semibold border border-indigo-300 bg-indigo-50 text-indigo-700 no-underline inline-flex items-center whitespace-nowrap">Activate — $24.99</a>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Pricing V2 — 10 once-only introductory Connect actions on the free plan. Hidden once on Basic.
+function IntroductoryActionsCard() {
+  const [left, setLeft] = useState<{ remaining: number; limit: number } | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      api.get<{ allowance: { applies: boolean; remaining: number; limit: number } }>("/subscriptions/me/allowance"),
+      api.get<{ subscriptions: { plan?: { key?: string } }[] }>("/subscriptions/me/all").catch(() => ({ subscriptions: [] })),
+    ])
+      .then(([a, subs]) => {
+        const onBasic = (subs.subscriptions ?? []).some(x => (x.plan?.key ?? "").startsWith("WORKER_BASIC"));
+        if (a.allowance?.applies && !onBasic) setLeft({ remaining: a.allowance.remaining, limit: a.allowance.limit });
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!left) return null;
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <p className="text-sm font-semibold text-slate-800 m-0">{left.remaining} of {left.limit} left</p>
+        <p className="text-xs text-slate-500 mt-0.5 mb-0">
+          Once-only introductory Connect actions. They never reset or expire.
+          {left.remaining === 0 && " Choose Shiftify Basic or buy a Shift Pass to connect on more shifts."}
+        </p>
       </CardContent>
     </Card>
   );
@@ -83,10 +130,25 @@ const APP_STATUS_BADGE: Record<string, string> = {
   WITHDRAWN:   "bg-slate-100 text-slate-400",
 };
 
-function badgePill(status: string) {
+// SW v3.0 connection statuses (Connect Window 3) — no raw enum values on screen.
+const STATUS_LABEL: Record<string, string> = {
+  INTERESTED: "Connected", SHORTLISTED: "Shortlisted", SELECTED: "Awaiting your acceptance",
+  DECLINED: "Not proceeding", WITHDRAWN: "Withdrawn",
+};
+
+// A SELECTED connection only reads "Awaiting your acceptance" while it really is; afterwards it follows the request.
+function connectionLabel(status: string, job?: { status?: string; workerConfirmedAt?: string | null }) {
+  if (status !== "SELECTED" || !job?.status) return STATUS_LABEL[status] ?? status;
+  if (job.status === "CANCELLED") return "Request cancelled";
+  if (job.status === "COMPLETED" || job.status === "CONFIRMED") return "Completed";
+  if (job.status === "IN_PROGRESS") return "In progress";
+  return job.workerConfirmedAt ? "Confirmed" : STATUS_LABEL[status];
+}
+
+function badgePill(status: string, job?: { status?: string; workerConfirmedAt?: string | null }) {
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${APP_STATUS_BADGE[status] ?? "bg-slate-100 text-slate-500"}`}>
-      {status}
+      {connectionLabel(status, job)}
     </span>
   );
 }
@@ -114,7 +176,7 @@ export default function WorkerDashboard() {
   const expiring = [...docs]
     .sort((a, b) => new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime())
     .slice(0, 5);
-  const unread = data?.unreadNotifications ?? 0;
+  const unread = data?.stats?.unreadMessages ?? 0;
 
   const tiles: ActionTile[] = [
     { key: "browse",   icon: Search,       title: "Browse Jobs",       subtitle: "Find shifts near you",     ctaLabel: "Browse Jobs",       href: "/jobs", highlighted: true },
@@ -123,7 +185,7 @@ export default function WorkerDashboard() {
 
   const quickActions: QuickAction[] = [
     { key: "update-availability", icon: CalendarClock,     label: "Update availability",  href: "/availability" },
-    { key: "applications",        icon: ClipboardList,     label: "My applications",      href: "/jobs/my" },
+    { key: "applications",        icon: ClipboardList,     label: "My connections",       href: "/connections/my" },
     { key: "messages",            icon: MessageSquare,     label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
     { key: "profile",             icon: SlidersHorizontal, label: "Update profile",       href: "/profile/edit" },
     { key: "documents",           icon: FileText,          label: "Documents",            href: "/documents" },
@@ -154,7 +216,7 @@ export default function WorkerDashboard() {
             title="My shifts & jobs"
             tabs={[
               {
-                key: "upcoming", label: "Upcoming Shifts", count: loading ? undefined : (data?.upcomingShifts?.length ?? 0),
+                key: "upcoming", label: "Upcoming Shifts", count: loading ? undefined : (data?.stats?.upcomingShifts ?? data?.upcomingShifts?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.upcomingShifts?.length
@@ -166,7 +228,7 @@ export default function WorkerDashboard() {
                     )),
               },
               {
-                key: "matched", label: "Matched Jobs", count: loading ? undefined : (data?.matchedJobs?.length ?? 0),
+                key: "matched", label: "Matched Jobs", count: loading ? undefined : (data?.stats?.matchedJobs ?? data?.matchedJobs?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.matchedJobs?.length
@@ -179,16 +241,16 @@ export default function WorkerDashboard() {
                             j.urgency === "RAPID" ? "bg-red-100 text-red-700"
                             : j.urgency === "URGENT" ? "bg-orange-100 text-orange-700"
                             : "bg-slate-100 text-slate-500"
-                          }`}>{j.urgency}</span>
+                          }`}>{({ RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" } as Record<string, string>)[j.urgency] ?? j.urgency}</span>
                         } />
                     )),
               },
               {
-                key: "pending", label: "Pending Applications", count: loading ? undefined : (data?.pendingApplications?.length ?? 0),
+                key: "pending", label: "Pending Connections", count: loading ? undefined : (data?.pendingApplications?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.pendingApplications?.length
-                    ? <p className="py-4 text-sm text-slate-500">No pending applications.</p>
+                    ? <p className="py-4 text-sm text-slate-500">No pending connections.</p>
                     : data.pendingApplications.map((a) => (
                       <DashboardListRow key={a.applicationId} icon={<ClipboardList className="h-5 w-5" />} title={a.job.title} subtitle={a.job.suburb} href={`/jobs/${a.job.id}`} rightLabel="View" />
                     )),
@@ -206,26 +268,26 @@ export default function WorkerDashboard() {
                   <p className="py-4 text-sm text-slate-500">Nothing shortlisted yet — keep applying!</p>
                 ) : (
                   data.shortlistedApplications.slice(0, 5).map((a) => (
-                    <DashboardListRow key={a.applicationId} title={a.job.title} badge={badgePill(a.status)} />
+                    <DashboardListRow key={a.applicationId} title={a.job.title} badge={badgePill(a.status, a.job)} />
                   ))
                 )}
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader><CardTitle>Recent applications</CardTitle></CardHeader>
+              <CardHeader><CardTitle>Recent connections</CardTitle></CardHeader>
               <CardContent className="py-2">
                 {loading ? (
                   <p className="py-4 text-sm text-slate-400">Loading…</p>
                 ) : !data?.allApplications?.length ? (
-                  <p className="py-4 text-sm text-slate-500">No applications yet.</p>
+                  <p className="py-4 text-sm text-slate-500">No connections yet.</p>
                 ) : (
                   data.allApplications.slice(0, 5).map((a) => (
                     <DashboardListRow
                       key={a.applicationId}
                       title={a.job.title}
                       subtitle={a.createdAt ? new Date(a.createdAt).toLocaleDateString("en-AU") : undefined}
-                      badge={badgePill(a.status)}
+                      badge={badgePill(a.status, a.job)}
                     />
                   ))
                 )}
@@ -266,7 +328,8 @@ export default function WorkerDashboard() {
 
         {/* ── Right rail ── */}
         <div className="space-y-6">
-          <AvailableNowCard />
+          <IntroductoryActionsCard />
+          <AvailableNowCard state={data?.availableNow} stateLoading={loading} />
           <QuickActionsPanel actions={quickActions} />
           <ProfileProgressCard />
         </div>

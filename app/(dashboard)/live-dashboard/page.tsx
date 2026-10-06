@@ -97,20 +97,9 @@ export default function LiveDashboardPage() {
   function patchFilters(patch: Partial<LiveDashboardFilters>) { setFilters(f => ({ ...f, ...patch })); setPage(1); }
   function resetFilters() { setFilters(DEFAULT_LIVE_FILTERS); setSuburbInput(""); setSuburb(""); setUrgency(""); setPage(1); }
 
-  async function handleApply(id: string) {
-    setApplying(id);
-    setUpgradeMessage(null);
-    try {
-      await api.post(`/jobs/${id}/apply`, {});
-      load();
-    } catch (e: unknown) {
-      if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
-        setUpgradeMessage(e.message);
-      } else {
-        setError((e as { message?: string })?.message ?? "Apply failed.");
-      }
-    }
-    finally { setApplying(null); }
+  // Connecting needs the single acknowledgement (SW v3.0 Window 1), which lives on the request page.
+  function handleApply(id: string) {
+    router.push(`/jobs/${id}`);
   }
 
   async function handleToggleSave(job: Job) {

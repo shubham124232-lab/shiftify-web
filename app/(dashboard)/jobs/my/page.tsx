@@ -79,7 +79,7 @@ export default function MyJobsPage() {
 
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
+  const canPost = ["PARTICIPANT", "COORDINATOR", "PROVIDER"].includes(activeRole ?? "");
   const isProvider = activeRole === "PROVIDER";
   const isWorker   = activeRole === "SUPPORT_WORKER";
   const shown = jobs
@@ -91,19 +91,23 @@ export default function MyJobsPage() {
       return true;
     });
 
-  const pageTitle = isProvider ? "Team Jobs" : "My Jobs";
-  const pageDesc  = isProvider
-    ? "Jobs your team is working on or you've expressed interest in."
-    : isWorker
-      ? "Jobs you've applied to or been assigned to."
-      : "Jobs you've posted or been assigned to.";
+  const isCoordinator = activeRole === "COORDINATOR";
+  const pageTitle = isCoordinator ? "Requests & Responses" : isWorker ? "My Jobs" : "My Requests";
+  const pageDesc  = isCoordinator
+    ? "Support requests you've posted and the responses they've received."
+    : isProvider
+      ? "Staffing requests you've posted and the responses they've received."
+      : isWorker
+        ? "Requests you've connected with or been assigned to."
+        : "Support requests you've posted, and the responses they've received.";
+  const postLabel = isProvider ? "Post a staffing request" : "Post a support request";
 
   return (
     <>
       <PageHeader
         title={pageTitle}
         description={pageDesc}
-        actions={canPost ? <Link href="/jobs/post"><Button>+ Post a job</Button></Link> : undefined}
+        actions={canPost ? <Link href="/jobs/post"><Button>+ {postLabel}</Button></Link> : undefined}
       />
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px" }}>
 
@@ -161,11 +165,11 @@ export default function MyJobsPage() {
           <div style={{ textAlign: "center", padding: "48px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
             <p style={{ fontSize: 15, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>
-              {isProvider ? "No team jobs yet" : "No jobs yet"}
+              {isWorker ? "No jobs yet" : "No requests yet"}
             </p>
-            {canPost && <Link href="/jobs/post"><Button style={{ marginTop: 16 }}>Post your first job</Button></Link>}
+            {canPost && <Link href="/jobs/post"><Button style={{ marginTop: 16 }}>{isProvider ? "Post your first staffing request" : "Post your first request"}</Button></Link>}
             {(isProvider || isWorker) && (
-              <Link href="/jobs"><Button variant="outline" style={{ marginTop: 16, marginLeft: canPost ? 8 : 0 }}>Browse open jobs</Button></Link>
+              <Link href="/jobs"><Button variant="outline" style={{ marginTop: 16, marginLeft: canPost ? 8 : 0 }}>{isProvider ? "Find support opportunities" : "Find shifts"}</Button></Link>
             )}
           </div>
         ) : (

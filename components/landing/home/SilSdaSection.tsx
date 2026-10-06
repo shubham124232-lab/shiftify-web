@@ -59,7 +59,7 @@ function BoostPreview() {
       </div>
 
       <div className="sf-lb-row sf-lb-row-sponsored">
-        <span className="sf-lb-boosted"><i className="bi bi-arrow-up" />Boosted to top</span>
+        <span className="sf-lb-boosted"><i className="bi bi-arrow-up" />Featured listing</span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo('1600596542815-ffad4c1539a9')} alt="" loading="lazy" />
         <div className="sf-lb-body">
@@ -146,7 +146,7 @@ export default function SilSdaSection() {
             </ul>
 
             <a href="/sil-sda/listing-boost" className="sf-boostcard-btn">
-              Buy Listing Boost
+              Get a Featured Listing
               <span className="sf-boostcard-go" aria-hidden="true"><i className="bi bi-arrow-right" /></span>
             </a>
           </div>

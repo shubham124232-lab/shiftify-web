@@ -59,7 +59,7 @@ export default function CoordinatorDashboard() {
   const unfilledJobs  = openJobs.filter((j) => j._count.applications === 0);
   const responseCount = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
   const urgentJobs    = openJobs.filter((j) => j.urgency === "RAPID" || j.urgency === "URGENT");
-  const unread        = data?.unreadNotifications ?? 0;
+  const unread        = data?.stats?.unreadMessages ?? 0;
   const expiringSoon  = openJobs
     .filter((j) => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() - Date.now() < 1000 * 60 * 60 * 24 * 7)
     .sort((a, b) => new Date(a.applicationDeadlineAt!).getTime() - new Date(b.applicationDeadlineAt!).getTime());
@@ -72,10 +72,10 @@ export default function CoordinatorDashboard() {
   ];
 
   const quickActions: QuickAction[] = [
-    { key: "participants", icon: UserCheck,     label: `My participants (${loading ? "…" : (data?.managedParticipantCount ?? 0)})`, href: "/participants" },
-    { key: "applications", icon: ClipboardList, label: jobsLoading ? "View applications" : `Responses received (${responseCount})`, href: "/jobs/my" },
-    { key: "messages",     icon: MessageSquare, label: unread > 0 ? `Messages (${unread})` : "Message applicants", href: "/messages" },
-    { key: "workers",      icon: Users,         label: "Browse workers", href: "/workers/available" },
+    { key: "participants", icon: UserCheck,     label: `Add or connect participant (${loading ? "…" : (data?.managedParticipantCount ?? 0)})`, href: "/participants" },
+    { key: "applications", icon: ClipboardList, label: jobsLoading ? "View responses" : `Responses received (${responseCount})`, href: "/jobs/my" },
+    { key: "messages",     icon: MessageSquare, label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
+    { key: "workers",      icon: Users,         label: "Find workers or providers", href: "/workers/available" },
   ];
 
   return (
@@ -104,7 +104,7 @@ export default function CoordinatorDashboard() {
             headerAction={<Link href="/jobs/post" className="text-sm font-semibold text-brand-600 hover:underline">Post request →</Link>}
             tabs={[
               {
-                key: "open", label: "Open", count: loading ? undefined : (data?.openJobs?.length ?? 0),
+                key: "open", label: "Open", count: loading ? undefined : (data?.stats?.activeRequests ?? data?.openJobs?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.openJobs?.length
@@ -114,7 +114,7 @@ export default function CoordinatorDashboard() {
                     )),
               },
               {
-                key: "upcoming", label: "Upcoming Shifts", count: loading ? undefined : (data?.upcomingShifts?.length ?? 0),
+                key: "upcoming", label: "Upcoming support", count: loading ? undefined : (data?.stats?.upcomingShifts ?? data?.upcomingShifts?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.upcomingShifts?.length
@@ -126,7 +126,7 @@ export default function CoordinatorDashboard() {
                     )),
               },
               {
-                key: "awaiting", label: "Awaiting Confirmation", count: loading ? undefined : (data?.awaitingConfirmation?.length ?? 0),
+                key: "awaiting", label: "Participant waiting for confirmation", count: loading ? undefined : (data?.stats?.awaitingConfirmation ?? data?.awaitingConfirmation?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.awaitingConfirmation?.length

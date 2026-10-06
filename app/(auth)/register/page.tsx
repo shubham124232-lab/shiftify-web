@@ -360,7 +360,15 @@ function RegisterPageInner() {
       const draft = peekGuestDraft();
       if (draft) {
         if (role === UserRole.PARTICIPANT && typeof draft.state.suburb === 'string' && draft.state.suburb) {
-          try { await upsertProfile('PARTICIPANT', { defaultSuburb: draft.state.suburb }); } catch { /* best-effort prefill */ }
+          try {
+            // Carries the suburb they already typed into the posting form, so the post is not blocked on "Add your suburb".
+            const st = draft.state;
+            await api.patch('/users/me', {
+              defaultSuburb: draft.state.suburb,
+              ...(typeof st.state === 'string' && st.state ? { defaultState: st.state } : {}),
+              ...(typeof st.postcode === 'string' && st.postcode ? { defaultPostcode: st.postcode } : {}),
+            });
+          } catch { /* best-effort prefill */ }
         }
         router.replace(`/jobs/post/${TIER_META[draft.tier].path}`);
         return;

@@ -34,11 +34,11 @@ export default function PostRequestTierPicker() {
     if (!isAuth) setGuestRole(loadGuestRole());
   }, [isAuth]);
 
-  if (activeRole && !["PARTICIPANT", "COORDINATOR"].includes(activeRole)) {
+  if (activeRole && !["PARTICIPANT", "COORDINATOR", "PROVIDER"].includes(activeRole)) {
     return (
       <>
         <PageHeader title="Post a Support Request" />
-        <div className="px-5 py-8 text-sm text-slate-500">Only participants and support coordinators can post support requests.</div>
+        <div className="px-5 py-8 text-sm text-slate-500">Only participants, support coordinators and providers can post requests.</div>
       </>
     );
   }
@@ -70,9 +70,13 @@ export default function PostRequestTierPicker() {
     );
   }
 
+  const isProvider = activeRole === "PROVIDER";
   return (
     <>
-      <PageHeader title="Post a Support Request" description="How quickly do you need support?" />
+      <PageHeader
+        title={isProvider ? "Post a Staffing Request" : "Post a Support Request"}
+        description={isProvider ? "How soon do you need a worker?" : "How quickly do you need support?"}
+      />
       <div className="mx-auto max-w-2xl px-5 py-6 space-y-3">
         {TIER_ORDER.map((tier) => {
           const meta = TIER_META[tier];

@@ -71,6 +71,7 @@ function PlatinumTilePanel() {
   const [coverage, setCoverage] = useState<"METRO" | "STATE" | "NATIONAL">("METRO");
   const [duration, setDuration] = useState<number>(1);
   const [centreSuburb, setCentreSuburb] = useState("");
+  const [marketState, setMarketState] = useState("");
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,12 +86,22 @@ function PlatinumTilePanel() {
   const price = PLATINUM_TILE_PRICE[coverage][duration];
 
   async function purchase() {
+    // Pricing V2 §11 — confirm coverage, campaign dates and sponsored-placement terms before payment.
+    const ends = new Date();
+    ends.setMonth(ends.getMonth() + duration);
+    const area = coverage === "METRO" ? `Metro (30 km around ${centreSuburb})` : coverage === "STATE" ? `State (${marketState})` : "National";
+    const ok = window.confirm(
+      `Platinum Tile Sponsorship — ${area}\n${new Date().toLocaleDateString("en-AU")} to ${ends.toLocaleDateString("en-AU")} (${duration} month${duration > 1 ? "s" : ""})\n` +
+      `Price: $${price.toFixed(2)}. Your tile is labelled Sponsored, one of three per market, and does not imply recommendation, quality or compliance. Non-refundable once the campaign begins. Continue?`,
+    );
+    if (!ok) return;
     setPurchasing(true);
     setError(null);
     try {
       await api.post("/provider/listings/platinum-tile", {
         coverage, durationMonths: duration,
         centreSuburb: coverage === "METRO" ? centreSuburb : undefined,
+        marketState: coverage === "STATE" ? marketState : undefined,
       });
       load();
     } catch (e) {
@@ -127,6 +138,15 @@ function PlatinumTilePanel() {
                 <input className="h-9 px-2 border border-slate-200 rounded-lg text-sm" value={centreSuburb} onChange={e => setCentreSuburb(e.target.value)} placeholder="e.g. Parramatta" />
               </div>
             )}
+            {coverage === "STATE" && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">State or territory</label>
+                <select className="h-9 px-2 border border-slate-200 rounded-lg text-sm" value={marketState} onChange={e => setMarketState(e.target.value)}>
+                  <option value="">Select…</option>
+                  {["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"].map(st => <option key={st} value={st}>{st}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Duration</label>
               <select className="h-9 px-2 border border-slate-200 rounded-lg text-sm" value={duration} onChange={e => setDuration(Number(e.target.value))}>
@@ -134,7 +154,7 @@ function PlatinumTilePanel() {
               </select>
             </div>
             <Button
-              disabled={purchasing || (coverage === "METRO" && !centreSuburb.trim())}
+              disabled={purchasing || (coverage === "METRO" && !centreSuburb.trim()) || (coverage === "STATE" && !marketState)}
               onClick={purchase}
             >
               {purchasing ? "Purchasing…" : `Purchase — $${price.toFixed(2)}`}
@@ -181,6 +201,13 @@ export default function ProviderListingsPage() {
   async function featureListing(id: string) {
     setFeaturingId(id);
     try {
+      // Disclose the queue position before payment (Pricing V2 §7.3).
+      const preview = await api.get<{ queuePosition: number; priceAud: number; durationDays: number }>(`/provider/listings/${id}/featured-preview`);
+      const ok = window.confirm(
+        `Your listing will appear as Featured position ${preview.queuePosition} in its area and category for ${preview.durationDays} days. ` +
+        `Price: $${preview.priceAud.toFixed(2)}. A later Featured purchase cannot displace an earlier one, and it is non-refundable once it begins. Continue?`,
+      );
+      if (!ok) { setFeaturingId(null); return; }
       await api.post(`/provider/listings/${id}/featured`, {});
       await loadListings();
     } catch (e) {

@@ -44,6 +44,7 @@ interface AuthState {
   profileStep:        number;
   phoneVerified:      boolean;
   marketplaceMissing: string[];
+  completionMissing:  string[];
 
   // Actions
   login:          (payload: LoginPayload)          => Promise<LoginResponse>;
@@ -89,6 +90,16 @@ function decodeJwt(token: string): Record<string, unknown> {
 const ACCESS_TOKEN_KEY = 'shiftify_access_token';
 
 const USER_META_KEY = 'shiftify_user_meta';
+
+// Edge-middleware "logged in" hint. Lifetime matches the 30-day refresh session
+// (it slides forward every time the session is restored); it is only a hint —
+// the API still authenticates every request.
+const AUTH_COOKIE_MAX_AGE_S = 30 * 24 * 60 * 60;
+function setAuthCookie(): void {
+  if (typeof document === 'undefined') return;
+  const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `shiftify_is_auth=true; path=/; max-age=${AUTH_COOKIE_MAX_AGE_S}; SameSite=Lax${secure}`;
+}
 
 function saveAccessToken(token: string): void {
   if (typeof sessionStorage === 'undefined') return;
@@ -140,9 +151,7 @@ function applyTokens(set: (partial: Partial<AuthState>) => void, get: () => Auth
   setApiToken(token);
   saveAccessToken(token);
   if (refreshToken) setRefreshToken(refreshToken);
-  if (typeof document !== 'undefined') {
-    document.cookie = 'shiftify_is_auth=true; path=/; max-age=604800; SameSite=Lax';
-  }
+  setAuthCookie();
   set({ accessToken: token, user, loading: false, error: null, initialized: false });
   refreshUserMe(set, get);
 }
@@ -186,6 +195,7 @@ function refreshUserMe(set: (partial: Partial<AuthState>) => void, get: () => Au
         profileStep:        result.profileStep,
         phoneVerified:      result.phoneVerified,
         marketplaceMissing: result.marketplaceMissing,
+        completionMissing:  result.completionMissing,
         initialized: true,
       });
       saveUserMeta(result.profileCompletion, result.profileStep);
@@ -214,6 +224,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   profileStep:        0,
   phoneVerified:      false,
   marketplaceMissing: [],
+  completionMissing:  [],
   error:              null,
 
   // ── login ──────────────────────────────────────────────────────────────────
@@ -258,7 +269,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
       localStorage.removeItem(SUB_STORAGE_KEY);
     }
-    set({ user: null, accessToken: null, loading: false, initialized: false, error: null, profileCompletion: null, profileStep: 0, phoneVerified: false, marketplaceMissing: [] });
+    set({ user: null, accessToken: null, loading: false, initialized: false, error: null, profileCompletion: null, profileStep: 0, phoneVerified: false, marketplaceMissing: [], completionMissing: [] });
 
     // Best-effort backend call — invalidates the HttpOnly refresh cookie.
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
@@ -273,12 +284,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const current = get().user;
       if (!current) throw new Error('Not authenticated');
       setApiToken(data.accessToken);
+      // Persist the re-scoped token: a reload restores the session from sessionStorage,
+      // and without this it would come back as the previous role.
+      saveAccessToken(data.accessToken);
       set({
         accessToken: data.accessToken,
         user: { ...current, activeRole: data.activeRole, roles: data.roles },
         loading: false,
         error: null,
       });
+      // Profile completion / marketplace gates are per active role — re-read them.
+      void refreshUserMe(set, get);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Role switch failed';
       set({ loading: false, error: msg });
@@ -426,6 +442,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           set({ user: jwtUser, accessToken: stored, loading: false, error: null,
             profileCompletion: cached.profileCompletion,
             profileStep:       cached.profileStep });
+          setAuthCookie();
           refreshUserMe(set, get);
           return;
         }
@@ -450,9 +467,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           activeRole:  refresh.activeRole,
         };
 
-        if (typeof document !== 'undefined') {
-          document.cookie = 'shiftify_is_auth=true; path=/; max-age=604800; SameSite=Lax';
-        }
+        setAuthCookie();
 
         // Render the dashboard immediately with JWT-derived user data.
         set({ user: jwtUser, accessToken: refresh.accessToken, loading: false, error: null });

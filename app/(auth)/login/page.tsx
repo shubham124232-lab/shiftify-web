@@ -3,6 +3,8 @@
 import { useState, useRef, FormEvent, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { peekResumableDraft } from '@/lib/store/guestJobDraft';
+import { TIER_META } from '@/lib/types/posting';
 import AuthLayout from '@/components/auth/AuthLayout';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { api } from '@/lib/api';
@@ -313,7 +315,9 @@ function LoginContent() {
       // initialized state (phoneVerified, profileStep) after /users/me loads.
       router.replace('/dashboard');
     } else {
-      router.replace(next);
+      // Logged in while a request was half-filled as a guest: go back to its review step.
+      const draft = params.get('next') ? null : peekResumableDraft(data.user.activeRole);
+      router.replace(draft ? `/jobs/post/${TIER_META[draft.tier].path}` : next);
     }
   }
 

@@ -80,8 +80,7 @@ export interface User {
 // ─── API response shape ───────────────────────────────────────────────────────
 
 export interface ApiEnvelope<T> {
-  success: boolean;
-  data:    T;
+  data: T;
 }
 
 export interface ApiErrorBody {

@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SAFETY_TIPS = [
-  "Keep all messages and payments inside Shiftify — off-platform arrangements aren't covered by reviews, incident reports or support.",
+  "Shiftify charges only for optional Power Ups. Invoicing and payment for support are arranged directly between you and the other party — Shiftify takes 0% commission and does not verify delivery or process support payments.",
   "Check a worker's or participant's documents and reviews before confirming a shift.",
   "Share exact home addresses only after both sides have mutually confirmed the shift.",
   "For a first shift with someone new, consider a short introductory call before the visit.",

@@ -1,5 +1,6 @@
 "use client";
 
+import { EditDetailsCard } from "@/components/jobs/EditDetailsCard";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
+import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
 import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
+import { RequestDetailsCard } from "@/components/jobs/request-details-card";
 import { URGENCY_STYLE } from "@/lib/constants/job-filters";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -19,10 +22,17 @@ import { ShieldAlert, HeartPulse, Users, KeyRound, PhoneCall, ListChecks, Flag, 
 
 interface Applicant {
   id: string; applicantUserId: string; status: string; createdAt: string;
+  applicantRole?: string; note?: string | null; introduction?: string | null;
+  rateResponse?: string | null; proposedRate?: number | string | null;
+  applicationData?: {
+    providerResponse?: boolean; deliveryOption?: string;
+    serviceCapability?: { services?: string; coverage?: string; complexSupports?: string; continuity?: string };
+    nominatedWorkers?: { id: string; name: string }[];
+  } | null;
   applicant: {
     id: string; name: string; avatarUrl?: string | null;
     workerProfile?: { rating: number; totalReviews: number; hourlyRate: number | string | null; servicesOffered: string[] | null; experienceLevel: string | null; suburb: string | null; state: string | null; travelRadiusKm: number | null } | null;
-    providerProfile?: { averageRating: number; totalRatings: number; coreServices: string[] | null } | null;
+    providerProfile?: { averageRating: number; totalRatings: number; coreServices: string[] | null; businessName?: string | null } | null;
   };
 }
 interface Message   { id: string; senderId: string; senderName: string; body: string; createdAt: string; }
@@ -51,11 +61,14 @@ interface JobDetail {
   totalHours: number | null; status: string; postedAt: string;
   postedBy: { id: string; name: string };
   addressLine?: string | null;
+  postcode?: string | null;
   workerConfirmedAt?: string | null;
+  viewerPermissions?: { canShortlist: boolean; canMessage: boolean; canConfirmBookings: boolean; canManageReplacements: boolean };
   promotedFromCancellation?: boolean;
   selectedApplicant?: { id: string; name: string } | null;
   assignedWorker?: { id: string; name: string } | null;
   applications?: Applicant[];
+  _count?: { applications: number; messages: number };
   locationNotes?: string | null;
   riskSafetyNotes?: string | null;
   medicalNotes?: string | null;
@@ -63,8 +76,24 @@ interface JobDetail {
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
   emergencyContactRelationship?: string | null;
-  workerPreferences?: { safetyFlags?: Record<string, boolean> } | null;
+  workerPreferences?: ({ safetyFlags?: Record<string, boolean> } & Record<string, unknown>) | null;
+  // Posting-journey answers (rendered by RequestDetailsCard).
+  selectedTasks?: unknown;
+  safetyFlags?: Record<string, unknown> | null;
+  fundingType?: string | null;
+  budgetType?: string | null;
+  budgetPerHour?: number | string | null;
+  timeFlexibility?: string | null;
+  requestPurposeCategory?: string | null;
+  recurrencePattern?: Record<string, unknown> | null;
+  isRecurring?: boolean;
+  supportGoal?: string | null;
+  serviceDeliveryMode?: string | null;
+  responsePreferences?: Record<string, unknown> | null;
+  contactPreferences?: Record<string, unknown> | null;
   featuredUntil?: string | null;
+  visibilityTarget?: string | null;
+  applicationDeadlineAt?: string | null;
   meetAndGreets?: MeetAndGreet[];
   changeRequests?: ChangeRequest[];
   closedOutcome?: "FILLED_CONFIRMED" | "CANCELLED" | "NOT_PROCEEDING" | "UNFILLED" | null;
@@ -73,7 +102,7 @@ interface JobDetail {
   workerPrivateNote?: string | null;
 }
 
-interface TeamWorker { id: string; name: string | null; username: string; }
+interface TeamWorker { id: string; name: string | null; username: string; status?: string; }
 interface Review {
   id: string; raterUserId: string; revieweeUserId: string;
   rating: number; comment: string | null; createdAt: string;
@@ -120,6 +149,19 @@ const APP_STATUS_COLOR: Record<string, string> = {
   SELECTED:    "var(--td-ink-700)",
   DECLINED:    "var(--td-pink-hover)",
   WITHDRAWN:   "var(--td-muted)",
+};
+
+const PROVIDER_DELIVERY_LABEL: Record<string, string> = {
+  ORGANISATION_ONLY: "Organisation response — worker nominated later",
+  INTERNAL_WORKER:   "Specific internal worker",
+  SMALL_TEAM:        "Small team",
+  ALTERNATIVE:       "Alternative service proposal",
+};
+const RATE_RESPONSE_LABEL: Record<string, string> = {
+  ACCEPT: "accepts the posted rate", QUOTE_AFTER: "quote after discussion", DISCUSS: "to be discussed",
+};
+const CAPABILITY_LABEL: Record<string, string> = {
+  services: "Services", coverage: "Coverage", complexSupports: "Complex supports", continuity: "Continuity",
 };
 
 // SC journey M03 "Compare responses" — shared by the sequential applicant
@@ -176,6 +218,7 @@ export default function JobDetailPage() {
   const [flagUploading,  setFlagUploading]  = useState(false);
   const [flagSavingDraft, setFlagSavingDraft] = useState(false);
   const [flagDraftSaved, setFlagDraftSaved] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
   const [blocking,       setBlocking]       = useState(false);
   const [blocked,        setBlocked]        = useState(false);
   const [invites,        setInvites]        = useState<JobInvite[]>([]);
@@ -184,6 +227,10 @@ export default function JobDetailPage() {
   const [notifyReplacements, setNotifyReplacements] = useState(true);
   const [cancelSummary, setCancelSummary] = useState<{ promotedTitle: string | null } | null>(null);
   const [compareView, setCompareView] = useState(false);
+  // The detail payload carries the top 10 responses; the rest are paged in on demand.
+  const [moreApps, setMoreApps] = useState<Applicant[]>([]);
+  const [appsPage, setAppsPage] = useState(1);
+  const [loadingMoreApps, setLoadingMoreApps] = useState(false);
   const [showChangeForm, setShowChangeForm] = useState(false);
   const [changeType, setChangeType] = useState("TIME");
   const [changeReason, setChangeReason] = useState("");
@@ -193,6 +240,7 @@ export default function JobDetailPage() {
   const [magTimes, setMagTimes] = useState(["", "", ""]);
   const [magLocation, setMagLocation] = useState("");
   const [magCost, setMagCost] = useState("FREE");
+  const [magTopics, setMagTopics] = useState<string[]>([]);
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeOutcome, setCloseOutcome] = useState("FILLED_CONFIRMED");
   const [closeFeedback, setCloseFeedback] = useState("");
@@ -262,6 +310,14 @@ export default function JobDetailPage() {
       .then(r => setTeamWorkers(r.users ?? []))
       .catch(() => {});
   }, [activeRole]);
+
+  // The organisation already named a worker/team in its response — start the picker on that nominee.
+  useEffect(() => {
+    if (activeRole !== "PROVIDER" || pickedWorkerId || !job || teamWorkers.length === 0) return;
+    const mine = job.applications?.find(a => a.applicantUserId === user?.id);
+    const nominated = (mine?.applicationData as { nominatedWorkerUserIds?: string[] } | undefined)?.nominatedWorkerUserIds?.[0];
+    if (nominated && teamWorkers.some(w => w.id === nominated && (!w.status || w.status === "ACTIVE"))) setPickedWorkerId(nominated);
+  }, [activeRole, job, teamWorkers, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Resume an in-progress incident report for this job instead of starting blank.
   useEffect(() => {
@@ -431,7 +487,8 @@ export default function JobDetailPage() {
 
   // Meet-and-greet propose/respond (Window 29)
   async function submitMeetAndGreet() {
-    const times = magTimes.map(t => t.trim()).filter(Boolean);
+    // datetime-local gives "YYYY-MM-DDTHH:mm" (no offset) — the API requires an ISO instant.
+    const times = magTimes.map(t => t.trim()).filter(Boolean).map(t => new Date(t).toISOString());
     if (times.length === 0) return;
     setActing(true);
     try {
@@ -440,8 +497,10 @@ export default function JobDetailPage() {
         proposedTimes: times,
         location: magLocation.trim() || undefined,
         cost: magCost,
+        topics: magTopics.length ? magTopics : undefined,
       });
       setShowMagForm(false);
+      setMagTopics([]);
       setMagTimes(["", "", ""]);
       setMagLocation("");
       await loadJob();
@@ -513,7 +572,70 @@ export default function JobDetailPage() {
     finally { setFindingReplacement(false); }
   }
 
+  // Live-request controls (SC-O14 / SC-L12) and draft publishing (SC-L11 preview → post).
+  const [replUrgency, setReplUrgency] = useState("");
+  const [replReuse, setReplReuse] = useState<"ALL" | "TIME" | "REQUIREMENTS" | "RATE" | "NEW">("ALL");
+  const [replStart, setReplStart] = useState("");
+  const [replHours, setReplHours] = useState("");
+  const [replRate, setReplRate] = useState("");
+  const [showReplacement, setShowReplacement] = useState(false);
+  const [liveNotice, setLiveNotice] = useState<string | null>(null);
+
+  async function liveAction(path: string, body?: unknown, notice?: string) {
+    setActing(true); setLiveNotice(null);
+    try {
+      if (path === "rebroadcast") await api.post(`/jobs/${id}/rebroadcast`, {});
+      else await api.patch(`/jobs/${id}/${path}`, body ?? {});
+      if (notice) setLiveNotice(notice);
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  async function repeatSupport() {
+    setActing(true);
+    try {
+      const res = await api.post<{ job: { id: string } }>(`/jobs/${id}/duplicate`, {});
+      router.push(`/jobs/${res.job.id}`);
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  async function publishDraft() {
+    setActing(true);
+    setError(null);
+    try {
+      await api.patch(`/jobs/${id}/publish`, {});
+      await loadJob();
+    } catch (e: any) { setError(e.message); }
+    finally { setActing(false); }
+  }
+
+  async function submitReplacement() {
+    if (replReuse === "NEW") { router.push("/jobs/post"); return; }
+    setFindingReplacement(true);
+    try {
+      const body: Record<string, unknown> = {};
+      if (replUrgency) body.urgency = replUrgency;
+      if (replReuse === "TIME") {
+        if (replStart) body.scheduledStartAt = new Date(replStart).toISOString();
+        if (replHours) body.totalHours = Number(replHours);
+      }
+      if (replReuse === "RATE" && replRate) body.budgetPerHour = Number(replRate);
+      if (replReuse === "REQUIREMENTS") body.asDraft = true;
+      const res = await api.post<{ job: { id: string } }>(`/jobs/${id}/replacement`, body);
+      router.push(`/jobs/${res.job.id}`);
+    } catch (e: any) { setError(e.message); }
+    finally { setFindingReplacement(false); }
+  }
+
   async function featureShift() {
+    const info = FEATURED_SHIFT_INFO[job?.urgency ?? ""];
+    if (info && !window.confirm(
+      `Featured Shift — ${(job?.urgency ?? "").replace("_", "-").toLowerCase()} request
+Board treatment: pinned and labelled Featured ${info.durationLabel}. It never changes genuine urgency ordering.
+Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. Continue?`,
+    )) return;
     setFeaturing(true);
     try {
       await api.post(`/jobs/${id}/featured-shift`, {});
@@ -595,12 +717,34 @@ export default function JobDetailPage() {
   if (!job) return null;
 
   const isOwner  = user?.id === job.postedBy.id;
+  const canShortlist = job.viewerPermissions?.canShortlist ?? true;
+  const canConfirmBookings = job.viewerPermissions?.canConfirmBookings ?? true;
+  const canMessage = job.viewerPermissions?.canMessage ?? true;
+  const canManageReplacements = job.viewerPermissions?.canManageReplacements ?? true;
   const isWorker = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
   const sta = STATUS_STYLE[job.status]  ?? { bg: "var(--td-grey)", color: "var(--td-dark-text-soft)" };
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
-  const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status);
+  const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status) && ["COORDINATOR", "PROVIDER", "SUPPORT_WORKER"].includes(activeRole as string);
+  const allApps: Applicant[] = [
+    ...(job.applications ?? []),
+    ...moreApps.filter(m => !(job.applications ?? []).some(a => a.id === m.id)),
+  ];
+  async function loadMoreApps() {
+    setLoadingMoreApps(true);
+    try {
+      const next = appsPage + 1; // page 1 (10 rows) already came with the job detail
+      const r = await api.get<{ applications: Applicant[] }>(`/jobs/${id}/applications?page=${next}&limit=10`);
+      setMoreApps(prev => [...prev, ...(r.applications ?? [])]);
+      setAppsPage(next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load more responses");
+    } finally {
+      setLoadingMoreApps(false);
+    }
+  }
   const ownApp = isWorker ? job.applications?.find(a => a.applicantUserId === user?.id) : null;
+  const isConnectedWorker = isWorker && (job.selectedApplicant?.id === user?.id || job.assignedWorker?.id === user?.id);
   const needsAssignment =
     activeRole === "PROVIDER" &&
     job.status === "ASSIGNED" &&
@@ -771,6 +915,8 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        <RequestDetailsCard job={job} isOwner={isOwner} />
+
         {/* Care & Safety Notes — visible to poster and worker, shown only if any note was provided */}
         {(() => {
           const checkedFlags = SAFETY_CHECKLIST.filter(f => job.workerPreferences?.safetyFlags?.[f.key]);
@@ -822,23 +968,118 @@ export default function JobDetailPage() {
           );
         })()}
 
-        {/* Manual replacement — cancelled job, outside the automatic 4-hour promotion window (SC-04-05) */}
-        {isOwner && job.status === "CANCELLED" && !job.promotedFromCancellation && (
+        {/* Replacement support (SC-X01–X03) — cancelled job, outside the automatic 4-hour promotion window */}
+        {isOwner && job.status === "CANCELLED" && !job.promotedFromCancellation && canManageReplacements && (
+          <Card>
+            <CardContent className="pt-5 flex flex-col gap-3.5">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">The worker/provider can no longer attend — find a replacement?</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Choose how quickly replacement support is needed and what to reuse from the original request.</p>
+                </div>
+                {!showReplacement && <Button onClick={() => setShowReplacement(true)}>Find replacement</Button>}
+              </div>
+              {showReplacement && (
+                <div className="flex flex-col gap-3 border border-slate-200 rounded-lg p-3.5 bg-slate-50">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">How quickly is replacement support needed?</label>
+                    <select value={replUrgency} onChange={e => setReplUrgency(e.target.value)} className="h-9 px-2.5 border border-slate-200 rounded-md text-sm w-full">
+                      <option value="">Keep original timing type</option>
+                      <option value="RAPID">Rapid — within 60 minutes</option>
+                      <option value="URGENT">Urgent — within 4 hours</option>
+                      <option value="LAST_MINUTE">Last-Minute — within 48 hours</option>
+                      <option value="ROUTINE">Routine replacement — more than 48 hours</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-600 block mb-1">Would you like to reuse the original request?</label>
+                    <select value={replReuse} onChange={e => setReplReuse(e.target.value as typeof replReuse)} className="h-9 px-2.5 border border-slate-200 rounded-md text-sm w-full">
+                      <option value="ALL">Use all original details</option>
+                      <option value="TIME">Change time/duration</option>
+                      <option value="REQUIREMENTS">Change requirements</option>
+                      <option value="RATE">Change rate</option>
+                      <option value="NEW">Start a new request</option>
+                    </select>
+                  </div>
+                  {replReuse === "TIME" && (
+                    <div className="flex gap-2.5 flex-wrap">
+                      <input type="datetime-local" value={replStart} onChange={e => setReplStart(e.target.value)} className="h-9 px-2.5 border border-slate-200 rounded-md text-sm" />
+                      <input type="number" min="0.5" step="0.5" placeholder="Hours" value={replHours} onChange={e => setReplHours(e.target.value)} className="h-9 px-2.5 border border-slate-200 rounded-md text-sm w-28" />
+                    </div>
+                  )}
+                  {replReuse === "RATE" && (
+                    <input type="number" min="1" step="0.01" placeholder="Rate per hour ($)" value={replRate} onChange={e => setReplRate(e.target.value)} className="h-9 px-2.5 border border-slate-200 rounded-md text-sm w-48" />
+                  )}
+                  {replReuse === "REQUIREMENTS" && (
+                    <p className="text-xs text-slate-500 m-0">Saved as a draft so you can review it before it goes live.</p>
+                  )}
+                  <div className="flex gap-2.5">
+                    <Button onClick={submitReplacement} disabled={findingReplacement}>
+                      {findingReplacement ? "Creating…" : replReuse === "NEW" ? "Start new request" : "Review replacement"}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setShowReplacement(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Draft (SC-L11 / PR-C01) — preview of what will be published; not visible to workers yet */}
+        {isOwner && job.status === "DRAFT" && (
           <Card>
             <CardContent className="pt-5 flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-sm font-semibold text-slate-800">Need a replacement for this cancelled request?</p>
-                <p className="text-xs text-slate-500 mt-0.5">Creates a new open request with the same details — you can adjust anything before publishing.</p>
+                <p className="text-sm font-semibold text-slate-800">Draft — not yet visible to workers</p>
+                <p className="text-xs text-slate-500 mt-0.5">Review the details on this page. A request uses one action only when you publish it.</p>
               </div>
-              <Button onClick={findReplacement} disabled={findingReplacement}>
-                {findingReplacement ? "Creating…" : "Find Replacement"}
-              </Button>
+              <Button disabled={acting} onClick={publishDraft}>Publish request</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Edit essential details (R-11 / U-11 / L-12 / O-14) — poster, draft or open with nobody selected */}
+        {isOwner && (job.status === "DRAFT" || (job.status === "OPEN" && !job.selectedApplicant)) && (
+          <EditDetailsCard key={`${job.id}-${job.scheduledStartAt}-${job.suburb}`} job={job} onSaved={loadJob} />
+        )}
+
+        {/* Live request controls (SC-O14 / SC-L12 / SC-M02) */}
+        {isOwner && job.status === "OPEN" && (activeRole === "COORDINATOR" || activeRole === "PROVIDER" || activeRole === "PARTICIPANT") && (
+          <Card>
+            <CardHeader><CardTitle>Manage live request</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2.5">
+              {job.visibilityTarget?.startsWith("PAUSED:") && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 m-0">
+                  Paused — hidden from the boards and not accepting new connections.
+                </p>
+              )}
+              <div className="flex gap-2.5 flex-wrap">
+                {job.visibilityTarget?.startsWith("PAUSED:") ? (
+                  <Button size="sm" variant="outline" disabled={acting} onClick={() => liveAction("resume", {}, "Request resumed.")}>Resume</Button>
+                ) : (
+                  <Button size="sm" variant="outline" disabled={acting} onClick={() => liveAction("pause", {}, "Request paused.")}>Pause</Button>
+                )}
+                {activeRole !== "PARTICIPANT" && (
+                  <>
+                    <Button size="sm" variant="outline" disabled={acting} onClick={() => liveAction("extend", { hours: 24 }, "Response window extended by 24 hours.")}>Extend 24h</Button>
+                    <Button size="sm" variant="outline" disabled={acting} onClick={() => liveAction("rebroadcast", undefined, "Rebroadcast sent to matching professionals.")}>Rebroadcast</Button>
+                    <Button size="sm" variant="outline" disabled={acting} onClick={repeatSupport}>Repeat</Button>
+                  </>
+                )}
+                {activeRole !== "PARTICIPANT" && (
+                  <Button size="sm" variant="outline" disabled={acting} onClick={() => setShowCancelModal(true)}>Close request</Button>
+                )}
+              </div>
+              {liveNotice && <p className="text-xs text-emerald-700 m-0">{liveNotice}</p>}
+              {job.applicationDeadlineAt && (
+                <p className="text-xs text-slate-500 m-0">Responses accepted until {new Date(job.applicationDeadlineAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}.</p>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Close connection (SW doc Window 38) — marketplace outcome tag, not proof of delivery/payment */}
-        {isOwner && (
+        {(isOwner || isConnectedWorker) && (
           <Card>
             <CardHeader className="flex items-center justify-between flex-row">
               <CardTitle>Close connection</CardTitle>
@@ -880,16 +1121,31 @@ export default function JobDetailPage() {
           </Card>
         )}
 
+        {/* Payment information (SW v3.0 Window 41) — boundary only, no payment tracking */}
+        {isConnectedWorker && (
+          <Card>
+            <CardHeader><CardTitle>Payment information</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-1.5">
+              <p className="text-sm text-slate-600 m-0">
+                Arrange invoicing and payment directly with the participant, nominee, provider, Support Coordinator or Plan Manager as applicable.
+              </p>
+              <p className="text-xs text-slate-500 m-0">
+                Shiftify takes 0% commission and does not deduct a percentage from your agreed support amount.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Owner actions */}
         {isOwner && (
           <Card>
             <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {job.status === "IN_PROGRESS" && (
+              {job.status === "COMPLETED" && (
                 <Button variant="outline" disabled={acting} onClick={() => jobAction("confirm")}>Confirm Completion</Button>
               )}
               {["OPEN", "ASSIGNED"].includes(job.status) && (
-                <Button variant="outline" disabled={acting} onClick={() => setShowCancelModal(true)}>Cancel Job</Button>
+                <Button variant="outline" disabled={acting} onClick={() => setShowCancelModal(true)}>Cancel request</Button>
               )}
               {canInvoice && (
                 <Button variant="outline" onClick={() => router.push(`/jobs/${id}/invoice`)}>Create Invoice</Button>
@@ -925,10 +1181,22 @@ export default function JobDetailPage() {
         {/* Worker: apply or show own application status */}
         {isWorker && !ownApp && job.status === "OPEN" && (
           <Card>
-            <CardHeader><CardTitle>Connect to this support request</CardTitle></CardHeader>
+            <CardHeader><CardTitle>{activeRole === "PROVIDER" ? "Respond to this request" : "Connect to this support request"}</CardTitle></CardHeader>
             <CardContent className="flex gap-2.5 items-center">
-              <Button onClick={() => setShowApply(true)}>Connect</Button>
-              <span className="text-[13px] text-slate-400">Review, confirm you're available and meet the requirements, and Connect — takes under a minute</span>
+              <Button onClick={() => setShowApply(true)}>{activeRole === "PROVIDER" ? "Respond as Provider" : "Connect"}</Button>
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  try {
+                    if (bookmarked) await api.delete(`/jobs/${job.id}/save`);
+                    else await api.patch(`/jobs/${job.id}/save`, { saved: true });
+                    setBookmarked(!bookmarked);
+                  } catch { /* the list page shows save errors; the detail page stays quiet */ }
+                }}
+              >
+                {bookmarked ? "★ Saved" : "☆ Save"}
+              </Button>
+              <span className="text-[13px] text-slate-400">{activeRole === "PROVIDER" ? "Confirm your organisation can service this request, choose how you'd deliver it, and introduce your organisation" : "Review, confirm you're available and meet the requirements, and Connect — takes under a minute"}</span>
             </CardContent>
           </Card>
         )}
@@ -940,10 +1208,10 @@ export default function JobDetailPage() {
             borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12,
           }}>
             <span style={{ fontSize: 13, color: APP_STATUS_COLOR[ownApp.status] ?? "var(--td-dark-text-soft)", flex: 1 }}>
-              {ownApp.status === "WITHDRAWN" ? "You withdrew your application."
-                : ownApp.status === "DECLINED" ? "Your application was declined."
-                : ownApp.status === "SELECTED" ? "You have been selected for this job."
-                : `Application submitted — status: ${ownApp.status}`}
+              {ownApp.status === "WITHDRAWN" ? (activeRole === "PROVIDER" ? "You withdrew your response." : "You withdrew your connection.")
+                : ownApp.status === "DECLINED" ? "Your connection was not taken forward."
+                : ownApp.status === "SELECTED" ? "The initiator has selected you — review the arrangement and accept to confirm the support."
+                : `Connected — status: ${ownApp.status.toLowerCase().replace("_"," ")}`}
             </span>
             {!["SELECTED", "WITHDRAWN", "DECLINED"].includes(ownApp.status) && (
               <Button size="sm" variant="outline" disabled={acting}
@@ -972,7 +1240,7 @@ export default function JobDetailPage() {
                     style={{ height: 36, padding: "0 10px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 13 }}
                   >
                     <option value="">Select a worker...</option>
-                    {teamWorkers.map(w => (
+                    {teamWorkers.filter(w => !w.status || w.status === "ACTIVE").map(w => (
                       <option key={w.id} value={w.id}>{w.name || w.username}</option>
                     ))}
                   </select>
@@ -986,7 +1254,18 @@ export default function JobDetailPage() {
         )}
 
         {/* Worker's 3-way response to a confirmed selection (SW doc Window 30) */}
-        {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && !job.workerConfirmedAt && (
+        {isWorker && user?.accountType === "MANAGED" && job.assignedWorker?.id === user?.id && job.status === "ASSIGNED" && !job.workerConfirmedAt && (
+          <Card>
+            <CardHeader><CardTitle>Awaiting your organisation&apos;s confirmation</CardTitle></CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-700 m-0">
+                Your organisation confirms this assignment on your behalf. The exact address and participant contact details are released to you once they have confirmed.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {isWorker && user?.accountType !== "MANAGED" && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && !job.workerConfirmedAt && (
           <Card>
             <CardHeader><CardTitle>Your confirmed support</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-3">
@@ -1059,8 +1338,9 @@ export default function JobDetailPage() {
           </Card>
         )}
 
-        {/* Meet-and-greet (SW doc Window 29) — offered while OPEN or ASSIGNED-unconfirmed */}
-        {["OPEN", "ASSIGNED"].includes(job.status) && (isOwner || ownApp || job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && (
+        {/* Meet-and-greet (SW doc Window 29) — optional introduction for Last-Minute or Routine only,
+            offered while OPEN or ASSIGNED-unconfirmed */}
+        {["LAST_MINUTE", "ROUTINE"].includes(job.urgency) && ["OPEN", "ASSIGNED"].includes(job.status) && (isOwner || ownApp || job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && (
           <Card>
             <CardHeader className="flex items-center justify-between flex-row">
               <CardTitle>Meet-and-greet</CardTitle>
@@ -1090,6 +1370,15 @@ export default function JobDetailPage() {
                     <option value="AGREED_RATE">Agreed rate</option>
                     <option value="DISCUSS">To discuss</option>
                   </select>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {([["SUPPORT_NEEDS", "Support needs"], ["SCHEDULE", "Schedule"], ["RATE", "Rate"], ["COMPATIBILITY", "Compatibility"], ["QUESTIONS", "Questions"]] as const).map(([v, label]) => (
+                      <label key={v} className="flex items-center gap-1.5 text-sm text-slate-600">
+                        <input type="checkbox" checked={magTopics.includes(v)}
+                          onChange={e => setMagTopics(arr => e.target.checked ? [...arr, v] : arr.filter(x => x !== v))} />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
                   <div className="flex gap-2.5">
                     <Button size="sm" disabled={acting || !magTimes.some(t => t.trim())} onClick={submitMeetAndGreet}>Send proposal</Button>
                     <Button size="sm" variant="ghost" onClick={() => setShowMagForm(false)}>Cancel</Button>
@@ -1315,18 +1604,18 @@ export default function JobDetailPage() {
         )}
 
         {/* Applicants (owner only) */}
-        {isOwner && job.applications && job.applications.length > 0 && (
+        {isOwner && allApps.length > 0 && (
           <Card>
             <CardHeader className="flex items-center justify-between flex-row">
-              <CardTitle>Applicants ({job.applications.length})</CardTitle>
-              {job.applications.length > 1 && (
+              <CardTitle>Responses ({job._count?.applications ?? allApps.length})</CardTitle>
+              {allApps.length > 1 && (
                 <Button size="sm" variant="outline" onClick={() => setCompareView(v => !v)}>
                   {compareView ? "List view" : "Compare"}
                 </Button>
               )}
             </CardHeader>
             <CardContent>
-              {compareView && job.applications.length > 1 ? (
+              {compareView && allApps.length > 1 ? (
                 /* SC journey M03 — side-by-side comparison instead of scrolling a sequential list */
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse min-w-[560px]">
@@ -1343,7 +1632,7 @@ export default function JobDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {job.applications.map(app => {
+                      {allApps.map(app => {
                         const { rating, reviewCount, rate, skillLabels, coverage } = applicantDisplay(app);
                         return (
                           <tr key={app.id} className="border-b border-slate-100 align-top">
@@ -1366,11 +1655,11 @@ export default function JobDetailPage() {
                               <td className="py-2.5 pr-3">
                                 {["INTERESTED", "SHORTLISTED"].includes(app.status) ? (
                                   <div className="flex gap-1.5">
-                                    {app.status === "INTERESTED" && (
+                                    {app.status === "INTERESTED" && canShortlist && (
                                       <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "shortlist")} style={{ borderColor: "var(--td-muted-dark)", color: "var(--td-muted-dark)" }}>Shortlist</Button>
                                     )}
-                                    <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>Select</Button>
-                                    <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "decline")} style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>Decline</Button>
+                                    {canConfirmBookings && <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>Select</Button>}
+                                    {canShortlist && <Button size="sm" variant="outline" disabled={acting} onClick={() => appAction(app.id, "decline")} style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>Decline</Button>}
                                   </div>
                                 ) : "—"}
                               </td>
@@ -1383,7 +1672,7 @@ export default function JobDetailPage() {
                 </div>
               ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {job.applications.map(app => {
+                {allApps.map(app => {
                   const { rating, reviewCount, rate, skillLabels, coverage } = applicantDisplay(app);
                   const wp = app.applicant.workerProfile;
                   const reviews = reviewCount;
@@ -1398,8 +1687,11 @@ export default function JobDetailPage() {
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <Link href={`/profile/${app.applicantUserId}`} style={{ fontSize: 14, fontWeight: 600, color: "var(--td-ink-800)", textDecoration: "none" }} className="hover:underline">
-                        {app.applicant.name}
+                        {app.applicantRole === "PROVIDER" ? (app.applicant.providerProfile?.businessName || app.applicant.name) : app.applicant.name}
                       </Link>
+                      {app.applicantRole === "PROVIDER" && (
+                        <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: "var(--td-grey)", color: "var(--td-dark-text-soft)" }}>Organisation response</span>
+                      )}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
                         {reviews > 0 && (
                           <span style={{ fontSize: 12, color: "var(--td-ink-700)", fontWeight: 600 }}>★ {rating.toFixed(1)} ({reviews})</span>
@@ -1419,27 +1711,47 @@ export default function JobDetailPage() {
                           ))}
                         </div>
                       )}
+                      {app.applicationData?.providerResponse && (
+                        <div style={{ fontSize: 12, color: "var(--td-ink-700)", marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                          <span>Delivery: {PROVIDER_DELIVERY_LABEL[app.applicationData.deliveryOption ?? ""] ?? "Organisation response"}
+                            {(app.applicationData.nominatedWorkers?.length ?? 0) > 0 && ` — ${app.applicationData.nominatedWorkers!.map(w => w.name).join(", ")}`}
+                          </span>
+                          {app.rateResponse && (
+                            <span>Rate: {app.rateResponse === "OFFER_OWN" && app.proposedRate != null ? `$${Number(app.proposedRate).toFixed(2)}/hr proposed` : (RATE_RESPONSE_LABEL[app.rateResponse] ?? app.rateResponse)}</span>
+                          )}
+                          {Object.entries(app.applicationData.serviceCapability ?? {}).filter(([, v]) => v).map(([k, v]) => (
+                            <span key={k}>{CAPABILITY_LABEL[k] ?? k}: {v}</span>
+                          ))}
+                        </div>
+                      )}
+                      {(app.introduction || app.note) && (
+                        <div style={{ fontSize: 12, color: "var(--td-ink-700)", marginTop: 4, fontStyle: "italic" }}>“{app.introduction || app.note}”</div>
+                      )}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "var(--td-muted)" }}>
                       {app.status}
                     </span>
                     {job.status === "OPEN" && ["INTERESTED", "SHORTLISTED"].includes(app.status) && (
                       <div style={{ display: "flex", gap: 6 }}>
-                        {app.status === "INTERESTED" && (
+                        {app.status === "INTERESTED" && canShortlist && (
                           <Button size="sm" variant="outline" disabled={acting}
                             onClick={() => appAction(app.id, "shortlist")}
                             style={{ borderColor: "var(--td-muted-dark)", color: "var(--td-muted-dark)" }}>
                             Shortlist
                           </Button>
                         )}
-                        <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>
-                          Select
-                        </Button>
-                        <Button size="sm" variant="outline" disabled={acting}
-                          onClick={() => appAction(app.id, "decline")}
-                          style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>
-                          Decline
-                        </Button>
+                        {canConfirmBookings && (
+                          <Button size="sm" disabled={acting} onClick={() => appAction(app.id, "select")}>
+                            Select
+                          </Button>
+                        )}
+                        {canShortlist && (
+                          <Button size="sm" variant="outline" disabled={acting}
+                            onClick={() => appAction(app.id, "decline")}
+                            style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>
+                            Decline
+                          </Button>
+                        )}
                       </div>
                     )}
                     {wp && !["DRAFT", "CANCELLED", "CONFIRMED"].includes(job.status) &&
@@ -1453,6 +1765,13 @@ export default function JobDetailPage() {
                   );
                 })}
               </div>
+              )}
+              {(job._count?.applications ?? 0) > allApps.length && (
+                <div style={{ marginTop: 12, textAlign: "center" }}>
+                  <Button size="sm" variant="outline" disabled={loadingMoreApps} onClick={loadMoreApps}>
+                    {loadingMoreApps ? "Loading…" : `Show more responses (${(job._count?.applications ?? 0) - allApps.length} more)`}
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -1522,15 +1841,16 @@ export default function JobDetailPage() {
           <div className="flex items-center gap-2 border-t border-slate-100 bg-slate-50/50 px-6 py-4">
             <input
               value={msgBody}
+              disabled={!canMessage}
               onChange={e => setMsgBody(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()}
-              placeholder="Type a message…"
+              placeholder={canMessage ? "Type a message…" : "The participant has not given you messaging permission"}
               className="h-11 flex-1 rounded-full border border-slate-200 bg-white px-4 text-[13.5px] text-slate-900 transition-colors placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
             />
             <button
               type="button"
               onClick={sendMessage}
-              disabled={sending || !msgBody.trim()}
+              disabled={!canMessage || sending || !msgBody.trim()}
               aria-label="Send message"
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             >
@@ -1687,7 +2007,18 @@ export default function JobDetailPage() {
         </div>
       )}
 
-      {showApply && (
+      {showApply && activeRole === "PROVIDER" && (
+        <ProviderRespondModal
+          job={{
+            id: job.id, title: job.title, suburb: job.suburb, state: job.state,
+            scheduledStartAt: job.scheduledStartAt, scheduledEndAt: job.scheduledEndAt,
+          }}
+          onClose={() => setShowApply(false)}
+          onSuccess={() => { setShowApply(false); loadJob(); }}
+        />
+      )}
+
+      {showApply && activeRole !== "PROVIDER" && (
         <ApplyModal
           job={{
             id: job.id, title: job.title, suburb: job.suburb, state: job.state,

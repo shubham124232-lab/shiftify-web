@@ -40,7 +40,6 @@ const PAGE_SIZE = 20;
 interface Filters { suburb: string; state: string; }
 const EMPTY_FILTERS: Filters = { suburb: "", state: "" };
 
-type DirectConnectState = "NONE" | "PENDING" | "ACCEPTED" | "DECLINED" | "SENDING";
 type JobInviteState = "NONE" | "SENDING" | "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN";
 
 function WorkerCard({
@@ -52,8 +51,6 @@ function WorkerCard({
   isSaved,
   saving,
   onToggleSave,
-  connectState,
-  onConnect,
   forJobId,
   jobInviteState,
   onInvite,
@@ -66,8 +63,6 @@ function WorkerCard({
   isSaved: boolean;
   saving: boolean;
   onToggleSave: (workerUserId: string, currentlySaved: boolean) => void;
-  connectState: DirectConnectState;
-  onConnect: (workerUserId: string) => void;
   forJobId: string | null;
   jobInviteState: JobInviteState;
   onInvite: (workerUserId: string) => void;
@@ -94,23 +89,6 @@ function WorkerCard({
             >
               {saving ? "..." : isSaved ? "★ Saved" : "☆ Save"}
             </Button>
-          )}
-          {isProvider && connectState === "NONE" && (
-            <Button size="sm" variant="outline" onClick={() => onConnect(worker.userId)}>
-              Direct Connect
-            </Button>
-          )}
-          {isProvider && connectState === "SENDING" && (
-            <Button size="sm" variant="outline" disabled>Sending…</Button>
-          )}
-          {isProvider && connectState === "PENDING" && (
-            <span className="text-xs font-semibold text-amber-600">Invite sent</span>
-          )}
-          {isProvider && connectState === "ACCEPTED" && (
-            <span className="text-xs font-semibold text-emerald-600">Connected</span>
-          )}
-          {isProvider && connectState === "DECLINED" && (
-            <span className="text-xs font-semibold text-slate-400">Declined</span>
           )}
           {forJobId && (isCoordinator || isProvider || isParticipant) && jobInviteState === "NONE" && (
             <Button size="sm" variant="outline" onClick={() => onInvite(worker.userId)}>
@@ -164,11 +142,6 @@ function WorkerCard({
   );
 }
 
-interface DirectConnectRequest {
-  status: "PENDING" | "ACCEPTED" | "DECLINED";
-  worker: { id: string };
-}
-
 interface SavedProfessionalSummary { professionalUserId: string }
 
 export default function BrowseWorkersPage() {
@@ -189,20 +162,8 @@ export default function BrowseWorkersPage() {
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [connectStates, setConnectStates] = useState<Record<string, DirectConnectState>>({});
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isProvider) return;
-    api.get<{ requests: DirectConnectRequest[] }>("/direct-connect")
-      .then(r => {
-        const next: Record<string, DirectConnectState> = {};
-        for (const req of r.requests ?? []) next[req.worker.id] = req.status;
-        setConnectStates(next);
-      })
-      .catch(() => { /* non-fatal — button just starts from NONE */ });
-  }, [isProvider]);
 
   function loadSaved() {
     if (!canSave) return;
@@ -226,7 +187,7 @@ export default function BrowseWorkersPage() {
 
   function sendJobInvite(workerUserId: string) {
     if (!forJobId) return;
-    if (isProvider && !window.confirm("Direct Connect for this shift costs $9.99, charged only if the worker accepts. Continue?")) return;
+    if (isProvider && !window.confirm("You will not be charged for sending this invitation. If the worker accepts and the private connection opens, $9.99 will be charged. A connection does not guarantee that the worker will accept, perform or complete the shift. Send the Direct Connect invitation?")) return;
     setJobInviteStates(s => ({ ...s, [workerUserId]: "SENDING" }));
     api.post(`/job-invites/${forJobId}`, { invitedUserId: workerUserId })
       .then(() => setJobInviteStates(s => ({ ...s, [workerUserId]: "PENDING" })))
@@ -251,16 +212,6 @@ export default function BrowseWorkersPage() {
     } finally {
       setSavingId(null);
     }
-  }
-
-  function sendDirectConnect(workerUserId: string) {
-    setConnectStates(s => ({ ...s, [workerUserId]: "SENDING" }));
-    api.post("/direct-connect", { workerUserId })
-      .then(() => setConnectStates(s => ({ ...s, [workerUserId]: "PENDING" })))
-      .catch(e => {
-        setConnectStates(s => ({ ...s, [workerUserId]: "NONE" }));
-        setError(e instanceof Error ? e.message : "Could not send the invite");
-      });
   }
 
   const load = useCallback((f: Filters, p: number) => {
@@ -299,6 +250,12 @@ export default function BrowseWorkersPage() {
       <div className="mx-auto max-w-6xl px-5 py-6">
         {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+
+        {isProvider && !forJobId && (
+          <div className="mb-4 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-sm text-slate-600">
+            Direct Connect is shift-specific. Open one of your active staffing requests and choose &ldquo;Find workers&rdquo; to invite a worker to that shift.
+          </div>
+        )}
 
         <Card className="mb-4">
           <CardContent className="py-4 px-4">
@@ -342,8 +299,6 @@ export default function BrowseWorkersPage() {
                   isSaved={savedIds.has(w.userId)}
                   saving={savingId === w.userId}
                   onToggleSave={toggleSave}
-                  connectState={connectStates[w.userId] ?? "NONE"}
-                  onConnect={sendDirectConnect}
                   forJobId={forJobId}
                   jobInviteState={jobInviteStates[w.userId] ?? "NONE"}
                   onInvite={sendJobInvite}

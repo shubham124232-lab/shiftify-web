@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import {
   WizardScreen, RadioCards, PersonStep, ProviderRateStep, ProviderLocationExtras, ProviderSafetyExtras, ProviderVisibilityPreview, applyProviderContext, providerRateSummary, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
   ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
@@ -41,7 +42,7 @@ const DURATION_LABELS: Record<Duration, string> = {
   "30MIN": "30 minutes", "1HR": "1 hour", "2HR": "2 hours", "3HR": "3 hours", "4HR_PLUS": "4+ hours", NOT_SURE: "Not sure",
 };
 
-export default function RapidJourney() {
+function RapidJourneyBase() {
   const router = useRouter();
   const { activeRole, isAuth } = useAuth();
   const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
@@ -329,4 +330,11 @@ export default function RapidJourney() {
       )}
     </WizardScreen>
   );
+}
+
+// Providers have their own staffing-request journey (Provider doc PR-R01–R05); every other role uses this one.
+export default function RapidJourney() {
+  const { activeRole } = useAuth();
+  if (activeRole === "PROVIDER") return <ProviderStaffingWizard tier="RAPID" />;
+  return <RapidJourneyBase />;
 }

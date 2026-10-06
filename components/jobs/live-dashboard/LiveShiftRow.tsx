@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuth } from '@/hooks/useAuth';
 import type { CSSProperties } from 'react';
 import { EyeOff, Star } from 'lucide-react';
 import type { Job } from '@/components/jobs/job-card';
@@ -20,6 +21,7 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
   onToggleSave: () => void;
   onToggleHide: () => void;
 }) {
+  const { activeRole } = useAuth();
   const urgency = (job.urgency in SHIFTBOARD_URGENCY ? job.urgency : 'ROUTINE') as ShiftboardUrgency;
   const urg = SHIFTBOARD_URGENCY[urgency];
   const category = findCategory(job.category);
@@ -34,9 +36,10 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
 
   // Every state is real: who owns the request, whether this account may
   // apply, and whether it already has.
-  const status = isOwner ? 'Your request' : applied ? 'Application sent' : null;
+  const provider = activeRole === 'PROVIDER';
+  const status = isOwner ? 'Your request' : applied ? (provider ? 'Response sent' : 'Connected') : null;
   const primary = !isOwner && !applied && canApply;
-  const cta = isOwner ? 'Manage' : primary ? 'View & Connect' : 'View shift';
+  const cta = isOwner ? 'Manage' : primary ? (provider ? 'View & Respond' : 'View & Connect') : 'View shift';
 
   return (
     <article

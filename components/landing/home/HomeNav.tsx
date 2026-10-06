@@ -79,9 +79,10 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
                 Live shiftboard
               </a>
             )}
+            <a href="/login" className="sf-nav-board">Log In</a>
             <a href="/register" className="sf-btn sf-btn-pink sf-btn-sm">
-              <i className="bi bi-send-fill" aria-hidden="true" />
-              Request support
+              <i className="bi bi-person-plus-fill" aria-hidden="true" />
+              Join Shiftify
             </a>
             <button
               type="button"
@@ -100,7 +101,8 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
             <a key={l.label} href={l.href} onClick={() => setOpen(false)}>{l.label}</a>
           ))}
           {!hideBoardLink && <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>}
-          <a href="/register" className="sf-btn sf-btn-pink">Request support</a>
+          <a href="/login" onClick={() => setOpen(false)}>Log In</a>
+          <a href="/register" className="sf-btn sf-btn-pink">Join Shiftify</a>
         </div>
       </div>
     </div>

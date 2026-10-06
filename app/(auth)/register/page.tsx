@@ -25,10 +25,10 @@ import { TIER_META } from '@/lib/types/posting';
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
 const ROLE_CARDS = [
-  { value: UserRole.PARTICIPANT,    label: 'Participant',    tagline: 'I need disability support services',   icon: 'bi-person-heart'        },
-  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker', tagline: 'I provide direct care & support',      icon: 'bi-hand-thumbs-up-fill' },
-  { value: UserRole.PROVIDER,       label: 'Provider',       tagline: 'Organisation delivering support services', icon: 'bi-building-fill-check' },
-  { value: UserRole.COORDINATOR,    label: 'Coordinator',    tagline: 'I coordinate support for participants', icon: 'bi-diagram-3-fill'      },
+  { value: UserRole.PARTICIPANT,    label: 'Participant or Representative', tagline: 'Find support for yourself or someone you represent', icon: 'bi-person-heart'        },
+  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker', tagline: 'Find suitable shifts and support opportunities', icon: 'bi-hand-thumbs-up-fill' },
+  { value: UserRole.PROVIDER,       label: 'NDIS Provider',   tagline: 'Fill roster gaps, find service opportunities and advertise capacity', icon: 'bi-building-fill-check' },
+  { value: UserRole.COORDINATOR,    label: 'Support Coordinator', tagline: 'Find workers or Providers for Participants', icon: 'bi-diagram-3-fill'      },
   { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager',   tagline: 'I manage plan funding & budgets',       icon: 'bi-calculator-fill'     },
 ];
 
@@ -136,7 +136,16 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
   );
 }
 
-type Phase = 'role'|'details'|'plan'|'payment'|'wizard';
+type Phase = 'role'|'details'|'plan'|'payment'|'wizard'|'goal';
+
+// Provider PR-S03 — after verification the Provider picks the first thing they want to do.
+const PROVIDER_GOALS = [
+  { href: '/jobs/post',              icon: 'bi-people-fill',      title: 'Fill a staffing gap',            text: 'Post a Rapid, Urgent, Last-Minute or Routine staffing request.' },
+  { href: '/jobs',                   icon: 'bi-search',           title: 'Find support opportunities',     text: 'Browse participant and coordinator requests you can respond to.' },
+  { href: '/provider/post-service',  icon: 'bi-megaphone-fill',   title: 'Advertise services or capacity', text: 'Tell the marketplace what you can take on right now.' },
+  { href: '/provider/sil-vacancy',   icon: 'bi-house-heart-fill', title: 'List a SIL, SDA or Home and Living vacancy', text: 'Advertise a housing vacancy.' },
+] as const;
+type ProviderRegStatus = 'REGISTERED' | 'UNREGISTERED' | 'PENDING' | '';
 interface ApiPlan {
   id: string; key?: string;
   name?: string; label?: string;       // backend sends `name`
@@ -164,6 +173,15 @@ function RegisterPageInner() {
   const [phase,       setPhase]       = useState<Phase>('role');
   const [role,        setRole]        = useState<UserRole|null>(null);
   const [termsChecked, setTermsChecked] = useState(false);
+  // Provider-only account fields (PR-S01)
+  const [businessName, setBusinessName] = useState('');
+  const [abn,          setAbn]          = useState('');
+  const [regStatus,    setRegStatus]    = useState<ProviderRegStatus>('');
+  const [ndisNumber,   setNdisNumber]   = useState('');
+  const [conductChecked, setConductChecked] = useState(false);
+  const [authRepChecked, setAuthRepChecked] = useState(false);
+  // PR-S02: an existing Provider business with the same ABN is detected after verification.
+  const [existingBusiness, setExistingBusiness] = useState(false);
 
   // Homepage role cards (SW doc Window 1) link here with ?role=..., pre-selecting
   // the intent-selection screen (Window 2) below rather than skipping it.
@@ -254,6 +272,14 @@ function RegisterPageInner() {
 
   // Rail: role -> details -> verify. Anything past the OTP modal stays on node 3.
   const railIndex = phase === 'role' ? 0 : phase === 'details' && !showOtp ? 1 : 2;
+  const isProvider = role === UserRole.PROVIDER;
+
+  // The dashboard layout holds a Provider on profile/plan setup until ACTIVE, so remember the goal
+  // and go where the account is allowed to go; the dashboard offers "Continue" once setup is done.
+  function goToGoal(g: { title: string; href: string }) {
+    try { localStorage.setItem('shiftify_provider_goal', JSON.stringify({ title: g.title, href: g.href })); } catch { /* ignore */ }
+    router.replace(g.href);
+  }
 
   function handleRoleNext() {
     if (!role) return;
@@ -301,6 +327,17 @@ function RegisterPageInner() {
     if (password && password !== confirm) errs.confirm = 'Passwords do not match.';
     if (!termsChecked) errs.terms = 'You must agree to the Terms and Privacy Policy to continue.';
 
+    if (role === UserRole.PROVIDER) {
+      if (!email.trim()) errs.email = 'Work email is required.';
+      if (!businessName.trim()) errs.businessName = 'Business or trading name is required.';
+      const abnDigits = abn.replace(/\s/g, '');
+      if (!/^\d{11}$/.test(abnDigits)) errs.abn = 'Enter your 11-digit ABN.';
+      if (!regStatus) errs.regStatus = 'Choose your NDIS registration status.';
+      if (regStatus === 'REGISTERED' && !ndisNumber.trim()) errs.ndisNumber = 'Enter your NDIS registration number.';
+      if (!conductChecked) errs.conduct = 'You must accept the Provider Code of Conduct.';
+      if (!authRepChecked) errs.authRep = 'Confirm you are authorised to represent this business.';
+    }
+
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
     setSubmitting(true);
@@ -346,7 +383,7 @@ function RegisterPageInner() {
       await api.post('/auth/verify/confirm', { channel:'phone', code });
       // Mark phone verified in store immediately — silentInit() returns early when
       // accessToken is already set, so we update the flag directly.
-      useAuthStore.setState({ phoneVerified: true });
+      useAuthStore.getState().markPhoneVerified();
       // Activate free roles immediately after OTP; paid roles activate after payment
       if (FREE_ROLES.has(role!)) {
         await api.post('/subscriptions/activate', {});
@@ -354,6 +391,22 @@ function RegisterPageInner() {
         if (current) useAuthStore.setState({ user: { ...current, status: UserStatus.ACTIVE } });
       }
       setShowOtp(false);
+
+      // Provider: persist the business identity captured on the signup form (PR-S01/S02).
+      if (role === UserRole.PROVIDER) {
+        try {
+          await upsertProfile(UserRole.PROVIDER, {
+            businessName: businessName.trim(),
+            abn: abn.replace(/\s/g, ''),
+            ndisRegistered: regStatus === 'REGISTERED',
+            ...(regStatus === 'REGISTERED' ? { ndisProviderNumber: ndisNumber.trim() } : {}),
+            ...(regStatus === 'PENDING' ? { ndisAuditStatus: 'REGISTRATION_PENDING' } : {}),
+          });
+        } catch (e) {
+          // A second account for the same ABN must not get its own business or its own introductory allowance.
+          if (e instanceof ApiError && e.status === 409) setExistingBusiness(true);
+        }
+      }
 
       // Guest job-post draft saved before registering — send them back to finish
       // posting instead of the profile page. See [[guest-draft-job-post-design]].
@@ -373,6 +426,8 @@ function RegisterPageInner() {
         router.replace(`/jobs/post/${TIER_META[draft.tier].path}`);
         return;
       }
+
+      if (role === UserRole.PROVIDER) { setPhase('goal'); return; }
 
       // Registration ends here — role/details/OTP only. Push straight to /profile
       // for every role (including Participant, who is already ACTIVE by this point
@@ -480,7 +535,8 @@ function RegisterPageInner() {
   // The ink header carries the step title, so no phase repeats it in the body.
   const panelTitle =
     phase === 'role'    ? 'How will you use Shiftify?' :
-    phase === 'details' ? `${roleLabel} details` :
+    phase === 'details' ? (role === UserRole.PROVIDER ? 'Create your Provider account' : `${roleLabel} details`) :
+    phase === 'goal'    ? 'What do you want to do first?' :
     phase === 'wizard'  ? (profileSteps[wizardStep]?.title ?? 'Your profile') :
     phase === 'plan'    ? 'Choose your plan' :
                           'Payment details';
@@ -558,7 +614,7 @@ function RegisterPageInner() {
 
           <button type="button" disabled={!role} onClick={handleRoleNext} className="btn-shiftify"
             style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:'clamp(14px, 2.2vh, 22px)',justifyContent:'center',opacity:role?1:0.45,cursor:role?'pointer':'not-allowed'}}>
-            Continue
+            {role === UserRole.PROVIDER ? 'Continue as Provider' : 'Continue'}
             <i className="bi bi-arrow-right" aria-hidden="true" />
           </button>
         </>
@@ -610,10 +666,46 @@ function RegisterPageInner() {
             </div>
 
             <div>
-              <label style={lbl}>Email <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>
-              <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder="you@example.com" style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
+              {isProvider
+                ? <label style={lbl}>Work email <span style={{color:'#ef4444'}}>*</span></label>
+                : <label style={lbl}>Email <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>}
+              <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder={isProvider ? 'you@yourbusiness.com.au' : 'you@example.com'} style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
               {fieldErrors.email && <p style={err}>{fieldErrors.email}</p>}
             </div>
+
+            {isProvider && (
+              <>
+                <div className="auth-form-row">
+                  <div>
+                    <label style={lbl}>Business or trading name <span style={{color:'#ef4444'}}>*</span></label>
+                    <input type="text" value={businessName} onChange={e=>{setBusinessName(e.target.value);setFieldErrors(p=>({...p,businessName:''}));}} placeholder="e.g. Care Partners Pty Ltd" style={{...inp,borderColor:fieldErrors.businessName?'#ef4444':undefined}} autoComplete="organization" />
+                    {fieldErrors.businessName && <p style={err}>{fieldErrors.businessName}</p>}
+                  </div>
+                  <div>
+                    <label style={lbl}>ABN <span style={{color:'#ef4444'}}>*</span></label>
+                    <input type="text" inputMode="numeric" value={abn} onChange={e=>{setAbn(e.target.value.replace(/[^\d ]/g,''));setFieldErrors(p=>({...p,abn:''}));}} placeholder="11 digits" style={{...inp,borderColor:fieldErrors.abn?'#ef4444':undefined}} />
+                    {fieldErrors.abn && <p style={err}>{fieldErrors.abn}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label style={lbl}>NDIS registration <span style={{color:'#ef4444'}}>*</span></label>
+                  <select value={regStatus} onChange={e=>{setRegStatus(e.target.value as ProviderRegStatus);setFieldErrors(p=>({...p,regStatus:''}));}} style={{...inp,borderColor:fieldErrors.regStatus?'#ef4444':undefined}}>
+                    <option value="">Select…</option>
+                    <option value="REGISTERED">NDIS Registered Provider</option>
+                    <option value="UNREGISTERED">Not registered (plan-managed and self-managed work only)</option>
+                    <option value="PENDING">Registration pending</option>
+                  </select>
+                  {fieldErrors.regStatus && <p style={err}>{fieldErrors.regStatus}</p>}
+                </div>
+                {regStatus === 'REGISTERED' && (
+                  <div>
+                    <label style={lbl}>NDIS registration number <span style={{color:'#ef4444'}}>*</span></label>
+                    <input type="text" value={ndisNumber} onChange={e=>{setNdisNumber(e.target.value);setFieldErrors(p=>({...p,ndisNumber:''}));}} placeholder="e.g. 4050000000" style={{...inp,borderColor:fieldErrors.ndisNumber?'#ef4444':undefined}} />
+                    {fieldErrors.ndisNumber && <p style={err}>{fieldErrors.ndisNumber}</p>}
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="auth-form-row">
               <div>
@@ -672,12 +764,55 @@ function RegisterPageInner() {
             </label>
             {fieldErrors.terms && <p style={{...err,margin:0}}>{fieldErrors.terms}</p>}
 
+            {isProvider && (
+              <>
+                <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.4,cursor:'pointer'}}>
+                  <input type="checkbox" checked={conductChecked} onChange={e=>{setConductChecked(e.target.checked);setFieldErrors(p=>({...p,conduct:''}));}} style={{flexShrink:0,accentColor:'var(--clr-primary)'}} />
+                  <span>I accept the Shiftify Provider Code of Conduct.</span>
+                </label>
+                {fieldErrors.conduct && <p style={{...err,margin:0}}>{fieldErrors.conduct}</p>}
+                <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.4,cursor:'pointer'}}>
+                  <input type="checkbox" checked={authRepChecked} onChange={e=>{setAuthRepChecked(e.target.checked);setFieldErrors(p=>({...p,authRep:''}));}} style={{flexShrink:0,accentColor:'var(--clr-primary)'}} />
+                  <span>I am authorised to represent this business on Shiftify.</span>
+                </label>
+                {fieldErrors.authRep && <p style={{...err,margin:0}}>{fieldErrors.authRep}</p>}
+              </>
+            )}
+
             <button type="submit" disabled={submitting} className="btn-shiftify"
               style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:2,opacity:submitting?0.7:1,cursor:submitting?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
               {submitting && <span style={{width:15,height:15,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite',flexShrink:0}} />}
-              {submitting ? 'Creating account...' : 'Create Account'}
+              {submitting ? 'Creating account...' : isProvider ? 'Create Provider Account' : 'Create Account'}
             </button>
           </form>
+        </>
+      )}
+
+      {/* GOAL (Provider only, PR-S03) */}
+      {phase === 'goal' && (
+        <>
+          {existingBusiness && (
+            <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800" style={{ marginBottom: 14 }}>
+              A Provider business with this ABN is already on Shiftify, so a second business and a second introductory allowance cannot be created.
+              Ask that organisation&apos;s administrator to add you as an administrator (Organisation &amp; branches). Until they approve you, this account stays a draft.
+            </div>
+          )}
+          <p className="auth-panel-intro">Your account is verified. Pick where to start — you can do all of these later.</p>
+          <div style={{display:'grid',gap:10}}>
+            {PROVIDER_GOALS.map(g => (
+              <button key={g.href} type="button" onClick={() => goToGoal(g)} className="auth-role-card" style={{textAlign:'left'}}>
+                <span className="auth-role-card__icon"><i className={`bi ${g.icon}`} aria-hidden="true" /></span>
+                <span style={{flex:1,minWidth:0}}>
+                  <span style={{display:'block',fontSize:15,fontWeight:800,color:'var(--clr-text)'}}>{g.title}</span>
+                  <span style={{display:'block',fontSize:12,color:'var(--clr-muted)',marginTop:2}}>{g.text}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => router.replace('/profile')} className="btn-shiftify"
+            style={{width:'100%',height:'var(--auth-btn-h)',fontSize:14,fontWeight:700,marginTop:14,justifyContent:'center',background:'transparent',color:'var(--clr-text)',border:'1.5px solid var(--clr-border)'}}>
+            Set up my business profile first
+          </button>
         </>
       )}
 

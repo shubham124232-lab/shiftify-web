@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { ProviderNotificationControls } from "@/components/notifications/ProviderNotificationControls";
 
 interface Notif {
   id: string; type: string; title: string; body: string;
@@ -15,15 +17,18 @@ interface Notif {
 interface NotificationPreference {
   pushEnabled: boolean; emailEnabled: boolean; smsEnabled: boolean;
   jobUpdates: boolean; messages: boolean; connectionsAndInvites: boolean; marketingTips: boolean;
+  providerPrefs?: Record<string, unknown> | null;
 }
 
-const CHANNEL_FIELDS: { key: keyof NotificationPreference; label: string }[] = [
+type FlagKey = Exclude<keyof NotificationPreference, "providerPrefs">;
+
+const CHANNEL_FIELDS: { key: FlagKey; label: string }[] = [
   { key: "pushEnabled",  label: "In-app / push" },
   { key: "emailEnabled", label: "Email" },
   { key: "smsEnabled",   label: "SMS" },
 ];
 
-const CATEGORY_FIELDS: { key: keyof NotificationPreference; label: string; description: string }[] = [
+const CATEGORY_FIELDS: { key: FlagKey; label: string; description: string }[] = [
   { key: "jobUpdates",            label: "Job & shift updates",     description: "New matches, applications, assignments, cancellations, reminders." },
   { key: "messages",               label: "Messages",                description: "New messages on a job thread." },
   { key: "connectionsAndInvites",  label: "Connections & invites",   description: "Direct invites, coordinator connections, plan manager requests." },
@@ -38,6 +43,7 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
+  const { activeRole } = useAuth();
   const [notifs,  setNotifs]  = useState<Notif[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
@@ -56,7 +62,7 @@ export default function NotificationsPage() {
       .catch(() => {});
   }, []);
 
-  async function togglePref(key: keyof NotificationPreference) {
+  async function togglePref(key: FlagKey) {
     if (!pref) return;
     const next = { ...pref, [key]: !pref[key] };
     setPref(next);
@@ -128,6 +134,7 @@ export default function NotificationsPage() {
                   ))}
                 </div>
               </div>
+              {activeRole === "PROVIDER" && <ProviderNotificationControls initial={pref.providerPrefs ?? null} />}
               <p style={{ fontSize: 11, color: "var(--td-muted)", margin: 0 }}>Safety alerts and incident notifications always send, regardless of these settings.</p>
             </CardContent>
           </Card>

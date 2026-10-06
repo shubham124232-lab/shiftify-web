@@ -33,12 +33,18 @@ interface Filters {
   dateFrom: string;
   dateTo: string;
   sortBy: string;
+  // Provider opportunity board (PR-OA01)
+  postedBy: string;      // PARTICIPANT | COORDINATOR | ""
+  duration: string;      // SHORT | MEDIUM | LONG | ""
+  deadline: string;      // hours until response deadline | ""
+  openTo: string;        // PROVIDERS_ONLY | ""
 }
 
 const defaultFilters: Filters = {
   suburb: "", category: "", urgency: "", shiftType: "", fundingType: "",
   isRecurring: "", workerType: "", experienceLevel: "", postedWithin: "",
   dateFrom: "", dateTo: "", sortBy: "urgency",
+  postedBy: "", duration: "", deadline: "", openTo: "",
 };
 
 function toSavedSearchFilters(f: Filters): SavedSearchFilters {
@@ -53,8 +59,9 @@ function toSavedSearchFilters(f: Filters): SavedSearchFilters {
 }
 
 function FilterSidebar({
-  filters, onChange, onReset, onApply, onSave, saving,
+  filters, onChange, onReset, onApply, onSave, saving, isProvider,
 }: {
+  isProvider?: boolean;
   filters: Filters;
   onChange: (f: Partial<Filters>) => void;
   onReset: () => void;
@@ -180,6 +187,45 @@ function FilterSidebar({
         </select>
       </div>
 
+      {isProvider && (
+        <>
+          <div>
+            <label className={lbl}>Posted by</label>
+            <select className={inp} value={filters.postedBy} onChange={e => onChange({ postedBy: e.target.value })}>
+              <option value="">Participants and Coordinators</option>
+              <option value="PARTICIPANT">Participant</option>
+              <option value="COORDINATOR">Support Coordinator</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Open to</label>
+            <select className={inp} value={filters.openTo} onChange={e => onChange({ openTo: e.target.value })}>
+              <option value="">Providers and workers</option>
+              <option value="PROVIDERS_ONLY">Providers only</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Duration</label>
+            <select className={inp} value={filters.duration} onChange={e => onChange({ duration: e.target.value })}>
+              <option value="">Any duration</option>
+              <option value="SHORT">Up to 2 hours</option>
+              <option value="MEDIUM">2 to 6 hours</option>
+              <option value="LONG">Over 6 hours</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Response deadline</label>
+            <select className={inp} value={filters.deadline} onChange={e => onChange({ deadline: e.target.value })}>
+              <option value="">Any time</option>
+              <option value="2">Within 2 hours</option>
+              <option value="24">Within 24 hours</option>
+              <option value="72">Within 3 days</option>
+            </select>
+          </div>
+          <p className="text-xs text-slate-500 m-0">Funding above shows the registration needed: NDIA-managed work requires an NDIS Registered Provider.</p>
+        </>
+      )}
+
       <Button className="w-full" onClick={onApply}>Apply Filters</Button>
       {onSave && (
         <Button className="w-full" variant="outline" onClick={onSave} disabled={saving}>
@@ -232,6 +278,8 @@ export default function JobsBrowsePage() {
     if (f.dateTo)      params.set("startTo", new Date(f.dateTo + "T23:59:59").toISOString());
     if (f.postedWithin) params.set("postedWithinHours", String(parseInt(f.postedWithin) * 24));
     if (f.sortBy)      params.set("sortBy", f.sortBy);
+    if (f.postedBy)    params.set("postedByRole", f.postedBy);
+    if (f.openTo)      params.set("visibilityTarget", f.openTo);
 
     api.get<{ jobs: Job[]; total: number }>(`/jobs?${params}`)
       .then(r => {
@@ -239,6 +287,18 @@ export default function JobsBrowsePage() {
         // workerType / experienceLevel aren't backend-filterable (live in a JSON blob) — filtered client-side only.
         if (f.workerType)      result = result.filter(j => j.workerPreferences?.workerType === f.workerType);
         if (f.experienceLevel) result = result.filter(j => j.workerPreferences?.experienceLevel === f.experienceLevel);
+        // Duration and response deadline are derived from schedule/deadline timestamps, so they filter client-side.
+        if (f.duration) {
+          result = result.filter(j => {
+            if (!j.scheduledEndAt) return false;
+            const hrs = (new Date(j.scheduledEndAt).getTime() - new Date(j.scheduledStartAt).getTime()) / 3_600_000;
+            return f.duration === "SHORT" ? hrs <= 2 : f.duration === "MEDIUM" ? hrs > 2 && hrs <= 6 : hrs > 6;
+          });
+        }
+        if (f.deadline) {
+          const limit = Date.now() + parseInt(f.deadline) * 3_600_000;
+          result = result.filter(j => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() <= limit);
+        }
         setJobs(result);
         setTotal(r.total ?? result.length);
       })
@@ -342,7 +402,7 @@ export default function JobsBrowsePage() {
             <div className="sticky top-6">
               <Card>
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                  <FilterSidebar isProvider={activeRole === "PROVIDER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
                     onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>
@@ -358,7 +418,7 @@ export default function JobsBrowsePage() {
             {showFilters && (
               <Card className="mb-4 lg:hidden">
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                  <FilterSidebar isProvider={activeRole === "PROVIDER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
                     onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>

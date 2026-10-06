@@ -120,6 +120,10 @@ export interface ProviderDashboard {
   workerResponses?: { applicationId: string; status: string; applicantName: string | null; job: JobSummary }[];
   /** The Provider's own open staffing requests. */
   myRequests?: JobSummary[];
+  /** Own open requests created to replace a booked shift that fell through. */
+  replacementNeeded?: JobSummary[];
+  /** Insurance and Home and Living listing expiries coming up. */
+  expiringSoon?: { label: string; date: string }[];
   /** The Provider's own outgoing expressions of interest on other people's requests. */
   pendingExpressions: { applicationId: string; job: JobSummary }[];
   activeShifts: ShiftSummary[];

@@ -8,7 +8,30 @@ const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 export function ProviderStep11_Documents() {
-  const { register, formState: { errors } } = useFormContext();
+  const { register, watch, setValue, formState: { errors } } = useFormContext();
+  const chipField = (name: 'languages' | 'accessibilityCapabilities' | 'culturalCapabilities', label: string, options: string[]) => {
+    const current: string[] = watch(name) ?? [];
+    return (
+      <div>
+        <label style={labelStyle}>{label}</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {options.map(opt => {
+            const sel = current.includes(opt);
+            return (
+              <button key={opt} type="button"
+                onClick={() => setValue(name, sel ? current.filter(c => c !== opt) : [...current, opt], { shouldDirty: true })}
+                style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                  background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)',
+                  color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   async function handleLogoUploaded(url: string) {
@@ -26,6 +49,20 @@ export function ProviderStep11_Documents() {
           placeholder="Tell participants, coordinators and plan managers about your organisation — your values, experience and approach to care…"
           style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical' }} />
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Appears on your provider profile. Be warm, specific and professional.</p>
+      </div>
+
+      {chipField('languages', 'Languages spoken by your team', ['English', 'Auslan', 'Arabic', 'Mandarin', 'Cantonese', 'Vietnamese', 'Greek', 'Italian', 'Hindi', 'Punjabi', 'Spanish', 'Tagalog'])}
+      {chipField('accessibilityCapabilities', 'Accessibility capabilities', ['Wheelchair-accessible premises', 'Easy Read materials', 'Auslan support', 'Sensory-friendly practice', 'Assistive technology support', 'Communication supports'])}
+      {chipField('culturalCapabilities', 'Cultural capabilities', ['Aboriginal and Torres Strait Islander communities', 'Culturally and linguistically diverse communities', 'Faith-based support', 'LGBTQIA+ inclusive practice', 'Refugee and migrant support'])}
+      <div>
+        <label style={labelStyle}>Enquiry preference</label>
+        <select {...register('enquiryPreference')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="IN_APP">Messages in Shiftify</option>
+          <option value="EMAIL">Email</option>
+          <option value="PHONE">Phone</option>
+        </select>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>How participants, coordinators and plan managers should contact you about enquiries.</p>
       </div>
 
       {/* Logo */}

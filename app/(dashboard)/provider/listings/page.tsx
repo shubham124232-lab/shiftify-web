@@ -10,7 +10,7 @@ import { api } from "@/lib/api";
 interface Listing {
   id: string;
   listingCategory: "SERVICE" | "HOUSING";
-  status: "ACTIVE" | "PAUSED" | "FILLED" | "CLOSED";
+  status: "ACTIVE" | "PAUSED" | "FILLED" | "CLOSED" | "DRAFT";
   title: string;
   suburb: string;
   state: string | null;
@@ -33,6 +33,7 @@ const STATUS_BADGE: Record<string, string> = {
   PAUSED: "bg-slate-100 text-slate-500",
   FILLED: "bg-sky-100 text-sky-700",
   CLOSED: "bg-slate-100 text-slate-400",
+  DRAFT: "bg-amber-100 text-amber-700",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -40,6 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
   PAUSED: "Paused",
   FILLED: "Filled",
   CLOSED: "Closed",
+  DRAFT: "Draft — not published",
 };
 
 const TABS = [
@@ -304,7 +306,15 @@ export default function ProviderListingsPage() {
                       </Button>
                     )}
                     <div className="flex gap-1 justify-end">
-                      {l.status !== "PAUSED" && l.status !== "CLOSED" && (
+                      {l.status === "DRAFT" && (
+                        <Button
+                          size="sm" variant="outline" disabled={updatingId === l.id}
+                          onClick={() => changeStatus(l.id, "ACTIVE")}
+                        >
+                          Publish draft
+                        </Button>
+                      )}
+                      {l.status !== "PAUSED" && l.status !== "CLOSED" && l.status !== "DRAFT" && (
                         <Button
                           size="sm" variant="outline" disabled={updatingId === l.id}
                           onClick={() => changeStatus(l.id, "PAUSED")}

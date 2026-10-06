@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
@@ -72,6 +73,7 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
   onToggleHide: () => void;
   showOwnerBadge?: boolean;
 }) {
+  const { activeRole } = useAuth();
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
   const isFeatured = !!job.featuredUntil && new Date(job.featuredUntil) > new Date();
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
@@ -177,7 +179,7 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
         {canApply && (
           // Connecting needs the single acknowledgement (SW v3.0 Window 1), which lives on the details page.
           <Button size="sm" variant={applied ? "ghost" : "outline"} disabled={applied || applying} onClick={() => !applied && onView()}>
-            {applied ? `Connected (${job.ownApplication!.status.toLowerCase().replace("_", " ")})` : "View & Connect"}
+            {applied ? `Connected (${job.ownApplication!.status.toLowerCase().replace("_", " ")})` : activeRole === "PROVIDER" ? "View & Respond" : "View & Connect"}
           </Button>
         )}
       </div>

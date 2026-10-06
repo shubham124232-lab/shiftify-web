@@ -13,25 +13,33 @@ import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
 import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
+import { ProviderEligibilityCard } from "@/components/jobs/ProviderEligibilityCard";
 import { ShiftPassPrompt } from "@/components/jobs/post/shared";
 import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
 import { RequestDetailsCard } from "@/components/jobs/request-details-card";
 import { URGENCY_STYLE } from "@/lib/constants/job-filters";
 import { cn } from "@/lib/utils";
+import { ProviderLiveRequestPanel } from "@/components/jobs/ProviderLiveRequestPanel";
+import { ApplicantOwnerTools } from "@/components/jobs/ApplicantOwnerTools";
+import { AddToCalendarButton } from "@/components/jobs/AddToCalendarButton";
 import type { LucideIcon } from "lucide-react";
 import { ShieldAlert, HeartPulse, Users, KeyRound, PhoneCall, ListChecks, Flag, Send, MessageSquare } from "lucide-react";
 
 interface Applicant {
   id: string; applicantUserId: string; status: string; createdAt: string;
   applicantRole?: string; note?: string | null; introduction?: string | null;
-  rateResponse?: string | null; proposedRate?: number | string | null;
+  ownerNote?: string | null; decisionReason?: string | null;
+  rateResponse?: string | null; proposedRate?: number | string | null; availabilityType?: string | null;
   applicationData?: {
     providerResponse?: boolean; deliveryOption?: string;
     serviceCapability?: { services?: string; coverage?: string; complexSupports?: string; continuity?: string };
     nominatedWorkers?: { id: string; name: string }[];
+    alternativeTime?: string; partialTasks?: string; clarificationQuestion?: string; alternativeProposal?: string;
   } | null;
   applicant: {
     id: string; name: string; avatarUrl?: string | null;
+    phoneVerified?: boolean;
+    documents?: { docType: string; expiryDate: string | null; status: string }[];
     workerProfile?: { rating: number; totalReviews: number; hourlyRate: number | string | null; servicesOffered: string[] | null; experienceLevel: string | null; suburb: string | null; state: string | null; travelRadiusKm: number | null } | null;
     providerProfile?: { averageRating: number; totalRatings: number; coreServices: string[] | null; businessName?: string | null } | null;
   };
@@ -64,6 +72,8 @@ interface JobDetail {
   addressLine?: string | null;
   postcode?: string | null;
   workerConfirmedAt?: string | null;
+  createdAt?: string;
+  liveStats?: { eligibleWorkers: number; responses: number } | null;
   viewerPermissions?: { canShortlist: boolean; canMessage: boolean; canConfirmBookings: boolean; canManageReplacements: boolean };
   promotedFromCancellation?: boolean;
   selectedApplicant?: { id: string; name: string } | null;
@@ -144,6 +154,10 @@ const FEATURED_SHIFT_INFO: Record<string, { priceAud: number; durationLabel: str
   ROUTINE:     { priceAud: 21.99, durationLabel: "up to 7 days or until filled" },
 };
 
+// PR-M02 / SW doc status labels shown to the poster for each response.
+const APP_STATUS_LABEL: Record<string, string> = {
+  INTERESTED: "New", SHORTLISTED: "Shortlisted", SELECTED: "Confirmed", DECLINED: "Declined", WITHDRAWN: "Withdrawn", REQUEST_FILLED: "Filled",
+};
 const APP_STATUS_COLOR: Record<string, string> = {
   INTERESTED:  "var(--td-ink-800)",
   SHORTLISTED: "var(--td-ink-700)",
@@ -157,6 +171,10 @@ const PROVIDER_DELIVERY_LABEL: Record<string, string> = {
   INTERNAL_WORKER:   "Specific internal worker",
   SMALL_TEAM:        "Small team",
   ALTERNATIVE:       "Alternative service proposal",
+};
+const AVAILABILITY_LABEL: Record<string, string> = {
+  YES_EXACT: "Available at the requested time", YES_ADJUSTED: "Available at an adjusted time",
+  PARTIAL: "Can cover part of the request", DISCUSS: "Wants to discuss availability", UNAVAILABLE: "Unavailable",
 };
 const RATE_RESPONSE_LABEL: Record<string, string> = {
   ACCEPT: "accepts the posted rate", QUOTE_AFTER: "quote after discussion", DISCUSS: "to be discussed",
@@ -194,6 +212,7 @@ export default function JobDetailPage() {
   const [sending,   setSending]   = useState(false);
   const [acting,    setActing]    = useState(false);
   const [showApply, setShowApply] = useState(false);
+  const [providerEligible, setProviderEligible] = useState(true);
   const [teamWorkers,    setTeamWorkers]    = useState<TeamWorker[]>([]);
   const [pickedWorkerId, setPickedWorkerId] = useState("");
   const [assigning,      setAssigning]      = useState(false);
@@ -316,7 +335,8 @@ export default function JobDetailPage() {
   useEffect(() => {
     if (activeRole !== "PROVIDER" || pickedWorkerId || !job || teamWorkers.length === 0) return;
     const mine = job.applications?.find(a => a.applicantUserId === user?.id);
-    const nominated = (mine?.applicationData as { nominatedWorkerUserIds?: string[] } | undefined)?.nominatedWorkerUserIds?.[0];
+    const data = mine?.applicationData as { nominatedWorkerUserIds?: string[]; nominatedWorkers?: { id: string }[] } | undefined;
+    const nominated = data?.nominatedWorkerUserIds?.[0] ?? data?.nominatedWorkers?.[0]?.id;
     if (nominated && teamWorkers.some(w => w.id === nominated && (!w.status || w.status === "ACTIVE"))) setPickedWorkerId(nominated);
   }, [activeRole, job, teamWorkers, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -712,14 +732,22 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
     finally { setRosterActing(false); }
   }
 
+  const [declineReasons, setDeclineReasons] = useState<Record<string, string>>({});
   async function appAction(applicationId: string, action: "select" | "shortlist" | "decline" | "withdraw") {
     setActing(true);
     try {
-      await api.patch(`/jobs/${id}/applications/${applicationId}/${action}`, {});
+      await api.patch(`/jobs/${id}/applications/${applicationId}/${action}`, action === "decline" ? { reason: declineReasons[applicationId] || undefined } : {});
       await loadJob();
     } catch (e: any) { setError(e.message); }
     finally { setActing(false); }
   }
+
+  // Tell the sidebar whether this page is one of the viewer's own requests, so "My Requests" (not
+  // "Find Support Opportunities") is the highlighted item.
+  const ownsThisJob = !!job && user?.id === job.postedBy.id;
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("shiftify:job-owner", { detail: { id, owner: ownsThisJob } }));
+  }, [id, ownsThisJob]);
 
   if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading...</div>;
   if (error && !job) return <div style={{ padding: 40, color: "var(--td-pink-hover)" }}>{error}</div>;
@@ -829,6 +857,10 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
               );
             })}
           </div>
+
+          {["ASSIGNED", "IN_PROGRESS"].includes(job.status) && job.workerConfirmedAt && (isOwner || workerPartyId === user?.id) && (
+            <div className="mt-4"><AddToCalendarButton id={job.id} title={job.title} start={job.scheduledStartAt} end={job.scheduledEndAt} suburb={job.suburb} /></div>
+          )}
 
           {job.status === "ASSIGNED" && !job.addressLine && (isOwner || workerPartyId === user?.id) && (
             <p className="mt-4 text-[12px] font-medium text-slate-500">
@@ -1057,6 +1089,12 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
           <EditDetailsCard key={`${job.id}-${job.scheduledStartAt}-${job.suburb}`} job={job} onSaved={loadJob} />
         )}
 
+        {/* Provider PR-LV01 live request control centre */}
+        {isOwner && job.status === "OPEN" && activeRole === "PROVIDER" && (
+          <ProviderLiveRequestPanel urgency={job.urgency} createdAt={job.createdAt ?? job.postedAt} scheduledStartAt={job.scheduledStartAt}
+            paused={!!job.visibilityTarget?.startsWith("PAUSED:")} liveStats={job.liveStats} />
+        )}
+
         {/* Live request controls (SC-O14 / SC-L12 / SC-M02) */}
         {isOwner && job.status === "OPEN" && (activeRole === "COORDINATOR" || activeRole === "PROVIDER" || activeRole === "PARTICIPANT") && (
           <Card>
@@ -1077,7 +1115,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                   <>
                     <Button size="sm" variant="outline" disabled={acting} onClick={() => liveAction("extend", { hours: 24 }, "Response window extended by 24 hours.")}>Extend 24h</Button>
                     <Button size="sm" variant="outline" disabled={acting} onClick={() => liveAction("rebroadcast", undefined, "Rebroadcast sent to matching professionals.")}>Rebroadcast</Button>
-                    <Button size="sm" variant="outline" disabled={acting} onClick={repeatSupport}>Repeat</Button>
+                    <Button size="sm" variant="outline" disabled={acting} onClick={repeatSupport}>{activeRole === "PROVIDER" ? "Duplicate as new request" : "Repeat"}</Button>
                   </>
                 )}
                 {activeRole !== "PARTICIPANT" && (
@@ -1093,7 +1131,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         )}
 
         {/* Close connection (SW doc Window 38) — marketplace outcome tag, not proof of delivery/payment */}
-        {(isOwner || isConnectedWorker) && (
+        {((isOwner && (job.status !== "OPEN" || !!job.selectedApplicant)) || isConnectedWorker) && (
           <Card>
             <CardHeader className="flex items-center justify-between flex-row">
               <CardTitle>Close connection</CardTitle>
@@ -1193,11 +1231,14 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         )}
 
         {/* Worker: apply or show own application status */}
-        {isWorker && !ownApp && job.status === "OPEN" && (
+        {activeRole === "PROVIDER" && isWorker && !isOwner && !ownApp && job.status === "OPEN" && (
+          <ProviderEligibilityCard fundingType={job.fundingType} onEligibility={setProviderEligible} />
+        )}
+        {isWorker && !isOwner && !ownApp && job.status === "OPEN" && (
           <Card>
             <CardHeader><CardTitle>{activeRole === "PROVIDER" ? "Respond to this request" : "Connect to this support request"}</CardTitle></CardHeader>
             <CardContent className="flex gap-2.5 items-center">
-              <Button onClick={() => setShowApply(true)}>{activeRole === "PROVIDER" ? "Respond as Provider" : "Connect"}</Button>
+              <Button onClick={() => setShowApply(true)} disabled={activeRole === "PROVIDER" && !providerEligible}>{activeRole === "PROVIDER" ? "Respond as Provider" : "Connect"}</Button>
               <Button
                 variant="ghost"
                 onClick={async () => {
@@ -1223,8 +1264,10 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
           }}>
             <span style={{ fontSize: 13, color: APP_STATUS_COLOR[ownApp.status] ?? "var(--td-dark-text-soft)", flex: 1 }}>
               {ownApp.status === "WITHDRAWN" ? (activeRole === "PROVIDER" ? "You withdrew your response." : "You withdrew your connection.")
-                : ownApp.status === "DECLINED" ? "Your connection was not taken forward."
-                : ownApp.status === "SELECTED" ? "The initiator has selected you — review the arrangement and accept to confirm the support."
+                : ownApp.status === "DECLINED" ? (activeRole === "PROVIDER" ? "Unsuccessful — your organisation response was not taken forward." : "Your connection was not taken forward.")
+                : ownApp.status === "SELECTED" ? (activeRole === "PROVIDER" ? "Accepted — your organisation has been selected. Nominate or confirm your delivery arrangement below." : "The initiator has selected you — review the arrangement and accept to confirm the support.")
+                : ownApp.status === "REQUEST_FILLED" ? "This request was filled by someone else."
+                : activeRole === "PROVIDER" ? `Organisation response ${ownApp.status === "SHORTLISTED" ? "shortlisted" : "submitted"} — waiting for the poster's decision.`
                 : `Connected — status: ${ownApp.status.toLowerCase().replace("_"," ")}`}
             </span>
             {!["SELECTED", "WITHDRAWN", "DECLINED"].includes(ownApp.status) && (
@@ -1240,11 +1283,11 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         {/* Provider: assign a team worker after being selected */}
         {needsAssignment && (
           <Card>
-            <CardHeader><CardTitle>Assign a team worker</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Allocate to your internal workforce</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               {teamWorkers.length === 0 ? (
                 <span style={{ fontSize: 13, color: "var(--td-muted)" }}>
-                  No team workers yet — add one from the Team page first.
+                  No internal workers yet — add and activate one from Internal Workforce first.
                 </span>
               ) : (
                 <>
@@ -1259,8 +1302,11 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                     ))}
                   </select>
                   <Button size="sm" disabled={!pickedWorkerId || assigning} onClick={assignWorker}>
-                    {assigning ? "Assigning..." : "Assign"}
+                    {assigning ? "Sending..." : "Send internal assignment"}
                   </Button>
+                  <p className="m-0 basis-full text-xs text-slate-500">
+                    The worker must be active and have the required credentials. The participant keeps seeing your organisation as the provider; if you replace the worker later the change is recorded.
+                  </p>
                 </>
               )}
             </CardContent>
@@ -1635,12 +1681,12 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                   <table className="w-full text-sm border-collapse min-w-[560px]">
                     <thead>
                       <tr className="text-left text-xs text-slate-500 border-b border-slate-200">
-                        <th className="py-2 pr-3 font-semibold">Applicant</th>
+                        <th className="py-2 pr-3 font-semibold">Responder</th>
                         <th className="py-2 pr-3 font-semibold">Rating</th>
                         <th className="py-2 pr-3 font-semibold">Rate</th>
                         <th className="py-2 pr-3 font-semibold">Coverage</th>
                         <th className="py-2 pr-3 font-semibold">Skills</th>
-                        <th className="py-2 pr-3 font-semibold">Applied</th>
+                        <th className="py-2 pr-3 font-semibold">Responded</th>
                         <th className="py-2 pr-3 font-semibold">Status</th>
                         {job.status === "OPEN" && <th className="py-2 pr-3 font-semibold">Action</th>}
                       </tr>
@@ -1664,7 +1710,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                               </div>
                             </td>
                             <td className="py-2.5 pr-3 text-xs whitespace-nowrap">{new Date(app.createdAt).toLocaleDateString("en-AU")}</td>
-                            <td className="py-2.5 pr-3 font-semibold whitespace-nowrap" style={{ color: APP_STATUS_COLOR[app.status] ?? "var(--td-muted)" }}>{app.status}</td>
+                            <td className="py-2.5 pr-3 font-semibold whitespace-nowrap" style={{ color: APP_STATUS_COLOR[app.status] ?? "var(--td-muted)" }}>{APP_STATUS_LABEL[app.status] ?? app.status}</td>
                             {job.status === "OPEN" && (
                               <td className="py-2.5 pr-3">
                                 {["INTERESTED", "SHORTLISTED"].includes(app.status) ? (
@@ -1730,6 +1776,11 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                           <span>Delivery: {PROVIDER_DELIVERY_LABEL[app.applicationData.deliveryOption ?? ""] ?? "Organisation response"}
                             {(app.applicationData.nominatedWorkers?.length ?? 0) > 0 && ` — ${app.applicationData.nominatedWorkers!.map(w => w.name).join(", ")}`}
                           </span>
+                          {app.availabilityType && <span>Response: {AVAILABILITY_LABEL[app.availabilityType] ?? app.availabilityType}</span>}
+                          {app.applicationData.alternativeTime && <span>Alternative time: {app.applicationData.alternativeTime}</span>}
+                          {app.applicationData.partialTasks && <span>Can cover: {app.applicationData.partialTasks}</span>}
+                          {app.applicationData.clarificationQuestion && <span>Needs clarification: {app.applicationData.clarificationQuestion}</span>}
+                          {app.applicationData.alternativeProposal && <span>Alternative service proposal (differs from the request): {app.applicationData.alternativeProposal}</span>}
                           {app.rateResponse && (
                             <span>Rate: {app.rateResponse === "OFFER_OWN" && app.proposedRate != null ? `$${Number(app.proposedRate).toFixed(2)}/hr proposed` : (RATE_RESPONSE_LABEL[app.rateResponse] ?? app.rateResponse)}</span>
                           )}
@@ -1738,12 +1789,30 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                           ))}
                         </div>
                       )}
+                      {!app.applicationData?.providerResponse && (app.availabilityType || app.rateResponse) && (
+                        <div style={{ fontSize: 12, color: "var(--td-ink-700)", marginTop: 4, display: "flex", flexDirection: "column", gap: 2 }}>
+                          {app.availabilityType && <span>Availability: {AVAILABILITY_LABEL[app.availabilityType] ?? app.availabilityType}</span>}
+                          {app.rateResponse && (
+                            <span>Rate: {app.rateResponse === "OFFER_OWN" && app.proposedRate != null ? `$${Number(app.proposedRate).toFixed(2)}/hr proposed` : (RATE_RESPONSE_LABEL[app.rateResponse] ?? app.rateResponse)}</span>
+                          )}
+                        </div>
+                      )}
                       {(app.introduction || app.note) && (
                         <div style={{ fontSize: 12, color: "var(--td-ink-700)", marginTop: 4, fontStyle: "italic" }}>“{app.introduction || app.note}”</div>
                       )}
+                      <ApplicantOwnerTools jobId={job.id} app={app} jobCategory={job.category} jobSuburb={job.suburb}
+                        canAct={job.status === "OPEN" && canShortlist && ["INTERESTED", "SHORTLISTED"].includes(app.status)}
+                        declineReason={declineReasons[app.id] ?? ""} onDeclineReason={(v) => setDeclineReasons((p) => ({ ...p, [app.id]: v }))}
+                        onSaved={loadJob} />
+                      {canMessage && ["INTERESTED", "SHORTLISTED"].includes(app.status) && (
+                        <button type="button" className="mt-1 text-xs font-semibold underline" style={{ color: "var(--td-pink)" }}
+                          onClick={() => setMsgBody(`Hi ${app.applicant.name.split(" ")[0]}, could you clarify: `)}>
+                          Request clarification
+                        </button>
+                      )}
                     </div>
                     <span style={{ fontSize: 12, fontWeight: 600, color: APP_STATUS_COLOR[app.status] ?? "var(--td-muted)" }}>
-                      {app.status}
+                      {APP_STATUS_LABEL[app.status] ?? app.status}
                     </span>
                     {job.status === "OPEN" && ["INTERESTED", "SHORTLISTED"].includes(app.status) && (
                       <div style={{ display: "flex", gap: 6 }}>

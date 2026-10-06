@@ -171,6 +171,14 @@ export function AppSidebar() {
   // Close drawer on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
+  // The job page reports whether the open request is the viewer's own (see jobs/[id]/page.tsx).
+  const [ownJob, setOwnJob] = useState<{ id: string; owner: boolean } | null>(null);
+  useEffect(() => {
+    const h = (e: Event) => setOwnJob((e as CustomEvent<{ id: string; owner: boolean }>).detail);
+    window.addEventListener("shiftify:job-owner", h);
+    return () => window.removeEventListener("shiftify:job-owner", h);
+  }, []);
+
   if (!user) return null;
 
   const nav = navForRole(user.activeRole as string, user.accountType === "MANAGED");
@@ -179,8 +187,11 @@ export function AppSidebar() {
   function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
     const Icon = item.icon;
     // Only the most specific matching item is highlighted, so /jobs/my does not also light up /jobs.
-    const matchesPath = (href: string) => pathname === href || (href !== "/" && !!pathname?.startsWith(href + "/"));
-    const isActive = matchesPath(item.href)
+    const jobId = pathname?.match(/^\/jobs\/([0-9a-f-]{36})$/i)?.[1];
+    const viewingOwnJob = !!jobId && ownJob?.id === jobId && ownJob.owner;
+    const matchesPath = (href: string) => (viewingOwnJob && href === "/jobs/my")
+      || pathname === href || (href !== "/" && !!pathname?.startsWith(href + "/"));
+    const isActive = (viewingOwnJob ? item.href === "/jobs/my" || (matchesPath(item.href) && item.href !== "/jobs") : matchesPath(item.href))
       && ![...nav.main, ...nav.account].some((o) => o.href.length > item.href.length && matchesPath(o.href));
     return (
       <li>

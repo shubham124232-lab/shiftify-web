@@ -115,6 +115,11 @@ export interface ProviderProfileData {
   pricingModel?:        string;
   billingMethod?:       string;
   businessDescription?: string;
+  businessAddress?:     string;
+  languages?:                 string[];
+  accessibilityCapabilities?: string[];
+  culturalCapabilities?:      string[];
+  enquiryPreference?:         'IN_APP' | 'EMAIL' | 'PHONE';
   websiteUrl?:          string;
   seekingPlanManager?:  boolean;
 }

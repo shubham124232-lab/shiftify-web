@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import {
   WizardScreen, RadioCards, PersonStep, ProviderRateStep, ProviderLocationExtras, ProviderSafetyExtras, ProviderVisibilityPreview, applyProviderContext, providerRateSummary, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
   ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
@@ -48,7 +49,7 @@ function localDate(offsetDays: number): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
-export default function LastMinuteJourney() {
+function LastMinuteJourneyBase() {
   const router = useRouter();
   const { activeRole, isAuth } = useAuth();
   const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
@@ -461,4 +462,11 @@ export default function LastMinuteJourney() {
       )}
     </WizardScreen>
   );
+}
+
+// Providers have their own staffing-request journey (Provider doc PR-R01–R05); every other role uses this one.
+export default function LastMinuteJourney() {
+  const { activeRole } = useAuth();
+  if (activeRole === "PROVIDER") return <ProviderStaffingWizard tier="LAST_MINUTE" />;
+  return <LastMinuteJourneyBase />;
 }

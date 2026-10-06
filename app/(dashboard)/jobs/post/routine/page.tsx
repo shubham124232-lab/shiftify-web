@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import {
   WizardScreen, RadioCards, PersonStep, ProviderRateStep, ProviderLocationExtras, ProviderSafetyExtras, ProviderVisibilityPreview, applyProviderContext, providerRateSummary, CategoryPickerStep, MultiCategoryTasksStep, SafetyStep,
   FundingTypeStep, RateStep, RoutineWorkerStep, RoutinePreferencesStep, hasRoutinePreferenceChoice,
@@ -72,7 +73,7 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface OneOffDate { date: string; startTime: string; durationHours: string }
 
-export default function RoutineJourney() {
+function RoutineJourneyBase() {
   const router = useRouter();
   const { activeRole, isAuth } = useAuth();
   const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
@@ -573,4 +574,11 @@ function ScreeningChips({ selected, onToggle }: { selected: string[]; onToggle: 
       ))}
     </div>
   );
+}
+
+// Providers have their own staffing-request journey (Provider doc PR-R01–R05); every other role uses this one.
+export default function RoutineJourney() {
+  const { activeRole } = useAuth();
+  if (activeRole === "PROVIDER") return <ProviderStaffingWizard tier="ROUTINE" />;
+  return <RoutineJourneyBase />;
 }

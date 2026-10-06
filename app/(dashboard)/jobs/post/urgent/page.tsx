@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import {
   WizardScreen, RadioCards, PersonStep, ProviderRateStep, ProviderLocationExtras, ProviderSafetyExtras, ProviderVisibilityPreview, applyProviderContext, providerRateSummary, CategoryPickerStep, TasksStep, SafetyStep, RequirementsStep, FundingStep,
   ReviewRow, LiveRequestScreen, CheckboxRow, AddressReleaseNotice, ShiftPassPrompt, inp, lbl,
@@ -41,7 +42,7 @@ const SHORT_NOTICE_REASONS = [
   "Worker cancelled", "Unexpected need", "Appointment changed", "Family/carer unavailable", "Discharge/transition", "Other",
 ];
 
-export default function UrgentJourney() {
+function UrgentJourneyBase() {
   const router = useRouter();
   const { activeRole, isAuth } = useAuth();
   const [guestRole, setGuestRole] = useState<GuestPostingRole | null>(null);
@@ -337,4 +338,11 @@ export default function UrgentJourney() {
       )}
     </WizardScreen>
   );
+}
+
+// Providers have their own staffing-request journey (Provider doc PR-R01–R05); every other role uses this one.
+export default function UrgentJourney() {
+  const { activeRole } = useAuth();
+  if (activeRole === "PROVIDER") return <ProviderStaffingWizard tier="URGENT" />;
+  return <UrgentJourneyBase />;
 }

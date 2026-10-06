@@ -127,15 +127,25 @@ export default function HomeHero() {
             </p>
 
             <div className="sf-hero-cta">
-              <a href="/register" className="sf-btn sf-btn-pink">
+              <a href="/register?role=PARTICIPANT" className="sf-btn sf-btn-pink">
                 <i className="bi bi-send-fill" aria-hidden="true" />
-                Request support
+                Find Support
               </a>
               <a href="/register?role=SUPPORT_WORKER" className="sf-btn sf-btn-ghost-dark">
                 <i className="bi bi-person-fill" aria-hidden="true" />
-                I&apos;m a support worker
+                Find a Shift
+              </a>
+              <a href="/register?role=PROVIDER" className="sf-btn sf-btn-ghost-dark">
+                <i className="bi bi-building-fill-check" aria-hidden="true" />
+                Fill a Staffing Gap
               </a>
             </div>
+            <p className="sf-hero-sub" style={{ marginTop: 14, fontSize: 14 }}>
+              <strong>Roster gap right now?</strong> <a href="/register?role=PROVIDER">Find a worker fast.</a>
+            </p>
+            <p className="sf-hero-sub" style={{ marginTop: 6, fontSize: 13 }}>
+              Verified profiles · Permission-based information sharing · 0% commission
+            </p>
           </div>
 
           {/* ---- Right: live shiftboard ---- */}

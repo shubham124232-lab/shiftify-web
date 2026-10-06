@@ -44,6 +44,13 @@ export function ProviderStep01_Business() {
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Registered legal name if different from trading name.</p>
       </div>
 
+      {/* Business address (PR-V01) */}
+      <div>
+        <label style={labelStyle}>Business address</label>
+        <input {...register('businessAddress')} placeholder="Street, suburb, state, postcode" style={inputStyle} />
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Used for business verification. It is not shown to participants.</p>
+      </div>
+
       {/* ABN */}
       <div>
         <label style={labelStyle}>ABN (Australian Business Number) <span style={{ color: 'var(--td-pink)' }}>*</span></label>

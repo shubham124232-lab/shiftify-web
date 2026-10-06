@@ -32,6 +32,11 @@ const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/provider",                roles: ["PROVIDER"] },
 ];
 
+// A Provider Team Member (managed worker) sees only their own assignments — never the marketplace,
+// posting, worker search or subscription areas (Pricing V2 §4.4).
+const MANAGED_BLOCKED_EXACT = ["/jobs", "/live-dashboard", "/find", "/saved-professionals", "/subscription", "/referrals", "/invoices", "/workers/available"];
+const MANAGED_BLOCKED_PREFIX = ["/jobs/post", "/workers", "/coordinators", "/saved-searches", "/connect-invites"];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();
   const profileCompletion  = useAuthStore(s => s.profileCompletion);
@@ -79,6 +84,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const roleOnly = ROLE_ONLY_AREAS.find((a) => pathname === a.prefix || pathname.startsWith(a.prefix + "/"));
     const ownDashboard = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS];
     if (roleOnly && ownDashboard && !roleOnly.roles.includes(user.activeRole as string)) {
+      router.replace(ownDashboard);
+      return;
+    }
+
+    if (user.accountType === "MANAGED" && ownDashboard
+      && (MANAGED_BLOCKED_EXACT.includes(pathname) || MANAGED_BLOCKED_PREFIX.some((p) => pathname === p || pathname.startsWith(p + "/")))) {
       router.replace(ownDashboard);
       return;
     }

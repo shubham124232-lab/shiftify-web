@@ -45,6 +45,7 @@ const REQUIREMENT_LABELS: Record<string, string> = {
   certIIIOrAbove: "Cert III or above", restrictivePractices: "Restrictive practices", firstAid: "First aid", alliedHealth: "Allied health background",
 };
 const SAFETY_LABELS: Record<string, string> = {
+  environmentalInfo: "Environment",
   twoPersonSupport: "Two-person support is required", manualTransfer: "Manual transfer or hoist is involved",
   behaviourPlan: "Behaviour support plan or regulated restrictive practice may be relevant", medicationMonitoring: "Medication or health monitoring is involved",
   accessIssues: "Pets, smoking, stairs or access issues", other: "Other essential information", communicationInstructions: "Communication instructions",
@@ -151,7 +152,14 @@ export function RequestDetailsCard({ job, isOwner }: { job: RequestDetailsJob; i
       wp.deliveryMode ? `Delivery: ${asText(wp.deliveryMode).replace("_", " ").toLowerCase()}` : "",
       wp.travelRadiusKm ? `Travel radius: ${asText(wp.travelRadiusKm)} km` : "",
       wp.alternativeTimes ? `Alternative times: ${asText(wp.alternativeTimes)}` : "",
+      wp.arrivalWindow ? `Arrival window: ${asText(wp.arrivalWindow)}` : "",
+      wp.consistencyPreference ? `Consistency: ${asText(wp.consistencyPreference).replace(/_/g, " ").toLowerCase()}` : "",
+      wp.participantSpecificTraining ? `Participant-specific training: ${asText(wp.participantSpecificTraining)}` : "",
     ].filter(Boolean);
+    const screens = Array.isArray(wp.screeningChecks) ? wp.screeningChecks.map(String) : [];
+    if (screens.length) rows.push({ label: "Screening checks", body: <List items={screens} /> });
+    const needs = Array.isArray(wp.supportNeeds) ? wp.supportNeeds.map(String) : [];
+    if (needs.length) rows.push({ label: "Support needs", body: <List items={needs} /> });
     if (extras.length) rows.push({ label: "Other details", body: <List items={extras} /> });
   }
 

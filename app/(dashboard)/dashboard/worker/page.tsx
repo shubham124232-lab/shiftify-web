@@ -3,6 +3,7 @@
 import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { ManagedWorkerDashboard } from "@/components/dashboard/ManagedWorkerDashboard";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-tiles";
 import { DashboardTabCard } from "@/components/dashboard/tab-card";
@@ -153,7 +154,7 @@ function badgePill(status: string, job?: { status?: string; workerConfirmedAt?: 
   );
 }
 
-export default function WorkerDashboard() {
+function IndependentWorkerDashboard() {
   const { user } = useAuth();
   const [data,    setData]    = useState<WorkerDashboard | null>(null);
   const [docs,    setDocs]    = useState<ExpiringDoc[]>([]);
@@ -336,4 +337,11 @@ export default function WorkerDashboard() {
       </div>
     </div>
   );
+}
+
+// A Provider Team Member is not an independent Support Worker, so they get their own dashboard.
+export default function WorkerDashboard() {
+  const { user } = useAuth();
+  if (user?.accountType === "MANAGED") return <ManagedWorkerDashboard />;
+  return <IndependentWorkerDashboard />;
 }

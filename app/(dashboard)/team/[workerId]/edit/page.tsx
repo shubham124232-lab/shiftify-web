@@ -338,7 +338,7 @@ export default function EditWorkerPage() {
       <PageHeader
         title="Edit Worker Profile"
         description="Update this worker's details. The worker cannot edit these themselves — you maintain everything on their behalf."
-        actions={<Link href="/team"><Button variant="outline" size="sm">← Back</Button></Link>}
+        actions={<Link href="/provider/workforce"><Button variant="outline" size="sm">← Back</Button></Link>}
       />
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "24px 20px" }}>
 
@@ -552,7 +552,7 @@ export default function EditWorkerPage() {
               <span style={{ fontWeight: 600 }}>✓ Worker profile saved successfully.</span>
               <button
                 type="button"
-                onClick={() => router.push("/team")}
+                onClick={() => router.push("/provider/workforce")}
                 style={{ background: "var(--td-ink-700)", color: "var(--td-white)", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               >
                 ← Back to team
@@ -562,7 +562,7 @@ export default function EditWorkerPage() {
 
           <div style={{ display: "flex", gap: 12 }}>
             <Button type="submit" loading={saving}>Save changes</Button>
-            <Button type="button" variant="ghost" onClick={() => router.push("/team")}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => router.push("/provider/workforce")}>Cancel</Button>
           </div>
         </form>
 

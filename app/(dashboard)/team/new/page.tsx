@@ -60,7 +60,7 @@ export default function NewWorkerPage() {
       <PageHeader
         title="Add Worker"
         description="Create a managed support worker account. You'll complete their profile, availability and compliance documents on the next page — the account starts as a draft until setup is finished."
-        actions={<Link href="/team"><Button variant="outline" size="sm">← Back</Button></Link>}
+        actions={<Link href="/provider/workforce"><Button variant="outline" size="sm">← Back</Button></Link>}
       />
       <div style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px" }}>
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -116,7 +116,7 @@ export default function NewWorkerPage() {
             <Button type="submit" disabled={!canSubmit} loading={saving}>
               {saving ? "Creating..." : "Create worker & continue setup"}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => router.push("/team")}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => router.push("/provider/workforce")}>Cancel</Button>
           </div>
         </form>
       </div>

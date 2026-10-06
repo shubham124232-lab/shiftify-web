@@ -38,7 +38,8 @@ export default function TeamPage() {
     finally { setUnlinking(null); }
   }
 
-  useEffect(() => { if (activeRole === UserRole.PROVIDER) load(); }, [activeRole]); // eslint-disable-line
+  // Workers with a login now live on Internal Workforce (Provider doc PR-W01); this URL stays for deep links.
+  useEffect(() => { if (activeRole === UserRole.PROVIDER) router.replace("/provider/workforce"); }, [activeRole]); // eslint-disable-line
 
   if (activeRole !== UserRole.PROVIDER) {
     return (

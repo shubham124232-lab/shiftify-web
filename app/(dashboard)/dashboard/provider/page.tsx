@@ -15,7 +15,7 @@ import { api } from "@/lib/api";
 import { getDashboard, type ProviderDashboard } from "@/lib/api/dashboard";
 import {
   Search, FilePlus, Home, Users, MessageSquare, SlidersHorizontal,
-  FileText, Briefcase, ClipboardList, Zap, Clock, CalendarClock,
+  FileText, Briefcase, ClipboardList, Zap, Clock, CalendarClock, Inbox, Receipt, Building2,
 } from "lucide-react";
 
 interface ProviderListing {
@@ -39,15 +39,19 @@ export default function ProviderDashboardPage() {
   const [listings, setListings] = useState<ProviderListing[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
+  const [plan, setPlan] = useState<string | null>(null);
   const [allowance, setAllowance] = useState<{ applies: boolean; limit: number; used: number; remaining: number } | null>(null);
 
   useEffect(() => {
     // Paid organisation plans have unlimited core actions, so the once-only counter only applies without one.
     Promise.all([
       api.get<{ allowance: { applies: boolean; limit: number; used: number; remaining: number } }>("/subscriptions/me/allowance"),
-      api.get<{ capacity: unknown | null }>("/provider-org/capacity").catch(() => ({ capacity: null })),
+      api.get<{ capacity: { planLabel: string } | null }>("/provider-org/capacity").catch(() => ({ capacity: null })),
     ])
-      .then(([r, cap]) => setAllowance(cap.capacity ? null : r.allowance))
+      .then(([r, cap]) => {
+        setAllowance(cap.capacity ? null : r.allowance);
+        setPlan((cap.capacity as { planLabel?: string } | null)?.planLabel ?? null);
+      })
       .catch(() => setAllowance(null));
 
     getDashboard()
@@ -79,7 +83,11 @@ export default function ProviderDashboardPage() {
     { key: "team",     icon: Users,             label: "Internal workforce",       href: "/provider/workforce" },
     { key: "messages", icon: MessageSquare,     label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
     { key: "profile",  icon: SlidersHorizontal, label: "Provider profile", href: "/profile/edit" },
-    { key: "documents",icon: FileText,          label: "Documents",     href: "/documents" },
+    { key: "documents",icon: FileText,          label: "Documents & verification", href: "/documents" },
+    { key: "live",     icon: Zap,               label: "Live dashboard",           href: "/live-dashboard" },
+    { key: "invites",  icon: Inbox,             label: "Job invitations",          href: "/job-invites" },
+    { key: "invoices", icon: Receipt,           label: "Invoices",                 href: "/invoices" },
+    { key: "org",      icon: Building2,         label: "Organisation & branches",  href: "/provider/organisation" },
   ];
 
   return (
@@ -97,7 +105,7 @@ export default function ProviderDashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ── Main column ── */}
         <div className="space-y-6 lg:col-span-2">
-          <ActionTilesCard title="Grow your business" tiles={tiles} />
+          <ActionTilesCard title="What needs attention now?" tiles={tiles} />
 
           <DashboardTabCard
             title="Live operations"
@@ -196,6 +204,20 @@ export default function ProviderDashboardPage() {
               </CardContent>
             </Card>
           )}
+          <Card>
+            <CardHeader><CardTitle>Plan &amp; setup</CardTitle></CardHeader>
+            <CardContent className="py-3 text-sm text-slate-600">
+              <p className="m-0 font-semibold text-slate-800">{plan ? `Provider ${plan} plan` : "Introductory access (no paid plan)"}</p>
+              <p className="text-xs text-slate-500 mt-1 mb-2">
+                {plan
+                  ? "Unlimited core actions within your plan's worker, administrator and location limits."
+                  : "Provider Solo, Team and Scale plans are priced by organisation size. Compare them when you are ready."}
+              </p>
+              <a href="/subscription" className="text-xs font-semibold underline" style={{ color: "var(--td-pink)" }}>Subscription &amp; billing</a>
+              <span className="text-xs text-slate-400"> · </span>
+              <a href="/documents" className="text-xs font-semibold underline" style={{ color: "var(--td-pink)" }}>Verification &amp; documents</a>
+            </CardContent>
+          </Card>
           <QuickActionsPanel actions={quickActions} />
           <ProfileProgressCard />
         </div>

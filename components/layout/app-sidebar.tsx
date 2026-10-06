@@ -104,14 +104,6 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/messages",              label: "Messages",                   icon: MessageSquare },
           { href: "/profile",               label: "Provider Profile",           icon: User },
           { href: "/subscription",          label: "Subscription & Billing",     icon: CreditCard },
-          // Not in the PR-D04 menu — left as-is pending a product decision.
-          { href: "/live-dashboard",        label: "Live Dashboard",             icon: Search },
-          { href: "/provider/listings",     label: "My Listings",                icon: ClipboardList },
-          { href: "/provider/organisation", label: "Organisation",               icon: Building2 },
-          { href: "/team",                  label: "Managed Workers",            icon: Users },
-          { href: "/job-invites",           label: "Job Invitations",            icon: Bell },
-          { href: "/invoices",              label: "Invoices",                   icon: Receipt },
-          { href: "/documents",             label: "Documents",                  icon: FileText },
         ],
         account: [NOTIFICATIONS],
       };
@@ -186,7 +178,10 @@ export function AppSidebar() {
 
   function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
     const Icon = item.icon;
-    const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href + "/"));
+    // Only the most specific matching item is highlighted, so /jobs/my does not also light up /jobs.
+    const matchesPath = (href: string) => pathname === href || (href !== "/" && !!pathname?.startsWith(href + "/"));
+    const isActive = matchesPath(item.href)
+      && ![...nav.main, ...nav.account].some((o) => o.href.length > item.href.length && matchesPath(o.href));
     return (
       <li>
         <Link

@@ -27,11 +27,6 @@ const AGE_GROUPS = [
 
 export default function NewParticipantPage() {
   const router = useRouter();
-  const [name,     setName]     = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw,   setShowPw]   = useState(false);
-
   const [preferredName, setPreferredName] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
   const [suburb, setSuburb] = useState("");
@@ -49,8 +44,7 @@ export default function NewParticipantPage() {
 
   const [saving,   setSaving]   = useState(false);
   const [error,    setError]    = useState<string | null>(null);
-  const [created,  setCreated]  = useState<{ id: string; name: string; username: string; password: string } | null>(null);
-  const [copied,   setCopied]   = useState(false);
+  const [created,  setCreated]  = useState<{ id: string; name: string } | null>(null);
 
   const [inviteSending, setInviteSending] = useState(false);
   const [inviteResult, setInviteResult] = useState<string | null>(null);
@@ -60,9 +54,6 @@ export default function NewParticipantPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim())     { setError("Name is required."); return; }
-    if (!username.trim()) { setError("Username is required."); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (!preferredName.trim()) { setError("Preferred name is required."); return; }
     if (!ageGroup) { setError("Select an age group."); return; }
     if (!suburb.trim() || !postcode.trim()) { setError("Suburb and postcode are required."); return; }
@@ -71,12 +62,12 @@ export default function NewParticipantPage() {
       setError("Enter the authorising person's name and relationship.");
       return;
     }
-    if (!authorityConfirmed) { setError("You must confirm you're authorised to create this account."); return; }
-    if (!infoAccuracyConfirmed) { setError("You must confirm the information provided is accurate."); return; }
+    if (!authorityConfirmed) { setError("You must confirm you are authorised to source support for this participant."); return; }
+    if (!infoAccuracyConfirmed) { setError("You must confirm you understand access may be reviewed and managed."); return; }
     setSaving(true); setError(null);
     try {
       const res = await api.post("/linking/participants", {
-        name: name.trim(), username: username.trim(), password,
+        name: preferredName.trim(),
         preferredName: preferredName.trim(), ageGroup,
         suburb: suburb.trim(), postcode: postcode.trim(),
         contactEmail: contactEmail.trim() || undefined,
@@ -89,19 +80,12 @@ export default function NewParticipantPage() {
         infoAccuracyConfirmed: true,
       });
       const user = (res as any).user;
-      setCreated({ id: user.id, name: name.trim(), username: username.trim(), password });
+      setCreated({ id: user.id, name: preferredName.trim() });
     } catch (err: any) {
       setError(err?.message ?? "Failed to create participant.");
     } finally {
       setSaving(false);
     }
-  }
-
-  function copyCredentials() {
-    if (!created) return;
-    navigator.clipboard.writeText(`Username: ${created.username}\nPassword: ${created.password}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   }
 
   async function sendInvitation(method: "EMAIL" | "SMS") {
@@ -121,33 +105,22 @@ export default function NewParticipantPage() {
   if (created) {
     return (
       <>
-        <PageHeader title="Participant Created" description="Share these login credentials with the participant." />
+        <PageHeader title="Participant Added" description="Would you like to invite the participant now?" />
         <div className="mx-auto max-w-lg px-5 py-6">
           <div className="bg-white border-2 border-emerald-200 rounded-xl p-6">
             <div className="text-sm font-bold text-emerald-700 mb-4">
-              ✓ Account created for {created.name}
+              ✓ {created.name} has been added
             </div>
             <p className="text-sm text-slate-700 mb-4 leading-relaxed">
-              Share these credentials with the participant. The password will not be shown again — save it now or reset it later from the Edit page.
+              The participant or their authorised representative may be invited to review and manage access.
             </p>
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3.5 font-mono text-sm mb-4">
-              <div className="mb-1.5"><span className="text-slate-500 font-sans text-xs">Username</span></div>
-              <div className="font-bold text-slate-800 mb-3">{created.username}</div>
-              <div className="mb-1.5"><span className="text-slate-500 font-sans text-xs">Password</span></div>
-              <div className="font-bold text-slate-800">{created.password}</div>
-            </div>
-            <div className="flex gap-2.5 mb-5 flex-wrap">
-              <Button onClick={copyCredentials}>
-                {copied ? "Copied!" : "Copy credentials"}
-              </Button>
-            </div>
 
             <div className="border-t border-slate-200 pt-4 mb-5">
               <div className="text-sm font-bold text-slate-800 mb-2">
                 Send invitation now
               </div>
               <p className="text-xs text-slate-500 mb-3">
-                We'll send the login credentials directly to the participant.
+                We'll notify the participant using the contact details you entered.
               </p>
               <div className="flex gap-2.5 flex-wrap">
                 <Button type="button" variant="outline" size="sm" onClick={() => sendInvitation("EMAIL")} disabled={inviteSending}>
@@ -163,7 +136,7 @@ export default function NewParticipantPage() {
 
             <div className="flex gap-3">
               <Button onClick={() => router.push("/jobs/post")}>Continue to post a request →</Button>
-              <Button variant="outline" onClick={() => router.push("/participants")}>Invite later / Go to My Participants</Button>
+              <Button variant="outline" onClick={() => router.push("/participants")}>Invite later</Button>
             </div>
           </div>
         </div>
@@ -175,53 +148,17 @@ export default function NewParticipantPage() {
     <>
       <PageHeader
         title="Add Participant"
-        description="Create a managed participant account on their behalf."
+        description="Tell us who needs support."
         actions={<Link href="/participants"><Button variant="outline" size="sm">← Back</Button></Link>}
       />
       <div className="mx-auto max-w-lg px-5 py-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <Card>
-            <CardHeader><CardTitle>Login details</CardTitle></CardHeader>
-            <CardContent className="flex flex-col gap-3.5">
-              <div>
-                <label className={lbl}>Full name *</label>
-                <input className={inp} value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith" autoFocus />
-              </div>
-              <div>
-                <label className={lbl}>Username *</label>
-                <input
-                  className={inp} value={username} onChange={e => setUsername(e.target.value.toLowerCase())}
-                  placeholder="jane.smith" autoComplete="off"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">Letters, numbers, dot, dash or underscore. Used to log in.</p>
-              </div>
-              <div>
-                <label className={lbl}>Temporary password *</label>
-                <div className="relative">
-                  <input
-                    className={`${inp} pr-[70px]`}
-                    type={showPw ? "text" : "password"}
-                    value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder="Min 8 characters" autoComplete="new-password"
-                  />
-                  <button
-                    type="button" onClick={() => setShowPw(v => !v)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 bg-transparent border-none cursor-pointer"
-                  >
-                    {showPw ? "Hide" : "Show"}
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">Share these credentials with the participant to let them log in.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
             <CardHeader><CardTitle>Participant details</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-3.5">
               <div>
                 <label className={lbl}>Preferred name *</label>
-                <input className={inp} value={preferredName} onChange={e => setPreferredName(e.target.value)} placeholder="What they like to be called" />
+                <input className={inp} value={preferredName} onChange={e => setPreferredName(e.target.value)} placeholder="What they like to be called" autoFocus />
               </div>
               <div>
                 <label className={lbl}>Age group *</label>
@@ -241,22 +178,22 @@ export default function NewParticipantPage() {
                 </div>
               </div>
               <div>
-                <label className={lbl}>Contact email (optional)</label>
+                <label className={lbl}>Email, if available</label>
                 <input className={inp} type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} placeholder="participant@example.com" />
               </div>
               <div>
-                <label className={lbl}>Contact phone (optional)</label>
+                <label className={lbl}>Mobile, if available</label>
                 <input className={inp} value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="04xx xxx xxx" />
-                <p className="text-[11px] text-slate-400 mt-1">Needed if you want to send an invitation by email or SMS after creating this account.</p>
+                <p className="text-[11px] text-slate-400 mt-1">Needed to send an invitation by email or SMS.</p>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Your authority</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Authority</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-3.5">
               <div>
-                <label className={lbl}>Your relationship to this participant *</label>
+                <label className={lbl}>Who has authorised you to act? *</label>
                 <select
                   className={inp} value={participantType}
                   onChange={e => setParticipantType(e.target.value)}
@@ -289,7 +226,7 @@ export default function NewParticipantPage() {
                   onChange={e => setAuthorityConfirmed(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand-600"
                 />
-                I confirm I am authorised to create and manage this account on this participant's behalf.
+                I confirm that I am authorised to source support for this participant.
               </label>
               <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
                 <input
@@ -297,7 +234,7 @@ export default function NewParticipantPage() {
                   onChange={e => setInfoAccuracyConfirmed(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-brand-600"
                 />
-                I confirm the information provided above is accurate to the best of my knowledge.
+                I understand the participant or authorised representative may be invited to review and manage access.
               </label>
             </CardContent>
           </Card>
@@ -309,7 +246,7 @@ export default function NewParticipantPage() {
           )}
 
           <div className="flex gap-3">
-            <Button type="submit" loading={saving}>Create participant</Button>
+            <Button type="submit" loading={saving}>Save participant</Button>
             <Button type="button" variant="ghost" onClick={() => router.push("/participants")}>Cancel</Button>
           </div>
         </form>

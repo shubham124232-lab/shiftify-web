@@ -110,7 +110,7 @@ export function WorkerStep09_Compliance() {
       <div style={{ padding: '12px 14px', borderRadius: 10, background: 'rgba(106,114,122,0.08)', border: '1.5px solid rgba(106,114,122,0.3)' }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--td-ink-800)', marginBottom: 4 }}>Important</div>
         <p style={{ fontSize: 12, color: 'var(--td-dark-text)', margin: 0, lineHeight: 1.6 }}>
-          Shiftify conducts background verification on all Support Workers. Your NDIS Worker Screening Check will be validated through the NDIS Worker Screening Database. You may not provide supports until verification is complete.
+          You must submit your Worker Screening Check and the other required documents before you can accept shifts. Shiftify does not guarantee the accuracy of submitted documents, and you are responsible for holding valid, current credentials.
         </p>
       </div>
     </div>

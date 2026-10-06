@@ -14,7 +14,7 @@ const CAPACITY_STATUSES = [
 const AVAILABILITY_TYPES = [
   { value: 'BUSINESS_HOURS',       label: 'Business Hours' },
   { value: 'FLEXIBLE',             label: 'Flexible' },
-  { value: 'EMERGENCY_AVAILABLE',  label: 'Emergency Availability' },
+  { value: 'EMERGENCY_AVAILABLE',  label: 'Short-notice Availability' },
 ];
 
 function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {

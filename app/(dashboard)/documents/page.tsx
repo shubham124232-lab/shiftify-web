@@ -29,7 +29,7 @@ function expiryInfo(expiryDate: string | null): { label: string; bg: string; col
 }
 
 const DOC_TYPES = [
-  { value: "NDIS_SCREENING", label: "NDIS Worker Screening" },
+  { value: "NDIS_SCREENING", label: "Worker Screening Check" },
   { value: "POLICE_CHECK",   label: "Police Check" },
   { value: "WWCC",           label: "Working with Children Check" },
   { value: "FIRST_AID",      label: "First Aid Certificate" },

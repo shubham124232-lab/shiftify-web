@@ -51,6 +51,7 @@ export interface WorkerDashboard {
   stats?: WorkerDashboardStats;
   upcomingShifts: ShiftSummary[];
   matchedJobs: JobSummary[];
+  availableNow?: { isAvailableNow: boolean; availableNowUntil: string | null };
   pendingApplications: WorkerApplication[];
   shortlistedApplications?: WorkerApplication[];
   allApplications?: WorkerApplication[];
@@ -58,14 +59,39 @@ export interface WorkerDashboard {
   unreadMessages?: number;
 }
 
+export interface ParticipantDashboardStats {
+  activeRequests: number;
+  applicationsReceived: number;
+  confirmedSupports: number;
+  upcomingBookings: number;
+  awaitingConfirmation?: number;
+  urgentRequests: number;
+  draftRequests: number;
+  unreadMessages: number;
+  recurringSupports: number;
+}
+
 export interface ParticipantDashboard {
+  stats?: ParticipantDashboardStats;
   openJobs: JobSummary[];
   upcomingShifts: ShiftSummary[];
   awaitingConfirmation: ShiftSummary[];
   unreadNotifications?: number;
 }
 
+export interface CoordinatorDashboardStats {
+  activeRequests: number;
+  draftRequests: number;
+  urgentRequests: number;
+  unfilledRequests: number;
+  upcomingShifts: number;
+  awaitingConfirmation: number;
+  managedParticipants: number;
+  unreadMessages: number;
+}
+
 export interface CoordinatorDashboard {
+  stats?: CoordinatorDashboardStats;
   openJobs: JobSummary[];
   upcomingShifts: ShiftSummary[];
   awaitingConfirmation: ShiftSummary[];
@@ -73,7 +99,28 @@ export interface CoordinatorDashboard {
   unreadNotifications?: number;
 }
 
+export interface ProviderDashboardStats {
+  /** Responses received on the Provider's own requests that are still new. */
+  newEnquiries: number;
+  /** Responses received on the Provider's own requests that are shortlisted. */
+  shortlistedCount: number;
+  /** Own requests that have received at least one response. */
+  matchedRequests: number;
+  confirmedIntakes: number;
+  unfilledWorkforceGaps: number;
+  unreadMessages: number;
+  openRequests: number;
+  responsesReceived: number;
+  outgoingPendingApplications: number;
+}
+
 export interface ProviderDashboard {
+  stats?: ProviderDashboardStats;
+  /** Responses to the Provider's own staffing requests. */
+  workerResponses?: { applicationId: string; status: string; applicantName: string | null; job: JobSummary }[];
+  /** The Provider's own open staffing requests. */
+  myRequests?: JobSummary[];
+  /** The Provider's own outgoing expressions of interest on other people's requests. */
   pendingExpressions: { applicationId: string; job: JobSummary }[];
   activeShifts: ShiftSummary[];
   unassignedAccepted: JobSummary[];

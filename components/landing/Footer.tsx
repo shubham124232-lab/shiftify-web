@@ -3,8 +3,7 @@ import { FiFacebook, FiInstagram, FiLinkedin, FiTwitter, FiShield, FiLock, FiEye
 const footerLinks: Record<string, { label: string; href: string }[]> = {
   'For Participants': [
     { label: 'Find Support Workers',   href: '/marketplace' },
-    { label: 'Emergency Support',      href: '/emergency'   },
-    { label: 'NDIS Services',          href: '/services'    },
+    { label: 'Support Services',       href: '/services'    },
     { label: 'Browse Providers',       href: '/providers'   },
     { label: 'How It Works',           href: '#how-it-works'},
     { label: 'Participant Resources',  href: '/resources'   },
@@ -13,7 +12,7 @@ const footerLinks: Record<string, { label: string; href: string }[]> = {
     { label: 'Join as Support Worker', href: '/register'         },
     { label: 'Browse Open Shifts',     href: '/marketplace'      },
     { label: 'Worker Resources',       href: '/worker-resources' },
-    { label: 'NDIS Worker Training',   href: '/training'         },
+    { label: 'Worker Training',        href: '/training'         },
     { label: 'Invoicing & Pay',        href: '/pay'              },
     { label: 'Worker Insurance',       href: '/insurance'        },
   ],
@@ -31,7 +30,7 @@ const footerLinks: Record<string, { label: string; href: string }[]> = {
     { label: 'Accessibility Statement', href: '/accessibility'   },
     { label: 'Privacy Policy',          href: '/privacy'         },
     { label: 'Terms of Service',        href: '/terms'           },
-    { label: 'NDIS Code of Conduct',    href: '/ndis-compliance' },
+    { label: 'Code of Conduct',         href: '/ndis-compliance' },
   ],
 };
 
@@ -43,7 +42,7 @@ const socials = [
 ] as const;
 
 const trust = [
-  { Icon: FiShield, text: 'NDIS Registered' },
+  { Icon: FiShield, text: 'Independent Platform' },
   { Icon: FiLock,   text: 'SSL Secure'       },
   { Icon: FiEye,    text: 'WCAG 2.1 AA'      },
 ] as const;
@@ -62,12 +61,12 @@ export default function Footer() {
             <div className="col-span-12 lg:col-span-3">
               <div className="footer-brand" aria-label="Shiftify">Shiftify</div>
               <p className="footer-desc">
-                Australia&apos;s trusted NDIS marketplace — connecting participants with
-                verified support workers 24/7. Emergency help always available.
+                An independent technology platform connecting participants, support coordinators,
+                providers and support workers across Australia&apos;s disability support community.
               </p>
               <div className="footer-emergency-badge" role="status">
                 <span className="footer-emergency-dot" aria-hidden="true" />
-                Emergency: 1800 SHIFT IT
+                Not an emergency service. In immediate danger, call 000.
               </div>
               <div className="flex gap-2 mt-4">
                 {socials.map(({ Icon, href, label }) => (
@@ -100,7 +99,7 @@ export default function Footer() {
                   © {new Date().getFullYear()} Shiftify Pty Ltd. All rights reserved. ABN: 12 345 678 901
                 </p>
                 <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'color-mix(in srgb, var(--td-dark-text) 40%, transparent)' }}>
-                  Shiftify connects participants with registered providers and workers.
+                  Shiftify is independent and is not operated, endorsed or approved by the NDIA or the NDIS.
                 </p>
               </div>
               <div className="md:text-right">

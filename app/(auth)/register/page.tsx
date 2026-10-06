@@ -25,11 +25,11 @@ import { TIER_META } from '@/lib/types/posting';
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
 const ROLE_CARDS = [
-  { value: UserRole.PARTICIPANT,    label: 'Participant',    tagline: 'I need NDIS support services',         icon: 'bi-person-heart'        },
+  { value: UserRole.PARTICIPANT,    label: 'Participant',    tagline: 'I need disability support services',   icon: 'bi-person-heart'        },
   { value: UserRole.SUPPORT_WORKER, label: 'Support Worker', tagline: 'I provide direct care & support',      icon: 'bi-hand-thumbs-up-fill' },
-  { value: UserRole.PROVIDER,       label: 'Provider',       tagline: 'Organisation delivering NDIS services', icon: 'bi-building-fill-check' },
+  { value: UserRole.PROVIDER,       label: 'Provider',       tagline: 'Organisation delivering support services', icon: 'bi-building-fill-check' },
   { value: UserRole.COORDINATOR,    label: 'Coordinator',    tagline: 'I coordinate support for participants', icon: 'bi-diagram-3-fill'      },
-  { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager',   tagline: 'I manage NDIS funding & budgets',       icon: 'bi-calculator-fill'     },
+  { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager',   tagline: 'I manage plan funding & budgets',       icon: 'bi-calculator-fill'     },
 ];
 
 function getStrength(pw: string): { level: 0|1|2|3; label: string; color: string } {
@@ -360,7 +360,15 @@ function RegisterPageInner() {
       const draft = peekGuestDraft();
       if (draft) {
         if (role === UserRole.PARTICIPANT && typeof draft.state.suburb === 'string' && draft.state.suburb) {
-          try { await upsertProfile('PARTICIPANT', { defaultSuburb: draft.state.suburb }); } catch { /* best-effort prefill */ }
+          try {
+            // Carries the suburb they already typed into the posting form, so the post is not blocked on "Add your suburb".
+            const st = draft.state;
+            await api.patch('/users/me', {
+              defaultSuburb: draft.state.suburb,
+              ...(typeof st.state === 'string' && st.state ? { defaultState: st.state } : {}),
+              ...(typeof st.postcode === 'string' && st.postcode ? { defaultPostcode: st.postcode } : {}),
+            });
+          } catch { /* best-effort prefill */ }
         }
         router.replace(`/jobs/post/${TIER_META[draft.tier].path}`);
         return;
@@ -867,7 +875,7 @@ function RegisterPageInner() {
       </div>{/* /auth-panel-body */}
 
       <footer className="auth-panel-foot">
-        <span><i className="bi bi-shield-lock-fill" aria-hidden="true" />Encrypted and NDIS compliant</span>
+        <span><i className="bi bi-shield-lock-fill" aria-hidden="true" />Encrypted connection</span>
         <span>
           Already have an account? <Link href="/login">Log in</Link>
         </span>

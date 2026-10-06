@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ClipboardList, FilePlus, Search, Briefcase,
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
-  CreditCard, Building2, Home, Star, ShieldCheck,
+  CreditCard, Building2, Home, Star, ShieldCheck, Inbox,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,94 +17,148 @@ import type { UserRole } from "@/lib/types";
 
 interface NavItem { href: string; label: string; icon: LucideIcon; }
 
-function navForRole(role: string): NavItem[] {
+interface RoleNav { main: NavItem[]; account: NavItem[]; }
+
+const NOTIFICATIONS: NavItem = { href: "/notifications", label: "Notifications", icon: Bell };
+
+// Role-specific navigation. Each role's menu follows its own latest journey document:
+//   Support Worker      → SW v3.0 (31 Jul)       — "Navigation" table
+//   Support Coordinator → SC Revised (31 Jul)    — "Recommended dashboard navigation"
+//   Provider            → Provider journey PR-D04 (13 Aug)
+//   Participant         → unchanged (no documented menu to follow)
+// Pages that exist today but are not in a role's documented menu are kept after the
+// documented items, unchanged — what to do with them is an open product decision.
+function navForRole(role: string, managed = false): RoleNav {
   const dashHref = ROLE_DASHBOARD_PATHS[role as UserRole] ?? "/admin";
   const dash: NavItem = { href: dashHref, label: "Dashboard", icon: LayoutDashboard };
+  const defaultAccount: NavItem[] = [
+    { href: "/profile",       label: "My Profile",    icon: User },
+    { href: "/subscription",  label: "Subscription",  icon: CreditCard },
+    NOTIFICATIONS,
+  ];
   switch (role) {
     case "PARTICIPANT":
-      return [
-        dash,
-        { href: "/jobs/my",      label: "My Requests",    icon: ClipboardList },
-        { href: "/jobs/post",    label: "Post Request",   icon: FilePlus },
-        { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
-        { href: "/workers/available", label: "Browse Workers", icon: Search },
-        { href: "/coordinators/available", label: "Browse Coordinators", icon: UserCheck },
-        { href: "/coordinator-connections", label: "Coordinator Connections", icon: Link2 },
-        { href: "/saved-professionals", label: "Saved",       icon: Star },
-        { href: "/documents",    label: "Documents",      icon: FileText },
-        { href: "/messages",     label: "Messages",       icon: MessageSquare },
-      ];
+      return {
+        main: [
+          dash,
+          { href: "/jobs/my",      label: "My Requests",    icon: ClipboardList },
+          { href: "/jobs/post",    label: "Post Request",   icon: FilePlus },
+          { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
+          { href: "/workers/available", label: "Browse Workers", icon: Search },
+          { href: "/coordinators/available", label: "Browse Coordinators", icon: UserCheck },
+          { href: "/coordinator-connections", label: "Coordinator Connections", icon: Link2 },
+          { href: "/saved-professionals", label: "Saved",       icon: Star },
+          { href: "/documents",    label: "Documents",      icon: FileText },
+          { href: "/messages",     label: "Messages",       icon: MessageSquare },
+        ],
+        account: defaultAccount,
+      };
     case "SUPPORT_WORKER":
-      return [
-        dash,
-        { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
-        { href: "/jobs/my",      label: "My Jobs",        icon: Briefcase },
-        { href: "/my-support",   label: "My Support",     icon: Calendar },
-        { href: "/connections/my", label: "My Connections", icon: Link2 },
-        { href: "/invoices",     label: "Invoices",       icon: Receipt },
-        { href: "/availability", label: "Availability",   icon: Calendar },
-        { href: "/connect-invites", label: "Direct Connect", icon: Link2 },
-        { href: "/job-invites",  label: "Job Invitations", icon: Bell },
-        { href: "/documents",    label: "Documents",      icon: FileText },
-        { href: "/messages",     label: "Messages",       icon: MessageSquare },
-        { href: "/help-safety",  label: "Help & Safety",  icon: ShieldCheck },
-      ];
+      // Pricing V2 §4.4 — a Provider-managed Team Member sees only personal offers,
+      // assignments, calendar and assignment messages: no Live Shift Board, billing or Provider tools.
+      if (managed) {
+        return {
+          main: [
+            dash,
+            { href: "/job-invites",  label: "Invitations",      icon: Bell },
+            { href: "/my-support",   label: "Upcoming Support", icon: Calendar },
+            { href: "/availability", label: "Availability",     icon: Calendar },
+            { href: "/messages",     label: "Messages",         icon: MessageSquare },
+            { href: "/help-safety",  label: "Help & Safety",    icon: ShieldCheck },
+          ],
+          account: [NOTIFICATIONS],
+        };
+      }
+      return {
+        main: [
+          dash,
+          { href: "/jobs",            label: "Find Shifts",         icon: Search },
+          { href: "/job-invites",     label: "Invitations",         icon: Bell },
+          { href: "/connections/my",  label: "My Connections",      icon: Link2 },
+          { href: "/my-support",      label: "Upcoming Support",    icon: Calendar },
+          { href: "/availability",    label: "Availability",        icon: Calendar },
+          { href: "/messages",        label: "Messages",            icon: MessageSquare },
+          { href: "/profile",         label: "My Profile",          icon: User },
+          { href: "/documents",       label: "Documents",           icon: FileText },
+          { href: "/subscription",    label: "Power Ups & Billing", icon: CreditCard },
+          { href: "/help-safety",     label: "Help & Safety",       icon: ShieldCheck },
+          // Not in the SW v3.0 menu — left as-is pending a product decision.
+          { href: "/live-dashboard",  label: "Live Dashboard",      icon: Search },
+          { href: "/jobs/my",         label: "My Jobs",             icon: Briefcase },
+          { href: "/invoices",        label: "Invoices",            icon: Receipt },
+        ],
+        account: [NOTIFICATIONS],
+      };
     case "PROVIDER":
-      return [
-        dash,
-        { href: "/live-dashboard",            label: "Live Dashboard",       icon: Search },
-        { href: "/provider/listings",         label: "My Listings",          icon: ClipboardList },
-        { href: "/provider/post-service",     label: "Post Service",         icon: FilePlus },
-        { href: "/provider/sil-vacancy",      label: "SIL / SDA Vacancy",   icon: Home },
-        { href: "/workers/available",         label: "Browse Workers",       icon: UserCheck },
-        { href: "/jobs/my",                   label: "Enquiries",            icon: Briefcase },
-        { href: "/team",                      label: "My Team",              icon: Users },
-        { href: "/provider/organisation",     label: "Organisation",         icon: Building2 },
-        { href: "/job-invites",               label: "Job Invitations",      icon: Bell },
-        { href: "/invoices",                  label: "Invoices",             icon: Receipt },
-        { href: "/documents",                 label: "Documents",            icon: FileText },
-        { href: "/messages",                  label: "Messages",             icon: MessageSquare },
-      ];
+      return {
+        main: [
+          dash,
+          { href: "/jobs",                  label: "Find Support Opportunities", icon: Search },
+          { href: "/workers/available",     label: "Find Workers",               icon: UserCheck },
+          { href: "/jobs/post",             label: "Post Staffing Request",      icon: FilePlus },
+          { href: "/jobs/my",               label: "My Requests",                icon: ClipboardList },
+          { href: "/provider/responses",    label: "Responses & Enquiries",      icon: Inbox },
+          { href: "/provider/workforce",    label: "Internal Workforce",         icon: Users },
+          { href: "/provider/post-service", label: "Services & Capacity",        icon: Briefcase },
+          { href: "/provider/sil-vacancy",  label: "SIL/SDA & Home and Living",  icon: Home },
+          { href: "/messages",              label: "Messages",                   icon: MessageSquare },
+          { href: "/profile",               label: "Provider Profile",           icon: User },
+          { href: "/subscription",          label: "Subscription & Billing",     icon: CreditCard },
+          // Not in the PR-D04 menu — left as-is pending a product decision.
+          { href: "/live-dashboard",        label: "Live Dashboard",             icon: Search },
+          { href: "/provider/listings",     label: "My Listings",                icon: ClipboardList },
+          { href: "/provider/organisation", label: "Organisation",               icon: Building2 },
+          { href: "/team",                  label: "Managed Workers",            icon: Users },
+          { href: "/job-invites",           label: "Job Invitations",            icon: Bell },
+          { href: "/invoices",              label: "Invoices",                   icon: Receipt },
+          { href: "/documents",             label: "Documents",                  icon: FileText },
+        ],
+        account: [NOTIFICATIONS],
+      };
     case "COORDINATOR":
-      return [
-        dash,
-        { href: "/participants",         label: "Participant Cases",  icon: UserCheck },
-        { href: "/coordinator-connections", label: "Connections",     icon: Link2 },
-        { href: "/jobs/my",              label: "My Requests",        icon: ClipboardList },
-        { href: "/jobs/post",            label: "Post Request",       icon: FilePlus },
-        { href: "/jobs?urgent=1",        label: "Urgent Requests",    icon: BarChart2 },
-        { href: "/live-dashboard",       label: "Live Dashboard",     icon: Search },
-        { href: "/find",                 label: "Find Directly",      icon: Search },
-        { href: "/workers/available",    label: "Browse Workers",     icon: Search },
-        { href: "/saved-professionals",  label: "Saved",              icon: Star },
-        { href: "/invoices",             label: "Invoices",           icon: Receipt },
-        { href: "/documents",            label: "Documents",          icon: FileText },
-        { href: "/messages",             label: "Messages",           icon: MessageSquare },
-        { href: "/help-safety",          label: "Help & Safety",      icon: ShieldCheck },
-      ];
+      return {
+        main: [
+          dash,
+          { href: "/participants",         label: "Participants",              icon: UserCheck },
+          { href: "/jobs/post",            label: "Post Support Request",      icon: FilePlus },
+          { href: "/find",                 label: "Find Support",              icon: Search },
+          { href: "/jobs/my",              label: "Requests & Responses",      icon: ClipboardList },
+          { href: "/upcoming-support",     label: "Upcoming Support",          icon: Calendar },
+          { href: "/messages",             label: "Messages",                  icon: MessageSquare },
+          { href: "/saved-professionals",  label: "Saved Workers & Providers", icon: Star },
+          { href: "/profile",              label: "My Profile",                icon: User },
+          { href: "/subscription",         label: "Subscription",              icon: CreditCard },
+          { href: "/help-safety",          label: "Help",                      icon: ShieldCheck },
+          // Not in the SC menu — left as-is pending a product decision.
+          { href: "/coordinator-connections", label: "Connections",            icon: Link2 },
+          { href: "/jobs?urgent=1",        label: "Urgent Requests",           icon: BarChart2 },
+          { href: "/live-dashboard",       label: "Live Dashboard",            icon: Search },
+          { href: "/workers/available",    label: "Browse Workers",            icon: Search },
+          { href: "/invoices",             label: "Invoices",                  icon: Receipt },
+          { href: "/documents",            label: "Documents",                 icon: FileText },
+        ],
+        account: [NOTIFICATIONS],
+      };
     case "PLAN_MANAGER":
-      return [
-        dash,
-        { href: "/load-board",   label: "Load Board",     icon: Search },
-        { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
-        { href: "/referrals",    label: "My Referrals",   icon: ClipboardList },
-        { href: "/connections",  label: "Connections",    icon: Link2 },
-        { href: "/workers/available", label: "Browse Workers", icon: Search },
-        { href: "/saved-professionals", label: "Saved",   icon: Star },
-        { href: "/invoices",     label: "Invoices",       icon: Receipt },
-        { href: "/documents",    label: "Documents",      icon: FileText },
-        { href: "/messages",     label: "Messages",       icon: MessageSquare },
-      ];
+      return {
+        main: [
+          dash,
+          { href: "/load-board",   label: "Load Board",     icon: Search },
+          { href: "/live-dashboard", label: "Live Dashboard", icon: Search },
+          { href: "/referrals",    label: "My Referrals",   icon: ClipboardList },
+          { href: "/connections",  label: "Connections",    icon: Link2 },
+          { href: "/workers/available", label: "Browse Workers", icon: Search },
+          { href: "/saved-professionals", label: "Saved",   icon: Star },
+          { href: "/invoices",     label: "Invoices",       icon: Receipt },
+          { href: "/documents",    label: "Documents",      icon: FileText },
+          { href: "/messages",     label: "Messages",       icon: MessageSquare },
+        ],
+        account: defaultAccount,
+      };
     default:
-      return [dash];
+      return { main: [dash], account: defaultAccount };
   }
 }
-
-const COMMON_BOTTOM: NavItem[] = [
-  { href: "/profile",       label: "My Profile",    icon: User },
-  { href: "/subscription",  label: "Subscription",  icon: CreditCard },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-];
 
 const SIDEBAR_KEY = "shiftify_sidebar_collapsed";
 
@@ -127,7 +181,8 @@ export function AppSidebar() {
 
   if (!user) return null;
 
-  const items = navForRole(user.activeRole as string);
+  const nav = navForRole(user.activeRole as string, user.accountType === "MANAGED");
+  const items = nav.main;
 
   function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
     const Icon = item.icon;
@@ -198,7 +253,7 @@ export function AppSidebar() {
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
             )}
             <ul className="space-y-1">
-              {COMMON_BOTTOM.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
+              {nav.account.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
         </nav>

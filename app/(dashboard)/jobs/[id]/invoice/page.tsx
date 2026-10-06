@@ -158,7 +158,7 @@ export default function CreateInvoicePage() {
     <>
       <PageHeader
         title="Send Invoice"
-        description="Submit this job's details to a plan manager for NDIS claim processing."
+        description="Submit this job's details to a plan manager for claim processing."
       />
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
 

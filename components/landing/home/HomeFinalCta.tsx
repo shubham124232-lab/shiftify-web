@@ -5,13 +5,13 @@ export default function HomeFinalCta() {
         <div className="sf-final-grid">
           <div>
             <span className="sf-eyebrow" style={{ color: 'rgba(255,255,255,.5)' }}>
-              A stronger, more connected NDIS community
+              A stronger, more connected support community
             </span>
             <h2 id="sf-final-heading">
               Ready to make the <em>right</em>{' '}connection?
             </h2>
             <p>
-              Join thousands of Australians using Shiftify for flexible, reliable and trusted NDIS support.
+              Shiftify is an independent technology platform connecting Australia&apos;s disability support community.
             </p>
           </div>
 

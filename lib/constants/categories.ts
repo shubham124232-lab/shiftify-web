@@ -9,7 +9,7 @@ export const CATEGORY_GROUPS = [
   "Personal Care",
   "Nursing",
   "Allied Health",
-  "Other / NDIS-Specific",
+  "Other / Specialised",
 ] as const;
 
 export type CategoryGroup = (typeof CATEGORY_GROUPS)[number];
@@ -22,17 +22,17 @@ export const JOB_CATEGORIES = [
   { value: "SOCIAL_RECREATIONAL", label: "Social / Recreational Support", group: "Social Support" },
   { value: "NURSING_COMPLEX_CARE", label: "Nursing & Complex Care", group: "Nursing" },
   { value: "THERAPY_ASSISTANCE", label: "Therapy Assistance", group: "Allied Health" },
-  { value: "OVERNIGHT_SUPPORT", label: "Overnight Support", group: "Other / NDIS-Specific" },
+  { value: "OVERNIGHT_SUPPORT", label: "Overnight Support", group: "Other / Specialised" },
   { value: "BEHAVIOUR_SUPPORT", label: "Behaviour Support Related Assistance", group: "Allied Health" },
   { value: "HIGH_INTENSITY", label: "High Intensity Daily Personal Activities", group: "Personal Care" },
-  { value: "SIL_SUPPORT", label: "Supported Independent Living Related Support", group: "Other / NDIS-Specific" },
+  { value: "SIL_SUPPORT", label: "Supported Independent Living Related Support", group: "Other / Specialised" },
   { value: "RESPITE", label: "Respite Support", group: "Nursing" },
   { value: "COMPANIONSHIP", label: "Companionship / Routine Support", group: "Social Support" },
   { value: "MEDICATION_ASSISTANCE", label: "Medication Prompting / Assistance", group: "Nursing" },
   { value: "MEAL_PREPARATION", label: "Meal Preparation Support", group: "Domestic Support" },
   { value: "SHOPPING_ERRANDS", label: "Shopping / Errands Support", group: "Domestic Support" },
   { value: "APPOINTMENT_SUPPORT", label: "Appointment Support", group: "Social Support" },
-  { value: "OTHER", label: "Other", group: "Other / NDIS-Specific" },
+  { value: "OTHER", label: "Other", group: "Other / Specialised" },
 ] as const;
 
 export type JobCategoryValue = (typeof JOB_CATEGORIES)[number]["value"];

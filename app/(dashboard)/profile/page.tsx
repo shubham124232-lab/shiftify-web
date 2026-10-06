@@ -789,7 +789,7 @@ export default function ProfilePage() {
                       <option value="">Select…</option>
                       <option value="BUSINESS_HOURS">Business hours</option>
                       <option value="FLEXIBLE">Flexible</option>
-                      <option value="EMERGENCY_AVAILABLE">Emergency availability</option>
+                      <option value="EMERGENCY_AVAILABLE">Short-notice availability</option>
                     </select>
                   </Field>
                   <Field label="Maximum participant load">

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { ShiftPassPrompt } from "@/components/jobs/post/shared";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,24 +26,24 @@ interface ApplyModalProps {
   onSuccess: () => void;
 }
 
-// SW journey doc §6 "What Connect means" — a worker who presses Connect has
-// confirmed all three of these. This is a single acknowledgement, not a
-// repeated application questionnaire.
+// SW v3.0 Connect Window 1 — one acknowledgement plus contact consent, not an
+// application questionnaire.
 const CONFIRMATIONS = [
-  { key: "available",  label: "I'm available for the times listed" },
-  { key: "canDeliver", label: "I can provide this support and meet the essential requirements" },
-  { key: "shareProfile", label: "I want my profile and permitted contact details shared with the request initiator" },
+  { key: "available",    label: "I have reviewed this request and confirm that I am available and can meet the stated requirements." },
+  { key: "shareProfile", label: "I agree to share my permitted profile and contact details with the request initiator." },
 ] as const;
 
 type ConfirmKey = (typeof CONFIRMATIONS)[number]["key"];
 
 export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
   const [confirmed, setConfirmed] = useState<Record<ConfirmKey, boolean>>({
-    available: false, canDeliver: false, shareProfile: false,
+    available: false, shareProfile: false,
   });
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [limitBlocked, setLimitBlocked] = useState(false);
 
   const allConfirmed = CONFIRMATIONS.every(c => confirmed[c.key]);
   const startStr = new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" });
@@ -52,6 +53,7 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
     if (!allConfirmed) return;
     setSubmitting(true);
     setError(null);
+    setLimitBlocked(false);
     try {
       await api.post(`/jobs/${job.id}/apply`, {
         availabilityType: "YES_EXACT",
@@ -59,12 +61,33 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
         introduction: message.trim() || undefined,
         applicationData: { connectAcknowledgement: true },
       });
-      onSuccess();
+      setDone(true);
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message ?? "Failed to Connect. Please try again.");
+      if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") setLimitBlocked(true);
+      else setError((err as { message?: string })?.message ?? "Failed to Connect. Please try again.");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // SW v3.0 Connect Window 2 — tell the worker exactly what was shared.
+  if (done) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl px-6 py-6 space-y-3">
+          <h2 className="text-base font-semibold text-slate-900">Connection created</h2>
+          <p className="text-sm text-slate-600 m-0">
+            The initiator receives your name and photo, permitted contact method, services, experience, relevant qualifications and document status, general location, availability, rate and a link to your full profile.
+          </p>
+          <p className="text-xs text-slate-500 m-0">
+            You can message in the app, review the request, or withdraw interest. The participant&apos;s full address is not released at Connect, and the shift stays open until the initiator confirms a worker and that worker accepts.
+          </p>
+          <div className="flex justify-end pt-2">
+            <Button onClick={onSuccess}>View request</Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -73,7 +96,7 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
         <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between shrink-0">
           <div>
             <h2 className="text-base font-semibold text-slate-900">Connect to this request</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Review, confirm, and Connect — no forms to fill in</p>
+            <p className="text-xs text-slate-400 mt-0.5">Your saved profile, services, document status, availability and preferred rate will be shared with the initiator.</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 text-xl leading-none mt-0.5">×</button>
         </div>
@@ -81,6 +104,9 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+          )}
+          {limitBlocked && (
+            <ShiftPassPrompt onPurchased={() => { setLimitBlocked(false); void submit(); }} onDismiss={() => setLimitBlocked(false)} />
           )}
 
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm space-y-1">
@@ -105,7 +131,7 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Message (optional)</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Add a short message or question — optional</label>
             <textarea
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white"
               rows={3}
@@ -117,12 +143,12 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
           </div>
 
           <p className="text-xs text-slate-400">
-            The initiator decides who to confirm — Connecting shares your profile and permitted contact details but does not automatically award the shift.
+            Connect expresses interest and capability. The shift remains open until the initiator confirms a worker and that worker accepts. The participant's full address is not released at Connect.
           </p>
         </div>
 
         <div className="px-6 py-4 border-t border-slate-100 flex justify-between shrink-0">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>Go back</Button>
           <Button onClick={submit} loading={submitting} disabled={!allConfirmed}>Connect</Button>
         </div>
       </div>

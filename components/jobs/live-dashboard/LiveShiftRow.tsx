@@ -36,7 +36,7 @@ export function LiveShiftRow({ job, index, canApply, applying, onApply, onView, 
   // apply, and whether it already has.
   const status = isOwner ? 'Your request' : applied ? 'Application sent' : null;
   const primary = !isOwner && !applied && canApply;
-  const cta = isOwner ? 'Manage' : primary ? 'Apply now' : 'View shift';
+  const cta = isOwner ? 'Manage' : primary ? 'View & Connect' : 'View shift';
 
   return (
     <article

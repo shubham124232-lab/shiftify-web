@@ -29,6 +29,8 @@ export interface RequestTab {
   key: string;
   label: string;
   items: RequestRowItem[] | null; // null while loading
+  /** True database count when `items` is a capped list; falls back to items.length. */
+  total?: number;
   empty: string;
 }
 
@@ -74,7 +76,7 @@ export function MyRequestsCard({ title, tabs }: { title: string; tabs: RequestTa
         <div className="sf-sb-list-head">
           <h2 id="sf-myreq-title">{title}</h2>
           <p aria-live="polite">
-            {tab.items == null ? "Loading…" : `${tab.items.length} ${tab.items.length === 1 ? "result" : "results"}`}
+            {tab.items == null ? "Loading…" : `${tab.total ?? tab.items.length} ${(tab.total ?? tab.items.length) === 1 ? "result" : "results"}`}
           </p>
         </div>
 
@@ -89,7 +91,7 @@ export function MyRequestsCard({ title, tabs }: { title: string; tabs: RequestTa
               onClick={() => setActive(t.key)}
             >
               <span className="sf-sb-tab-label">{t.label}</span>
-              <span className="sf-sb-tab-window">{t.items == null ? "…" : `${t.items.length} ${t.items.length === 1 ? "request" : "requests"}`}</span>
+              <span className="sf-sb-tab-window">{t.items == null ? "…" : `${t.total ?? t.items.length} ${(t.total ?? t.items.length) === 1 ? "request" : "requests"}`}</span>
             </button>
           ))}
         </div>

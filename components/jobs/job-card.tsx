@@ -175,8 +175,9 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
         )}
         <Button size="sm" variant="ghost" onClick={onView}>{isOwner ? "Manage" : "View"}</Button>
         {canApply && (
-          <Button size="sm" variant={applied ? "ghost" : "outline"} disabled={applied || applying} onClick={() => !applied && onApply()}>
-            {applied ? `Applied (${job.ownApplication!.status})` : applying ? "Applying..." : "Quick Apply"}
+          // Connecting needs the single acknowledgement (SW v3.0 Window 1), which lives on the details page.
+          <Button size="sm" variant={applied ? "ghost" : "outline"} disabled={applied || applying} onClick={() => !applied && onView()}>
+            {applied ? `Connected (${job.ownApplication!.status.toLowerCase().replace("_", " ")})` : "View & Connect"}
           </Button>
         )}
       </div>

@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { inp, lbl } from "@/components/jobs/post/shared";
+import { TeamMembersTab, type WorkforceTeamMember } from "@/components/provider/TeamMembersTab";
 
 interface Branch {
   id: string;
@@ -22,25 +23,13 @@ interface Administrator {
   createdAt: string;
 }
 
-interface TeamMember {
-  id: string;
-  name: string;
-  mobile: string;
-  skills: string[];
-  inviteStatus: "PENDING" | "VERIFIED";
-  mobileVerifiedAt: string | null;
-  claimedByUserId: string | null;
-  branch: { id: string; name: string };
-  createdAt: string;
-}
-
 type Tab = "branches" | "administrators" | "team";
 
 export default function ProviderOrganisationPage() {
   const [tab, setTab] = useState<Tab>("branches");
   const [branches, setBranches] = useState<Branch[]>([]);
   const [administrators, setAdministrators] = useState<Administrator[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamMembers, setTeamMembers] = useState<WorkforceTeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
@@ -50,7 +39,7 @@ export default function ProviderOrganisationPage() {
     Promise.all([
       api.get<{ branches: Branch[] }>("/provider-org/branches"),
       api.get<{ administrators: Administrator[] }>("/provider-org/administrators"),
-      api.get<{ teamMembers: TeamMember[] }>("/provider-org/team-members"),
+      api.get<{ teamMembers: WorkforceTeamMember[] }>("/provider-org/team-members"),
     ])
       .then(([b, a, t]) => {
         setBranches(b.branches ?? []);
@@ -65,7 +54,7 @@ export default function ProviderOrganisationPage() {
 
   function handleError(e: unknown) {
     if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
-      setLimitMessage(e.message);
+      setLimitMessage(`${e.message} Need more capacity? Contact Shiftify.`);
     } else {
       setError(e instanceof ApiError ? e.message : "Something went wrong");
     }
@@ -293,156 +282,6 @@ function AdministratorsTab({
                   <p className="text-xs text-slate-400">{a.user.email}{a.branches.length > 0 ? ` · ${a.branches.map(b => b.name).join(", ")}` : " · all branches"}</p>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => remove(a.id)}>Remove</Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Team Members ────────────────────────────────────────────────────────────
-
-function TeamMembersTab({
-  teamMembers, branches, onCreated, onError, clearMessages,
-}: {
-  teamMembers: TeamMember[];
-  branches: Branch[];
-  onCreated: () => void;
-  onError: (e: unknown) => void;
-  clearMessages: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [branchId, setBranchId] = useState(branches[0]?.id ?? "");
-  const [saving, setSaving] = useState(false);
-  const [devCode, setDevCode] = useState<{ id: string; code: string } | null>(null);
-  const [verifyCode, setVerifyCode] = useState<Record<string, string>>({});
-  const [verifying, setVerifying] = useState<string | null>(null);
-
-  async function create() {
-    if (!name.trim() || !mobile.trim() || !branchId) return;
-    clearMessages();
-    setSaving(true);
-    try {
-      const res = await api.post<{ teamMember: TeamMember & { _dev_code?: string } }>("/provider-org/team-members", {
-        name: name.trim(), mobile: mobile.trim(), branchId,
-      });
-      setName("");
-      setMobile("");
-      if (res.teamMember._dev_code) setDevCode({ id: res.teamMember.id, code: res.teamMember._dev_code });
-      onCreated();
-    } catch (e) {
-      onError(e);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function confirm(id: string) {
-    const code = verifyCode[id];
-    if (!code) return;
-    clearMessages();
-    setVerifying(id);
-    try {
-      await api.post(`/provider-org/team-members/${id}/verify/confirm`, { code });
-      onCreated();
-    } catch (e) {
-      onError(e);
-    } finally {
-      setVerifying(null);
-    }
-  }
-
-  async function resend(id: string) {
-    clearMessages();
-    try {
-      const res = await api.post<{ _dev_code?: string }>(`/provider-org/team-members/${id}/verify/resend`, {});
-      if (res._dev_code) setDevCode({ id, code: res._dev_code });
-    } catch (e) {
-      onError(e);
-    }
-  }
-
-  async function remove(id: string) {
-    clearMessages();
-    try {
-      await api.delete(`/provider-org/team-members/${id}`);
-      onCreated();
-    } catch (e) {
-      onError(e);
-    }
-  }
-
-  if (branches.length === 0) {
-    return <p className="text-sm text-slate-400 text-center py-8">Add a Branch first before inviting Team Members.</p>;
-  }
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardContent className="py-4 px-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={lbl}>Name</label>
-              <input className={inp} value={name} onChange={e => setName(e.target.value)} />
-            </div>
-            <div>
-              <label className={lbl}>Mobile</label>
-              <input className={inp} value={mobile} onChange={e => setMobile(e.target.value)} placeholder="04xx xxx xxx" />
-            </div>
-          </div>
-          <div>
-            <label className={lbl}>Branch</label>
-            <select className={inp} value={branchId} onChange={e => setBranchId(e.target.value)}>
-              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
-          <Button size="sm" disabled={saving || !name.trim() || !mobile.trim()} onClick={create}>
-            {saving ? "..." : "Invite team member"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {teamMembers.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-8">No Team Members yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {teamMembers.map(m => (
-            <Card key={m.id}>
-              <CardContent className="py-3 px-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{m.name}</p>
-                    <p className="text-xs text-slate-400">{m.mobile} · {m.branch.name}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                      m.inviteStatus === "VERIFIED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                    }`}>
-                      {m.inviteStatus === "VERIFIED" ? "Verified" : "Pending verification"}
-                    </span>
-                    <Button size="sm" variant="ghost" onClick={() => remove(m.id)}>Remove</Button>
-                  </div>
-                </div>
-                {m.inviteStatus === "PENDING" && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      className={`${inp} w-32`}
-                      placeholder="Verification code"
-                      value={verifyCode[m.id] ?? ""}
-                      onChange={e => setVerifyCode(s => ({ ...s, [m.id]: e.target.value }))}
-                    />
-                    <Button size="sm" variant="outline" disabled={verifying === m.id} onClick={() => confirm(m.id)}>
-                      {verifying === m.id ? "..." : "Confirm"}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => resend(m.id)}>Resend code</Button>
-                    {devCode?.id === m.id && (
-                      <span className="text-xs text-slate-400">Dev code: {devCode.code}</span>
-                    )}
-                  </div>
-                )}
               </CardContent>
             </Card>
           ))}

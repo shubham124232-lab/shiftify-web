@@ -15,7 +15,7 @@ import { api } from "@/lib/api";
 import { getDashboard, type ProviderDashboard } from "@/lib/api/dashboard";
 import {
   Search, FilePlus, Home, Users, MessageSquare, SlidersHorizontal,
-  FileText, Briefcase, ClipboardList,
+  FileText, Briefcase, ClipboardList, Zap, Clock, CalendarClock,
 } from "lucide-react";
 
 interface ProviderListing {
@@ -39,8 +39,17 @@ export default function ProviderDashboardPage() {
   const [listings, setListings] = useState<ProviderListing[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
+  const [allowance, setAllowance] = useState<{ applies: boolean; limit: number; used: number; remaining: number } | null>(null);
 
   useEffect(() => {
+    // Paid organisation plans have unlimited core actions, so the once-only counter only applies without one.
+    Promise.all([
+      api.get<{ allowance: { applies: boolean; limit: number; used: number; remaining: number } }>("/subscriptions/me/allowance"),
+      api.get<{ capacity: unknown | null }>("/provider-org/capacity").catch(() => ({ capacity: null })),
+    ])
+      .then(([r, cap]) => setAllowance(cap.capacity ? null : r.allowance))
+      .catch(() => setAllowance(null));
+
     getDashboard()
       .then((d) => setData(d as ProviderDashboard))
       .catch((e) => setError(e.message))
@@ -54,19 +63,22 @@ export default function ProviderDashboardPage() {
   if (!user) return null;
 
   const liveListings = listings.filter((l) => l.status === "ACTIVE");
-  const unread = data?.unreadNotifications ?? 0;
+  const unread = data?.stats?.unreadMessages ?? 0;
 
+  // PR-D01 — what needs attention now?
   const tiles: ActionTile[] = [
-    { key: "browse",  icon: Search,   title: "Browse Requests",         subtitle: "Find work for your team",  ctaLabel: "Browse Requests",         href: "/jobs", highlighted: true },
-    { key: "service", icon: FilePlus, title: "Post Service Availability", subtitle: "Advertise your capacity", ctaLabel: "Post Service Availability", href: "/provider/post-service" },
-    { key: "sil",     icon: Home,     title: "SIL / SDA Vacancy",       subtitle: "List a housing vacancy",   ctaLabel: "Post Vacancy",            href: "/provider/sil-vacancy" },
+    { key: "rapid",   icon: Zap,           title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid staffing request",       href: "/jobs/post/rapid", highlighted: true },
+    { key: "urgent",  icon: Clock,         title: "Urgent",      subtitle: "Within 4 hours",    ctaLabel: "Post Urgent staffing request",      href: "/jobs/post/urgent" },
+    { key: "lastmin", icon: CalendarClock, title: "Last-Minute", subtitle: "4–48 hours",        ctaLabel: "Post Last-Minute staffing request", href: "/jobs/post/last-minute" },
+    { key: "now",     icon: Users,         title: "Available Now workers", subtitle: "Find someone free right now", ctaLabel: "Find an Available Now worker", href: "/workers/available" },
+    { key: "opps",    icon: Search,        title: "Opportunities", subtitle: "Participant and Support Coordinator requests", ctaLabel: "View matching opportunities", href: "/jobs" },
   ];
 
   const quickActions: QuickAction[] = [
-    { key: "listings", icon: ClipboardList,     label: "My listings",   href: "/provider/listings" },
-    { key: "team",     icon: Users,             label: "My team",       href: "/team" },
+    { key: "listings", icon: ClipboardList,     label: "Services & capacity listings",   href: "/provider/listings" },
+    { key: "team",     icon: Users,             label: "Internal workforce",       href: "/provider/workforce" },
     { key: "messages", icon: MessageSquare,     label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
-    { key: "profile",  icon: SlidersHorizontal, label: "Update profile", href: "/profile/edit" },
+    { key: "profile",  icon: SlidersHorizontal, label: "Provider profile", href: "/profile/edit" },
     { key: "documents",icon: FileText,          label: "Documents",     href: "/documents" },
   ];
 
@@ -74,7 +86,7 @@ export default function ProviderDashboardPage() {
     <div className="container-page space-y-6 py-8">
       <DashboardHeader
         name={(user.name || (user as any).username || "there").split(" ")[0]}
-        description="Manage your team's active jobs and service listings."
+        description="What needs attention now — staffing requests, responses and opportunities."
       />
       <SetupBanner />
 
@@ -88,20 +100,42 @@ export default function ProviderDashboardPage() {
           <ActionTilesCard title="Grow your business" tiles={tiles} />
 
           <DashboardTabCard
-            title="Requests & shifts"
+            title="Live operations"
             tabs={[
               {
-                key: "expressions", label: "Pending Expressions", count: loading ? undefined : (data?.pendingExpressions?.length ?? 0),
+                key: "responses", label: "Worker responses", count: loading ? undefined : (data?.stats?.responsesReceived ?? data?.workerResponses?.length ?? 0),
+                content: loading
+                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
+                  : !data?.workerResponses?.length
+                    ? <p className="py-4 text-sm text-slate-500">No responses to your requests yet.</p>
+                    : data.workerResponses.map((r) => (
+                      <DashboardListRow key={r.applicationId} icon={<Briefcase className="h-5 w-5" />} title={r.job.title}
+                        subtitle={[r.applicantName, r.job.suburb].filter(Boolean).join(" · ")} href={`/jobs/${r.job.id}`}
+                        badge={<span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{r.status === "INTERESTED" ? "New" : r.status.charAt(0) + r.status.slice(1).toLowerCase()}</span>} />
+                    )),
+              },
+              {
+                key: "requests", label: "My requests", count: loading ? undefined : (data?.stats?.openRequests ?? data?.myRequests?.length ?? 0),
+                content: loading
+                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
+                  : !data?.myRequests?.length
+                    ? <p className="py-4 text-sm text-slate-500">You have no open staffing requests.</p>
+                    : data.myRequests.map((j) => (
+                      <DashboardListRow key={j.id} icon={<Briefcase className="h-5 w-5" />} title={j.title} subtitle={j.suburb} href={`/jobs/${j.id}`} rightLabel="View" />
+                    )),
+              },
+              {
+                key: "expressions", label: "My applications", count: loading ? undefined : (data?.stats?.outgoingPendingApplications ?? data?.pendingExpressions?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.pendingExpressions?.length
-                    ? <p className="py-4 text-sm text-slate-500">No pending expressions.</p>
+                    ? <p className="py-4 text-sm text-slate-500">You haven&apos;t responded to any opportunities yet.</p>
                     : data.pendingExpressions.map((e) => (
                       <DashboardListRow key={e.applicationId} icon={<Briefcase className="h-5 w-5" />} title={e.job.title} subtitle={e.job.suburb} href={`/jobs/${e.job.id}`} rightLabel="View" />
                     )),
               },
               {
-                key: "active", label: "Active Shifts", count: loading ? undefined : (data?.activeShifts?.length ?? 0),
+                key: "active", label: "Upcoming and active", count: loading ? undefined : (data?.activeShifts?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.activeShifts?.length
@@ -111,7 +145,7 @@ export default function ProviderDashboardPage() {
                     )),
               },
               {
-                key: "unassigned", label: "Awaiting Assignment", count: loading ? undefined : (data?.unassignedAccepted?.length ?? 0),
+                key: "unassigned", label: "Awaiting your allocation", count: loading ? undefined : (data?.stats?.unfilledWorkforceGaps ?? data?.unassignedAccepted?.length ?? 0),
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
                   : !data?.unassignedAccepted?.length
@@ -125,7 +159,7 @@ export default function ProviderDashboardPage() {
           />
 
           <Card>
-            <CardHeader><CardTitle>My live listings</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Services & capacity</CardTitle></CardHeader>
             <CardContent className="py-2">
               {!liveListings.length ? (
                 <p className="py-4 text-sm text-slate-500">No live listings. Post your service availability or a SIL/SDA vacancy to attract referrals.</p>
@@ -153,6 +187,15 @@ export default function ProviderDashboardPage() {
 
         {/* ── Right rail ── */}
         <div className="space-y-6">
+          {allowance?.applies && (
+            <Card>
+              <CardHeader><CardTitle>Provider actions</CardTitle></CardHeader>
+              <CardContent className="py-3 text-sm text-slate-600">
+                <p className="m-0 font-semibold text-slate-800">{allowance.remaining} of {allowance.limit} once-only actions remaining</p>
+                <p className="text-xs text-slate-500 mt-1 mb-0">Publishing a request or responding to an opportunity uses one action. Urgency never costs extra. Invitation responses and your own team assignments are free.</p>
+              </CardContent>
+            </Card>
+          )}
           <QuickActionsPanel actions={quickActions} />
           <ProfileProgressCard />
         </div>

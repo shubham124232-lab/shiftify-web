@@ -6,12 +6,12 @@ import ScrollEffects from '@/components/ui/ScrollEffects';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Shiftify — NDIS Support Marketplace',
+    default: 'Shiftify — Live Shiftboard for Disability Support',
     template: '%s | Shiftify',
   },
   description:
-    "Australia's trusted NDIS marketplace. Find verified support workers, providers, and coordinators instantly. Emergency help available 24/7.",
-  keywords: ['NDIS', 'disability support', 'support workers', 'Australia', 'care'],
+    "Shiftify is an independent technology platform connecting participants, support coordinators, providers and support workers across Australia's disability support community. Use the Live Shiftboard to post, find and respond to support opportunities.",
+  keywords: ['disability support', 'support workers', 'support coordination', 'Live Shiftboard', 'Australia'],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://shiftify.com.au'),
   openGraph: {
     siteName: 'Shiftify',

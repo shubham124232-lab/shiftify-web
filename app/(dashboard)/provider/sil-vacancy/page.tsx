@@ -51,6 +51,7 @@ export default function SilVacancyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState<FormData | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -62,7 +63,12 @@ export default function SilVacancyPage() {
   const suitableFor     = watch("suitableFor") ?? [];
   const fundingRoutes   = watch("fundingRoutes") ?? [];
 
-  async function onSubmit(data: FormData) {
+  // Pricing V2 §11 — confirm the package (property, 30-day dates, tier, market) before payment.
+  function onSubmit(data: FormData) { setPending(data); }
+
+  async function confirmPublish() {
+    if (!pending) return;
+    const data = pending;
     setSubmitting(true);
     setError(null);
     setUpgradeMessage(null);
@@ -70,6 +76,7 @@ export default function SilVacancyPage() {
       await api.post("/provider/listings", { ...data, listingCategory: "HOUSING" });
       router.push("/provider/listings");
     } catch (e) {
+      setPending(null);
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
         setUpgradeMessage(e.message);
       } else {
@@ -87,6 +94,27 @@ export default function SilVacancyPage() {
         description="Advertise open placements and attract suitable participants and coordinators."
       />
       <div className="container-page py-8 max-w-2xl">
+        {pending && (
+          <Card style={{ marginBottom: 16 }}>
+            <CardHeader><CardTitle>Confirm your listing package</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-2.5 text-sm text-slate-700">
+              <p className="m-0"><strong>Property:</strong> {pending.title} — {pending.suburb}</p>
+              <p className="m-0"><strong>Package:</strong> Standard Listing — $199.00 for 30 days</p>
+              <p className="m-0">
+                <strong>Runs:</strong> {new Date().toLocaleDateString("en-AU")} to {new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-AU")} — it expires automatically unless renewed.
+              </p>
+              <p className="m-0"><strong>Market:</strong> {pending.suburb}{pending.state ? `, ${pending.state}` : ""} · standard board placement</p>
+              <p className="text-xs text-slate-500 m-0">
+                Upgrade to a Featured Listing ($399.00) from My Listings afterwards — your queue position is shown before you pay. Promotion does not imply SDA enrolment, NDIS registration or participant eligibility. Non-refundable once the 30 days have begun.
+              </p>
+              <div className="flex gap-3 pt-1">
+                <Button type="button" variant="outline" disabled={submitting} onClick={() => setPending(null)}>Back</Button>
+                <Button type="button" disabled={submitting} onClick={confirmPublish}>{submitting ? "Publishing…" : "Confirm and pay $199.00"}</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <FormProvider {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
@@ -229,7 +257,7 @@ export default function SilVacancyPage() {
             <div className="flex gap-3">
               <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>Cancel</Button>
               <Button type="submit" className="flex-1" disabled={submitting}>
-                {submitting ? "Publishing…" : "Publish Vacancy"}
+                Review package — $199 / 30 days
               </Button>
             </div>
           </form>

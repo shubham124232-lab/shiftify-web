@@ -1,42 +1,27 @@
 'use client';
 // SetupBanner -- shown at top of every dashboard home when setup is incomplete.
-// Reads marketplace.missing + profileCompletion from GET /users/me.
+// Reads marketplace.missing + profileCompletion from the auth store (kept fresh by /users/me refreshes).
 // Falls back to a minimal "complete your profile" nudge if the API is unreachable.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore, selectProfileStep } from '@/lib/store/auth.store';
-import { api } from '@/lib/api';
 import { TOTAL_STEPS } from '@/lib/registration/stepConfig';
 import { cn } from '@/lib/utils';
-
-interface MarketplaceCheck {
-  canPost: boolean; canBrowse: boolean; canApply: boolean; missing: string[];
-}
 
 export function SetupBanner() {
   const { user, activeRole } = useAuth();
   const profileStep = useAuthStore(selectProfileStep);
   // Participants are free -- never show a subscription lock banner for them.
   const isParticipant = activeRole === 'PARTICIPANT';
-  const [check,            setCheck]           = useState<MarketplaceCheck | null>(null);
-  const [completion,       setCompletion]       = useState<number | null>(null);
-  const [completionMissing,setCompletionMissing]= useState<string[]>([]);
-  const [apiError,         setApiError]         = useState(false);
+  // Kept fresh by the store's /users/me refreshes (login, restore, profile save) — no second fetch.
+  const completion        = useAuthStore((st) => st.profileCompletion);
+  const completionMissing = useAuthStore((st) => st.completionMissing);
+  const marketplaceMissing = useAuthStore((st) => st.marketplaceMissing);
+  const check = { missing: marketplaceMissing };
+  const apiError = false;
   const [dismissed,        setDismissed]        = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    setApiError(false);
-    api.get<{ user: unknown; marketplace: MarketplaceCheck; profileCompletion: number; completionMissing: string[] }>('/users/me')
-      .then(res => {
-        setCheck(res.marketplace ?? null);
-        setCompletion(typeof res.profileCompletion === 'number' ? res.profileCompletion : null);
-        setCompletionMissing(Array.isArray(res.completionMissing) ? res.completionMissing : []);
-      })
-      .catch(() => setApiError(true));
-  }, [user]);
 
   if (dismissed) return null;
 

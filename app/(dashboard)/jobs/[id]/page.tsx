@@ -4,7 +4,7 @@ import { EditDetailsCard } from "@/components/jobs/EditDetailsCard";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
 import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
+import { ShiftPassPrompt } from "@/components/jobs/post/shared";
 import { SAFETY_CHECKLIST } from "@/lib/constants/safety";
 import { RequestDetailsCard } from "@/components/jobs/request-details-card";
 import { URGENCY_STYLE } from "@/lib/constants/job-filters";
@@ -601,13 +602,21 @@ export default function JobDetailPage() {
     finally { setActing(false); }
   }
 
+  // Publishing is the chargeable action for a Coordinator/Provider: once the 10 introductory
+  // actions are used the poster is offered a single Shift Pass instead of a dead-end error.
+  const [publishNeedsPass, setPublishNeedsPass] = useState(false);
+
   async function publishDraft() {
     setActing(true);
     setError(null);
+    setPublishNeedsPass(false);
     try {
       await api.patch(`/jobs/${id}/publish`, {});
       await loadJob();
-    } catch (e: any) { setError(e.message); }
+    } catch (e: any) {
+      if (e instanceof ApiError && e.code === "SUBSCRIPTION_LIMIT") setPublishNeedsPass(true);
+      else setError(e.message);
+    }
     finally { setActing(false); }
   }
 
@@ -1034,6 +1043,11 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                 <p className="text-xs text-slate-500 mt-0.5">Review the details on this page. A request uses one action only when you publish it.</p>
               </div>
               <Button disabled={acting} onClick={publishDraft}>Publish request</Button>
+              {publishNeedsPass && (
+                <div className="w-full">
+                  <ShiftPassPrompt onPurchased={() => { setPublishNeedsPass(false); void publishDraft(); }} onDismiss={() => setPublishNeedsPass(false)} />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

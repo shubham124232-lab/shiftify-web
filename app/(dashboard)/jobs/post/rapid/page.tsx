@@ -23,7 +23,9 @@ import {
   EMPTY_PERSON, EMPTY_CATALOGUE, EMPTY_REQUIREMENTS, EMPTY_SAFETY, EMPTY_FUNDING, EMPTY_PROVIDER_CONTEXT, type ProviderContext,
   type PersonReceivingSupport, type CatalogueSelection, type WorkerRequirements, type SafetyChecklist, type FundingChoice,
 } from "@/lib/types/posting";
-import { saveGuestDraft, loadGuestDraft, loadResumableDraft, clearGuestDraft, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
+import { postFailureMessage } from "@/lib/guestDraftResume";
+import { someoneElsePhoneError } from "@/components/jobs/post/shared";
+import { saveGuestDraft, loadGuestDraft, loadResumableDraft, clearGuestDraft, getPostAttemptId, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -115,8 +117,9 @@ function RapidJourneyBase() {
       if (m > 60) return "Rapid Support must start within 60 minutes. For a later start, post an Urgent, Last-Minute or Routine request.";
     }
     if (key === "person" && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
-    if (key === "person" && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
+    if (key === "person" && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (key === "person" && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (key === "person" && isCoordinator && person.who === "SOMEONE_ELSE") { const e = someoneElsePhoneError(person); if (e) return e; }
     if (key === "person" && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (key === "service" && !catalogue.categoryId) return "Select the support that is needed right now.";
     if (key === "tasks" && catalogue.tasks.length === 0 && !catalogue.otherTask.trim()) return "Select at least one task, or describe the other essential task.";
@@ -144,7 +147,14 @@ function RapidJourneyBase() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(null);
-    if (step === TOTAL_STEPS - 1) { void submitCommon(false); return; }
+    if (step === TOTAL_STEPS - 1) {
+      // A request saved before signing up may have waited past the time it asked for.
+      if (timing === "CHOOSE_TIME") {
+        const m = (new Date(chosenTime).getTime() - Date.now()) / 60000;
+        if (!chosenTime || m < -1 || m > 60) { goTo("timing"); setError("The arrival time you chose is no longer within the next 60 minutes. Choose a new time, or pick As soon as possible."); return; }
+      }
+      void submitCommon(false); return;
+    }
     const nextStep = step + 1;
     if (!isAuth) saveGuestDraft("RAPID", guestRole ?? "PARTICIPANT", draftState(nextStep));
     setStep(nextStep);
@@ -191,6 +201,7 @@ function RapidJourneyBase() {
         visibilityTarget: requirements.workerOrProvider === "WORKER" ? "WORKERS_ONLY" : requirements.workerOrProvider === "PROVIDER" ? "PROVIDERS_ONLY" : "ALL",
         safetyFlags: buildSafetyFlagsPayload(safety),
         ...buildFundingPayload(funding),
+        clientRequestId: asDraft ? undefined : getPostAttemptId(),
         asDraft,
       };
       applyPerson(body, person, suburb, audience);
@@ -203,7 +214,7 @@ function RapidJourneyBase() {
       if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
         setShiftPassBlocked(true);
       } else {
-        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+        setError(postFailureMessage(err));
       }
     } finally {
       setSaving(false);

@@ -24,7 +24,9 @@ import {
   EMPTY_PERSON, EMPTY_CATALOGUE, EMPTY_REQUIREMENTS, EMPTY_SAFETY, EMPTY_FUNDING, EMPTY_PROVIDER_CONTEXT, type ProviderContext,
   type PersonReceivingSupport, type CatalogueSelection, type WorkerRequirements, type SafetyChecklist, type FundingChoice,
 } from "@/lib/types/posting";
-import { saveGuestDraft, loadGuestDraft, loadResumableDraft, clearGuestDraft, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
+import { postFailureMessage } from "@/lib/guestDraftResume";
+import { someoneElsePhoneError } from "@/components/jobs/post/shared";
+import { saveGuestDraft, loadGuestDraft, loadResumableDraft, clearGuestDraft, getPostAttemptId, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -119,8 +121,9 @@ function UrgentJourneyBase() {
     }
     if (key === "schedule" && duration === "OTHER" && !(parseFloat(otherHours) > 0)) return "Enter how long support is needed (in hours).";
     if (key === "person" && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
-    if (key === "person" && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
+    if (key === "person" && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (key === "person" && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (key === "person" && isCoordinator && person.who === "SOMEONE_ELSE") { const e = someoneElsePhoneError(person); if (e) return e; }
     if (key === "person" && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (key === "service" && !catalogue.categoryId) return "Select a support category.";
     if (key === "tasks" && catalogue.tasks.length === 0) return "Select at least one task.";
@@ -146,7 +149,12 @@ function UrgentJourneyBase() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(null);
-    if (step === TOTAL_STEPS - 1) { void submitCommon(false); return; }
+    if (step === TOTAL_STEPS - 1) {
+      // A request saved before signing up may have waited past the time it asked for.
+      const m = (new Date(startTime).getTime() - Date.now()) / 60000;
+      if (!startTime || m <= 60 || m > 240) { goTo("start"); setError("Your start time no longer fits an Urgent request (more than 60 minutes and within 4 hours from now). Choose a new start time."); return; }
+      void submitCommon(false); return;
+    }
     const nextStep = step + 1;
     if (!isAuth) saveGuestDraft("URGENT", guestRole ?? "PARTICIPANT", draftState(nextStep));
     setStep(nextStep);
@@ -193,6 +201,7 @@ function UrgentJourneyBase() {
         visibilityTarget: requirements.workerOrProvider === "WORKER" ? "WORKERS_ONLY" : requirements.workerOrProvider === "PROVIDER" ? "PROVIDERS_ONLY" : "ALL",
         safetyFlags: buildSafetyFlagsPayload(safety),
         ...buildFundingPayload(funding),
+        clientRequestId: asDraft ? undefined : getPostAttemptId(),
         asDraft,
       };
       applyPerson(body, person, suburb, audience);
@@ -205,7 +214,7 @@ function UrgentJourneyBase() {
       if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
         setShiftPassBlocked(true);
       } else {
-        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+        setError(postFailureMessage(err));
       }
     } finally { setSaving(false); }
   }

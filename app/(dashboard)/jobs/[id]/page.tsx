@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ApplyModal } from "@/components/jobs/ApplyModal";
+import { CompletionRecordModal } from "@/components/jobs/CompletionRecordModal";
 import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
 import { ProviderEligibilityCard } from "@/components/jobs/ProviderEligibilityCard";
 import { ShiftPassPrompt } from "@/components/jobs/post/shared";
@@ -94,6 +95,7 @@ interface JobDetail {
   fundingType?: string | null;
   budgetType?: string | null;
   budgetPerHour?: number | string | null;
+  travelRequired?: string | null;
   timeFlexibility?: string | null;
   requestPurposeCategory?: string | null;
   recurrencePattern?: Record<string, unknown> | null;
@@ -105,6 +107,11 @@ interface JobDetail {
   featuredUntil?: string | null;
   visibilityTarget?: string | null;
   applicationDeadlineAt?: string | null;
+  postedByRoleLabel?: string;
+  cancelledAt?: string | null;
+  cancelledByRole?: string | null;
+  cancelReason?: string | null;
+  matchSummary?: { met: string[]; missing: string[] };
   meetAndGreets?: MeetAndGreet[];
   changeRequests?: ChangeRequest[];
   closedOutcome?: "FILLED_CONFIRMED" | "CANCELLED" | "NOT_PROCEEDING" | "UNFILLED" | null;
@@ -117,7 +124,7 @@ interface TeamWorker { id: string; name: string | null; username: string; status
 interface Review {
   id: string; raterUserId: string; revieweeUserId: string;
   rating: number; comment: string | null; createdAt: string;
-  reliabilityRating?: number | null; communicationRating?: number | null;
+  reliabilityRating?: number | null; communicationRating?: number | null; organisationRating?: number | null;
   qualityRating?: number | null; privateConcern?: string | null;
   revieweeResponse?: string | null; reportedByReviewee?: boolean;
   rater: { id: string; name: string; avatarUrl?: string | null };
@@ -223,6 +230,7 @@ export default function JobDetailPage() {
   const [reliabilityRating,   setReliabilityRating]   = useState(0);
   const [communicationRating, setCommunicationRating] = useState(0);
   const [qualityRating,       setQualityRating]       = useState(0);
+  const [organisationRating,  setOrganisationRating]  = useState(0);
   const [privateConcern,      setPrivateConcern]      = useState("");
   const [respondingReviewId, setRespondingReviewId] = useState<string | null>(null);
   const [responseText,       setResponseText]       = useState("");
@@ -241,6 +249,9 @@ export default function JobDetailPage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [blocking,       setBlocking]       = useState(false);
   const [blocked,        setBlocked]        = useState(false);
+  // SW doc Window 44 — block or limit contact.
+  const [showBlockPanel, setShowBlockPanel] = useState(false);
+  const [blkOption,      setBlkOption]      = useState<"MESSAGES" | "HIDE" | "REPORT_BLOCK">("MESSAGES");
   const [invites,        setInvites]        = useState<JobInvite[]>([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReasonCategory, setCancelReasonCategory] = useState("");
@@ -252,6 +263,9 @@ export default function JobDetailPage() {
   const [appsPage, setAppsPage] = useState(1);
   const [loadingMoreApps, setLoadingMoreApps] = useState(false);
   const [showChangeForm, setShowChangeForm] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [cancelAck, setCancelAck] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
   const [changeType, setChangeType] = useState("TIME");
   const [changeReason, setChangeReason] = useState("");
   const [changeAlternative, setChangeAlternative] = useState("");
@@ -307,6 +321,18 @@ export default function JobDetailPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    try { if (id && localStorage.getItem(`shiftify_cancel_ack_${id}`)) setCancelAck(true); } catch { /* ignore */ }
+  }, [id]);
+
+  // Deep links such as /jobs/<id>#job-messages (My Connections → Message) scroll once the page has rendered.
+  useEffect(() => {
+    if (!job || typeof window === "undefined" || !window.location.hash) return;
+    const t = setTimeout(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ behavior: "smooth" }), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id]);
 
   useEffect(() => {
     if (job?.workerPrivateNote != null) setPrivateNote(job.workerPrivateNote);
@@ -426,8 +452,14 @@ export default function JobDetailPage() {
     if (!job || !otherPartyId) return;
     setBlocking(true);
     try {
-      await api.post("/users/blocks", { blockedUserId: otherPartyId, blockMessages: true, hideProfile: true });
+      await api.post("/users/blocks", {
+        blockedUserId: otherPartyId,
+        blockMessages: blkOption !== "HIDE",
+        hideProfile: blkOption !== "MESSAGES",
+        reportReason: blkOption === "REPORT_BLOCK" ? "Reported and blocked from the request page" : undefined,
+      });
       setBlocked(true);
+      setShowBlockPanel(false);
     } catch (e: any) { setError(e.message); }
     finally { setBlocking(false); }
   }
@@ -460,6 +492,7 @@ export default function JobDetailPage() {
     try {
       const res = await api.patch<{ job: { cancelled: any; promoted: { title: string } | null } }>(`/jobs/${id}/cancel`, {
         reasonCategory: cancelReasonCategory || undefined,
+        reason: cancelNote.trim() || undefined,
         notifyReplacements,
       });
       const promoted = res.job.promoted;
@@ -683,6 +716,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         reliabilityRating: reliabilityRating || undefined,
         communicationRating: communicationRating || undefined,
         qualityRating: qualityRating || undefined,
+        organisationRating: organisationRating || undefined,
         privateConcern: privateConcern.trim() || undefined,
       });
       setReviewRating(0);
@@ -690,6 +724,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
       setReliabilityRating(0);
       setCommunicationRating(0);
       setQualityRating(0);
+      setOrganisationRating(0);
       setPrivateConcern("");
       loadReviews();
     } catch (e: any) { setError(e.message); }
@@ -762,6 +797,31 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
   const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE;
   const sta = STATUS_STYLE[job.status]  ?? { bg: "var(--td-grey)", color: "var(--td-dark-text-soft)" };
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
+
+  // Window 34 — the same change-request form is offered before and after the worker accepts.
+  const changeFormEl = (
+            <div className="flex flex-col gap-2.5 p-3.5 border border-slate-200 rounded-lg bg-slate-50">
+              <select value={changeType} onChange={e => setChangeType(e.target.value)}
+                className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
+                <option value="TIME">Time</option>
+                <option value="DURATION">Duration</option>
+                <option value="DATE">Date</option>
+                <option value="RECURRENCE">Recurrence</option>
+                <option value="RATE">Rate</option>
+                <option value="OTHER">Other</option>
+              </select>
+              <input value={changeReason} onChange={e => setChangeReason(e.target.value)}
+                placeholder="Reason (optional)"
+                className="h-9 px-2.5 border border-slate-200 rounded-md text-sm" />
+              <textarea value={changeAlternative} onChange={e => setChangeAlternative(e.target.value)}
+                placeholder="Proposed new details" rows={2}
+                className="px-2.5 py-2 border border-slate-200 rounded-md text-sm resize-y" />
+              <div className="flex gap-2.5">
+                <Button size="sm" disabled={acting || !changeAlternative.trim()} onClick={submitChangeRequest}>Send request</Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowChangeForm(false)}>Keep original</Button>
+              </div>
+            </div>
+  );
   const canInvoice = ["COMPLETED", "CONFIRMED"].includes(job.status) && ["COORDINATOR", "PROVIDER", "SUPPORT_WORKER"].includes(activeRole as string);
   const allApps: Applicant[] = [
     ...(job.applications ?? []),
@@ -835,6 +895,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
           </h1>
           <p className="mt-2 text-[13px] text-slate-500">
             Posted by <span className="font-medium text-slate-900">{job.postedBy.name}</span>
+            {job.postedByRoleLabel && <span> · {job.postedByRoleLabel}</span>}
           </p>
 
           {job.description && (
@@ -889,6 +950,27 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
           </div>
         )}
 
+        {/* Poster cancellation (SW doc Window 36) — what changed, for the worker who was chosen */}
+        {isWorker && job.status === "CANCELLED" && (job.selectedApplicant?.id === user?.id || job.assignedWorker?.id === user?.id || ownApp?.status === "SELECTED") && !cancelAck && (
+          <Card>
+            <CardHeader><CardTitle>This support was cancelled</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <dl className="m-0 grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Cancelled support</dt><dd className="m-0 text-slate-800">{catLabel} · {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Cancelled</dt><dd className="m-0 text-slate-800">{job.cancelledAt ? new Date(job.cancelledAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) : "—"}{job.cancelledByRole ? ` by the ${job.cancelledByRole === "SUPPORT_WORKER" ? "worker" : "poster"}` : ""}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Reason</dt><dd className="m-0 text-slate-800">{job.cancelReason || "No reason shared"}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Applies to</dt><dd className="m-0 text-slate-800">{job.isRecurring ? "This request, including its future sessions" : "This session only"}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Payment</dt><dd className="m-0 text-slate-800">Support payment is arranged directly with the payer; any cancellation terms are the ones agreed with them. Shiftify does not take a commission.</dd></div>
+              </dl>
+              <div className="flex gap-2.5 flex-wrap">
+                <Button onClick={() => { try { localStorage.setItem(`shiftify_cancel_ack_${job.id}`, "1"); } catch { /* ignore */ } setCancelAck(true); }}>Acknowledge</Button>
+                <Button variant="outline" onClick={() => document.getElementById("job-messages")?.scrollIntoView({ behavior: "smooth" })}>Message</Button>
+                <Button variant="outline" onClick={() => router.push("/jobs")}>View other work</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Before/during support (SW doc Windows 32-33) — worker-only shortcuts */}
         {workerPartyId === user?.id && ["ASSIGNED", "IN_PROGRESS"].includes(job.status) && (
           <Card>
@@ -906,6 +988,14 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                 <Button size="sm" variant="outline" onClick={() => setShowRunningLate(v => !v)}>
                   I'm running late
                 </Button>
+                {job.status === "ASSIGNED" && (
+                  <Button size="sm" variant="outline" disabled={acting} onClick={async () => {
+                    try { await api.post(`/jobs/${job.id}/messages`, { body: "Support did not start as planned. Please contact me to arrange next steps." }); loadMessages(); setNoteSaved(false); document.getElementById("job-messages")?.scrollIntoView({ behavior: "smooth" }); }
+                    catch (e: any) { setError(e.message); }
+                  }}>
+                    Support did not start
+                  </Button>
+                )}
               </div>
 
               {job.runningLateNotifiedAt && (
@@ -957,6 +1047,17 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         )}
 
         <RequestDetailsCard job={job} isOwner={isOwner} />
+
+        {/* Window 18 — profile match summary against the worker's own saved profile */}
+        {isWorker && !isOwner && job.matchSummary && (job.matchSummary.met.length > 0 || job.matchSummary.missing.length > 0) && (
+          <Card>
+            <CardHeader><CardTitle>How this matches your profile</CardTitle></CardHeader>
+            <CardContent className="flex flex-wrap gap-1.5">
+              {job.matchSummary.met.map(l => <span key={`m-${l}`} className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">✓ {l}</span>)}
+              {job.matchSummary.missing.map(l => <span key={`x-${l}`} className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">⚠ {l} — to review</span>)}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Care & Safety Notes — visible to poster and worker, shown only if any note was provided */}
         {(() => {
@@ -1234,7 +1335,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         {activeRole === "PROVIDER" && isWorker && !isOwner && !ownApp && job.status === "OPEN" && (
           <ProviderEligibilityCard fundingType={job.fundingType} onEligibility={setProviderEligible} />
         )}
-        {isWorker && !isOwner && !ownApp && job.status === "OPEN" && (
+        {isWorker && !isOwner && (!ownApp || ownApp.status === "WITHDRAWN") && job.status === "OPEN" && (
           <Card>
             <CardHeader><CardTitle>{activeRole === "PROVIDER" ? "Respond to this request" : "Connect to this support request"}</CardTitle></CardHeader>
             <CardContent className="flex gap-2.5 items-center">
@@ -1251,6 +1352,8 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
               >
                 {bookmarked ? "★ Saved" : "☆ Save"}
               </Button>
+              <Button variant="ghost" onClick={() => document.getElementById("job-messages")?.scrollIntoView({ behavior: "smooth" })}>Ask a question</Button>
+              <Button variant="ghost" onClick={() => document.getElementById("job-report")?.scrollIntoView({ behavior: "smooth" })}>Report concern</Button>
               <span className="text-[13px] text-slate-400">{activeRole === "PROVIDER" ? "Confirm your organisation can service this request, choose how you'd deliver it, and introduce your organisation" : "Review, confirm you're available and meet the requirements, and Connect — takes under a minute"}</span>
             </CardContent>
           </Card>
@@ -1268,7 +1371,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                 : ownApp.status === "SELECTED" ? (activeRole === "PROVIDER" ? "Accepted — your organisation has been selected. Nominate or confirm your delivery arrangement below." : "The initiator has selected you — review the arrangement and accept to confirm the support.")
                 : ownApp.status === "REQUEST_FILLED" ? "This request was filled by someone else."
                 : activeRole === "PROVIDER" ? `Organisation response ${ownApp.status === "SHORTLISTED" ? "shortlisted" : "submitted"} — waiting for the poster's decision.`
-                : `Connected — status: ${ownApp.status.toLowerCase().replace("_"," ")}`}
+                : ownApp.status === "SHORTLISTED" ? "Connected — awaiting the initiator's decision (you are on their shortlist)." : "Connected — awaiting the initiator's decision. The request stays open until a worker is confirmed."}
             </span>
             {!["SELECTED", "WITHDRAWN", "DECLINED"].includes(ownApp.status) && (
               <Button size="sm" variant="outline" disabled={acting}
@@ -1276,6 +1379,9 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                 style={{ borderColor: "var(--td-pink)", color: "var(--td-pink)" }}>
                 Withdraw
               </Button>
+            )}
+            {!["SELECTED"].includes(ownApp.status) && (
+              <Button size="sm" variant="ghost" onClick={() => router.push("/jobs")}>Browse other requests</Button>
             )}
           </div>
         )}
@@ -1329,6 +1435,18 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
           <Card>
             <CardHeader><CardTitle>Your confirmed support</CardTitle></CardHeader>
             <CardContent className="flex flex-col gap-3">
+              {/* Connect Window 4 / Window 30 — the final arrangement, in one place, before the worker accepts */}
+              <dl className="m-0 grid grid-cols-1 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Who</dt><dd className="m-0 text-slate-800">{job.postedBy.name}{job.postedByRoleLabel ? ` · ${job.postedByRoleLabel}` : ""}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Service</dt><dd className="m-0 text-slate-800">{catLabel}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Date and time</dt><dd className="m-0 text-slate-800">{new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}{job.scheduledEndAt ? ` → ${new Date(job.scheduledEndAt).toLocaleTimeString("en-AU", { timeStyle: "short" })}` : ""}</dd></div>
+                {job.totalHours ? <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Duration</dt><dd className="m-0 text-slate-800">{job.totalHours} hours</dd></div> : null}
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Agreed rate</dt><dd className="m-0 text-slate-800">{job.budgetPerHour ? `$${Number(job.budgetPerHour)}/hr` : job.fundingType ? "Applicable NDIS rate for the funding type" : "To be agreed directly"}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Travel</dt><dd className="m-0 text-slate-800">{({ NONE: "No travel required", LOCAL: "Local travel", MULTI_STOP: "Multiple stops", PARTICIPANT_TRANSPORT: "Transport of the participant", LONG_DISTANCE: "Long distance" } as Record<string, string>)[job.travelRequired ?? ""] ?? "As discussed"}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Recurrence</dt><dd className="m-0 text-slate-800">{job.isRecurring ? "Recurring support" : "One-time"}</dd></div>
+                <div><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Address</dt><dd className="m-0 text-slate-800">{job.addressLine ?? "Released once you accept"}</dd></div>
+                <div className="sm:col-span-2"><dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Cancellation</dt><dd className="m-0 text-slate-800">You can cancel later from My Support with a reason. Late cancellations are recorded on your reliability profile.</dd></div>
+              </dl>
               <p className="text-sm text-slate-700 m-0">
                 Accept this assignment to confirm you'll be attending — this releases the exact address and the participant's contact details to you. If something needs to change first, request a change instead of declining outright.
               </p>
@@ -1344,29 +1462,18 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                   Decline
                 </Button>
               </div>
-              {showChangeForm && (
-                <div className="flex flex-col gap-2.5 p-3.5 border border-slate-200 rounded-lg bg-slate-50">
-                  <select value={changeType} onChange={e => setChangeType(e.target.value)}
-                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm">
-                    <option value="TIME">Time</option>
-                    <option value="DURATION">Duration</option>
-                    <option value="DATE">Date</option>
-                    <option value="RECURRENCE">Recurrence</option>
-                    <option value="RATE">Rate</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                  <input value={changeReason} onChange={e => setChangeReason(e.target.value)}
-                    placeholder="Reason (optional)"
-                    className="h-9 px-2.5 border border-slate-200 rounded-md text-sm" />
-                  <textarea value={changeAlternative} onChange={e => setChangeAlternative(e.target.value)}
-                    placeholder="Proposed new details" rows={2}
-                    className="px-2.5 py-2 border border-slate-200 rounded-md text-sm resize-y" />
-                  <div className="flex gap-2.5">
-                    <Button size="sm" disabled={acting || !changeAlternative.trim()} onClick={submitChangeRequest}>Send request</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setShowChangeForm(false)}>Keep original</Button>
-                  </div>
-                </div>
-              )}
+              {showChangeForm && changeFormEl}
+            </CardContent>
+          </Card>
+        )}
+
+        {isWorker && user?.accountType !== "MANAGED" && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && ["ASSIGNED", "IN_PROGRESS"].includes(job.status) && !!job.workerConfirmedAt && (
+          <Card id="job-change">
+            <CardHeader><CardTitle>Need to change something?</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-slate-700 m-0">Propose a change without losing the original arrangement. The original stays in place until the poster accepts.</p>
+              <div><Button variant="outline" disabled={acting} onClick={() => setShowChangeForm(v => !v)}>Request change</Button></div>
+              {showChangeForm && changeFormEl}
             </CardContent>
           </Card>
         )}
@@ -1475,19 +1582,35 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         )}
         {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "ASSIGNED" && job.workerConfirmedAt && (
           <Card>
-            <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", gap: 10 }}>
-              <Button variant="outline" disabled={acting} onClick={() => jobAction("start")}>Mark Started</Button>
+            <CardHeader><CardTitle>Before support</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-slate-600 m-0">You confirmed this support when you accepted. Check in when you arrive — checking in is a simple status update and does not use your location.</p>
+              <div className="flex gap-2.5 flex-wrap">
+                <Button disabled={acting} onClick={() => jobAction("start")}>Check in</Button>
+                <Button variant="outline" onClick={() => document.getElementById("job-messages")?.scrollIntoView({ behavior: "smooth" })}>Message poster</Button>
+                <Button variant="outline" onClick={() => document.getElementById("job-report")?.scrollIntoView({ behavior: "smooth" })}>Report issue</Button>
+                <Button variant="ghost" disabled={acting} onClick={() => setShowCancelModal(true)} className="text-red-600">Cancel my confirmed support</Button>
+              </div>
             </CardContent>
           </Card>
         )}
         {isWorker && (job.assignedWorker?.id === user?.id || job.selectedApplicant?.id === user?.id) && job.status === "IN_PROGRESS" && (
           <Card>
-            <CardHeader><CardTitle>Your actions</CardTitle></CardHeader>
-            <CardContent style={{ display: "flex", gap: 10 }}>
-              <Button variant="outline" disabled={acting} onClick={() => jobAction("complete")}>Mark Complete</Button>
+            <CardHeader><CardTitle>During support</CardTitle></CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-sm text-slate-600 m-0">Keep the essential instructions and contact details handy. Your private note stays visible only to you.</p>
+              <div className="flex gap-2.5 flex-wrap">
+                <Button disabled={acting} onClick={() => setShowCompletion(true)}>Check out and mark complete</Button>
+                <Button variant="outline" onClick={() => document.getElementById("job-messages")?.scrollIntoView({ behavior: "smooth" })}>Message</Button>
+                <Button variant="outline" onClick={() => document.getElementById("job-report")?.scrollIntoView({ behavior: "smooth" })}>Report concern</Button>
+              </div>
             </CardContent>
           </Card>
+        )}
+
+        {showCompletion && (
+          <CompletionRecordModal job={{ ...job, scheduledEndAt: job.scheduledEndAt, totalHours: job.totalHours }} categoryLabel={catLabel}
+            onClose={() => setShowCompletion(false)} onDone={() => { setShowCompletion(false); loadJob(); }} />
         )}
 
         {/* Job Roster — additional workers beyond the single assigned-worker flow */}
@@ -1535,9 +1658,11 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                     ))}
                   </div>
                   {([
-                    ["Reliability", reliabilityRating, setReliabilityRating],
+                    // SW doc Window 45: a worker rates Communication / Request accuracy / Respect (same stored fields).
+                    [user?.id === workerPartyId ? "Request accuracy" : "Reliability", reliabilityRating, setReliabilityRating],
                     ["Communication", communicationRating, setCommunicationRating],
-                    ["Quality of support", qualityRating, setQualityRating],
+                    [user?.id === workerPartyId ? "Respect" : "Quality of support", qualityRating, setQualityRating],
+                    ...(user?.id === workerPartyId ? [["Organisation", organisationRating, setOrganisationRating] as const] : []),
                   ] as const).map(([label, value, setValue]) => (
                     <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 12, color: "var(--td-muted-dark)", width: 130 }}>{label}</span>
@@ -1574,12 +1699,13 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                       </span>
                       <span style={{ color: "var(--td-muted-dark)", fontSize: 13 }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
                     </div>
-                    {(r.reliabilityRating || r.communicationRating || r.qualityRating) && (
+                    {(r.reliabilityRating || r.communicationRating || r.qualityRating || r.organisationRating) && (
                       <div style={{ fontSize: 11, color: "var(--td-muted)" }}>
                         {[
-                          r.reliabilityRating && `Reliability ${r.reliabilityRating}★`,
+                          r.reliabilityRating && `${r.raterUserId === workerPartyId ? "Request accuracy" : "Reliability"} ${r.reliabilityRating}★`,
                           r.communicationRating && `Communication ${r.communicationRating}★`,
-                          r.qualityRating && `Quality ${r.qualityRating}★`,
+                          r.qualityRating && `${r.raterUserId === workerPartyId ? "Respect" : "Quality"} ${r.qualityRating}★`,
+                          r.organisationRating && `Organisation ${r.organisationRating}★`,
                         ].filter(Boolean).join(" · ")}
                       </div>
                     )}
@@ -1861,7 +1987,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         )}
 
         {/* Messages */}
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <section id="job-messages" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
           <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
             <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
               <MessageSquare className="h-[17px] w-[17px]" strokeWidth={2.1} />
@@ -1943,7 +2069,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
         </section>
 
         {/* Incident report — pilot safety gate */}
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+        <section id="job-report" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
           <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
             <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--td-rapid-soft)] text-[var(--td-rapid)]">
               <Flag className="h-[16px] w-[16px]" strokeWidth={2.1} />
@@ -1954,6 +2080,29 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
             </div>
           </div>
           <div className="px-6 py-5">
+            {showBlockPanel && otherPartyId && !blocked && (
+              <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-2.5">
+                <p className="m-0 text-sm font-semibold text-slate-800">Block or limit contact</p>
+                {([
+                  ["MESSAGES", "Block messages", "They can no longer message you. They can still see your profile."],
+                  ["HIDE", "Hide profile from this user", "Your profile is hidden from them. Existing messages stay."],
+                  ["REPORT_BLOCK", "Report and block", "Blocks messages and hides your profile, and flags the concern to Shiftify."],
+                ] as const).map(([v, l, d]) => (
+                  <label key={v} className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="radio" name="blkOption" checked={blkOption === v} onChange={() => setBlkOption(v)} className="mt-1" />
+                    <span><span className="font-semibold">{l}</span><br /><span className="text-xs text-slate-500">{d}</span></span>
+                  </label>
+                ))}
+                <div className="flex gap-2">
+                  <Button size="sm" disabled={blocking} onClick={blockOtherParty}>{blocking ? "Blocking…" : "Confirm"}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowBlockPanel(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+            {blocked && !flagSent && <p className="mb-3 mt-0 text-xs text-slate-500">Contact limited. You can review this in Blocked users.</p>}
+            {!flagSent && otherPartyId && !blocked && !showBlockPanel && (
+              <div className="mb-3"><Button size="sm" variant="outline" onClick={() => { setBlkOption("MESSAGES"); setShowBlockPanel(true); }}>Block or limit contact</Button></div>
+            )}
             {flagSent ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 <p style={{ fontSize: 13, color: "var(--td-dark-text-soft)", margin: 0 }}>Reported — an admin has been notified.</p>
@@ -1961,9 +2110,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                   blocked ? (
                     <p style={{ fontSize: 12, color: "var(--td-muted-dark)", margin: 0 }}>This user is now blocked from messaging you and can no longer see your profile.</p>
                   ) : (
-                    <Button size="sm" variant="outline" disabled={blocking} onClick={blockOtherParty}>
-                      {blocking ? "Blocking…" : "Also block this user"}
-                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setBlkOption("REPORT_BLOCK"); setShowBlockPanel(true); }}>Also block this user</Button>
                   )
                 )}
               </div>
@@ -1981,7 +2128,12 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                   onChange={e => setFlagCategory(e.target.value)}
                   style={{ height: 40, padding: "0 12px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14 }}
                 >
-                  <option value="SAFETY">Safety concern</option>
+                  <option value="SAFETY">Safety</option>
+                  <option value="MISLEADING_REQUEST">Misleading request</option>
+                  <option value="HARASSMENT">Harassment</option>
+                  <option value="PRIVACY">Privacy</option>
+                  <option value="PAYMENT_DISPUTE">Payment dispute</option>
+                  <option value="INAPPROPRIATE_CONTENT">Inappropriate content</option>
                   <option value="NO_SHOW">No-show</option>
                   <option value="MISCONDUCT">Misconduct</option>
                   <option value="OTHER">Other</option>
@@ -2048,7 +2200,7 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
               /* SW doc Window 36 — poster cancellation summary screen */
               <>
                 <h3 className="text-base font-bold text-slate-800 m-0">Request cancelled</h3>
-                <p className="text-sm text-slate-600 m-0">This request has been cancelled and the poster's applicants have been notified.</p>
+                <p className="text-sm text-slate-600 m-0">{isOwner ? "This request has been cancelled and the poster's applicants have been notified." : "Your confirmed support has been cancelled and the poster has been notified."}</p>
                 {cancelSummary.promotedTitle ? (
                   <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3 m-0">
                     A replacement request has been posted, and previous applicants plus matching saved searches have been notified.
@@ -2062,7 +2214,18 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
               </>
             ) : (
               <>
-                <h3 className="text-base font-bold text-slate-800 m-0">Cancel this request</h3>
+                <h3 className="text-base font-bold text-slate-800 m-0">{isOwner ? "Cancel this request" : "Cancel your confirmed support"}</h3>
+                {!isOwner && <p className="text-xs text-slate-500 m-0">The poster is told straight away and can find a replacement. Late cancellations are recorded on your reliability history.</p>}
+                {!isOwner && (() => {
+                  const hrs = Math.round((new Date(job.scheduledStartAt).getTime() - Date.now()) / 3_600_000);
+                  return (
+                    <p className="text-xs m-0 rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-slate-600">
+                      Support starts {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}
+                      {hrs > 0 ? ` — about ${hrs >= 48 ? Math.round(hrs / 24) + " days" : hrs + " hours"} from now.` : " — it has already started."}
+                      {hrs < 24 ? " This is short notice and will be recorded on your reliability history." : ""} Any other cancellation terms are the ones agreed with the poster.
+                    </p>
+                  );
+                })()}
                 <label className="text-xs font-semibold text-slate-500">Reason</label>
                 <select value={cancelReasonCategory} onChange={e => setCancelReasonCategory(e.target.value)}
                   className="h-10 px-2.5 border border-slate-200 rounded-lg text-sm">
@@ -2074,6 +2237,9 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                   <option value="UNSAFE_OR_UNSUITABLE">Unsafe or unsuitable</option>
                   <option value="OTHER">Other</option>
                 </select>
+                <label className="text-xs font-semibold text-slate-500">Note (optional)</label>
+                <textarea rows={2} maxLength={500} value={cancelNote} onChange={e => setCancelNote(e.target.value)}
+                  className="px-2.5 py-2 border border-slate-200 rounded-lg text-sm resize-y" placeholder="Anything the poster should know" />
                 <label className="flex items-center gap-2 text-sm text-slate-700">
                   <input type="checkbox" checked={notifyReplacements} onChange={e => setNotifyReplacements(e.target.checked)} />
                   Notify suitable replacement workers

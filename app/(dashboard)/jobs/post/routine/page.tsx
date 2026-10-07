@@ -27,7 +27,9 @@ import {
   type PersonReceivingSupport, type MultiCatalogueSelection, type SafetyChecklist, type FundingChoice,
   type RoutineWorkerChoice, type RoutinePreferences, type RoutinePreferenceKey,
 } from "@/lib/types/posting";
-import { saveGuestDraft, loadGuestDraft, loadResumableDraft, clearGuestDraft, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
+import { postFailureMessage } from "@/lib/guestDraftResume";
+import { someoneElsePhoneError } from "@/components/jobs/post/shared";
+import { saveGuestDraft, loadGuestDraft, loadResumableDraft, clearGuestDraft, getPostAttemptId, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 
@@ -208,8 +210,9 @@ function RoutineJourneyBase() {
 
   function validate(): string | null {
     if (key === "person" && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
-    if (key === "person" && isCoordinator && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
+    if (key === "person" && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
     if (key === "person" && person.who === "SOMEONE_ELSE" && !person.someoneElseName.trim()) return "Enter a preferred name.";
+    if (key === "person" && isCoordinator && person.who === "SOMEONE_ELSE") { const e = someoneElsePhoneError(person); if (e) return e; }
     if (key === "person" && isCoordinator && person.who === "EXISTING_PARTICIPANT" && person.existingParticipantIsConnection && !postingAuthorityConfirmed) return "Confirm you're authorised to post for this participant.";
     if (key === "purpose" && !purpose) return "Choose why support is being arranged.";
     if (key === "service" && catalogue.categoryIds.length === 0) return "Select at least one support service.";
@@ -245,7 +248,12 @@ function RoutineJourneyBase() {
     const err = validate();
     if (err) { setError(err); return; }
     setError(null);
-    if (step === TOTAL_STEPS - 1) { void submitCommon(false); return; }
+    if (step === TOTAL_STEPS - 1) {
+      // A request saved before signing up may have waited past the time it asked for.
+      const stale = scheduleError();
+      if (stale) { goTo("schedule"); setError(stale); return; }
+      void submitCommon(false); return;
+    }
     const nextStep = step + 1;
     if (!isAuth) saveGuestDraft("ROUTINE", guestRole ?? "PARTICIPANT", draftState(nextStep));
     setStep(nextStep);
@@ -331,6 +339,7 @@ function RoutineJourneyBase() {
         safetyFlags: buildSafetyFlagsPayload(safety),
         ...buildFundingPayload(funding),
         responsePreferences,
+        clientRequestId: asDraft ? undefined : getPostAttemptId(),
         asDraft,
       };
       applyPerson(body, person, suburb, audience);
@@ -343,7 +352,7 @@ function RoutineJourneyBase() {
       if (err instanceof ApiError && err.code === "SUBSCRIPTION_LIMIT") {
         setShiftPassBlocked(true);
       } else {
-        setError(err instanceof ApiError ? err.message : "Failed to post request.");
+        setError(postFailureMessage(err));
       }
     } finally { setSaving(false); }
   }
@@ -539,7 +548,7 @@ function RoutineJourneyBase() {
               <ReviewRow label={isProvider ? "Organisation and authority" : "Participant and authority"} value={personLabel} onEdit={() => goTo("person")} />
             )}
             <ReviewRow label="Pattern and schedule" value={`${PATTERN_LABELS[pattern]}${scheduleSummary ? " — " + scheduleSummary : ""}`} onEdit={() => goTo("schedule")} />
-            <ReviewRow label="Services/tasks/goals" value={`${catalogue.categoryIds.map((id) => getCatalogueCategory(id)?.label).join(", ") || primaryCategory?.label || ""}${catalogue.goals.length ? " — " + catalogue.goals.join(", ") : ""}`} onEdit={() => goTo("tasks")} />
+            <ReviewRow label="Services/tasks/goals" value={`${catalogue.categoryIds.map((id) => getCatalogueCategory(id)?.label).join(", ") || primaryCategory?.label || ""}${Object.values(catalogue.tasksByCategory).flat().length ? " — " + Object.values(catalogue.tasksByCategory).flat().join(", ") : ""}${catalogue.goals.length ? " · Goals: " + catalogue.goals.join(", ") : ""}`} onEdit={() => goTo("tasks")} />
             <ReviewRow label={isCoordinator ? "Location/travel" : "Locations/travel"} value={`${suburb}, ${state}${postcode ? " " + postcode : ""}`} onEdit={() => goTo("location")} />
             <ReviewRow label="Worker/provider preferences" value={workerLabel} onEdit={() => goTo("worker")} />
             <ReviewRow label={isCoordinator ? "Safety information" : "Safety/support summary"} value={safetySummary(safety)} onEdit={() => goTo("safety")} />

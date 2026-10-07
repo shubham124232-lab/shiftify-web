@@ -92,7 +92,7 @@ export function RequestDetailsCard({ job, isOwner }: { job: RequestDetailsJob; i
         body: (
           <div className="space-y-1.5">
             {tasks.length > 0 && <List items={tasks} />}
-            {answers.length > 0 && <p className="m-0 text-[12px] text-slate-500">Follow-up answers: {answers.map(([k, v]) => `${k.replace(/[-_]/g, " ")}: ${asText(v)}`).join("; ")}</p>}
+            {answers.length > 0 && <p className="m-0 text-[12px] text-slate-500">Follow-up answers: {answers.map(([k, v]) => `${k.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[-_]/g, " ").replace(/^./, (c) => c.toUpperCase())}: ${asText(v)}`).join("; ")}</p>}
           </div>
         ),
       });

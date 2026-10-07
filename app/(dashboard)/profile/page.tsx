@@ -105,32 +105,9 @@ export default function ProfilePage() {
   const [servicesOffered, setServicesOffered] = useState<string[]>([]);
 
   // Worker-only visibility controls (SW doc §2-3 Window 14)
-  const [nameDisplayMode,   setNameDisplayMode]   = useState("FULL_NAME");
-  const [rateDisplayMode,   setRateDisplayMode]   = useState("PUBLIC");
-  const [contactPreference, setContactPreference] = useState("ALLOW_MESSAGES");
 
   // Worker-only introduction (Window 6), boundaries (Window 13), travel (Window 11),
   // rate breakdown / meet-and-greet (Window 12), document visibility (Window 9)
-  const [introSummary,          setIntroSummary]          = useState("");
-  const [experienceYearsBucket, setExperienceYearsBucket] = useState("");
-  const [approachTags,          setApproachTags]          = useState<string[]>([]);
-  const [interests,             setInterests]             = useState<string[]>([]);
-  const [environmentExclusions, setEnvironmentExclusions] = useState("");
-  const [taskExclusions,        setTaskExclusions]        = useState("");
-  const [boundaryNotes,         setBoundaryNotes]         = useState("");
-  const [travelMode,            setTravelMode]            = useState("");
-  const [childRestraintAvailable,     setChildRestraintAvailable]     = useState(false);
-  const [wheelchairAccessibleVehicle, setWheelchairAccessibleVehicle] = useState(false);
-  const [weekdayRate,   setWeekdayRate]   = useState("");
-  const [eveningRate,   setEveningRate]   = useState("");
-  const [saturdayRate,  setSaturdayRate]  = useState("");
-  const [sundayRate,    setSundayRate]    = useState("");
-  const [sleepoverRate, setSleepoverRate] = useState("");
-  const [meetAndGreetPreference,          setMeetAndGreetPreference]          = useState("OPTIONAL");
-  const [documentsVisibleToParticipants,  setDocumentsVisibleToParticipants]  = useState(false);
-  const [ageGroupsSupported,         setAgeGroupsSupported]         = useState<string[]>([]);
-  const [settingsExperience,         setSettingsExperience]         = useState<string[]>([]);
-  const [communicationSupportSkills, setCommunicationSupportSkills] = useState<string[]>([]);
 
   // Coordinator-only fields (SC-A05/A08 + capacity/availability)
   const [roleType,               setRoleType]               = useState("");
@@ -233,29 +210,6 @@ export default function ProfilePage() {
         setAvailabilityType(p.availabilityType ?? "");
         setMaxParticipantLoad(p.maxParticipantLoad != null ? String(p.maxParticipantLoad) : "");
         setOrgInviteCode(p.orgInviteCode ?? null);
-        setNameDisplayMode(p.nameDisplayMode ?? "FULL_NAME");
-        setRateDisplayMode(p.rateDisplayMode ?? "PUBLIC");
-        setContactPreference(p.contactPreference ?? "ALLOW_MESSAGES");
-        setIntroSummary(p.introSummary ?? "");
-        setExperienceYearsBucket(p.experienceYearsBucket ?? "");
-        setApproachTags(p.approachTags ?? []);
-        setInterests(p.interests ?? []);
-        setEnvironmentExclusions((p.supportBoundaries?.environmentExclusions ?? []).join(", "));
-        setTaskExclusions((p.supportBoundaries?.taskExclusions ?? []).join(", "));
-        setBoundaryNotes(p.supportBoundaries?.notes ?? "");
-        setTravelMode(p.travelMode ?? "");
-        setChildRestraintAvailable(p.childRestraintAvailable ?? false);
-        setWheelchairAccessibleVehicle(p.wheelchairAccessibleVehicle ?? false);
-        setWeekdayRate(p.detailedRates?.weekdayRate != null ? String(p.detailedRates.weekdayRate) : "");
-        setEveningRate(p.detailedRates?.eveningRate != null ? String(p.detailedRates.eveningRate) : "");
-        setSaturdayRate(p.detailedRates?.saturdayRate != null ? String(p.detailedRates.saturdayRate) : "");
-        setSundayRate(p.detailedRates?.sundayRate != null ? String(p.detailedRates.sundayRate) : "");
-        setSleepoverRate(p.detailedRates?.sleepoverRate != null ? String(p.detailedRates.sleepoverRate) : "");
-        setMeetAndGreetPreference(p.meetAndGreetPreference ?? "OPTIONAL");
-        setDocumentsVisibleToParticipants(p.documentsVisibleToParticipants ?? false);
-        setAgeGroupsSupported(p.ageGroupsSupported ?? []);
-        setSettingsExperience(p.settingsExperience ?? []);
-        setCommunicationSupportSkills(p.communicationSupportSkills ?? []);
       })
       .catch(() => {})
       .finally(() => setPageLoading(false));
@@ -309,38 +263,7 @@ export default function ProfilePage() {
 
       // Update role profile
       const profilePayload: Record<string, any> = {};
-      if (activeRole === UserRole.SUPPORT_WORKER) {
-        // suburb goes via base user defaultSuburb (already in the PATCH above)
-        profilePayload.bio               = bio || undefined;
-        profilePayload.servicesOffered   = servicesOffered;
-        profilePayload.nameDisplayMode   = nameDisplayMode;
-        profilePayload.rateDisplayMode   = rateDisplayMode;
-        profilePayload.contactPreference = contactPreference;
-        profilePayload.introSummary          = introSummary || undefined;
-        profilePayload.experienceYearsBucket = experienceYearsBucket || undefined;
-        profilePayload.approachTags          = approachTags;
-        profilePayload.interests             = interests;
-        profilePayload.supportBoundaries = {
-          environmentExclusions: environmentExclusions.split(",").map(s => s.trim()).filter(Boolean),
-          taskExclusions:        taskExclusions.split(",").map(s => s.trim()).filter(Boolean),
-          notes:                 boundaryNotes || undefined,
-        };
-        profilePayload.travelMode                  = travelMode || undefined;
-        profilePayload.childRestraintAvailable      = childRestraintAvailable;
-        profilePayload.wheelchairAccessibleVehicle  = wheelchairAccessibleVehicle;
-        profilePayload.detailedRates = {
-          weekdayRate:   weekdayRate   ? Number(weekdayRate)   : undefined,
-          eveningRate:   eveningRate   ? Number(eveningRate)   : undefined,
-          saturdayRate:  saturdayRate  ? Number(saturdayRate)  : undefined,
-          sundayRate:    sundayRate    ? Number(sundayRate)    : undefined,
-          sleepoverRate: sleepoverRate ? Number(sleepoverRate) : undefined,
-        };
-        profilePayload.meetAndGreetPreference         = meetAndGreetPreference;
-        profilePayload.documentsVisibleToParticipants = documentsVisibleToParticipants;
-        profilePayload.ageGroupsSupported         = ageGroupsSupported;
-        profilePayload.settingsExperience         = settingsExperience;
-        profilePayload.communicationSupportSkills = communicationSupportSkills;
-      } else if (activeRole === UserRole.PROVIDER) {
+      if (activeRole === UserRole.PROVIDER) {
         profilePayload.businessName   = businessName || undefined;
         profilePayload.abn            = abn || undefined;
         profilePayload.ndisRegistered = ndisRegistered;
@@ -600,7 +523,7 @@ export default function ProfilePage() {
           </Card>
 
           {/* Role-specific fields */}
-          {(activeRole === UserRole.SUPPORT_WORKER || activeRole === UserRole.COORDINATOR) && (
+          {activeRole === UserRole.COORDINATOR && (
             <Card>
               <CardHeader><CardTitle>About you</CardTitle></CardHeader>
               <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -613,159 +536,14 @@ export default function ProfilePage() {
 
           {activeRole === UserRole.SUPPORT_WORKER && (
             <Card>
-              <CardHeader><CardTitle>Profile visibility</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-3.5">
-                <p className="text-xs text-slate-400">
-                  Controls how you appear to participants, coordinators and providers browsing for available workers, before you've connected with them.
+              <CardHeader><CardTitle>Your Support Worker profile</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <p className="text-sm text-slate-600">
+                  Services, documents, rates, travel, boundaries and who can find you are set once in the profile builder, so you are not asked again on each request.
                 </p>
-                <div className="grid grid-cols-2 gap-3.5">
-                  <Field label="Name shown as">
-                    <select className={twInp} value={nameDisplayMode} onChange={e => setNameDisplayMode(e.target.value)}>
-                      <option value="FULL_NAME">Full name</option>
-                      <option value="FIRST_NAME_INITIAL">First name and surname initial</option>
-                    </select>
-                  </Field>
-                  <Field label="Hourly rate shown">
-                    <select className={twInp} value={rateDisplayMode} onChange={e => setRateDisplayMode(e.target.value)}>
-                      <option value="PUBLIC">Public</option>
-                      <option value="AFTER_CONNECT">After Connect</option>
-                      <option value="HIDDEN">Hidden</option>
-                    </select>
-                  </Field>
+                <div>
+                  <Link href="/profile/build" className="btn-shiftify inline-flex items-center no-underline">Open profile builder</Link>
                 </div>
-                <Field label="Contact preference">
-                  <select className={twInp} value={contactPreference} onChange={e => setContactPreference(e.target.value)}>
-                    <option value="ALLOW_MESSAGES">Allow messages</option>
-                    <option value="INVITATIONS_ONLY">Invitations only</option>
-                  </select>
-                </Field>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeRole === UserRole.SUPPORT_WORKER && (
-            <Card>
-              <CardHeader><CardTitle>Introduction</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-3.5">
-                <Field label="Short introduction">
-                  <Textarea value={introSummary} onChange={setIntroSummary} placeholder="A short intro shown on your profile card..." rows={2} />
-                </Field>
-                <div className="grid grid-cols-2 gap-3.5">
-                  <Field label="Years of experience">
-                    <select className={twInp} value={experienceYearsBucket} onChange={e => setExperienceYearsBucket(e.target.value)}>
-                      <option value="">Select…</option>
-                      <option value="0-1">0–1 years</option>
-                      <option value="1-3">1–3 years</option>
-                      <option value="3-5">3–5 years</option>
-                      <option value="5-10">5–10 years</option>
-                      <option value="10+">10+ years</option>
-                    </select>
-                  </Field>
-                  <Field label="Approach (comma-separated)">
-                    <input style={inp} value={approachTags.join(", ")} onChange={e => setApproachTags(e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="e.g. Patient, Structured" />
-                  </Field>
-                </div>
-                <Field label="Interests (comma-separated)">
-                  <input style={inp} value={interests.join(", ")} onChange={e => setInterests(e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="e.g. Music, Sport, Gardening" />
-                </Field>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeRole === UserRole.SUPPORT_WORKER && (
-            <Card>
-              <CardHeader><CardTitle>Experience with participant groups</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-3.5">
-                <TagToggleGroup label="Age groups" options={["Children", "Young people", "Adults", "Older people"]} value={ageGroupsSupported} onChange={setAgeGroupsSupported} />
-                <TagToggleGroup label="Settings" options={["Home", "Supported Independent Living (SIL)", "Community", "School", "Residential aged care"]} value={settingsExperience} onChange={setSettingsExperience} />
-                <TagToggleGroup label="Communication support" options={["Auslan", "AAC (augmentative/alternative communication)", "Plain English", "Interpreter-assisted"]} value={communicationSupportSkills} onChange={setCommunicationSupportSkills} />
-              </CardContent>
-            </Card>
-          )}
-
-          {activeRole === UserRole.SUPPORT_WORKER && (
-            <Card>
-              <CardHeader><CardTitle>Boundaries and environment</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-3.5">
-                <p className="text-xs text-slate-400">
-                  Let participants know upfront about environments or tasks you can't support, so there are no surprises after you Connect.
-                </p>
-                <div className="grid grid-cols-2 gap-3.5">
-                  <Field label="Environments I can't support (comma-separated)">
-                    <input style={inp} value={environmentExclusions} onChange={e => setEnvironmentExclusions(e.target.value)} placeholder="e.g. Homes with smoking, Homes with pets" />
-                  </Field>
-                  <Field label="Tasks I can't support (comma-separated)">
-                    <input style={inp} value={taskExclusions} onChange={e => setTaskExclusions(e.target.value)} placeholder="e.g. Heavy lifting" />
-                  </Field>
-                </div>
-                <Field label="Other notes">
-                  <Textarea value={boundaryNotes} onChange={setBoundaryNotes} rows={2} />
-                </Field>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeRole === UserRole.SUPPORT_WORKER && (
-            <Card>
-              <CardHeader><CardTitle>Travel</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-3.5">
-                <div className="grid grid-cols-2 gap-3.5">
-                  <Field label="Travel mode">
-                    <select className={twInp} value={travelMode} onChange={e => setTravelMode(e.target.value)}>
-                      <option value="">Select…</option>
-                      <option value="OWN_VEHICLE">Own vehicle</option>
-                      <option value="PUBLIC_TRANSPORT">Public transport</option>
-                      <option value="WALKING">Walking</option>
-                      <option value="NONE">None</option>
-                    </select>
-                  </Field>
-                  <div className="flex flex-col gap-2 justify-center">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={childRestraintAvailable} onChange={e => setChildRestraintAvailable(e.target.checked)} />
-                      Child restraint available
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={wheelchairAccessibleVehicle} onChange={e => setWheelchairAccessibleVehicle(e.target.checked)} />
-                      Wheelchair-accessible vehicle
-                    </label>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {activeRole === UserRole.SUPPORT_WORKER && (
-            <Card>
-              <CardHeader><CardTitle>Rate breakdown & meet-and-greet</CardTitle></CardHeader>
-              <CardContent className="flex flex-col gap-3.5">
-                <div className="grid grid-cols-3 gap-3.5">
-                  <Field label="Weekday rate ($/hr)">
-                    <input style={inp} type="number" value={weekdayRate} onChange={e => setWeekdayRate(e.target.value)} />
-                  </Field>
-                  <Field label="Evening rate ($/hr)">
-                    <input style={inp} type="number" value={eveningRate} onChange={e => setEveningRate(e.target.value)} />
-                  </Field>
-                  <Field label="Saturday rate ($/hr)">
-                    <input style={inp} type="number" value={saturdayRate} onChange={e => setSaturdayRate(e.target.value)} />
-                  </Field>
-                  <Field label="Sunday rate ($/hr)">
-                    <input style={inp} type="number" value={sundayRate} onChange={e => setSundayRate(e.target.value)} />
-                  </Field>
-                  <Field label="Sleepover rate ($/shift)">
-                    <input style={inp} type="number" value={sleepoverRate} onChange={e => setSleepoverRate(e.target.value)} />
-                  </Field>
-                  <Field label="Meet-and-greet preference">
-                    <select className={twInp} value={meetAndGreetPreference} onChange={e => setMeetAndGreetPreference(e.target.value)}>
-                      <option value="REQUIRED">Required before confirming</option>
-                      <option value="OPTIONAL">Optional</option>
-                      <option value="NOT_NEEDED">Not needed</option>
-                    </select>
-                  </Field>
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={documentsVisibleToParticipants} onChange={e => setDocumentsVisibleToParticipants(e.target.checked)} />
-                  Show my compliance/document status to participants before they Connect
-                </label>
               </CardContent>
             </Card>
           )}
@@ -844,7 +622,7 @@ export default function ProfilePage() {
             </>
           )}
 
-          {(activeRole === UserRole.SUPPORT_WORKER || activeRole === UserRole.PROVIDER) && (
+          {activeRole === UserRole.PROVIDER && (
             <Card>
               <CardHeader><CardTitle>Services offered</CardTitle></CardHeader>
               <CardContent>

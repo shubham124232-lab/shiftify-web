@@ -17,7 +17,7 @@ const categoryLabel = (v: string) => JOB_CATEGORIES.find((c) => c.value === v)?.
 interface Listing {
   id: string; listingCategory: "SERVICE" | "HOUSING"; title: string; description: string; suburb: string; state: string | null;
   acceptingStatus: string | null; serviceCategories: string[] | null; daysAvailable: string[] | null;
-  responseExpectation: string | null; fundingTypes: string[] | null; vacancyCategory: string | null; listingExpiresAt: string | null;
+  responseExpectation: string | null; fundingTypes: string[] | null; vacancyCategory: string | null; listingExpiresAt: string | null; housingDetails?: { photoUrls?: string[] } | null;
 }
 interface ProfileFields {
   businessName?: string; businessDescription?: string; logoUrl?: string | null; verification?: string;
@@ -145,6 +145,14 @@ export default function PublicProfilePage() {
                   {l.acceptingStatus && ` · ${ACCEPTING[l.acceptingStatus] ?? l.acceptingStatus}`}
                   {l.responseExpectation && ` · ${RESPONSE[l.responseExpectation] ?? l.responseExpectation}`}
                 </p>
+                {l.housingDetails?.photoUrls?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {l.housingDetails.photoUrls.map((u) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img key={u} src={u} alt={l.title} style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 8 }} />
+                    ))}
+                  </div>
+                ) : null}
                 <Chips labels items={l.serviceCategories} />
                 {!isSelf && <Button size="sm" className="mt-2" onClick={() => { setEnquiryFor(l.id); setSent(null); }}>Enquire about this {l.listingCategory === "HOUSING" ? "vacancy" : "capacity"}</Button>}
               </div>

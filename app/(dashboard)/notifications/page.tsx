@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { WorkerAlertControls } from "@/components/notifications/WorkerAlertControls";
 import { ProviderNotificationControls } from "@/components/notifications/ProviderNotificationControls";
 
 interface Notif {
@@ -134,6 +135,7 @@ export default function NotificationsPage() {
                   ))}
                 </div>
               </div>
+              {activeRole === "SUPPORT_WORKER" && <WorkerAlertControls initial={(pref.providerPrefs as { workerAlerts?: React.ComponentProps<typeof WorkerAlertControls>["initial"] } | null | undefined)?.workerAlerts ?? null} />}
               {activeRole === "PROVIDER" && <ProviderNotificationControls initial={pref.providerPrefs ?? null} />}
               <p style={{ fontSize: 11, color: "var(--td-muted)", margin: 0 }}>Safety alerts and incident notifications always send, regardless of these settings.</p>
             </CardContent>

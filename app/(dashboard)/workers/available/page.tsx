@@ -37,8 +37,8 @@ const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:
 const lbl = "block text-xs font-semibold text-slate-600 mb-1";
 const PAGE_SIZE = 20;
 
-interface Filters { suburb: string; state: string; }
-const EMPTY_FILTERS: Filters = { suburb: "", state: "" };
+interface Filters { suburb: string; state: string; availableNow: boolean; }
+const EMPTY_FILTERS: Filters = { suburb: "", state: "", availableNow: false };
 
 type JobInviteState = "NONE" | "SENDING" | "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN";
 
@@ -152,6 +152,7 @@ export default function BrowseWorkersPage() {
   const canSave = activeRole === "PARTICIPANT" || activeRole === "COORDINATOR" || activeRole === "PLAN_MANAGER";
   const searchParams = useSearchParams();
   const forJobId = searchParams.get("forJobId");
+  const startAvailableNow = searchParams.get("availableNow") === "1";
   const [jobInviteStates, setJobInviteStates] = useState<Record<string, JobInviteState>>({});
 
   const [workers, setWorkers] = useState<WorkerListing[]>([]);
@@ -160,8 +161,8 @@ export default function BrowseWorkersPage() {
   const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS, availableNow: startAvailableNow });
+  const [appliedFilters, setAppliedFilters] = useState<Filters>({ ...EMPTY_FILTERS, availableNow: startAvailableNow });
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -220,6 +221,7 @@ export default function BrowseWorkersPage() {
     const params = new URLSearchParams({ page: String(p), limit: String(PAGE_SIZE) });
     if (f.suburb) params.set("suburb", f.suburb);
     if (f.state)  params.set("state", f.state);
+    if (f.availableNow) params.set("availableNow", "true");
 
     api.get<{ items: WorkerListing[]; total: number }>(`/workers/available?${params}`)
       .then(r => {
@@ -268,6 +270,10 @@ export default function BrowseWorkersPage() {
                 <label className={lbl}>State</label>
                 <input className={inp} placeholder="e.g. NSW" value={filters.state} onChange={e => setFilters(f => ({ ...f, state: e.target.value }))} />
               </div>
+              <label className="flex items-center gap-2 text-sm text-slate-700 h-10">
+                <input type="checkbox" checked={filters.availableNow} onChange={e => setFilters(f => ({ ...f, availableNow: e.target.checked }))} />
+                Available Now only
+              </label>
               <Button size="sm" onClick={applyFilters}>Apply</Button>
               <button onClick={resetFilters} className="text-xs text-brand-600 hover:underline">Reset</button>
             </div>

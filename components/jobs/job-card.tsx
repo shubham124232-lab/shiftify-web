@@ -37,6 +37,8 @@ export interface Job {
   budgetPerHour?: number | null;
   totalBudget?: number | null;
   budgetType?: string | null;
+  postedByRoleLabel?: string;
+  distanceKm?: number;
   _count?: { applications: number };
   // Suburb centroid, when the feed provides one — plots the job on the map.
   lat?: number | null;
@@ -83,7 +85,17 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
     ? `$${job.budget.amount}/hr`
     : job.budget?.type === "TOTAL" && job.budget.amount
     ? `$${job.budget.amount} total`
+    : job.budgetPerHour
+    ? `$${Number(job.budgetPerHour)}/hr`
+    : job.totalBudget
+    ? `$${Number(job.totalBudget)} total`
+    : job.budgetType === "DISCUSS" || job.budgetType === "OPEN" ? "Rate to discuss"
     : null;
+  // Window 17 — profile-match status in one line (details stay in the chips below).
+  const matchStatus = !job.matchSummary ? null
+    : job.matchSummary.missing.length > 0 ? { text: "Item to review", cls: "text-amber-700" }
+    : job.matchSummary.met.length > 0 ? { text: "Requirements met from your profile", cls: "text-emerald-700" }
+    : { text: "Profile information missing", cls: "text-slate-500" };
   const isOwner = showOwnerBadge && job.isOwnRequest;
 
   return (
@@ -127,11 +139,14 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
       </Link>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
-        <span>{job.suburb}, {job.state}</span>
+        <span>{job.suburb}, {job.state}{job.distanceKm != null ? ` · about ${job.distanceKm} km` : ""}</span>
         {job.estimatedHours && <span>{job.estimatedHours}h</span>}
-        <span>{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
+        <span>{new Date(job.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+        <span>{job.isRecurring ? "Recurring" : "One-time"}</span>
+        {job.postedByRoleLabel && <span>Posted by {job.postedByRoleLabel}</span>}
         {budgetStr && <span className="font-semibold text-emerald-700">{budgetStr}</span>}
       </div>
+      {matchStatus && <p className={cn("m-0 mb-2 text-xs font-medium", matchStatus.cls)}>{matchStatus.text}</p>}
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-xs text-slate-500">
@@ -139,7 +154,7 @@ export function JobCard({ job, canApply, applying, onApply, onView, onToggleSave
         </span>
         {job.applicationDeadlineAt && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200 text-xs text-slate-500">
-            {closesIn(job.applicationDeadlineAt)}
+            {closesIn(job.applicationDeadlineAt)?.replace("Closes in", "Respond within").replace("Closes soon", "Respond soon")}
           </span>
         )}
       </div>

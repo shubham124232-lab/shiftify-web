@@ -474,6 +474,10 @@ export default function ProfileEditPage() {
   const activeStep  = steps[activeIndex];
   const isDocTab    = hasDocTab && activeIndex === docTabIndex;
 
+  // An independent Support Worker builds their profile in the step-by-step profile builder (SW journey Windows 5-14).
+  const sendToBuilder = role === UserRole.SUPPORT_WORKER && user?.accountType !== 'MANAGED';
+  useEffect(() => { if (sendToBuilder) router.replace('/profile/build'); }, [sendToBuilder, router]);
+
   useEffect(() => {
     if (!user || !role) return;
     api.get<{ user: Record<string, unknown> }>('/users/me')
@@ -495,7 +499,7 @@ export default function ProfileEditPage() {
     router.push(`?${p.toString()}`, { scroll: false });
   }
 
-  if (!user || !role) return null;
+  if (!user || !role || sendToBuilder) return null;
 
   const roleLabel = ROLE_LABELS[role] ?? role;
 

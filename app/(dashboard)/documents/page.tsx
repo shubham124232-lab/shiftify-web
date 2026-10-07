@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { api, http } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -20,6 +20,18 @@ interface Doc {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// SW doc Window 46 — group the list: Requires attention / Expiring soon / Current / Expired.
+const DOC_GROUPS = ["Requires attention", "Expiring soon", "Current", "Expired"] as const;
+function docGroup(d: Doc): (typeof DOC_GROUPS)[number] {
+  if (d.status === "REJECTED") return "Requires attention";
+  if (d.expiryDate) {
+    const daysLeft = Math.ceil((new Date(d.expiryDate).getTime() - Date.now()) / DAY_MS);
+    if (daysLeft < 0) return "Expired";
+    if (daysLeft <= 30) return "Expiring soon";
+  }
+  return "Current";
+}
+
 function expiryInfo(expiryDate: string | null): { label: string; bg: string; color: string } | null {
   if (!expiryDate) return null;
   const daysLeft = Math.ceil((new Date(expiryDate).getTime() - Date.now()) / DAY_MS);
@@ -38,6 +50,21 @@ const DOC_TYPES = [
   { value: "OTHER",          label: "Other Document" },
 ];
 
+const PROVIDER_DOC_TYPES = [
+  { value: "PUBLIC_LIABILITY_INSURANCE", label: "Public Liability Insurance" },
+  { value: "PROFESSIONAL_INDEMNITY",     label: "Professional Indemnity Insurance" },
+  { value: "NDIS_AUDIT",                 label: "NDIS Provider Registration Certificate" },
+  { value: "WORKERS_COMP",               label: "Workers Compensation Insurance" },
+  { value: "ABN_CONFIRMATION",           label: "ABN / business evidence" },
+  { value: "BUSINESS_ADDRESS_EVIDENCE",  label: "Business address evidence" },
+  { value: "CONTACT_IDENTITY_EVIDENCE",  label: "Administrator identity evidence" },
+  { value: "POLICIES_PROCEDURES",        label: "Policies and procedures" },
+  { value: "OTHER",                      label: "Other Document" },
+];
+const PROVIDER_REQUIRED = ["PUBLIC_LIABILITY_INSURANCE", "PROFESSIONAL_INDEMNITY", "NDIS_AUDIT"];
+const WORKER_REQUIRED = ["NDIS_SCREENING", "POLICE_CHECK", "WWCC", "FIRST_AID"];
+const ALL_LABELS = [...DOC_TYPES, ...PROVIDER_DOC_TYPES];
+
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   UPLOADED:  { bg: "var(--td-grey)", color: "var(--td-ink-700)", label: "Uploaded" },
   VERIFIED:  { bg: "var(--td-dark-text)", color: "var(--td-white)", label: "Verified" },
@@ -47,12 +74,17 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
 
 export default function DocumentsPage() {
   const { activeRole } = useAuth();
-  const isWorker = activeRole === "SUPPORT_WORKER" || activeRole === "PROVIDER";
+  const isProvider = activeRole === "PROVIDER";
+  const isWorker = activeRole === "SUPPORT_WORKER" || isProvider;
+  const docTypes = isProvider ? PROVIDER_DOC_TYPES : DOC_TYPES;
+  const requiredTypes = isProvider ? PROVIDER_REQUIRED : WORKER_REQUIRED;
   const [docs,     setDocs]     = useState<Doc[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [selType,  setSelType]  = useState(DOC_TYPES[0].value);
+  const [pickedType, setSelType] = useState("");
+  // The role can load after first render, so fall back to the first type that role may upload.
+  const selType = docTypes.some(t => t.value === pickedType) ? pickedType : docTypes[0].value;
   const [expiryDate, setExpiryDate] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -134,7 +166,7 @@ export default function DocumentsPage() {
                   onChange={e => setSelType(e.target.value)}
                   style={{ width: "100%", height: 40, padding: "0 10px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, background: "var(--td-white)" }}
                 >
-                  {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {docTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div style={{ minWidth: 160 }}>
@@ -180,12 +212,16 @@ export default function DocumentsPage() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {docs.map(doc => {
+                {[...docs].sort((a, b) => DOC_GROUPS.indexOf(docGroup(a)) - DOC_GROUPS.indexOf(docGroup(b))).map((doc, i, arr) => {
+                  const group = docGroup(doc);
+                  const showHeading = i === 0 || docGroup(arr[i - 1]) !== group;
                   const s = STATUS_STYLE[doc.status] ?? STATUS_STYLE.PENDING;
-                  const typeLabel = DOC_TYPES.find(t => t.value === doc.docType)?.label ?? doc.docType;
+                  const typeLabel = ALL_LABELS.find(t => t.value === doc.docType)?.label ?? doc.docType;
                   const expiry = expiryInfo(doc.expiryDate);
                   return (
-                    <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
+                    <Fragment key={doc.id}>
+                    {showHeading && <div style={{ fontSize: 12, fontWeight: 700, color: "var(--td-muted-dark)", textTransform: "uppercase", letterSpacing: 0.4, marginTop: i === 0 ? 0 : 6 }}>{group}</div>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 16px", border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
                       <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--td-grey)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>
                         📄
                       </div>
@@ -219,6 +255,7 @@ export default function DocumentsPage() {
                         ✕
                       </button>
                     </div>
+                    </Fragment>
                   );
                 })}
               </div>
@@ -228,13 +265,13 @@ export default function DocumentsPage() {
 
         {/* Compliance checklist — workers & providers only */}
         {isWorker && <Card>
-          <CardHeader><CardTitle>Required for support workers</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{isProvider ? "Required for Providers" : "Required for support workers"}</CardTitle></CardHeader>
           <CardContent>
-            {["NDIS_SCREENING", "POLICE_CHECK", "WWCC", "FIRST_AID"].map(req => {
+            {requiredTypes.map(req => {
               const match = docs.find(d => d.docType === req && d.status !== "REJECTED");
               const isExpired = match?.expiryDate ? new Date(match.expiryDate).getTime() < Date.now() : false;
               const have = !!match && !isExpired;
-              const label = DOC_TYPES.find(t => t.value === req)?.label ?? req;
+              const label = ALL_LABELS.find(t => t.value === req)?.label ?? req;
               return (
                 <div key={req} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--td-grey)" }}>
                   <span style={{ fontSize: 16 }}>{have ? "✅" : isExpired ? "⚠" : "⭕"}</span>

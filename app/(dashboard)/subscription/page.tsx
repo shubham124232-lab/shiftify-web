@@ -12,6 +12,7 @@ import { useAuthStore } from '@/lib/store/auth.store';
 import { UserStatus } from '@/lib/types';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/dashboard/page-header';
+import { BillingHistoryCard } from '@/components/subscription/BillingHistoryCard';
 
 interface ApiPlan {
   id: string; key: string; name: string; role: string;
@@ -31,14 +32,14 @@ interface Allowance {
 type Billing = 'MONTHLY' | 'ANNUAL';
 
 const PAGE_COPY: Record<string, { title: string; description: string }> = {
-  SUPPORT_WORKER: { title: 'Power Ups & Billing', description: 'Manage your plan, Available Now and one-time passes.' },
+  SUPPORT_WORKER: { title: 'Membership', description: 'Free, Basic, Shift Pass and Available Now — manage your plan and passes.' },
   COORDINATOR:    { title: 'Subscription',        description: 'Manage your plan, add-ons and one-time passes.' },
   PROVIDER:       { title: 'Subscription & Billing', description: 'Manage your organisation plan, passes and billing.' },
 };
 
 // Pricing V2 §6 — what one Shift Pass pays for, by role.
 const SHIFT_PASS_COPY: Record<string, string> = {
-  SUPPORT_WORKER: 'One additional public shift application.',
+  SUPPORT_WORKER: 'One additional Connect action.',
   COORDINATOR:    'One new Participant support request or agreed chargeable action.',
   PROVIDER:       'Publish one external staffing request, or respond to one Participant/Coordinator opportunity.',
 };
@@ -388,6 +389,8 @@ export default function SubscriptionPage() {
             </div>
           </div>
         )}
+
+        <BillingHistoryCard />
 
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', lineHeight: 1.5 }}>
           Test mode — changes take effect immediately. Stripe billing will be connected in Phase 2.

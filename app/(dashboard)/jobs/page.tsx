@@ -15,7 +15,7 @@ import { createSavedSearch, type SavedSearchFilters } from "@/lib/api/saved-sear
 import { JobCard, type Job } from "@/components/jobs/job-card";
 import {
   URGENCY_TABS, URGENCY_STYLE, SHIFT_TYPE_LABELS, FUNDING_LABELS,
-  POSTED_WITHIN_OPTIONS, SORT_OPTIONS, inp, lbl,
+  POSTED_WITHIN_OPTIONS, SORT_OPTIONS, WORKER_SORT_OPTIONS, TIME_OF_DAY_FILTERS, inp, lbl,
 } from "@/lib/constants/job-filters";
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
@@ -38,6 +38,14 @@ interface Filters {
   duration: string;      // SHORT | MEDIUM | LONG | ""
   deadline: string;      // hours until response deadline | ""
   openTo: string;        // PROVIDERS_ONLY | ""
+  // SW Window 16
+  minRate: string;
+  maxDistanceKm: string;
+  timeOfDay: string;
+  participantTransport: boolean;
+  ageGroup: string;
+  workerPreference: string;
+  qualification: boolean;
 }
 
 const defaultFilters: Filters = {
@@ -45,6 +53,8 @@ const defaultFilters: Filters = {
   isRecurring: "", workerType: "", experienceLevel: "", postedWithin: "",
   dateFrom: "", dateTo: "", sortBy: "urgency",
   postedBy: "", duration: "", deadline: "", openTo: "",
+  minRate: "", maxDistanceKm: "", timeOfDay: "", participantTransport: false,
+  ageGroup: "", workerPreference: "", qualification: false,
 };
 
 function toSavedSearchFilters(f: Filters): SavedSearchFilters {
@@ -59,9 +69,10 @@ function toSavedSearchFilters(f: Filters): SavedSearchFilters {
 }
 
 function FilterSidebar({
-  filters, onChange, onReset, onApply, onSave, saving, isProvider,
+  filters, onChange, onReset, onApply, onSave, saving, isProvider, isWorker,
 }: {
   isProvider?: boolean;
+  isWorker?: boolean;
   filters: Filters;
   onChange: (f: Partial<Filters>) => void;
   onReset: () => void;
@@ -76,19 +87,74 @@ function FilterSidebar({
         <button onClick={onReset} className="text-xs text-brand-600 hover:underline">Reset all</button>
       </div>
 
-      {/* Suburb */}
+      {/* Suburb or postcode */}
       <div>
-        <label className={lbl}>Suburb</label>
-        <input className={inp} placeholder="e.g. Parramatta" value={filters.suburb} onChange={e => onChange({ suburb: e.target.value })} />
+        <label className={lbl}>Suburb or postcode</label>
+        <input className={inp} placeholder="e.g. Parramatta or 2150" value={filters.suburb} onChange={e => onChange({ suburb: e.target.value })} />
       </div>
 
       {/* Sort */}
       <div>
         <label className={lbl}>Sort by</label>
-        <select className={inp} value={filters.sortBy} onChange={e => onChange({ sortBy: e.target.value })}>
-          {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        <select className={inp} value={isWorker && filters.sortBy === "urgency" ? "bestMatch" : filters.sortBy} onChange={e => onChange({ sortBy: e.target.value })}>
+          {(isWorker ? WORKER_SORT_OPTIONS : SORT_OPTIONS).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
+
+      {/* SW Window 16 filters */}
+      <div>
+        <label className={lbl}>Time of day</label>
+        <select className={inp} value={filters.timeOfDay} onChange={e => onChange({ timeOfDay: e.target.value })}>
+          {TIME_OF_DAY_FILTERS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+      {isWorker && (
+        <div>
+          <label className={lbl}>Distance from you</label>
+          <select className={inp} value={filters.maxDistanceKm} onChange={e => onChange({ maxDistanceKm: e.target.value })}>
+            <option value="">Any distance</option>
+            {["5", "10", "15", "25", "50"].map(k => <option key={k} value={k}>Within {k} km</option>)}
+          </select>
+        </div>
+      )}
+      <div>
+        <label className={lbl}>Duration</label>
+        <select className={inp} value={filters.duration} onChange={e => onChange({ duration: e.target.value })}>
+          <option value="">Any duration</option>
+          <option value="SHORT">Up to 2 hours</option>
+          <option value="MEDIUM">2 to 6 hours</option>
+          <option value="LONG">Over 6 hours</option>
+        </select>
+      </div>
+      <div>
+        <label className={lbl}>Minimum hourly rate ($)</label>
+        <input type="number" min={0} className={inp} placeholder="e.g. 45" value={filters.minRate} onChange={e => onChange({ minRate: e.target.value })} />
+      </div>
+      <div>
+        <label className={lbl}>Age group</label>
+        <select className={inp} value={filters.ageGroup} onChange={e => onChange({ ageGroup: e.target.value })}>
+          <option value="">Any age group</option>
+          {["Child", "Teen", "Adult", "Older adult"].map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className={lbl}>Worker preference</label>
+        <select className={inp} value={filters.workerPreference} onChange={e => onChange({ workerPreference: e.target.value })}>
+          <option value="">Any</option>
+          <option value="ANY">No gender requirement</option>
+          <option value="FEMALE">Female worker requested</option>
+          <option value="MALE">Male worker requested</option>
+          <option value="NON_BINARY">Non-binary worker requested</option>
+        </select>
+      </div>
+      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+        <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={filters.qualification} onChange={e => onChange({ qualification: e.target.checked })} />
+        Qualification or training required
+      </label>
+      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+        <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={filters.participantTransport} onChange={e => onChange({ participantTransport: e.target.checked })} />
+        Transport of the participant required
+      </label>
 
       {/* Category */}
       <div>
@@ -205,15 +271,6 @@ function FilterSidebar({
             </select>
           </div>
           <div>
-            <label className={lbl}>Duration</label>
-            <select className={inp} value={filters.duration} onChange={e => onChange({ duration: e.target.value })}>
-              <option value="">Any duration</option>
-              <option value="SHORT">Up to 2 hours</option>
-              <option value="MEDIUM">2 to 6 hours</option>
-              <option value="LONG">Over 6 hours</option>
-            </select>
-          </div>
-          <div>
             <label className={lbl}>Response deadline</label>
             <select className={inp} value={filters.deadline} onChange={e => onChange({ deadline: e.target.value })}>
               <option value="">Any time</option>
@@ -268,7 +325,15 @@ export default function JobsBrowsePage() {
     setLoading(true);
     const params = new URLSearchParams({ status: "OPEN", page: String(p), limit: "20" });
     if (saved)         params.set("savedOnly", "true");
-    if (f.suburb)      params.set("suburb", f.suburb);
+    if (f.suburb)      params.set("search", f.suburb);
+    if (f.duration)    params.set("duration", f.duration);
+    if (f.minRate)     params.set("minRate", f.minRate);
+    if (f.maxDistanceKm) params.set("maxDistanceKm", f.maxDistanceKm);
+    if (f.timeOfDay)   params.set("timeOfDay", f.timeOfDay);
+    if (f.participantTransport) params.set("participantTransport", "true");
+    if (f.ageGroup)    params.set("ageGroup", f.ageGroup);
+    if (f.workerPreference) params.set("workerPreference", f.workerPreference);
+    if (f.qualification) params.set("qualification", "true");
     if (f.category)    params.set("category", f.category);
     if (f.urgency)     params.set("urgency", f.urgency);
     if (f.isRecurring !== "") params.set("isRecurring", f.isRecurring);
@@ -287,14 +352,7 @@ export default function JobsBrowsePage() {
         // workerType / experienceLevel aren't backend-filterable (live in a JSON blob) — filtered client-side only.
         if (f.workerType)      result = result.filter(j => j.workerPreferences?.workerType === f.workerType);
         if (f.experienceLevel) result = result.filter(j => j.workerPreferences?.experienceLevel === f.experienceLevel);
-        // Duration and response deadline are derived from schedule/deadline timestamps, so they filter client-side.
-        if (f.duration) {
-          result = result.filter(j => {
-            if (!j.scheduledEndAt) return false;
-            const hrs = (new Date(j.scheduledEndAt).getTime() - new Date(j.scheduledStartAt).getTime()) / 3_600_000;
-            return f.duration === "SHORT" ? hrs <= 2 : f.duration === "MEDIUM" ? hrs > 2 && hrs <= 6 : hrs > 6;
-          });
-        }
+        // Response deadline is derived from the deadline timestamp, so it filters client-side.
         if (f.deadline) {
           const limit = Date.now() + parseInt(f.deadline) * 3_600_000;
           result = result.filter(j => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() <= limit);
@@ -363,7 +421,7 @@ export default function JobsBrowsePage() {
   return (
     <>
       <PageHeader
-        title={activeRole === "SUPPORT_WORKER" ? "Find Shifts" : activeRole === "PROVIDER" ? "Find Support Opportunities" : "Browse Jobs"}
+        title={activeRole === "SUPPORT_WORKER" ? "Find Work" : activeRole === "PROVIDER" ? "Find Support Opportunities" : "Browse Jobs"}
         description={`${total} open support request${total !== 1 ? "s" : ""}`}
         actions={
           <div className="flex gap-2">
@@ -402,7 +460,7 @@ export default function JobsBrowsePage() {
             <div className="sticky top-6">
               <Card>
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar isProvider={activeRole === "PROVIDER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                  <FilterSidebar isProvider={activeRole === "PROVIDER"} isWorker={activeRole === "SUPPORT_WORKER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
                     onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>
@@ -418,7 +476,7 @@ export default function JobsBrowsePage() {
             {showFilters && (
               <Card className="mb-4 lg:hidden">
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar isProvider={activeRole === "PROVIDER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                  <FilterSidebar isProvider={activeRole === "PROVIDER"} isWorker={activeRole === "SUPPORT_WORKER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
                     onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>

@@ -19,6 +19,8 @@ import {
   SlidersHorizontal, FileText, Briefcase, CalendarClock,
 } from "lucide-react";
 
+const GOAL_KEY = "shiftify_worker_goal";
+
 interface ExpiringDoc {
   id: string;
   docType: string;
@@ -179,26 +181,91 @@ function IndependentWorkerDashboard() {
     .slice(0, 5);
   const unread = data?.stats?.unreadMessages ?? 0;
 
+  const [goal, setGoal] = useState<{ title: string; href: string } | null>(null);
+  useEffect(() => {
+    try { const raw = localStorage.getItem(GOAL_KEY); if (raw) setGoal(JSON.parse(raw)); } catch { /* ignore */ }
+  }, []);
+  const [pendingInvites, setPendingInvites] = useState<number | null>(null);
+  useEffect(() => {
+    api.get<{ invites: { status: string }[] }>("/job-invites")
+      .then((r) => setPendingInvites((r.invites ?? []).filter((i) => i.status === "PENDING").length))
+      .catch(() => setPendingInvites(0));
+  }, []);
+
+  // Window 15 summary + needs-attention come from data the page already has.
+  const apps = data?.allApplications ?? [];
+  const awaiting = apps.filter((a) => a.status === "SELECTED" && a.job.status !== "CANCELLED" && !(a.job as { workerConfirmedAt?: string | null }).workerConfirmedAt && !["COMPLETED", "CONFIRMED", "IN_PROGRESS"].includes(a.job.status));
+  const cancelled = apps.filter((a) => a.status === "SELECTED" && a.job.status === "CANCELLED");
+  const weekAgo = Date.now() - 7 * 86400000;
+  const newConnections = apps.filter((a) => ["INTERESTED", "SHORTLISTED"].includes(a.status) && a.createdAt && new Date(a.createdAt).getTime() >= weekAgo);
+  const expiringSoon = expiring.filter((d) => Math.ceil((new Date(d.expiryDate!).getTime() - Date.now()) / 86400000) <= 30);
+  const nextSupport = data?.upcomingShifts?.[0];
+  const matchedByUrgency = (u: string) => (data?.matchedJobs ?? []).filter((j) => j.urgency === u);
+
+  const summary: { label: string; value: number | string; href: string }[] = [
+    { label: "New matches",           value: loading ? "—" : (data?.stats?.matchedJobs ?? data?.matchedJobs?.length ?? 0), href: "/jobs" },
+    { label: "New connections",       value: loading ? "—" : newConnections.length, href: "/connections/my" },
+    { label: "Awaiting confirmation", value: loading ? "—" : awaiting.length,       href: "/connections/my" },
+    { label: "Confirmed support",     value: loading ? "—" : (data?.stats?.upcomingShifts ?? data?.upcomingShifts?.length ?? 0), href: "/my-support" },
+    { label: "Unread messages",       value: unread,                                 href: "/messages" },
+  ];
+
+  const attention: { key: string; text: string; href: string; cta: string }[] = [
+    ...(pendingInvites ? [{ key: "inv", text: `${pendingInvites} direct invitation${pendingInvites === 1 ? "" : "s"} waiting for your reply`, href: "/job-invites", cta: "View invitations" }] : []),
+    ...newConnections.slice(0, 3).map((a) => ({ key: `nc-${a.applicationId}`, text: `New connection: ${a.job.title}`, href: `/jobs/${a.job.id}`, cta: "View" })),
+    ...awaiting.slice(0, 3).map((a) => ({ key: `aw-${a.applicationId}`, text: `Confirm support: ${a.job.title}`, href: `/jobs/${a.job.id}`, cta: "Review and confirm" })),
+    ...cancelled.slice(0, 3).map((a) => ({ key: `ca-${a.applicationId}`, text: `Request cancelled: ${a.job.title}`, href: `/jobs/${a.job.id}`, cta: "View" })),
+    ...expiringSoon.slice(0, 3).map((d) => ({ key: `doc-${d.id}`, text: `${d.docType.replaceAll("_", " ")} ${new Date(d.expiryDate!).getTime() < Date.now() ? "has expired" : "expires soon"}`, href: "/profile/build?step=9", cta: "Update document" })),
+  ];
+
+  const URGENCY_TABS: { key: string; label: string; value: string }[] = [
+    { key: "rapid", label: "Rapid", value: "RAPID" }, { key: "urgent", label: "Urgent", value: "URGENT" },
+    { key: "last", label: "Last-Minute", value: "LAST_MINUTE" }, { key: "routine", label: "Routine", value: "ROUTINE" },
+  ];
+
   const tiles: ActionTile[] = [
-    { key: "browse",   icon: Search,       title: "Browse Jobs",       subtitle: "Find shifts near you",     ctaLabel: "Browse Jobs",       href: "/jobs", highlighted: true },
-    { key: "availability", icon: CalendarDays, title: "Post Availability", subtitle: "Let providers find you", ctaLabel: "Post Availability", href: "/availability" },
+    { key: "browse",   icon: Search,       title: "Browse requests",     subtitle: "Rapid, Urgent, Last-Minute and Routine near you", ctaLabel: "Browse requests", href: "/jobs", highlighted: true },
+    { key: "availability", icon: CalendarDays, title: "Update availability", subtitle: "Let requesters see when you are free", ctaLabel: "Update availability", href: "/availability" },
   ];
 
   const quickActions: QuickAction[] = [
     { key: "update-availability", icon: CalendarClock,     label: "Update availability",  href: "/availability" },
     { key: "applications",        icon: ClipboardList,     label: "My connections",       href: "/connections/my" },
     { key: "messages",            icon: MessageSquare,     label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
-    { key: "profile",             icon: SlidersHorizontal, label: "Update profile",       href: "/profile/edit" },
-    { key: "documents",           icon: FileText,          label: "Documents",            href: "/documents" },
+    { key: "profile",             icon: SlidersHorizontal, label: "Update profile",       href: "/profile/build" },
+    { key: "documents",           icon: FileText,          label: "Documents",            href: "/profile/build?step=9" },
+    { key: "live",                icon: Search,            label: "Live Dashboard",       href: "/live-dashboard" },
+    { key: "my-jobs",             icon: Briefcase,         label: "My Jobs",              href: "/jobs/my" },
+    { key: "earnings",            icon: FileText,          label: "Earnings and payment status", href: "/earnings" },
+    { key: "invoices",            icon: FileText,          label: "Invoices",             href: "/invoices" },
   ];
 
   return (
     <div className="container-page space-y-6 py-8">
       <DashboardHeader
         name={(user.name || (user as any).username || "there").split(" ")[0]}
-        description="Your upcoming shifts and nearby opportunities."
+        description="Today's work and your immediate availability."
       />
       <SetupBanner />
+
+      {goal && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm">
+          <span className="text-slate-700">You chose to start with: <strong>{goal.title}</strong>.</span>
+          <span className="flex gap-3">
+            <a href={goal.href} className="font-semibold underline">Continue</a>
+            <button type="button" className="text-slate-500 underline" onClick={() => { try { localStorage.removeItem(GOAL_KEY); } catch { /* ignore */ } setGoal(null); }}>Dismiss</button>
+          </span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5" aria-label="Summary">
+        {summary.map((s) => (
+          <a key={s.label} href={s.href} className="rounded-xl border border-slate-200 bg-white px-3 py-3 no-underline hover:bg-slate-50">
+            <p className="m-0 text-xl font-bold text-slate-900">{s.value}</p>
+            <p className="m-0 mt-0.5 text-xs text-slate-500">{s.label}</p>
+          </a>
+        ))}
+      </div>
 
       <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-2.5 text-sm text-emerald-800 font-medium">
         💰 0% commission — you keep 100% of every rate you agree with a requester.
@@ -211,53 +278,55 @@ function IndependentWorkerDashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ── Main column ── */}
         <div className="space-y-6 lg:col-span-2">
-          <ActionTilesCard title="Find your next shift" tiles={tiles} />
+          <ActionTilesCard title="Find your next request" tiles={tiles} />
+
+          <Card>
+            <CardHeader><CardTitle>Needs attention</CardTitle></CardHeader>
+            <CardContent className="py-2">
+              {loading && pendingInvites === null ? (
+                <p className="py-4 text-sm text-slate-400">Loading…</p>
+              ) : !attention.length ? (
+                <p className="py-4 text-sm text-slate-500">Nothing needs your attention right now.</p>
+              ) : (
+                attention.map((x) => (
+                  <DashboardListRow key={x.key} icon={<ClipboardList className="h-5 w-5" />} title={x.text} href={x.href} rightLabel={x.cta} />
+                ))
+              )}
+            </CardContent>
+          </Card>
 
           <DashboardTabCard
-            title="My shifts & jobs"
-            tabs={[
-              {
-                key: "upcoming", label: "Upcoming Shifts", count: loading ? undefined : (data?.stats?.upcomingShifts ?? data?.upcomingShifts?.length ?? 0),
+            title="Opportunities for you"
+            tabs={URGENCY_TABS.map((t) => {
+              const list = matchedByUrgency(t.value);
+              return {
+                key: t.key, label: t.label, count: loading ? undefined : list.length,
                 content: loading
                   ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.upcomingShifts?.length
-                    ? <p className="py-4 text-sm text-slate-500">No upcoming shifts.</p>
-                    : data.upcomingShifts.map((s) => (
-                      <DashboardListRow key={s.id} icon={<CalendarClock className="h-5 w-5" />} title={s.title}
-                        subtitle={new Date(s.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
-                        href={`/jobs/${s.id}`} rightLabel="View" />
-                    )),
-              },
-              {
-                key: "matched", label: "Matched Jobs", count: loading ? undefined : (data?.stats?.matchedJobs ?? data?.matchedJobs?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.matchedJobs?.length
-                    ? <p className="py-4 text-sm text-slate-500">No matching jobs right now.</p>
-                    : data.matchedJobs.slice(0, 5).map((j) => (
+                  : !list.length
+                    ? <p className="py-4 text-sm text-slate-500">No {t.label} requests match you right now. <a href={`/jobs?urgency=${t.value}`} className="underline">Browse all {t.label} requests</a>.</p>
+                    : list.slice(0, 5).map((j) => (
                       <DashboardListRow key={j.id} icon={<Briefcase className="h-5 w-5" />} title={j.title} subtitle={j.suburb}
-                        href={`/jobs/${j.id}`} rightLabel="View"
-                        badge={
-                          <span className={`rounded-full px-2 py-0.5 text-xs ${
-                            j.urgency === "RAPID" ? "bg-red-100 text-red-700"
-                            : j.urgency === "URGENT" ? "bg-orange-100 text-orange-700"
-                            : "bg-slate-100 text-slate-500"
-                          }`}>{({ RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" } as Record<string, string>)[j.urgency] ?? j.urgency}</span>
-                        } />
+                        href={`/jobs/${j.id}`} rightLabel="View" />
                     )),
-              },
-              {
-                key: "pending", label: "Pending Connections", count: loading ? undefined : (data?.pendingApplications?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.pendingApplications?.length
-                    ? <p className="py-4 text-sm text-slate-500">No pending connections.</p>
-                    : data.pendingApplications.map((a) => (
-                      <DashboardListRow key={a.applicationId} icon={<ClipboardList className="h-5 w-5" />} title={a.job.title} subtitle={a.job.suburb} href={`/jobs/${a.job.id}`} rightLabel="View" />
-                    )),
-              },
-            ]}
+              };
+            })}
           />
+
+          <Card>
+            <CardHeader><CardTitle>Next confirmed support</CardTitle></CardHeader>
+            <CardContent className="py-2">
+              {loading ? (
+                <p className="py-4 text-sm text-slate-400">Loading…</p>
+              ) : !nextSupport ? (
+                <p className="py-4 text-sm text-slate-500">No confirmed support coming up. Confirmed support appears here once a request is confirmed.</p>
+              ) : (
+                <DashboardListRow icon={<CalendarClock className="h-5 w-5" />} title={nextSupport.title}
+                  subtitle={`${new Date(nextSupport.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })} · ${nextSupport.suburb || "Area on the request"}`}
+                  href="/my-support" rightLabel="Open" />
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Card>

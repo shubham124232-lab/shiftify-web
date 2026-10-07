@@ -12,10 +12,10 @@ import { UserRole } from "@/lib/types";
 import { inp } from "@/components/jobs/post/shared";
 import { RepeatSupportModal } from "@/components/jobs/RepeatSupportModal";
 
-interface ManagedParticipant { id: string; name: string; email: string | null; phone: string | null; ndisNumber?: string; }
+interface ManagedParticipant { id: string; name: string; email: string | null; phone: string | null; ndisNumber?: string; suburb?: string | null; state?: string | null; }
 interface Connection {
-  id: string; status: string; canPostRequests: boolean;
-  participant: { id: string; name: string };
+  id: string; status: string; canPostRequests: boolean; initiatedBy?: string;
+  participant: { id: string; name: string; defaultSuburb?: string | null; defaultState?: string | null };
 }
 interface JobSummary {
   id: string; status: string; urgency: string; forParticipantUserId?: string | null;
@@ -25,7 +25,7 @@ interface JobSummary {
 interface PortfolioEntry {
   id: string; name: string; email: string | null; phone: string | null;
   source: "MANAGED" | "CONNECTION";
-  connectionStatus?: string; canPostRequests?: boolean;
+  connectionStatus?: string; canPostRequests?: boolean; suburb?: string | null; state?: string | null;
   activeCount: number; unfilledCount: number; newResponseCount: number; lastActivity: string | null;
   mostRecentJobId: string | null;
 }
@@ -42,6 +42,8 @@ export default function ParticipantsPage() {
   const [repeatJobId, setRepeatJobId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "NEW_RESPONSES" | "UNFILLED">("ALL");
+  // SC-PT01 — connection status filter (Connected / Managed / Awaiting approval).
+  const [connFilter, setConnFilter] = useState<"ANY" | "CONNECTED" | "MANAGED" | "PENDING">("ANY");
 
   function load() {
     setLoading(true);
@@ -73,15 +75,15 @@ export default function ParticipantsPage() {
 
 
   const portfolio: PortfolioEntry[] = useMemo(() => {
-    const acceptedConnections = connections.filter((c) => c.status === "ACCEPTED");
+    const acceptedConnections = connections.filter((c) => c.status === "ACCEPTED" || c.status === "PENDING");
     const entries: PortfolioEntry[] = [
       ...managed.map((p) => ({
-        id: p.id, name: p.name, email: p.email, phone: p.phone, source: "MANAGED" as const,
+        id: p.id, name: p.name, email: p.email, phone: p.phone, source: "MANAGED" as const, suburb: p.suburb, state: p.state,
         activeCount: 0, unfilledCount: 0, newResponseCount: 0, lastActivity: null as string | null, mostRecentJobId: null as string | null,
       })),
       ...acceptedConnections.map((c) => ({
         id: c.participant.id, name: c.participant.name, email: null, phone: null, source: "CONNECTION" as const,
-        connectionStatus: c.status, canPostRequests: c.canPostRequests,
+        connectionStatus: c.status, canPostRequests: c.canPostRequests, suburb: c.participant.defaultSuburb, state: c.participant.defaultState,
         activeCount: 0, unfilledCount: 0, newResponseCount: 0, lastActivity: null as string | null, mostRecentJobId: null as string | null,
       })),
     ];
@@ -98,7 +100,11 @@ export default function ParticipantsPage() {
   }, [managed, connections, jobs]);
 
   const filtered = portfolio.filter((p) => {
-    if (search.trim() && !p.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
+    const q = search.trim().toLowerCase();
+    if (q && !p.name.toLowerCase().includes(q) && !(p.suburb ?? "").toLowerCase().includes(q)) return false;
+    if (connFilter === "CONNECTED" && !(p.source === "CONNECTION" && p.connectionStatus === "ACCEPTED")) return false;
+    if (connFilter === "MANAGED" && p.source !== "MANAGED") return false;
+    if (connFilter === "PENDING" && p.connectionStatus !== "PENDING") return false;
     if (statusFilter === "ACTIVE" && p.activeCount === 0) return false;
     if (statusFilter === "NEW_RESPONSES" && p.newResponseCount === 0) return false;
     if (statusFilter === "UNFILLED" && p.unfilledCount === 0) return false;
@@ -127,6 +133,16 @@ export default function ParticipantsPage() {
 
         {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-sm text-red-700">{error}</div>}
 
+        {/* SC-B03 — participant enquiries (connection requests started by the participant). */}
+        {connections.filter((c) => c.status === "PENDING" && c.initiatedBy === "PARTICIPANT").length > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="m-0 text-sm text-amber-800">
+              <strong>{connections.filter((c) => c.status === "PENDING" && c.initiatedBy === "PARTICIPANT").length}</strong> participant {connections.filter((c) => c.status === "PENDING" && c.initiatedBy === "PARTICIPANT").length === 1 ? "enquiry is" : "enquiries are"} waiting for your response.
+            </p>
+            <Link href="/coordinator-connections"><Button size="sm">View enquiry</Button></Link>
+          </div>
+        )}
+
         <div className="flex gap-3 flex-wrap items-center">
           <input className={`${inp} max-w-xs`} placeholder="Search by name or suburb" value={search} onChange={(e) => setSearch(e.target.value)} />
           <div className="flex gap-2">
@@ -140,6 +156,12 @@ export default function ParticipantsPage() {
               </button>
             ))}
           </div>
+          <select className={`${inp} max-w-[11rem]`} value={connFilter} onChange={(e) => setConnFilter(e.target.value as typeof connFilter)} aria-label="Connection status">
+            <option value="ANY">Any connection</option>
+            <option value="CONNECTED">Connected</option>
+            <option value="MANAGED">Managed account</option>
+            <option value="PENDING">Awaiting approval</option>
+          </select>
         </div>
 
         <Card>
@@ -164,14 +186,14 @@ export default function ParticipantsPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-semibold text-slate-800">{p.name}</span>
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.source === "MANAGED" ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
-                              {p.source === "MANAGED" ? "Managed account" : "Connected"}
+                              {p.source === "MANAGED" ? "Managed account" : p.connectionStatus === "PENDING" ? "Awaiting participant approval" : "Connected"}
                             </span>
                             {p.source === "CONNECTION" && p.canPostRequests === false && (
                               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Posting not authorised</span>
                             )}
                           </div>
                           <div className="text-xs text-slate-400">
-                            {p.email ?? p.phone ?? "No contact"}
+                            {p.suburb ? `${p.suburb}${p.state ? `, ${p.state}` : ""}` : (p.email ?? p.phone ?? "No location")}
                             {p.lastActivity && <span> · Last activity {new Date(p.lastActivity).toLocaleDateString("en-AU")}</span>}
                           </div>
                         </div>

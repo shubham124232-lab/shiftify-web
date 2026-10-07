@@ -87,11 +87,22 @@ export interface CoordinatorDashboardStats {
   upcomingShifts: number;
   awaitingConfirmation: number;
   managedParticipants: number;
+  connectedParticipants?: number;
+  newResponses?: number;
+  confirmedSupport?: number;
   unreadMessages: number;
+}
+
+export interface CoordinatorRecentResponse {
+  id: string; jobId: string; jobTitle: string; status: string;
+  proposedRate: number | null; message: string | null; createdAt: string;
+  applicant: { id: string; name: string; avatarUrl: string | null };
+  applicantType: "Provider" | "Support worker";
 }
 
 export interface CoordinatorDashboard {
   stats?: CoordinatorDashboardStats;
+  recentResponses?: CoordinatorRecentResponse[];
   openJobs: JobSummary[];
   upcomingShifts: ShiftSummary[];
   awaitingConfirmation: ShiftSummary[];

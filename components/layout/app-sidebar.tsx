@@ -61,7 +61,7 @@ function navForRole(role: string, managed = false): RoleNav {
           main: [
             dash,
             { href: "/job-invites",  label: "Invitations",      icon: Bell },
-            { href: "/my-support",   label: "Upcoming Support", icon: Calendar },
+            { href: "/my-support",   label: "My Support",       icon: Briefcase },
             { href: "/availability", label: "Availability",     icon: Calendar },
             { href: "/messages",     label: "Messages",         icon: MessageSquare },
             { href: "/help-safety",  label: "Help & Safety",    icon: ShieldCheck },
@@ -72,20 +72,17 @@ function navForRole(role: string, managed = false): RoleNav {
       return {
         main: [
           dash,
-          { href: "/jobs",            label: "Find Shifts",         icon: Search },
+          // SW Journey §4 navigation — exactly these ten items. Live Dashboard, My Jobs and Invoices
+          // are reached from the dashboard quick actions instead of the menu.
+          { href: "/jobs",            label: "Find Work",           icon: Search },
           { href: "/job-invites",     label: "Invitations",         icon: Bell },
           { href: "/connections/my",  label: "My Connections",      icon: Link2 },
-          { href: "/my-support",      label: "Upcoming Support",    icon: Calendar },
           { href: "/availability",    label: "Availability",        icon: Calendar },
+          { href: "/my-support",      label: "My Support",          icon: Briefcase },
           { href: "/messages",        label: "Messages",            icon: MessageSquare },
-          { href: "/profile",         label: "My Profile",          icon: User },
-          { href: "/documents",       label: "Documents",           icon: FileText },
-          { href: "/subscription",    label: "Power Ups & Billing", icon: CreditCard },
+          { href: "/profile",         label: "Profile & Documents", icon: User },
+          { href: "/subscription",    label: "Membership",          icon: CreditCard },
           { href: "/help-safety",     label: "Help & Safety",       icon: ShieldCheck },
-          // Not in the SW v3.0 menu — left as-is pending a product decision.
-          { href: "/live-dashboard",  label: "Live Dashboard",      icon: Search },
-          { href: "/jobs/my",         label: "My Jobs",             icon: Briefcase },
-          { href: "/invoices",        label: "Invoices",            icon: Receipt },
         ],
         account: [NOTIFICATIONS],
       };
@@ -121,12 +118,7 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/profile",              label: "My Profile",                icon: User },
           { href: "/subscription",         label: "Subscription",              icon: CreditCard },
           { href: "/help-safety",          label: "Help",                      icon: ShieldCheck },
-          // Not in the SC menu — left as-is pending a product decision.
-          { href: "/coordinator-connections", label: "Connections",            icon: Link2 },
-          { href: "/jobs?urgent=1",        label: "Urgent Requests",           icon: BarChart2 },
-          { href: "/live-dashboard",       label: "Live Dashboard",            icon: Search },
-          { href: "/workers/available",    label: "Browse Workers",            icon: Search },
-          { href: "/invoices",             label: "Invoices",                  icon: Receipt },
+          // Required documents are a submission gate for Coordinators, so Documents stays reachable.
           { href: "/documents",            label: "Documents",                 icon: FileText },
         ],
         account: [NOTIFICATIONS],

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/dashboard/empty-state";
@@ -19,6 +20,8 @@ interface Thread {
   id: string;
   title: string;
   status?: string;
+  postedByRoleLabel?: string;
+  counterpartRoleLabels?: string[];
   lastMessage: Message | null;
   unreadCount: number;
   archived: boolean;
@@ -35,11 +38,16 @@ interface DirectInquiry {
   sender: { id: string; name: string; avatarUrl: string | null };
 }
 
+// SW doc Window 28 — Unread / who is on the other side / Request / Confirmed support.
 const STATUS_FILTERS = [
   { value: "", label: "All" },
-  { value: "OPEN", label: "Open" },
-  { value: "ASSIGNED", label: "Assigned" },
-  { value: "IN_PROGRESS", label: "In progress" },
+  { value: "UNREAD", label: "Unread" },
+  { value: "ROLE:Participant", label: "Participant" },
+  { value: "ROLE:Support Coordinator", label: "Coordinator" },
+  { value: "ROLE:Provider", label: "Provider" },
+  { value: "ROLE:Support worker", label: "Support worker" },
+  { value: "OPEN", label: "Request" },
+  { value: "CONFIRMED", label: "Confirmed support" },
   { value: "COMPLETED", label: "Completed" },
   { value: "CANCELLED", label: "Cancelled" },
 ] as const;
@@ -47,6 +55,7 @@ const STATUS_FILTERS = [
 type View = "threads" | "inquiries";
 
 export default function MessagesPage() {
+  const { activeRole } = useAuth();
   const [view, setView] = useState<View>("threads");
 
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -112,7 +121,10 @@ export default function MessagesPage() {
 
   const visible = showArchived ? threads : threads.filter(t => !t.archived);
   const filtered = visible.filter((thread) => {
-    if (statusFilter && thread.status !== statusFilter) return false;
+    if (statusFilter === "UNREAD" && thread.unreadCount === 0) return false;
+    else if (statusFilter.startsWith("ROLE:") && !(thread.counterpartRoleLabels?.length ? thread.counterpartRoleLabels.includes(statusFilter.slice(5)) : thread.postedByRoleLabel === statusFilter.slice(5))) return false;
+    else if (statusFilter === "CONFIRMED" && !["ASSIGNED", "IN_PROGRESS"].includes(thread.status ?? "")) return false;
+    else if (["OPEN", "COMPLETED", "CANCELLED"].includes(statusFilter) && thread.status !== statusFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       const inTitle = thread.title.toLowerCase().includes(q);
@@ -141,6 +153,7 @@ export default function MessagesPage() {
             }`}>
             Direct messages{unreadInquiries > 0 ? ` (${unreadInquiries})` : ""}
           </button>
+          <Link href="/jobs" className="ml-auto h-9 px-3 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 inline-flex items-center" title="Open a request and use Ask a question, or message one of your connections">New message</Link>
         </div>
 
         {view === "inquiries" ? (
@@ -201,6 +214,8 @@ export default function MessagesPage() {
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
+        <p className="mb-3 mt-0 text-xs text-slate-500">Please do not send unnecessary sensitive information in messages — share only what is needed to arrange the support.</p>
+
         <div className="flex gap-1.5 mb-4">
           <button type="button" onClick={() => setShowArchived(false)}
             className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
@@ -225,7 +240,7 @@ export default function MessagesPage() {
               className="h-9 px-3 border border-slate-200 rounded-lg text-sm flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-brand-400"
             />
             <div className="flex gap-1.5 flex-wrap">
-              {STATUS_FILTERS.map(f => (
+              {STATUS_FILTERS.filter(f => (activeRole === "COORDINATOR" ? f.value !== "ROLE:Support Coordinator" : f.value !== "ROLE:Support worker")).map(f => (
                 <button key={f.value} type="button" onClick={() => setStatusFilter(f.value)}
                   className={`h-9 px-3 rounded-lg border text-xs font-semibold transition-colors ${
                     statusFilter === f.value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -276,6 +291,7 @@ export default function MessagesPage() {
                         </span>
                       )}
                     </div>
+                    {(thread.counterpartRoleLabels?.[0] ?? thread.postedByRoleLabel) && <p className="text-[11px] text-slate-400 m-0">{thread.counterpartRoleLabels?.[0] ?? thread.postedByRoleLabel} · {thread.status ? thread.status.replace("_", " ").toLowerCase() : "request"}</p>}
                     <p className="text-xs text-slate-500 truncate mt-0.5">
                       {thread.lastMessage ? `${thread.lastMessage.senderName}: ${thread.lastMessage.body}` : "No messages yet"}
                     </p>

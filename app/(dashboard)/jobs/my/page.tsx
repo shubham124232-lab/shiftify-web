@@ -68,6 +68,8 @@ export default function MyJobsPage() {
   const [filter,  setFilter]  = useState("");
   const [tierFilter, setTierFilter] = useState("");
   const [responseFilter, setResponseFilter] = useState<"" | "NEW_RESPONSES" | "UNFILLED">("");
+  // SC-M01 — one "Which requests would you like to see?" row for Coordinators.
+  const [scView, setScView] = useState("ALL");
 
   function load() {
     setLoading(true);
@@ -82,10 +84,24 @@ export default function MyJobsPage() {
   const canPost = ["PARTICIPANT", "COORDINATOR", "PROVIDER"].includes(activeRole ?? "");
   const isProvider = activeRole === "PROVIDER";
   const isWorker   = activeRole === "SUPPORT_WORKER";
+  const scMatch = (j: Job): boolean => {
+    switch (scView) {
+      case "RAPID": case "URGENT": case "LAST_MINUTE": case "ROUTINE": return j.urgency === scView;
+      case "NEW_RESPONSES": return j.status === "OPEN" && (j._count?.applications ?? 0) > 0;
+      case "SHORTLISTED": return (j as Job & { shortlistedCount?: number }).shortlistedCount ? (j as Job & { shortlistedCount?: number }).shortlistedCount! > 0 : false;
+      case "CONFIRMED": return j.status === "CONFIRMED" || j.status === "ASSIGNED" || j.status === "IN_PROGRESS";
+      case "UNFILLED": return j.status === "OPEN" && (j._count?.applications ?? 0) === 0;
+      case "COMPLETED": return j.status === "COMPLETED";
+      case "CANCELLED": return j.status === "CANCELLED";
+      default: return true;
+    }
+  };
   const shown = jobs
-    .filter(j => !filter || j.status === filter)
-    .filter(j => !tierFilter || j.urgency === tierFilter)
+    .filter(j => (activeRole === "COORDINATOR" ? scMatch(j) : true))
+    .filter(j => activeRole === "COORDINATOR" || !filter || j.status === filter)
+    .filter(j => activeRole === "COORDINATOR" || !tierFilter || j.urgency === tierFilter)
     .filter(j => {
+      if (activeRole === "COORDINATOR") return true;
       if (responseFilter === "NEW_RESPONSES") return j.status === "OPEN" && (j._count?.applications ?? 0) > 0;
       if (responseFilter === "UNFILLED") return j.status === "OPEN" && (j._count?.applications ?? 0) === 0;
       return true;
@@ -111,8 +127,23 @@ export default function MyJobsPage() {
       />
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "24px 20px" }}>
 
+        {activeRole === "COORDINATOR" && (
+          <div className="flex gap-2 flex-wrap mb-5" aria-label="Which requests would you like to see?">
+            {([
+              ["ALL", "All"], ["RAPID", "Rapid"], ["URGENT", "Urgent"], ["LAST_MINUTE", "Last-Minute"], ["ROUTINE", "Routine"],
+              ["NEW_RESPONSES", "New responses"], ["SHORTLISTED", "Shortlisted"], ["CONFIRMED", "Confirmed"],
+              ["UNFILLED", "Unfilled"], ["COMPLETED", "Completed"], ["CANCELLED", "Cancelled"],
+            ] as const).map(([v, l]) => (
+              <button key={v} type="button" onClick={() => setScView(v)}
+                className={`h-8 px-3 rounded-full border text-xs font-semibold transition-colors ${scView === v ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Status filter pills */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+        <div style={{ display: activeRole === "COORDINATOR" ? "none" : "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
           {(canPost
             ? ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED", "CANCELLED", "DRAFT"]
             : ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED", "CANCELLED"]
@@ -134,7 +165,7 @@ export default function MyJobsPage() {
         </div>
 
         {/* Tier filter pills */}
-        <div className="flex gap-2 flex-wrap mb-3">
+        <div className={`${activeRole === "COORDINATOR" ? "hidden" : "flex"} gap-2 flex-wrap mb-3`}>
           {(["", "RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTierFilter(t)}
               className={`h-7 px-3 rounded-full border text-xs font-medium transition-colors ${tierFilter === t ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
@@ -144,7 +175,7 @@ export default function MyJobsPage() {
         </div>
 
         {/* Response-based filter pills */}
-        <div className="flex gap-2 flex-wrap mb-5">
+        <div className={`${activeRole === "COORDINATOR" ? "hidden" : "flex"} gap-2 flex-wrap mb-5`}>
           {([
             { v: "", l: "Any response status" },
             { v: "NEW_RESPONSES", l: "New responses" },

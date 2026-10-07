@@ -20,6 +20,8 @@ export interface PersonReceivingSupport {
   someoneElseName: string;
   someoneElsePhone: string;
   someoneElseAgeGroup: string;
+  // Participant doc C-02 / O-02 — how the person posting relates to the person receiving support.
+  someoneElseRelationship?: string;
   existingParticipantId: string;
   // Set by PersonStep when the selected participant is a *connection* (linked
   // via coordinator-connections, canPostRequests already true) rather than a

@@ -8,6 +8,9 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
+import { JOB_CATEGORIES } from "@/lib/constants/categories";
+
+const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
 
 interface JobInvite {
   id: string;
@@ -16,7 +19,11 @@ interface JobInvite {
   amountAud: number | string | null;
   createdAt: string;
   invitedBy: { id: string; name: string };
-  job: { id: string; title: string; status: string };
+  job: {
+    id: string; title: string; status: string; urgency?: string; category?: string; suburb?: string; state?: string;
+    scheduledStartAt?: string; totalHours?: number | string | null; budgetPerHour?: number | string | null;
+    isRecurring?: boolean; applicationDeadlineAt?: string | null;
+  };
 }
 
 function InviteCard({
@@ -38,8 +45,19 @@ function InviteCard({
         </Link>
         <span className="text-xs text-slate-400">{new Date(invite.createdAt).toLocaleDateString()}</span>
       </div>
+      {/* Window 19 — request type / service / area / date and time / duration / rate / deadline */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-2">
+        {invite.job.urgency && <span className="font-semibold text-slate-700">{URGENCY_LABEL[invite.job.urgency] ?? invite.job.urgency}</span>}
+        {invite.job.category && <span>{JOB_CATEGORIES.find(c => c.value === invite.job.category)?.label ?? invite.job.category}</span>}
+        {invite.job.suburb && <span>{invite.job.suburb}, {invite.job.state}</span>}
+        {invite.job.scheduledStartAt && <span>{new Date(invite.job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</span>}
+        {invite.job.totalHours ? <span>{Number(invite.job.totalHours)} h</span> : null}
+        <span>{invite.job.isRecurring ? "Recurring" : "One-time"}</span>
+        {invite.job.budgetPerHour ? <span className="font-semibold text-emerald-700">${Number(invite.job.budgetPerHour)}/hr</span> : null}
+        {invite.job.applicationDeadlineAt && <span>Respond by {new Date(invite.job.applicationDeadlineAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}</span>}
+      </div>
       <p className="text-sm text-slate-600 mb-3">
-        {invite.invitedBy.name} invited you to this request.
+        {invite.invitedBy.name} invited you to this request — they found your profile or availability.
         {paid && <span className="text-slate-500"> This is a Direct Connect — there is no charge to you and it does not use your free allowance.</span>}
       </p>
       {invite.message && (
@@ -53,8 +71,10 @@ function InviteCard({
       </label>
       <div className="flex gap-2">
         <Button size="sm" disabled={acting || !ack} onClick={() => onRespond(invite.id, "ACCEPT")}>
-          "Connect"
+          Connect
         </Button>
+        <Link href={`/jobs/${invite.job.id}`}><Button size="sm" variant="outline">View invitation</Button></Link>
+        <Link href={`/jobs/${invite.job.id}#job-messages`}><Button size="sm" variant="outline">Message</Button></Link>
         <Button size="sm" variant="ghost" disabled={acting} onClick={() => onRespond(invite.id, "DECLINE")}>
           Decline
         </Button>

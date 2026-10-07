@@ -7,6 +7,7 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
+import { ResumeDraftBanner } from "@/components/jobs/ResumeDraftBanner";
 import { Spinner } from "@/components/ui/spinner";
 import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
 import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
@@ -23,6 +24,8 @@ const PUBLIC_EXEMPT = ["/jobs/post"];
 // Areas that belong to specific roles (mirrors the "only available to …" notices on those pages).
 const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/connect-invites",         roles: ["SUPPORT_WORKER"] },
+  { prefix: "/earnings",                roles: ["SUPPORT_WORKER"] },
+  { prefix: "/connections/my",          roles: ["SUPPORT_WORKER", "PROVIDER"] }, // SW Window 27 — must match before the Plan Manager /connections area
   { prefix: "/connections",             roles: ["PLAN_MANAGER"] },
   { prefix: "/load-board",              roles: ["PLAN_MANAGER"] },
   { prefix: "/job-invites",             roles: ["SUPPORT_WORKER", "PROVIDER"] },
@@ -31,6 +34,11 @@ const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/team",                    roles: ["PROVIDER"] },
   { prefix: "/provider",                roles: ["PROVIDER"] },
 ];
+
+// A Provider Team Member (managed worker) sees only their own assignments — never the marketplace,
+// posting, worker search or subscription areas (Pricing V2 §4.4).
+const MANAGED_BLOCKED_EXACT = ["/jobs", "/live-dashboard", "/find", "/saved-professionals", "/subscription", "/referrals", "/invoices", "/workers/available"];
+const MANAGED_BLOCKED_PREFIX = ["/jobs/post", "/workers", "/coordinators", "/saved-searches", "/connect-invites"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();
@@ -79,6 +87,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const roleOnly = ROLE_ONLY_AREAS.find((a) => pathname === a.prefix || pathname.startsWith(a.prefix + "/"));
     const ownDashboard = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS];
     if (roleOnly && ownDashboard && !roleOnly.roles.includes(user.activeRole as string)) {
+      router.replace(ownDashboard);
+      return;
+    }
+
+    if (user.accountType === "MANAGED" && ownDashboard
+      && (MANAGED_BLOCKED_EXACT.includes(pathname) || MANAGED_BLOCKED_PREFIX.some((p) => pathname === p || pathname.startsWith(p + "/")))) {
       router.replace(ownDashboard);
       return;
     }
@@ -135,6 +149,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppTopbar />
         <StatusBanner />
+        <ResumeDraftBanner />
         <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
       </div>
     </div>

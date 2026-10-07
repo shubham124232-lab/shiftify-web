@@ -9,7 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
 import { getNotifications } from "@/lib/api/dashboard";
-import type { UserRole } from "@/lib/types";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/store/auth.store";
+import { UserRole } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
@@ -62,6 +64,26 @@ export function AppTopbar() {
   }
 
   const hasMultipleRoles = user.roles.length > 1;
+  // PR-MR01 — a Provider owner who also works personally can hold a Support Worker role on the same login.
+  const canAddWorker = user.roles.includes(UserRole.PROVIDER) && !user.roles.includes(UserRole.SUPPORT_WORKER);
+  async function addWorkerRole() {
+    try {
+      const res = await api.post<{ roles: UserRole[] }>("/auth/roles", { role: UserRole.SUPPORT_WORKER });
+      useAuthStore.setState({ user: { ...user!, roles: res.roles } });
+    } catch { /* already held or not allowed — the switcher simply stays as is */ }
+  }
+  const removableRole = user.activeRole === UserRole.PROVIDER && user.roles.includes(UserRole.SUPPORT_WORKER);
+  async function removeWorkerRole() {
+    if (!window.confirm("Remove the Support Worker role from this login? Your Provider access is not affected.")) return;
+    try {
+      const res = await api.del<{ roles: UserRole[] }>(`/auth/roles/${UserRole.SUPPORT_WORKER}`);
+      useAuthStore.setState({ user: { ...user!, roles: res.roles } });
+    } catch { /* not allowed right now */ }
+  }
+  const identityLine = (role: UserRole) =>
+    role === UserRole.PROVIDER ? "Acting as your Provider organisation — requests and responses show your organisation."
+    : role === UserRole.SUPPORT_WORKER ? "Acting as an individual Support Worker — Provider workforce tools are not available."
+    : `Acting as ${ROLE_LABELS[role]}.`;
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
@@ -152,6 +174,21 @@ export function AppTopbar() {
                       </button>
                     ))}
                   </div>
+                  <p className="mt-2 text-[11px] text-slate-500">{identityLine(user.activeRole)}</p>
+                </div>
+              )}
+              {removableRole && (
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <button type="button" onClick={() => void removeWorkerRole()} className="text-xs font-medium text-slate-500 hover:underline">
+                    Remove my Support Worker role
+                  </button>
+                </div>
+              )}
+              {canAddWorker && (
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <button type="button" onClick={() => void addWorkerRole()} className="text-xs font-medium text-brand-700 hover:underline">
+                    I also work personally — add a Support Worker role
+                  </button>
                 </div>
               )}
 

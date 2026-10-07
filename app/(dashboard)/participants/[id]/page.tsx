@@ -227,6 +227,18 @@ export default function ParticipantOverviewPage() {
               </CardContent>
             </Card>
 
+            {/* SC-PT03 — what the coordinator can manage for this participant. */}
+            <Card>
+              <CardHeader><CardTitle>Manage for {name}</CardTitle></CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                <Link href="/upcoming-support"><Button size="sm" variant="outline">Upcoming confirmed support</Button></Link>
+                <Link href="/jobs/my"><Button size="sm" variant="outline">Recent responses</Button></Link>
+                <Link href="/saved-professionals"><Button size="sm" variant="outline">Saved workers and providers</Button></Link>
+                <Link href="/messages"><Button size="sm" variant="outline">Messages</Button></Link>
+                <Link href="/find"><Button size="sm" variant="outline">Find support</Button></Link>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader><CardTitle>Past requests ({pastJobs.length})</CardTitle></CardHeader>
               <CardContent className="flex flex-col gap-2">

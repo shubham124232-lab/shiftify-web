@@ -82,8 +82,12 @@ export function ApplyModal({ job, onClose, onSuccess }: ApplyModalProps) {
           <p className="text-xs text-slate-500 m-0">
             You can message in the app, review the request, or withdraw interest. The participant&apos;s full address is not released at Connect, and the shift stays open until the initiator confirms a worker and that worker accepts.
           </p>
-          <div className="flex justify-end pt-2">
-            <Button onClick={onSuccess}>View request</Button>
+          <p className="text-xs text-slate-500 m-0">
+            A call is available only if the initiator chose to share a number. You can withdraw interest at any time from the request.
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => { onSuccess(); setTimeout(() => document.getElementById("job-messages")?.scrollIntoView({ behavior: "smooth" }), 600); }}>Message</Button>
+            <Button onClick={onSuccess}>View full details</Button>
           </div>
         </div>
       </div>

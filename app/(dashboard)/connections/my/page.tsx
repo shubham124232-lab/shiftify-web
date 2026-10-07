@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -42,11 +42,20 @@ export default function MyConnectionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const firstLoaded = useRef(false);
 
   function load() {
     setLoading(true);
     return api.get<ConnectionTabs>("/jobs/connections/mine")
-      .then(setTabs)
+      .then(t => {
+        setTabs(t);
+        // Open on the first tab that has something in it, rather than an empty "New".
+        if (!firstLoaded.current) {
+          firstLoaded.current = true;
+          const first = TABS.find(x => (t[x.key] as unknown[]).length > 0);
+          if (first) setActive(first.key);
+        }
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }
@@ -105,11 +114,13 @@ export default function MyConnectionsPage() {
                       {job.budgetPerHour != null && ` · $${Number(job.budgetPerHour).toFixed(0)}/hr`}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">
+                      <span className="mr-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">{TABS.find(x => x.key === active)?.label}</span>
                       Last update {new Date(isApp ? (row as AppRow).updatedAt : (row as Invite).createdAt).toLocaleDateString("en-AU")}
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Link href={`/jobs/${job.id}`}><Button size="sm" variant="outline">View</Button></Link>
+                    <Link href={`/jobs/${job.id}#job-messages`}><Button size="sm" variant="outline">Message</Button></Link>
                     {isApp && !["WITHDRAWN", "DECLINED", "REQUEST_FILLED"].includes((row as AppRow).status) && (
                       <Button size="sm" variant="outline" disabled={withdrawing === row.id}
                         onClick={() => withdraw(job.id, row.id)}

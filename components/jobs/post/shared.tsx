@@ -80,9 +80,13 @@ export function applyPerson(body: Record<string, unknown>, person: PersonReceivi
       phone: audience === "COORDINATOR" ? person.someoneElsePhone.trim() || undefined : undefined,
       suburb: suburb.trim() || undefined,
     };
-    if (person.someoneElseAgeGroup) {
+    if (person.someoneElseAgeGroup || person.someoneElseRelationship) {
       const existing = typeof body.workerPreferences === "object" && body.workerPreferences !== null ? body.workerPreferences as Record<string, unknown> : {};
-      body.workerPreferences = { ...existing, participantAgeGroup: person.someoneElseAgeGroup };
+      body.workerPreferences = {
+        ...existing,
+        ...(person.someoneElseAgeGroup ? { participantAgeGroup: person.someoneElseAgeGroup } : {}),
+        ...(person.someoneElseRelationship ? { arrangedByRelationship: person.someoneElseRelationship } : {}),
+      };
     }
   } else if (person.who === "EXISTING_PARTICIPANT") {
     body.forParticipantUserId = person.existingParticipantId;
@@ -389,7 +393,7 @@ export function ShiftPassPrompt({ onPurchased, onDismiss }: { onPurchased: () =>
       <div className="space-y-4 text-center border border-slate-200 rounded-xl p-5 bg-slate-50">
         <p className="text-sm font-semibold text-slate-800">Single Shift Pass</p>
         <div className="flex items-center justify-between border border-slate-200 rounded-lg px-4 py-3 bg-white text-left">
-          <span className="text-sm text-slate-700">{isWorker ? "One additional public shift application" : "One new request or agreed chargeable action"}</span>
+          <span className="text-sm text-slate-700">{isWorker ? "One additional Connect action" : "One new request or agreed chargeable action"}</span>
           <span className="text-sm font-bold text-slate-900">{price}</span>
         </div>
         <p className="text-xs text-slate-500">Direct Connect is not included.</p>
@@ -409,9 +413,9 @@ export function ShiftPassPrompt({ onPurchased, onDismiss }: { onPurchased: () =>
       <p className="text-sm font-semibold text-slate-800">{isWorker ? "You've used your 10 introductory Connect actions" : "You've used your 10 introductory actions"}</p>
       <p className="text-xs text-slate-500">{isWorker ? "Choose Shiftify Basic for ongoing Connects, or buy a Shift Pass to Connect to just this shift." : "Choose a subscription plan for ongoing posting, or buy a Single Shift Pass to post just this one request."}</p>
       <div className="flex flex-col gap-2 max-w-xs mx-auto">
-        <a href="/subscription"><Button className="w-full">Choose a subscription</Button></a>
+        <a href="/subscription"><Button className="w-full">{isWorker ? "Choose Basic" : "Choose a subscription"}</Button></a>
         <Button variant="outline" onClick={() => setScreen("purchase")} className="w-full">Purchase one {isWorker ? "Shift Pass" : "Single Shift Pass"} — {price}</Button>
-        <Button variant="ghost" onClick={onDismiss} className="w-full">Cancel</Button>
+        <Button variant="ghost" onClick={onDismiss} className="w-full">{isWorker ? "Not now" : "Cancel"}</Button>
       </div>
     </div>
   );
@@ -419,7 +423,7 @@ export function ShiftPassPrompt({ onPurchased, onDismiss }: { onPurchased: () =>
 
 // ─── "Who needs support" step (shared) ─────────────────────────────────────────
 
-function SomeoneElseFields({ value, onChange, showPhone }: { value: PersonReceivingSupport; onChange: (p: Partial<PersonReceivingSupport>) => void; showPhone?: boolean }) {
+function SomeoneElseFields({ value, onChange, showPhone, showRelationship }: { value: PersonReceivingSupport; onChange: (p: Partial<PersonReceivingSupport>) => void; showPhone?: boolean; showRelationship?: boolean }) {
   return (
     <div className="space-y-3 border border-brand-100 rounded-xl p-4 bg-brand-50/30">
       <div>
@@ -443,9 +447,30 @@ function SomeoneElseFields({ value, onChange, showPhone }: { value: PersonReceiv
             <input className={inp} type="tel" value={value.someoneElsePhone} onChange={(e) => onChange({ someoneElsePhone: e.target.value })} />
           </div>
         )}
+        {showRelationship && (
+          <div>
+            <label className={lbl}>Your relationship</label>
+            <select className={inp} value={value.someoneElseRelationship ?? ""} onChange={(e) => onChange({ someoneElseRelationship: e.target.value })}>
+              <option value="">Select…</option>
+              <option value="Parent or family member">Parent or family member</option>
+              <option value="Nominee">Nominee</option>
+              <option value="Guardian">Guardian</option>
+              <option value="Support Coordinator">Support Coordinator</option>
+              <option value="Other authorised representative">Other authorised representative</option>
+            </select>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+// The coordinator may leave the new participant's phone blank; if they type one, it has to be a usable number
+// (the server rejects anything under 8 characters, which is far too vague to show as-is).
+export function someoneElsePhoneError(person: PersonReceivingSupport): string | null {
+  const p = person.someoneElsePhone.trim();
+  if (!p) return null;
+  return p.replace(/D/g, "").length >= 8 ? null : "Enter a phone number with at least 8 digits, or leave it blank.";
 }
 
 export function PersonStep({
@@ -459,9 +484,42 @@ export function PersonStep({
 }) {
   const [participants, setParticipants] = useState<{ id: string; name: string; connected?: boolean; permissions?: string }[]>([]);
   const [loadingParticipants, setLoadingParticipants] = useState(false);
+  // A coordinator who is still a guest (request started before registering) has no managed or connected
+  // participants, and calling those endpoints would bounce them to the login page.
+  const { isAuth, user: me } = useAuth();
+
+  // R-02 — a participant can reuse someone they already posted for (the backend allows it for people they created).
+  // C-02/C-03 — an arrangement given at sign-up pre-fills the first request once.
+  useEffect(() => {
+    if (isCoordinator || isProvider || value.who !== "ME" || value.someoneElseName) return;
+    try {
+      const raw = localStorage.getItem("shiftify_participant_arrangement");
+      if (!raw) return;
+      const a = JSON.parse(raw) as { name?: string; ageGroup?: string; relationship?: string };
+      onChange({ who: "SOMEONE_ELSE", someoneElseName: a.name ?? "", someoneElseAgeGroup: a.ageGroup ?? "", someoneElseRelationship: a.relationship ?? "" });
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [savedPeople, setSavedPeople] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (!isAuth) return;
+    api.get<{ jobs: { forParticipantUserId?: string | null; postedByUserId?: string; participantName?: string | null }[] }>("/jobs/my")
+      .then((r) => {
+        const seen = new Map<string, string>();
+        for (const j of r.jobs ?? []) if (j.forParticipantUserId && j.forParticipantUserId !== me?.id && j.participantName && !seen.has(j.forParticipantUserId)) seen.set(j.forParticipantUserId, j.participantName);
+        setSavedPeople([...seen].map(([id, name]) => ({ id, name })));
+      })
+      .catch(() => {});
+  }, [isAuth, me?.id]);
+
 
   useEffect(() => {
-    if (!isCoordinator) return;
+    if (isCoordinator && !isAuth && value.who !== "SOMEONE_ELSE") onChange({ who: "SOMEONE_ELSE" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCoordinator, isAuth]);
+
+  useEffect(() => {
+    if (!isCoordinator || !isAuth) return;
     setLoadingParticipants(true);
     Promise.all([
       api.get<{ users: { id: string; name: string }[] }>("/linking/participants")
@@ -481,7 +539,7 @@ export function PersonStep({
         }));
       setParticipants([...managedList, ...connectedList]);
     }).finally(() => setLoadingParticipants(false));
-  }, [isCoordinator]);
+  }, [isCoordinator, isAuth]);
 
   if (isProvider) {
     // PR-R02 — a Provider staffing request is raised for the organisation's own
@@ -506,8 +564,10 @@ export function PersonStep({
         <RadioCards
           value={coordWho}
           onChange={(who) => onChange({ who })}
-          options={[
+          options={isAuth ? [
             { v: "EXISTING_PARTICIPANT", l: "Select a connected participant" },
+            { v: "SOMEONE_ELSE", l: "Add a new participant" },
+          ] : [
             { v: "SOMEONE_ELSE", l: "Add a new participant" },
           ]}
         />
@@ -559,12 +619,28 @@ export function PersonStep({
   return (
     <div className="space-y-5">
       <label className={lbl}>Who needs this {tierLabel}?</label>
-      <RadioCards
+      <RadioCards<NonNullable<PersonReceivingSupport["who"]>>
         value={value.who}
         onChange={(who) => onChange({ who })}
-        options={[{ v: "ME", l: "Me" }, { v: "SOMEONE_ELSE", l: "Someone else" }]}
+        options={[
+          { v: "ME" as const, l: "Me" },
+          ...(savedPeople.length ? [{ v: "EXISTING_PARTICIPANT" as const, l: "Someone I've posted for before" }] : []),
+          { v: "SOMEONE_ELSE" as const, l: savedPeople.length ? "Someone new" : "Someone else" },
+        ]}
       />
-      {value.who === "SOMEONE_ELSE" && <SomeoneElseFields value={value} onChange={onChange} />}
+      {value.who === "EXISTING_PARTICIPANT" && (
+        <div>
+          <label className={lbl}>Saved participant</label>
+          <select className={inp} value={value.existingParticipantId} onChange={(e) => {
+            const sp = savedPeople.find((x) => x.id === e.target.value);
+            onChange({ existingParticipantId: e.target.value, existingParticipantName: sp?.name ?? "", existingParticipantIsConnection: false });
+          }}>
+            <option value="">Select…</option>
+            {savedPeople.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+        </div>
+      )}
+      {value.who === "SOMEONE_ELSE" && <SomeoneElseFields value={value} onChange={onChange} showRelationship />}
     </div>
   );
 }
@@ -1353,7 +1429,7 @@ const PROVIDER_LIVE_ITEMS = [
   "Edit essentials without using another action", "Pause, cancel, extend or duplicate",
 ];
 
-export function LiveRequestScreen({ tier, tierLabel, jobId, isDraft, audience, verificationRequired }: { tier: PostingTier; tierLabel: string; jobId: string; isDraft: boolean; audience?: "COORDINATOR" | "PROVIDER"; verificationRequired?: boolean }) {
+export function LiveRequestScreen({ tier, tierLabel, jobId, isDraft, audience, verificationRequired, scheduledFor }: { tier: PostingTier; tierLabel: string; jobId: string; isDraft: boolean; audience?: "COORDINATOR" | "PROVIDER"; verificationRequired?: boolean; scheduledFor?: string | null }) {
   const base = LIVE_SCREEN_CONFIG[tier];
   const config = {
     ...base,
@@ -1362,16 +1438,18 @@ export function LiveRequestScreen({ tier, tierLabel, jobId, isDraft, audience, v
   const noun = audience === "PROVIDER" ? "staffing request" : "request";
   return (
     <>
-      <PageHeader title={isDraft ? "Draft saved" : `${audience === "PROVIDER" ? tierLabel.replace(" Support", "") : tierLabel} ${noun} live`} />
+      <PageHeader title={scheduledFor ? "Publish scheduled" : isDraft ? "Draft saved" : `${audience === "PROVIDER" ? tierLabel.replace(" Support", "") : tierLabel} ${noun} live`} />
       <div className="mx-auto max-w-lg px-5 py-12 text-center">
         <div className="mb-6 flex items-center justify-center">
           <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center text-2xl">✓</div>
         </div>
         <h2 className="text-xl font-bold text-slate-800 mb-2">
-          {verificationRequired ? "Ready to post — verification required" : isDraft ? "Saved — finish it later" : (audience === "PROVIDER" ? `Your ${tierLabel.replace(" Support", "")} staffing request is live` : `Your ${tierLabel.replace(" Support", "")} Support request is live`)}
+          {scheduledFor ? `Scheduled to go live ${scheduledFor}` : verificationRequired ? "Ready to post — verification required" : isDraft ? "Saved — finish it later" : (audience === "PROVIDER" ? `Your ${tierLabel.replace(" Support", "")} staffing request is live` : `Your ${tierLabel.replace(" Support", "")} Support request is live`)}
         </h2>
         <p className="text-sm text-slate-500 mb-8">
-          {verificationRequired
+          {scheduledFor
+            ? "It stays a draft until then and nothing is used until it publishes. You can edit or cancel it from My Requests."
+            : verificationRequired
             ? "Your request is saved. Submit your required organisation documents (Documents page), then return to this completed request and post it — nothing needs rebuilding."
             : isDraft
             ? "You can find this in My Requests and finish it whenever you're ready."

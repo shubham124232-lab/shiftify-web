@@ -27,7 +27,7 @@ const roles: Role[] = [
   {
     key: 'worker',
     name: 'Support Worker',
-    start: '10 free applications',
+    start: '10 free Connect actions',
     continue: [
       { amount: '$49.99', unit: '/mo', note: 'Shiftify Basic subscription' },
       { amount: '$9.99', unit: '/use', note: 'Shift Pass, pay as you go' },

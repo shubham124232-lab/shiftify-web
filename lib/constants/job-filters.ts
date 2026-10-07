@@ -44,6 +44,23 @@ export const SORT_OPTIONS = [
   { value: "startDate", label: "Start date" },
 ];
 
+// SW Journey Window 16 sort set (Find Work). Values match the backend jobFiltersSchema sortBy enum.
+export const WORKER_SORT_OPTIONS = [
+  { value: "bestMatch", label: "Best match" },
+  { value: "startDate", label: "Soonest" },
+  { value: "nearest",   label: "Nearest" },
+  { value: "newest",    label: "Newest" },
+  { value: "rate",      label: "Rate" },
+];
+
+export const TIME_OF_DAY_FILTERS = [
+  { value: "", label: "Any time" },
+  { value: "MORNING", label: "Morning (6am – 12pm)" },
+  { value: "AFTERNOON", label: "Afternoon (12 – 5pm)" },
+  { value: "EVENING", label: "Evening (5 – 10pm)" },
+  { value: "OVERNIGHT", label: "Overnight (10pm – 6am)" },
+];
+
 // ─── Public Live Shiftboard only (GET /public/shiftboard) ──────────────────
 // Kept separate from SORT_OPTIONS/URGENCY_STYLE above — those are the
 // authenticated dashboard's taxonomy and "nearest" only makes sense once a

@@ -34,13 +34,13 @@ const SYDNEY = { lat: -33.8688, lng: 151.2093 };
 // What each row's action means, shown only to the role that can meet it.
 const ROW_STATES = {
   worker: [
-    { title: "Open for applications", sub: "Apply or accept the shift now." },
-    { title: "Application sent", sub: "You have applied — awaiting a response." },
+    { title: "Open to connect", sub: "Review the request and Connect, or respond as a Provider." },
+    { title: "Connected", sub: "You have connected — awaiting the poster's decision." },
     { title: "Saved and hidden", sub: "Star a shift to keep it, or hide it from your feed." },
   ],
   poster: [
-    { title: "Your request", sub: "Open it to manage applications." },
-    { title: "View only", sub: "Workers and providers can apply to these." },
+    { title: "Your request", sub: "Open it to manage responses." },
+    { title: "View only", sub: "Workers and providers can connect to these." },
     { title: "Details first", sub: "See timing, suburb and requirements before acting." },
   ],
 };

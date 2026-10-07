@@ -19,16 +19,17 @@ import { getStepsForRole } from '@/lib/registration';
 import { STEP_COMPONENTS }  from '@/lib/registration/stepComponents';
 import { sanitisePayload } from '@/lib/utils';
 import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
-import { peekGuestDraft } from '@/lib/store/guestJobDraft';
+import { peekGuestDraft, peekResumableDraft, RESUME_WINDOW_MS, type GuestJobDraft } from '@/lib/store/guestJobDraft';
+import { carryDraftLocationToAccount, draftReviewPath } from '@/lib/guestDraftResume';
 import { TIER_META } from '@/lib/types/posting';
 
 const FREE_ROLES = new Set<UserRole>([UserRole.PARTICIPANT]);
 
 const ROLE_CARDS = [
-  { value: UserRole.PARTICIPANT,    label: 'Participant',    tagline: 'I need disability support services',   icon: 'bi-person-heart'        },
-  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker', tagline: 'I provide direct care & support',      icon: 'bi-hand-thumbs-up-fill' },
-  { value: UserRole.PROVIDER,       label: 'Provider',       tagline: 'Organisation delivering support services', icon: 'bi-building-fill-check' },
-  { value: UserRole.COORDINATOR,    label: 'Coordinator',    tagline: 'I coordinate support for participants', icon: 'bi-diagram-3-fill'      },
+  { value: UserRole.PARTICIPANT,    label: 'Participant or Representative', tagline: 'Find support for yourself or someone you represent', icon: 'bi-person-heart'        },
+  { value: UserRole.SUPPORT_WORKER, label: 'Support Worker', tagline: 'Find suitable shifts and support opportunities', icon: 'bi-hand-thumbs-up-fill' },
+  { value: UserRole.PROVIDER,       label: 'NDIS Provider',   tagline: 'Fill roster gaps, find service opportunities and advertise capacity', icon: 'bi-building-fill-check' },
+  { value: UserRole.COORDINATOR,    label: 'Support Coordinator', tagline: 'Find workers or Providers for Participants', icon: 'bi-diagram-3-fill'      },
   { value: UserRole.PLAN_MANAGER,   label: 'Plan Manager',   tagline: 'I manage plan funding & budgets',       icon: 'bi-calculator-fill'     },
 ];
 
@@ -136,7 +137,31 @@ function WizardStep({ role, stepIndex, totalSteps, onSave, onBack }: WizardStepP
   );
 }
 
-type Phase = 'role'|'details'|'plan'|'payment'|'wizard';
+type Phase = 'role'|'workerGoal'|'details'|'plan'|'payment'|'wizard'|'goal';
+
+// Provider PR-S03 — after verification the Provider picks the first thing they want to do.
+const PROVIDER_GOALS = [
+  { href: '/jobs/post',              icon: 'bi-people-fill',      title: 'Fill a staffing gap',            text: 'Post a Rapid, Urgent, Last-Minute or Routine staffing request.' },
+  { href: '/jobs',                   icon: 'bi-search',           title: 'Find support opportunities',     text: 'Browse participant and coordinator requests you can respond to.' },
+  { href: '/provider/post-service',  icon: 'bi-megaphone-fill',   title: 'Advertise services or capacity', text: 'Tell the marketplace what you can take on right now.' },
+  { href: '/provider/sil-vacancy',   icon: 'bi-house-heart-fill', title: 'List a SIL, SDA or Home and Living vacancy', text: 'Advertise a housing vacancy.' },
+] as const;
+// Support Worker Window 2 — what the worker wants to do first. Kept so the dashboard can offer it once setup is done.
+const WORKER_GOALS = [
+  { key: 'FIND_WORK',  href: '/jobs',                  icon: 'bi-search',          title: 'Find support work',                            text: 'Browse Rapid, Urgent, Last-Minute and Routine requests near you.' },
+  { key: 'VISIBLE',    href: '/profile/build?step=14', icon: 'bi-eye-fill',        title: 'Become visible to participants and organisations', text: 'Publish a profile so people can find and invite you.' },
+  { key: 'RAPID',      href: '/jobs?urgency=RAPID',    icon: 'bi-lightning-fill',  title: 'Find Rapid or urgent work',                    text: 'See requests that need support within hours.' },
+  { key: 'PROFILE',    href: '/profile/build',         icon: 'bi-person-badge-fill', title: 'Create my Support Worker profile',           text: 'Set up your services, documents, rates and availability.' },
+] as const;
+// Support Coordinator SC-A02 — what the coordinator wants to do first.
+const COORDINATOR_GOALS = [
+  { key: 'FIND',        href: '/find',               icon: 'bi-search',            title: 'Find workers or providers for a participant', text: 'Search directly and invite suitable support.' },
+  { key: 'POST_URGENT', href: '/jobs/post',          icon: 'bi-lightning-fill',    title: 'Post a Rapid or Urgent request',              text: 'Ask for support within hours.' },
+  { key: 'CONNECTIONS', href: '/participants',       icon: 'bi-people-fill',       title: 'Manage participant connections',              text: 'Connect participants and manage what you can do for them.' },
+  { key: 'NEW_PARTICIPANT', href: '/participants/new', icon: 'bi-person-plus-fill', title: 'Help a new participant find support',        text: 'Add someone who is not yet on Shiftify.' },
+  { key: 'PROMOTE',     href: '/profile',            icon: 'bi-megaphone-fill',    title: 'Promote my Support Coordination services',    text: 'Complete the professional profile participants see.' },
+] as const;
+type ProviderRegStatus = 'REGISTERED' | 'UNREGISTERED' | 'PENDING' | '';
 interface ApiPlan {
   id: string; key?: string;
   name?: string; label?: string;       // backend sends `name`
@@ -164,19 +189,52 @@ function RegisterPageInner() {
   const [phase,       setPhase]       = useState<Phase>('role');
   const [role,        setRole]        = useState<UserRole|null>(null);
   const [termsChecked, setTermsChecked] = useState(false);
+  // Provider-only account fields (PR-S01)
+  const [businessName, setBusinessName] = useState('');
+  const [abn,          setAbn]          = useState('');
+  const [regStatus,    setRegStatus]    = useState<ProviderRegStatus>('');
+  const [ndisNumber,   setNdisNumber]   = useState('');
+  const [conductChecked, setConductChecked] = useState(false);
+  const [authRepChecked, setAuthRepChecked] = useState(false);
+  // PR-S02: an existing Provider business with the same ABN is detected after verification.
+  const [existingBusiness, setExistingBusiness] = useState(false);
+  const [joinState, setJoinState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  async function requestJoin() {
+    setJoinState('sending');
+    try { await api.post('/provider-org/join-request', { abn: abn.replace(/\s/g, '') }); setJoinState('sent'); }
+    catch { setJoinState('error'); }
+  }
 
   // Homepage role cards (SW doc Window 1) link here with ?role=..., pre-selecting
   // the intent-selection screen (Window 2) below rather than skipping it.
   const searchParams = useSearchParams();
+  // A request started before signing up is saved on this device: sign-up is for the role it was started as
+  // (Participant, or Coordinator posting for someone), so that role is pre-selected and the request is named.
+  const [savedRequest, setSavedRequest] = useState<GuestJobDraft | null>(null);
   useEffect(() => {
     const fromQuery = searchParams.get('role');
+    const d = peekGuestDraft();
+    const fresh = d && d.savedAt && Date.now() - d.savedAt < RESUME_WINDOW_MS ? d : null;
+    setSavedRequest(fresh);
     if (fromQuery && Object.values(UserRole).includes(fromQuery as UserRole)) {
       setRole(fromQuery as UserRole);
+    } else if (fresh) {
+      setRole(fresh.role === 'COORDINATOR' ? UserRole.COORDINATOR : UserRole.PARTICIPANT);
     }
   }, [searchParams]);
 
   // OTP
   const [showOtp,    setShowOtp]    = useState(false);
+  const [workerGoal, setWorkerGoal] = useState<string>('');
+  // Participant C-02 / C-03 — who the support is being arranged for.
+  const [arrWho,  setArrWho]  = useState<'ME'|'SOMEONE_ELSE'>('ME');
+  const [arrRel,  setArrRel]  = useState('');
+  const [arrName, setArrName] = useState('');
+  const [arrAge,  setArrAge]  = useState('');
+  const [changingContact, setChangingContact] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [contactSaving, setContactSaving] = useState(false);
   const [otpDigits,  setOtpDigits]  = useState(['','','','','','']);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError,   setOtpError]   = useState<string|null>(null);
@@ -253,11 +311,20 @@ function RegisterPageInner() {
   const displayError = localError ?? authError;
 
   // Rail: role -> details -> verify. Anything past the OTP modal stays on node 3.
-  const railIndex = phase === 'role' ? 0 : phase === 'details' && !showOtp ? 1 : 2;
+  const railIndex = phase === 'role' || phase === 'workerGoal' ? 0 : phase === 'details' && !showOtp ? 1 : 2;
+  const isProvider = role === UserRole.PROVIDER;
+
+  // The dashboard layout holds a Provider on profile/plan setup until ACTIVE, so remember the goal
+  // and go where the account is allowed to go; the dashboard offers "Continue" once setup is done.
+  function goToGoal(g: { title: string; href: string }) {
+    try { localStorage.setItem('shiftify_provider_goal', JSON.stringify({ title: g.title, href: g.href })); } catch { /* ignore */ }
+    router.replace(g.href);
+  }
 
   function handleRoleNext() {
     if (!role) return;
-    clearError(); setLocalError(null); setPhase('details');
+    clearError(); setLocalError(null);
+    setPhase(role === UserRole.SUPPORT_WORKER || role === UserRole.COORDINATOR ? 'workerGoal' : 'details');
   }
 
   function handleUsernameBlur() {
@@ -301,6 +368,25 @@ function RegisterPageInner() {
     if (password && password !== confirm) errs.confirm = 'Passwords do not match.';
     if (!termsChecked) errs.terms = 'You must agree to the Terms and Privacy Policy to continue.';
 
+    if (role === UserRole.PROVIDER) {
+      if (!email.trim()) errs.email = 'Work email is required.';
+      if (!businessName.trim()) errs.businessName = 'Business or trading name is required.';
+      const abnDigits = abn.replace(/\s/g, '');
+      if (!/^\d{11}$/.test(abnDigits)) errs.abn = 'Enter your 11-digit ABN.';
+      if (!regStatus) errs.regStatus = 'Choose your NDIS registration status.';
+      if (regStatus === 'REGISTERED' && !ndisNumber.trim()) errs.ndisNumber = 'Enter your NDIS registration number.';
+      if (!conductChecked) errs.conduct = 'You must accept the Provider Code of Conduct.';
+      if (!authRepChecked) errs.authRep = 'Confirm you are authorised to represent this business.';
+    }
+    if (role === UserRole.SUPPORT_WORKER) {
+      if (!email.trim()) errs.email = 'Email is required.';
+    }
+    if (role === UserRole.PARTICIPANT && arrWho === 'SOMEONE_ELSE') {
+      if (!arrRel)           errs.arrRel  = 'Choose your relationship to the person.';
+      if (!arrName.trim())   errs.arrName = "Enter the participant's preferred name.";
+      if (!arrAge)           errs.arrAge  = "Choose the participant's age group.";
+    }
+
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
     setSubmitting(true);
@@ -309,6 +395,13 @@ function RegisterPageInner() {
       if (res._dev_code) {
         setDevCode(res._dev_code);
         sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
+      }
+      if (role === UserRole.PARTICIPANT) {
+        // Carried into the first request so the person is not asked again.
+        try {
+          if (arrWho === 'SOMEONE_ELSE') localStorage.setItem('shiftify_participant_arrangement', JSON.stringify({ name: arrName.trim(), ageGroup: arrAge, relationship: arrRel }));
+          else localStorage.removeItem('shiftify_participant_arrangement');
+        } catch { /* ignore */ }
       }
       setShowOtp(true);
     } catch (err) {
@@ -346,33 +439,56 @@ function RegisterPageInner() {
       await api.post('/auth/verify/confirm', { channel:'phone', code });
       // Mark phone verified in store immediately — silentInit() returns early when
       // accessToken is already set, so we update the flag directly.
-      useAuthStore.setState({ phoneVerified: true });
+      useAuthStore.getState().markPhoneVerified();
       // Activate free roles immediately after OTP; paid roles activate after payment
       if (FREE_ROLES.has(role!)) {
         await api.post('/subscriptions/activate', {});
         const current = useAuthStore.getState().user;
         if (current) useAuthStore.setState({ user: { ...current, status: UserStatus.ACTIVE } });
+      } else if (role === UserRole.SUPPORT_WORKER) {
+        // A Support Worker starts on the free account (10 once-only introductory Connect actions) — no plan screen before the dashboard.
+        try {
+          const r = await api.get<{ plans: ApiPlan[] }>('/subscriptions/plans?role=SUPPORT_WORKER');
+          const free = (r.plans ?? []).find(pl => !pl.isAddOn && planPrice(pl) === 0);
+          if (free) {
+            await api.post('/subscriptions/activate', { planId: free.id });
+            const current = useAuthStore.getState().user;
+            if (current) useAuthStore.setState({ user: { ...current, status: UserStatus.ACTIVE } });
+          }
+        } catch { /* the Membership page can still activate the free account */ }
       }
       setShowOtp(false);
 
+      // Provider: persist the business identity captured on the signup form (PR-S01/S02).
+      if (role === UserRole.PROVIDER) {
+        try {
+          await upsertProfile(UserRole.PROVIDER, {
+            businessName: businessName.trim(),
+            abn: abn.replace(/\s/g, ''),
+            ndisRegistered: regStatus === 'REGISTERED',
+            ...(regStatus === 'REGISTERED' ? { ndisProviderNumber: ndisNumber.trim() } : {}),
+            ...(regStatus === 'PENDING' ? { ndisAuditStatus: 'REGISTRATION_PENDING' } : {}),
+          });
+        } catch (e) {
+          // A second account for the same ABN must not get its own business or its own introductory allowance.
+          if (e instanceof ApiError && e.status === 409) setExistingBusiness(true);
+        }
+      }
+
       // Guest job-post draft saved before registering — send them back to finish
       // posting instead of the profile page. See [[guest-draft-job-post-design]].
-      const draft = peekGuestDraft();
+      // Only a draft started for this account's role is carried over — a Support Worker or Provider
+      // signing up on the same device never inherits someone's participant request.
+      const draft = peekResumableDraft(role);
       if (draft) {
-        if (role === UserRole.PARTICIPANT && typeof draft.state.suburb === 'string' && draft.state.suburb) {
-          try {
-            // Carries the suburb they already typed into the posting form, so the post is not blocked on "Add your suburb".
-            const st = draft.state;
-            await api.patch('/users/me', {
-              defaultSuburb: draft.state.suburb,
-              ...(typeof st.state === 'string' && st.state ? { defaultState: st.state } : {}),
-              ...(typeof st.postcode === 'string' && st.postcode ? { defaultPostcode: st.postcode } : {}),
-            });
-          } catch { /* best-effort prefill */ }
-        }
-        router.replace(`/jobs/post/${TIER_META[draft.tier].path}`);
+        // Carries the suburb they already typed into the posting form, so the post is not blocked on "Add your suburb".
+        await carryDraftLocationToAccount(draft);
+        router.replace(draftReviewPath(draft));
         return;
       }
+
+      if (role === UserRole.PROVIDER) { setPhase('goal'); return; }
+      if (role === UserRole.SUPPORT_WORKER) { router.replace('/profile/build'); return; }
 
       // Registration ends here — role/details/OTP only. Push straight to /profile
       // for every role (including Participant, who is already ACTIVE by this point
@@ -382,6 +498,21 @@ function RegisterPageInner() {
     } catch (err: unknown) {
       setOtpError(err instanceof Error ? err.message : 'Invalid or expired code.');
     } finally { setOtpLoading(false); }
+  }
+
+  // "Change email/mobile": fix a mistyped contact without starting again. A changed number or address is unverified until confirmed.
+  async function handleChangeContact() {
+    const cleanPhone = newPhone.trim().replace(/\s+/g, '');
+    if (!/^(?:(?:\+?61|0)[23478]\d{8}|1300\d{6}|1800\d{6}|13\d{4})$/.test(cleanPhone)) { setOtpError('Please enter a valid Australian phone number.'); return; }
+    if (newEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) { setOtpError('Please enter a valid email address.'); return; }
+    setContactSaving(true); setOtpError(null);
+    try {
+      await api.patch('/users/me', { phone: cleanPhone, ...(newEmail.trim() ? { email: newEmail.trim() } : {}) });
+      setPhone(cleanPhone); if (newEmail.trim()) setEmail(newEmail.trim());
+      setChangingContact(false);
+      await handleOtpResend();
+    } catch (e) { setOtpError(e instanceof Error ? e.message : 'Could not update your details.'); }
+    finally { setContactSaving(false); }
   }
 
   async function handleOtpResend() {
@@ -480,13 +611,16 @@ function RegisterPageInner() {
   // The ink header carries the step title, so no phase repeats it in the body.
   const panelTitle =
     phase === 'role'    ? 'How will you use Shiftify?' :
-    phase === 'details' ? `${roleLabel} details` :
+    phase === 'workerGoal' ? (role === UserRole.COORDINATOR ? 'What would you like to do first?' : 'What would you like to do?') :
+    phase === 'details' ? (role === UserRole.PROVIDER ? 'Create your Provider account' : role === UserRole.SUPPORT_WORKER ? 'Create account' : `${roleLabel} details`) :
+    phase === 'goal'    ? 'What do you want to do first?' :
     phase === 'wizard'  ? (profileSteps[wizardStep]?.title ?? 'Your profile') :
     phase === 'plan'    ? 'Choose your plan' :
                           'Payment details';
 
   const goBack =
-    phase === 'details' ? () => { setPhase('role'); clearError(); setLocalError(null); } :
+    phase === 'workerGoal' ? () => { setWorkerGoal(''); setPhase('role'); } :
+    phase === 'details' ? () => { setPhase(role === UserRole.SUPPORT_WORKER || role === UserRole.COORDINATOR ? 'workerGoal' : 'role'); clearError(); setLocalError(null); } :
     phase === 'payment' ? () => setPhase('plan') :
     phase === 'wizard'  ? handleWizardBack :
                           null;
@@ -537,6 +671,11 @@ function RegisterPageInner() {
       {/* ROLE */}
       {phase === 'role' && (
         <>
+          {savedRequest && (
+            <p className="auth-panel-intro" style={{ fontWeight: 600 }}>
+              Your {TIER_META[savedRequest.tier].label} request is saved. Create your free account and you will come straight back to review and post it.
+            </p>
+          )}
           <p className="auth-panel-intro">Pick the option that describes you — you can change this later.</p>
 
           <div className="auth-role-grid" role="radiogroup" aria-label="Account type">
@@ -558,6 +697,39 @@ function RegisterPageInner() {
 
           <button type="button" disabled={!role} onClick={handleRoleNext} className="btn-shiftify"
             style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:'clamp(14px, 2.2vh, 22px)',justifyContent:'center',opacity:role?1:0.45,cursor:role?'pointer':'not-allowed'}}>
+            {role === UserRole.PROVIDER ? 'Continue as Provider' : 'Continue'}
+            <i className="bi bi-arrow-right" aria-hidden="true" />
+          </button>
+        </>
+      )}
+
+      {/* WORKER GOAL (Support Worker Window 2) */}
+      {phase === 'workerGoal' && (
+        <>
+          <p className="auth-panel-intro">Tell us what you want to do first. You can do all of these later.</p>
+          <div className="auth-role-grid" role="radiogroup" aria-label="What would you like to do?">
+            {(role === UserRole.COORDINATOR ? COORDINATOR_GOALS : WORKER_GOALS).map(g => {
+              const sel = workerGoal === g.key;
+              return (
+                <button key={g.key} type="button" role="radio" aria-checked={sel} onClick={() => setWorkerGoal(g.key)}
+                  className={`auth-role-card${sel ? ' is-sel' : ''}`}>
+                  <span className="auth-role-card__icon"><i className={`bi ${g.icon}`} aria-hidden="true" /></span>
+                  <span style={{flex:1,minWidth:0}}>
+                    <span style={{display:'block',fontSize:15,fontWeight:800,color:'var(--clr-text)',letterSpacing:-0.25}}>{g.title}</span>
+                    <span style={{display:'block',fontSize:12,color:'var(--clr-muted)',marginTop:2,lineHeight:1.35}}>{g.text}</span>
+                  </span>
+                  <span className="auth-role-card__radio"><i className="bi bi-check-lg" aria-hidden="true" /></span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" disabled={!workerGoal} className="btn-shiftify"
+            onClick={() => {
+              const g = (role === UserRole.COORDINATOR ? COORDINATOR_GOALS : WORKER_GOALS).find(x => x.key === workerGoal);
+              if (g) { try { localStorage.setItem(role === UserRole.COORDINATOR ? 'shiftify_coordinator_goal' : 'shiftify_worker_goal', JSON.stringify({ title: g.title, href: g.href })); } catch { /* ignore */ } }
+              setPhase('details');
+            }}
+            style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:'clamp(14px, 2.2vh, 22px)',justifyContent:'center',opacity:workerGoal?1:0.45,cursor:workerGoal?'pointer':'not-allowed'}}>
             Continue
             <i className="bi bi-arrow-right" aria-hidden="true" />
           </button>
@@ -568,6 +740,52 @@ function RegisterPageInner() {
       {phase === 'details' && (
         <>
           <form onSubmit={handleRegister} noValidate className="auth-form">
+            {role === UserRole.PARTICIPANT && (
+              <div style={{marginBottom:12}}>
+                <label style={lbl}>Who are you arranging support for?</label>
+                <div style={{display:'flex',gap:16,marginBottom:6}}>
+                  {([['ME','Myself'],['SOMEONE_ELSE','Someone else']] as const).map(([v,l]) => (
+                    <label key={v} style={{display:'flex',alignItems:'center',gap:6,fontSize:14,cursor:'pointer'}}>
+                      <input type="radio" name="arrWho" checked={arrWho===v} onChange={()=>setArrWho(v)} /> {l}
+                    </label>
+                  ))}
+                </div>
+                {arrWho === 'SOMEONE_ELSE' && (
+                  <div style={{display:'grid',gap:10}}>
+                    <div>
+                      <label style={lbl}>Your relationship</label>
+                      <select value={arrRel} onChange={e=>{setArrRel(e.target.value);setFieldErrors(p=>({...p,arrRel:''}));}} style={inp}>
+                        <option value="">Select…</option>
+                        <option value="Parent or family member">Parent or family member</option>
+                        <option value="Nominee">Nominee</option>
+                        <option value="Guardian">Guardian</option>
+                        <option value="Support Coordinator">Support Coordinator</option>
+                        <option value="Other authorised representative">Other authorised representative</option>
+                      </select>
+                      {fieldErrors.arrRel && <p style={err}>{fieldErrors.arrRel}</p>}
+                    </div>
+                    <div className="auth-form-row">
+                      <div>
+                        <label style={lbl}>Participant preferred name</label>
+                        <input type="text" value={arrName} onChange={e=>{setArrName(e.target.value);setFieldErrors(p=>({...p,arrName:''}));}} placeholder="e.g. Alex" style={inp} />
+                        {fieldErrors.arrName && <p style={err}>{fieldErrors.arrName}</p>}
+                      </div>
+                      <div>
+                        <label style={lbl}>Participant age group</label>
+                        <select value={arrAge} onChange={e=>{setArrAge(e.target.value);setFieldErrors(p=>({...p,arrAge:''}));}} style={inp}>
+                          <option value="">Select…</option>
+                          <option value="Child">Child</option>
+                          <option value="Teen">Teen</option>
+                          <option value="Adult">Adult</option>
+                          <option value="Older adult">Older adult</option>
+                        </select>
+                        {fieldErrors.arrAge && <p style={err}>{fieldErrors.arrAge}</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="auth-form-row">
               <div>
                 <label style={lbl}>First Name</label>
@@ -610,10 +828,48 @@ function RegisterPageInner() {
             </div>
 
             <div>
-              <label style={lbl}>Email <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>
-              <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder="you@example.com" style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
+              {isProvider
+                ? <label style={lbl}>Work email <span style={{color:'#ef4444'}}>*</span></label>
+                : role === UserRole.SUPPORT_WORKER
+                  ? <label style={lbl}>Email <span style={{color:'#ef4444'}}>*</span></label>
+                  : <label style={lbl}>{role === UserRole.COORDINATOR ? 'Work email' : 'Email'} <span style={{fontWeight:400,color:'var(--clr-muted)'}}>(optional)</span></label>}
+              <input type="email" value={email} onChange={e=>{setEmail(e.target.value);setFieldErrors(p=>({...p,email:''}));}} placeholder={isProvider ? 'you@yourbusiness.com.au' : 'you@example.com'} style={{...inp,borderColor:fieldErrors.email?'#ef4444':undefined}} autoComplete="email" />
               {fieldErrors.email && <p style={err}>{fieldErrors.email}</p>}
             </div>
+
+            {isProvider && (
+              <>
+                <div className="auth-form-row">
+                  <div>
+                    <label style={lbl}>Business or trading name <span style={{color:'#ef4444'}}>*</span></label>
+                    <input type="text" value={businessName} onChange={e=>{setBusinessName(e.target.value);setFieldErrors(p=>({...p,businessName:''}));}} placeholder="e.g. Care Partners Pty Ltd" style={{...inp,borderColor:fieldErrors.businessName?'#ef4444':undefined}} autoComplete="organization" />
+                    {fieldErrors.businessName && <p style={err}>{fieldErrors.businessName}</p>}
+                  </div>
+                  <div>
+                    <label style={lbl}>ABN <span style={{color:'#ef4444'}}>*</span></label>
+                    <input type="text" inputMode="numeric" value={abn} onChange={e=>{setAbn(e.target.value.replace(/[^\d ]/g,''));setFieldErrors(p=>({...p,abn:''}));}} placeholder="11 digits" style={{...inp,borderColor:fieldErrors.abn?'#ef4444':undefined}} />
+                    {fieldErrors.abn && <p style={err}>{fieldErrors.abn}</p>}
+                  </div>
+                </div>
+                <div>
+                  <label style={lbl}>NDIS registration <span style={{color:'#ef4444'}}>*</span></label>
+                  <select value={regStatus} onChange={e=>{setRegStatus(e.target.value as ProviderRegStatus);setFieldErrors(p=>({...p,regStatus:''}));}} style={{...inp,borderColor:fieldErrors.regStatus?'#ef4444':undefined}}>
+                    <option value="">Select…</option>
+                    <option value="REGISTERED">NDIS Registered Provider</option>
+                    <option value="UNREGISTERED">Not registered (plan-managed and self-managed work only)</option>
+                    <option value="PENDING">Registration pending</option>
+                  </select>
+                  {fieldErrors.regStatus && <p style={err}>{fieldErrors.regStatus}</p>}
+                </div>
+                {regStatus === 'REGISTERED' && (
+                  <div>
+                    <label style={lbl}>NDIS registration number <span style={{color:'#ef4444'}}>*</span></label>
+                    <input type="text" value={ndisNumber} onChange={e=>{setNdisNumber(e.target.value);setFieldErrors(p=>({...p,ndisNumber:''}));}} placeholder="e.g. 4050000000" style={{...inp,borderColor:fieldErrors.ndisNumber?'#ef4444':undefined}} />
+                    {fieldErrors.ndisNumber && <p style={err}>{fieldErrors.ndisNumber}</p>}
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="auth-form-row">
               <div>
@@ -672,12 +928,62 @@ function RegisterPageInner() {
             </label>
             {fieldErrors.terms && <p style={{...err,margin:0}}>{fieldErrors.terms}</p>}
 
+            {isProvider && (
+              <>
+                <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.4,cursor:'pointer'}}>
+                  <input type="checkbox" checked={conductChecked} onChange={e=>{setConductChecked(e.target.checked);setFieldErrors(p=>({...p,conduct:''}));}} style={{flexShrink:0,accentColor:'var(--clr-primary)'}} />
+                  <span>I accept the Shiftify Provider Code of Conduct.</span>
+                </label>
+                {fieldErrors.conduct && <p style={{...err,margin:0}}>{fieldErrors.conduct}</p>}
+                <label style={{display:'flex',alignItems:'center',gap:8,fontSize:11,color:'var(--clr-muted)',lineHeight:1.4,cursor:'pointer'}}>
+                  <input type="checkbox" checked={authRepChecked} onChange={e=>{setAuthRepChecked(e.target.checked);setFieldErrors(p=>({...p,authRep:''}));}} style={{flexShrink:0,accentColor:'var(--clr-primary)'}} />
+                  <span>I am authorised to represent this business on Shiftify.</span>
+                </label>
+                {fieldErrors.authRep && <p style={{...err,margin:0}}>{fieldErrors.authRep}</p>}
+              </>
+            )}
+
             <button type="submit" disabled={submitting} className="btn-shiftify"
               style={{width:'100%',height:'var(--auth-btn-h)',fontSize:15,fontWeight:700,marginTop:2,opacity:submitting?0.7:1,cursor:submitting?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
               {submitting && <span style={{width:15,height:15,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite',flexShrink:0}} />}
-              {submitting ? 'Creating account...' : 'Create Account'}
+              {submitting ? 'Creating account...' : isProvider ? 'Create Provider Account' : 'Create Account'}
             </button>
           </form>
+        </>
+      )}
+
+      {/* GOAL (Provider only, PR-S03) */}
+      {phase === 'goal' && (
+        <>
+          {existingBusiness && (
+            <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800" style={{ marginBottom: 14 }}>
+              A Provider business with this ABN is already on Shiftify, so a second business and a second introductory allowance cannot be created.
+              Ask that organisation&apos;s administrator to add you as an administrator (Organisation &amp; branches). Until they approve you, this account stays a draft.
+              <div style={{ marginTop: 8 }}>
+                {joinState === 'sent'
+                  ? <strong>Request sent — the organisation&apos;s owner has been notified.</strong>
+                  : <button type="button" onClick={requestJoin} disabled={joinState === 'sending'} style={{ fontWeight: 700, textDecoration: 'underline', background: 'none', border: 0, cursor: 'pointer', color: 'inherit', padding: 0 }}>
+                      {joinState === 'sending' ? 'Sending…' : joinState === 'error' ? 'Could not send — try again' : 'Request to join this organisation'}
+                    </button>}
+              </div>
+            </div>
+          )}
+          <p className="auth-panel-intro">Your account is verified. Pick where to start — you can do all of these later.</p>
+          <div style={{display:'grid',gap:10}}>
+            {PROVIDER_GOALS.map(g => (
+              <button key={g.href} type="button" onClick={() => goToGoal(g)} className="auth-role-card" style={{textAlign:'left'}}>
+                <span className="auth-role-card__icon"><i className={`bi ${g.icon}`} aria-hidden="true" /></span>
+                <span style={{flex:1,minWidth:0}}>
+                  <span style={{display:'block',fontSize:15,fontWeight:800,color:'var(--clr-text)'}}>{g.title}</span>
+                  <span style={{display:'block',fontSize:12,color:'var(--clr-muted)',marginTop:2}}>{g.text}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => router.replace('/profile')} className="btn-shiftify"
+            style={{width:'100%',height:'var(--auth-btn-h)',fontSize:14,fontWeight:700,marginTop:14,justifyContent:'center',background:'transparent',color:'var(--clr-text)',border:'1.5px solid var(--clr-border)'}}>
+            Set up my business profile first
+          </button>
         </>
       )}
 
@@ -889,9 +1195,9 @@ function RegisterPageInner() {
             <div style={{width:60,height:60,borderRadius:18,background:'var(--td-pink)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
               <i className="bi bi-phone-fill" style={{color:'#fff',fontSize:26}} />
             </div>
-            <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'var(--clr-text)',textAlign:'center',marginBottom:6,letterSpacing:-0.4}}>Verify your phone</h2>
+            <h2 style={{fontFamily:'var(--font-display)',fontSize:22,fontWeight:800,color:'var(--clr-text)',textAlign:'center',marginBottom:6,letterSpacing:-0.4}}>{role === UserRole.SUPPORT_WORKER ? 'Verify your account' : 'Verify your phone'}</h2>
             <p style={{fontSize:13,color:'var(--clr-muted)',textAlign:'center',marginBottom:24,lineHeight:1.5}}>
-              We sent a 6-digit code to <strong>{phone}</strong>
+              {role === UserRole.SUPPORT_WORKER ? 'Enter the verification code we sent you. ' : ''}We sent a 6-digit code to <strong>{phone}</strong>
             </p>
 
             {devCode && (
@@ -920,7 +1226,7 @@ function RegisterPageInner() {
               className="btn-shiftify"
               style={{width:'100%',height:46,fontSize:15,fontWeight:700,opacity:(otpLoading||otpDigits.join('').length<6)?0.55:1,cursor:(otpLoading||otpDigits.join('').length<6)?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
               {otpLoading && <span style={{width:15,height:15,border:'2px solid rgba(255,255,255,0.4)',borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.7s linear infinite',flexShrink:0}} />}
-              {otpLoading ? 'Verifying...' : 'Verify Phone'}
+              {otpLoading ? 'Verifying...' : role === UserRole.SUPPORT_WORKER ? 'Verify and continue' : 'Verify Phone'}
             </button>
             <div style={{textAlign:'center',marginTop:16,fontSize:13,color:'var(--clr-muted)'}}>
               Didn&apos;t receive it?{' '}
@@ -928,7 +1234,22 @@ function RegisterPageInner() {
                 style={{background:"none",border:"none",cursor:"pointer",color:"var(--clr-primary)",fontWeight:700,fontSize:13,padding:0}}>
                 Resend code
               </button>
+              {' · '}
+              <button type="button" onClick={() => { setChangingContact(v => !v); setNewPhone(phone); setNewEmail(email); setOtpError(null); }}
+                style={{background:"none",border:"none",cursor:"pointer",color:"var(--clr-primary)",fontWeight:700,fontSize:13,padding:0}}>
+                Change email/mobile
+              </button>
             </div>
+            {changingContact && (
+              <div style={{marginTop:14,display:'grid',gap:8}}>
+                <input type="tel" value={newPhone} onChange={e=>setNewPhone(e.target.value)} placeholder="Mobile" style={{...inp}} aria-label="Mobile number" />
+                <input type="email" value={newEmail} onChange={e=>setNewEmail(e.target.value)} placeholder="Email" style={{...inp}} aria-label="Email address" />
+                <button type="button" disabled={contactSaving} onClick={handleChangeContact} className="btn-shiftify"
+                  style={{width:'100%',height:42,fontSize:14,fontWeight:700,justifyContent:'center'}}>
+                  {contactSaving ? 'Saving…' : 'Save and resend code'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

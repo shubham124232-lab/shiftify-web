@@ -30,6 +30,7 @@ function expiresInLabel(deadline: string): string {
 interface MyJob {
   id: string; title: string; status: string; urgency: string; suburb: string;
   applicationDeadlineAt: string | null;
+  cancelledAt?: string | null; cancelledByRole?: string | null;
   _count: { applications: number };
 }
 
@@ -40,6 +41,11 @@ export default function CoordinatorDashboard() {
   const [loading,      setLoading]     = useState(true);
   const [jobsLoading,  setJobsLoading] = useState(true);
   const [error,        setError]       = useState<string | null>(null);
+  // SC-A02 — the first thing the coordinator chose at sign-up, offered once until dismissed.
+  const [goal, setGoal] = useState<{ title: string; href: string } | null>(null);
+  useEffect(() => {
+    try { const raw = localStorage.getItem("shiftify_coordinator_goal"); if (raw) setGoal(JSON.parse(raw)); } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     getDashboard()
@@ -71,20 +77,58 @@ export default function CoordinatorDashboard() {
     { key: "routine",     icon: CalendarDays,  title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
   ];
 
+  // SC-D01 — Post support request, Find workers or providers, Add or connect participant, View responses, Messages.
   const quickActions: QuickAction[] = [
-    { key: "participants", icon: UserCheck,     label: `Add or connect participant (${loading ? "…" : (data?.managedParticipantCount ?? 0)})`, href: "/participants" },
-    { key: "applications", icon: ClipboardList, label: jobsLoading ? "View responses" : `Responses received (${responseCount})`, href: "/jobs/my" },
+    { key: "post",         icon: ClipboardList, label: "Post support request", href: "/jobs/post" },
+    { key: "workers",      icon: Users,         label: "Find workers or providers", href: "/find" },
+    { key: "participants", icon: UserCheck,     label: "Add or connect participant", href: "/participants" },
+    { key: "applications", icon: ClipboardList, label: jobsLoading ? "View responses" : `View responses (${responseCount})`, href: "/jobs/my" },
     { key: "messages",     icon: MessageSquare, label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
-    { key: "workers",      icon: Users,         label: "Find workers or providers", href: "/workers/available" },
+  ];
+
+  // SC-D02 — only the priority items that apply right now are shown.
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const priorityItems: { key: string; text: string; href: string; tone: "red" | "amber" | "slate" }[] = [
+    ...openJobs.filter((j) => j.urgency === "RAPID" && j._count.applications === 0)
+      .map((j) => ({ key: "rapid-" + j.id, text: `Rapid request waiting for responses — ${j.title}`, href: `/jobs/${j.id}`, tone: "red" as const })),
+    ...openJobs.filter((j) => j.urgency === "URGENT" && j._count.applications > 0)
+      .map((j) => ({ key: "urgent-" + j.id, text: `Urgent request with new responses — ${j.title}`, href: `/jobs/${j.id}`, tone: "red" as const })),
+    ...myJobs.filter((j) => j.cancelledByRole === "SUPPORT_WORKER" && j.cancelledAt && new Date(j.cancelledAt).getTime() > weekAgo)
+      .map((j) => ({ key: "cancel-" + j.id, text: `Worker cancelled — replacement needed — ${j.title}`, href: `/jobs/${j.id}`, tone: "red" as const })),
+    ...expiringSoon.slice(0, 3)
+      .map((j) => ({ key: "close-" + j.id, text: `Request closing soon — ${j.title}`, href: `/jobs/${j.id}`, tone: "amber" as const })),
+    ...(!loading && (data?.stats?.awaitingConfirmation ?? 0) > 0
+      ? [{ key: "await", text: `Participant waiting for confirmation (${data?.stats?.awaitingConfirmation})`, href: "/upcoming-support", tone: "amber" as const }] : []),
+    ...(unread > 0 ? [{ key: "unread", text: `Unread message (${unread})`, href: "/messages", tone: "slate" as const }] : []),
+  ];
+
+  // SC-D03 — coordination activity summary.
+  const summary: { label: string; value: number | string }[] = [
+    { label: "Connected participants", value: loading ? "…" : (data?.stats?.connectedParticipants ?? 0) },
+    { label: "Active requests", value: loading ? "…" : (data?.stats?.activeRequests ?? 0) },
+    { label: "New responses", value: loading ? "…" : (data?.stats?.newResponses ?? 0) },
+    { label: "Confirmed support", value: loading ? "…" : (data?.stats?.confirmedSupport ?? 0) },
+    { label: "Unfilled requests", value: loading ? "…" : (data?.stats?.unfilledRequests ?? 0) },
+    { label: "Unread messages", value: loading ? "…" : unread },
   ];
 
   return (
     <div className="container-page space-y-6 py-8">
       <DashboardHeader
         name={(user.name || (user as any).username || "there").split(" ")[0]}
-        description="Manage your participants support requests."
+        description="What would you like to organise today?"
       />
       <SetupBanner />
+
+      {goal && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm">
+          <span className="text-slate-700">You chose to start with: <strong>{goal.title}</strong>.</span>
+          <span className="flex gap-3">
+            <Link href={goal.href} className="font-semibold underline">Continue</Link>
+            <button type="button" className="text-slate-500 underline" onClick={() => { try { localStorage.removeItem("shiftify_coordinator_goal"); } catch { /* ignore */ } setGoal(null); }}>Dismiss</button>
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -93,6 +137,33 @@ export default function CoordinatorDashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ── Main column ── */}
         <div className="space-y-6 lg:col-span-2">
+          {priorityItems.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle>Requests needing attention</CardTitle></CardHeader>
+              <CardContent className="py-2">
+                {priorityItems.slice(0, 6).map((it) => (
+                  <DashboardListRow key={it.key} title={it.text} href={it.href} rightLabel="View"
+                    badge={<span className={`rounded-full px-2 py-0.5 text-xs ${it.tone === "red" ? "bg-red-100 text-red-700" : it.tone === "amber" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{it.tone === "slate" ? "Info" : "Action"}</span>} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader><CardTitle>Your coordination activity</CardTitle></CardHeader>
+            <CardContent className="py-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {summary.map((s) => (
+                  <div key={s.label} className="rounded-lg border border-slate-200 px-3 py-2.5">
+                    <div className="text-xl font-bold text-slate-900">{s.value}</div>
+                    <div className="text-xs text-slate-500">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+              <Link href="/jobs/my" className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline">View all activity →</Link>
+            </CardContent>
+          </Card>
+
           <ActionTilesCard
             title="Post a support request"
             tiles={postTiles}
@@ -171,6 +242,29 @@ export default function CoordinatorDashboard() {
               },
             ]}
           />
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>New worker and provider responses</CardTitle>
+              <Link href="/jobs/my" className="text-sm font-semibold text-brand-600 hover:underline">View all responses →</Link>
+            </CardHeader>
+            <CardContent className="py-2">
+              {loading ? (
+                <p className="py-4 text-sm text-slate-400">Loading…</p>
+              ) : !data?.recentResponses?.length ? (
+                <p className="py-4 text-sm text-slate-500">No new responses right now.</p>
+              ) : data.recentResponses.map((r) => (
+                <DashboardListRow
+                  key={r.id}
+                  icon={<Users className="h-5 w-5" />}
+                  title={`${r.applicant.name} · ${r.applicantType}`}
+                  subtitle={`${r.jobTitle}${r.proposedRate != null ? ` · $${r.proposedRate}/hr` : ""}${r.message ? ` · "${r.message.slice(0, 60)}"` : ""}`}
+                  href={`/jobs/${r.jobId}`}
+                  rightLabel="View"
+                />
+              ))}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">

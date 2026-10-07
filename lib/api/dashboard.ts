@@ -87,11 +87,22 @@ export interface CoordinatorDashboardStats {
   upcomingShifts: number;
   awaitingConfirmation: number;
   managedParticipants: number;
+  connectedParticipants?: number;
+  newResponses?: number;
+  confirmedSupport?: number;
   unreadMessages: number;
+}
+
+export interface CoordinatorRecentResponse {
+  id: string; jobId: string; jobTitle: string; status: string;
+  proposedRate: number | null; message: string | null; createdAt: string;
+  applicant: { id: string; name: string; avatarUrl: string | null };
+  applicantType: "Provider" | "Support worker";
 }
 
 export interface CoordinatorDashboard {
   stats?: CoordinatorDashboardStats;
+  recentResponses?: CoordinatorRecentResponse[];
   openJobs: JobSummary[];
   upcomingShifts: ShiftSummary[];
   awaitingConfirmation: ShiftSummary[];
@@ -120,6 +131,10 @@ export interface ProviderDashboard {
   workerResponses?: { applicationId: string; status: string; applicantName: string | null; job: JobSummary }[];
   /** The Provider's own open staffing requests. */
   myRequests?: JobSummary[];
+  /** Own open requests created to replace a booked shift that fell through. */
+  replacementNeeded?: JobSummary[];
+  /** Insurance and Home and Living listing expiries coming up. */
+  expiringSoon?: { label: string; date: string }[];
   /** The Provider's own outgoing expressions of interest on other people's requests. */
   pendingExpressions: { applicationId: string; job: JobSummary }[];
   activeShifts: ShiftSummary[];

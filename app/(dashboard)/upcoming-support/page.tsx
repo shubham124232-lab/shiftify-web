@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 
 interface Job {
   id: string; title: string; suburb: string; state: string;
-  scheduledStartAt: string; status: string;
+  scheduledStartAt: string; status: string; participantName?: string | null; deliveredByName?: string | null;
 }
 
 type Tab = "UPCOMING" | "IN_PROGRESS" | "COMPLETED";
@@ -68,9 +68,10 @@ export default function UpcomingSupportPage() {
           <div className="flex flex-col gap-2.5">
             {shown.map(job => (
               <div key={job.id} className="bg-white border border-slate-200 rounded-xl px-4.5 py-3.5">
-                <div className="text-sm font-bold text-slate-800 mb-1">{job.title}</div>
+                <div className="text-sm font-bold text-slate-800 mb-1">{job.participantName ? `${job.participantName} · ` : ""}{job.title}</div>
                 <div className="text-xs text-slate-500 mb-2.5">
                   {job.suburb}, {job.state} · {new Date(job.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}
+                  {job.deliveredByName ? ` · ${job.deliveredByName}` : ""} · {job.status.replace("_", " ").toLowerCase()}
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <Link href={`/jobs/${job.id}`} className="h-8 px-3.5 rounded-full border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">View</Link>

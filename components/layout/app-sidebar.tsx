@@ -61,7 +61,7 @@ function navForRole(role: string, managed = false): RoleNav {
           main: [
             dash,
             { href: "/job-invites",  label: "Invitations",      icon: Bell },
-            { href: "/my-support",   label: "Upcoming Support", icon: Calendar },
+            { href: "/my-support",   label: "My Support",       icon: Briefcase },
             { href: "/availability", label: "Availability",     icon: Calendar },
             { href: "/messages",     label: "Messages",         icon: MessageSquare },
             { href: "/help-safety",  label: "Help & Safety",    icon: ShieldCheck },
@@ -72,20 +72,17 @@ function navForRole(role: string, managed = false): RoleNav {
       return {
         main: [
           dash,
-          { href: "/jobs",            label: "Find Shifts",         icon: Search },
+          // SW Journey §4 navigation — exactly these ten items. Live Dashboard, My Jobs and Invoices
+          // are reached from the dashboard quick actions instead of the menu.
+          { href: "/jobs",            label: "Find Work",           icon: Search },
           { href: "/job-invites",     label: "Invitations",         icon: Bell },
           { href: "/connections/my",  label: "My Connections",      icon: Link2 },
-          { href: "/my-support",      label: "Upcoming Support",    icon: Calendar },
           { href: "/availability",    label: "Availability",        icon: Calendar },
+          { href: "/my-support",      label: "My Support",          icon: Briefcase },
           { href: "/messages",        label: "Messages",            icon: MessageSquare },
-          { href: "/profile",         label: "My Profile",          icon: User },
-          { href: "/documents",       label: "Documents",           icon: FileText },
-          { href: "/subscription",    label: "Power Ups & Billing", icon: CreditCard },
+          { href: "/profile",         label: "Profile & Documents", icon: User },
+          { href: "/subscription",    label: "Membership",          icon: CreditCard },
           { href: "/help-safety",     label: "Help & Safety",       icon: ShieldCheck },
-          // Not in the SW v3.0 menu — left as-is pending a product decision.
-          { href: "/live-dashboard",  label: "Live Dashboard",      icon: Search },
-          { href: "/jobs/my",         label: "My Jobs",             icon: Briefcase },
-          { href: "/invoices",        label: "Invoices",            icon: Receipt },
         ],
         account: [NOTIFICATIONS],
       };
@@ -121,12 +118,7 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/profile",              label: "My Profile",                icon: User },
           { href: "/subscription",         label: "Subscription",              icon: CreditCard },
           { href: "/help-safety",          label: "Help",                      icon: ShieldCheck },
-          // Not in the SC menu — left as-is pending a product decision.
-          { href: "/coordinator-connections", label: "Connections",            icon: Link2 },
-          { href: "/jobs?urgent=1",        label: "Urgent Requests",           icon: BarChart2 },
-          { href: "/live-dashboard",       label: "Live Dashboard",            icon: Search },
-          { href: "/workers/available",    label: "Browse Workers",            icon: Search },
-          { href: "/invoices",             label: "Invoices",                  icon: Receipt },
+          // Required documents are a submission gate for Coordinators, so Documents stays reachable.
           { href: "/documents",            label: "Documents",                 icon: FileText },
         ],
         account: [NOTIFICATIONS],
@@ -171,6 +163,14 @@ export function AppSidebar() {
   // Close drawer on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
+  // The job page reports whether the open request is the viewer's own (see jobs/[id]/page.tsx).
+  const [ownJob, setOwnJob] = useState<{ id: string; owner: boolean } | null>(null);
+  useEffect(() => {
+    const h = (e: Event) => setOwnJob((e as CustomEvent<{ id: string; owner: boolean }>).detail);
+    window.addEventListener("shiftify:job-owner", h);
+    return () => window.removeEventListener("shiftify:job-owner", h);
+  }, []);
+
   if (!user) return null;
 
   const nav = navForRole(user.activeRole as string, user.accountType === "MANAGED");
@@ -179,8 +179,11 @@ export function AppSidebar() {
   function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
     const Icon = item.icon;
     // Only the most specific matching item is highlighted, so /jobs/my does not also light up /jobs.
-    const matchesPath = (href: string) => pathname === href || (href !== "/" && !!pathname?.startsWith(href + "/"));
-    const isActive = matchesPath(item.href)
+    const jobId = pathname?.match(/^\/jobs\/([0-9a-f-]{36})$/i)?.[1];
+    const viewingOwnJob = !!jobId && ownJob?.id === jobId && ownJob.owner;
+    const matchesPath = (href: string) => (viewingOwnJob && href === "/jobs/my")
+      || pathname === href || (href !== "/" && !!pathname?.startsWith(href + "/"));
+    const isActive = (viewingOwnJob ? item.href === "/jobs/my" || (matchesPath(item.href) && item.href !== "/jobs") : matchesPath(item.href))
       && ![...nav.main, ...nav.account].some((o) => o.href.length > item.href.length && matchesPath(o.href));
     return (
       <li>

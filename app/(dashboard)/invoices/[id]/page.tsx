@@ -38,10 +38,10 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{
       display: "flex", gap: 12, padding: "12px 0",
-      borderBottom: "1px solid #f1f5f9", alignItems: "flex-start",
+      borderBottom: "1px solid var(--td-grey)", alignItems: "flex-start",
     }}>
-      <span style={{ width: 180, flexShrink: 0, fontSize: 13, color: "#64748b", fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 13, color: "#1e293b", flex: 1, lineHeight: 1.5 }}>{value}</span>
+      <span style={{ width: 180, flexShrink: 0, fontSize: 13, color: "var(--td-muted-dark)", fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--td-ink-800)", flex: 1, lineHeight: 1.5 }}>{value}</span>
     </div>
   );
 }
@@ -76,12 +76,12 @@ export default function InvoiceDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div style={{ padding: 40, color: "#94a3b8" }}>Loading invoice...</div>;
+  if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading invoice...</div>;
 
   if (error || !invoice) {
     return (
       <div style={{ padding: 40 }}>
-        <p style={{ color: "#b91c1c", marginBottom: 16 }}>{error ?? "Invoice not found."}</p>
+        <p style={{ color: "var(--td-pink-hover)", marginBottom: 16 }}>{error ?? "Invoice not found."}</p>
         <Button onClick={() => router.push("/invoices")}>Back to invoices</Button>
       </div>
     );
@@ -89,11 +89,12 @@ export default function InvoiceDetailPage() {
 
   const catLabel = JOB_CATEGORIES.find(c => c.value === invoice.job.category)?.label ?? invoice.job.category;
   const urgencyColors: Record<string, { bg: string; color: string }> = {
-    EMERGENCY: { bg: "#fee2e2", color: "#b91c1c" },
-    SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
-    SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
+    RAPID:       { bg: "var(--td-pink-tint)", color: "var(--td-pink-hover)" },
+    URGENT:      { bg: "var(--td-grey)", color: "var(--td-ink-700)" },
+    LAST_MINUTE: { bg: "var(--td-pink-tint)", color: "var(--td-pink)" },
+    ROUTINE:     { bg: "var(--td-grey)", color: "var(--td-dark-text-soft)" },
   };
-  const urg = urgencyColors[invoice.job.urgency] ?? urgencyColors.SCHEDULED;
+  const urg = urgencyColors[invoice.job.urgency] ?? urgencyColors.ROUTINE;
 
   const scheduledDuration = (() => {
     if (!invoice.job.scheduledEndAt) return null;
@@ -126,7 +127,7 @@ export default function InvoiceDetailPage() {
           <CardHeader><CardTitle>Job details</CardTitle></CardHeader>
           <CardContent>
             <Row label="Job title"         value={<strong>{invoice.job.title}</strong>} />
-            <Row label="Description"       value={invoice.job.description ?? <span style={{ color: "#94a3b8", fontStyle: "italic" }}>No description provided</span>} />
+            <Row label="Description"       value={invoice.job.description ?? <span style={{ color: "var(--td-muted)", fontStyle: "italic" }}>No description provided</span>} />
             <Row label="Service type"      value={catLabel} />
             <Row label="Urgency"           value={<Badge text={invoice.job.urgency.replace("_", " ")} bg={urg.bg} color={urg.color} />} />
             <Row label="Location"          value={`${invoice.job.suburb}, ${invoice.job.state}${invoice.job.postcode ? ` ${invoice.job.postcode}` : ""}`} />
@@ -140,8 +141,8 @@ export default function InvoiceDetailPage() {
             <Row label="Job status"        value={
               <Badge
                 text={invoice.job.status.replace("_", " ")}
-                bg={invoice.job.status === "COMPLETED" ? "#dcfce7" : "#fef9c3"}
-                color={invoice.job.status === "COMPLETED" ? "#15803d" : "#854d0e"}
+                bg={invoice.job.status === "COMPLETED" ? "var(--td-grey)" : "var(--td-grey)"}
+                color={invoice.job.status === "COMPLETED" ? "var(--td-ink-700)" : "var(--td-ink-800)"}
               />
             } />
           </CardContent>
@@ -153,21 +154,21 @@ export default function InvoiceDetailPage() {
           <CardContent>
             <Row
               label="Scheduled hours"
-              value={invoice.job.totalHours ? `${invoice.job.totalHours}h` : <span style={{ color: "#94a3b8" }}>Not recorded on job</span>}
+              value={invoice.job.totalHours ? `${invoice.job.totalHours}h` : <span style={{ color: "var(--td-muted)" }}>Not recorded on job</span>}
             />
             <Row
               label="Actual hours worked"
               value={
                 invoice.hours
                   ? <strong style={{ fontSize: 15 }}>{invoice.hours}h</strong>
-                  : <span style={{ color: "#94a3b8" }}>Not specified</span>
+                  : <span style={{ color: "var(--td-muted)" }}>Not specified</span>
               }
             />
             {invoice.hours && invoice.job.totalHours && invoice.hours !== invoice.job.totalHours && (
               <Row
                 label="Variance"
                 value={
-                  <span style={{ color: invoice.hours > invoice.job.totalHours ? "#b91c1c" : "#15803d", fontWeight: 600 }}>
+                  <span style={{ color: invoice.hours > invoice.job.totalHours ? "var(--td-pink-hover)" : "var(--td-ink-700)", fontWeight: 600 }}>
                     {invoice.hours > invoice.job.totalHours ? "+" : ""}{(invoice.hours - invoice.job.totalHours).toFixed(2)}h vs scheduled
                   </span>
                 }
@@ -175,7 +176,7 @@ export default function InvoiceDetailPage() {
             )}
             <Row
               label="Notes"
-              value={invoice.note ?? <span style={{ color: "#94a3b8", fontStyle: "italic" }}>No notes added</span>}
+              value={invoice.note ?? <span style={{ color: "var(--td-muted)", fontStyle: "italic" }}>No notes added</span>}
             />
           </CardContent>
         </Card>

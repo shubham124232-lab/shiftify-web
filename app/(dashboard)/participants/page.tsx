@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -9,43 +9,114 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
+import { inp } from "@/components/jobs/post/shared";
+import { RepeatSupportModal } from "@/components/jobs/RepeatSupportModal";
 
-interface Participant { id: string; name: string; email: string | null; phone: string | null; ndisNumber?: string; }
+interface ManagedParticipant { id: string; name: string; email: string | null; phone: string | null; ndisNumber?: string; suburb?: string | null; state?: string | null; }
+interface Connection {
+  id: string; status: string; canPostRequests: boolean; initiatedBy?: string;
+  participant: { id: string; name: string; defaultSuburb?: string | null; defaultState?: string | null };
+}
+interface JobSummary {
+  id: string; status: string; urgency: string; forParticipantUserId?: string | null;
+  scheduledStartAt: string; postedAt: string; _count?: { applications: number };
+}
+
+interface PortfolioEntry {
+  id: string; name: string; email: string | null; phone: string | null;
+  source: "MANAGED" | "CONNECTION";
+  connectionStatus?: string; canPostRequests?: boolean; suburb?: string | null; state?: string | null;
+  activeCount: number; unfilledCount: number; newResponseCount: number; lastActivity: string | null;
+  mostRecentJobId: string | null;
+}
 
 export default function ParticipantsPage() {
   const { activeRole } = useAuth();
   const router = useRouter();
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [managed, setManaged] = useState<ManagedParticipant[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [unlinking, setUnlinking] = useState<string | null>(null);
+  const [repeatJobId, setRepeatJobId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "NEW_RESPONSES" | "UNFILLED">("ALL");
+  // SC-PT01 — connection status filter (Connected / Managed / Awaiting approval).
+  const [connFilter, setConnFilter] = useState<"ANY" | "CONNECTED" | "MANAGED" | "PENDING">("ANY");
 
   function load() {
     setLoading(true);
-    api.get<{ users: Participant[] }>("/linking/participants")
-      .then(r => setParticipants(r.users ?? []))
-      .catch(e => setError(e.message))
+    Promise.all([
+      api.get<{ users: ManagedParticipant[] }>("/linking/participants").catch(() => ({ users: [] })),
+      api.get<{ connections: Connection[] }>("/coordinator-connections").catch(() => ({ connections: [] })),
+      api.get<{ jobs: JobSummary[] }>("/jobs/my").catch(() => ({ jobs: [] })),
+    ])
+      .then(([m, c, j]) => {
+        setManaged(m.users ?? []);
+        setConnections(c.connections ?? []);
+        setJobs(j.jobs ?? []);
+      })
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }
+
+  useEffect(() => { if (activeRole === UserRole.COORDINATOR) load(); }, [activeRole]); // eslint-disable-line
 
   async function handleUnlink(id: string, name: string) {
     if (!confirm(`Remove ${name} from your participants? They will no longer be linked to you.`)) return;
     setUnlinking(id);
     try {
       await api.del(`/linking/participants/${id}`);
-      setParticipants(prev => prev.filter(p => p.id !== id));
+      setManaged((prev) => prev.filter((p) => p.id !== id));
     } catch (err: any) { setError(err?.message ?? "Failed to remove participant."); }
     finally { setUnlinking(null); }
   }
 
-  useEffect(() => { if (activeRole === UserRole.COORDINATOR) load(); }, [activeRole]); // eslint-disable-line
+
+  const portfolio: PortfolioEntry[] = useMemo(() => {
+    const acceptedConnections = connections.filter((c) => c.status === "ACCEPTED" || c.status === "PENDING");
+    const entries: PortfolioEntry[] = [
+      ...managed.map((p) => ({
+        id: p.id, name: p.name, email: p.email, phone: p.phone, source: "MANAGED" as const, suburb: p.suburb, state: p.state,
+        activeCount: 0, unfilledCount: 0, newResponseCount: 0, lastActivity: null as string | null, mostRecentJobId: null as string | null,
+      })),
+      ...acceptedConnections.map((c) => ({
+        id: c.participant.id, name: c.participant.name, email: null, phone: null, source: "CONNECTION" as const,
+        connectionStatus: c.status, canPostRequests: c.canPostRequests, suburb: c.participant.defaultSuburb, state: c.participant.defaultState,
+        activeCount: 0, unfilledCount: 0, newResponseCount: 0, lastActivity: null as string | null, mostRecentJobId: null as string | null,
+      })),
+    ];
+    for (const entry of entries) {
+      const theirJobs = jobs.filter((j) => j.forParticipantUserId === entry.id);
+      entry.activeCount = theirJobs.filter((j) => !["CANCELLED", "COMPLETED", "CONFIRMED", "DRAFT"].includes(j.status)).length;
+      entry.unfilledCount = theirJobs.filter((j) => j.status === "OPEN").length;
+      entry.newResponseCount = theirJobs.filter((j) => j.status === "OPEN" && (j._count?.applications ?? 0) > 0).length;
+      const sorted = [...theirJobs].sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+      entry.lastActivity = sorted[0]?.postedAt ?? null;
+      entry.mostRecentJobId = sorted[0]?.id ?? null;
+    }
+    return entries;
+  }, [managed, connections, jobs]);
+
+  const filtered = portfolio.filter((p) => {
+    const q = search.trim().toLowerCase();
+    if (q && !p.name.toLowerCase().includes(q) && !(p.suburb ?? "").toLowerCase().includes(q)) return false;
+    if (connFilter === "CONNECTED" && !(p.source === "CONNECTION" && p.connectionStatus === "ACCEPTED")) return false;
+    if (connFilter === "MANAGED" && p.source !== "MANAGED") return false;
+    if (connFilter === "PENDING" && p.connectionStatus !== "PENDING") return false;
+    if (statusFilter === "ACTIVE" && p.activeCount === 0) return false;
+    if (statusFilter === "NEW_RESPONSES" && p.newResponseCount === 0) return false;
+    if (statusFilter === "UNFILLED" && p.unfilledCount === 0) return false;
+    return true;
+  });
 
   if (activeRole !== UserRole.COORDINATOR) {
     return (
       <>
         <PageHeader title="My Participants" />
-        <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>This page is only available to Coordinator accounts.</p>
+        <div className="px-5 py-8">
+          <p className="text-sm text-slate-500">This page is only available to Coordinator accounts.</p>
         </div>
       </>
     );
@@ -56,54 +127,100 @@ export default function ParticipantsPage() {
       <PageHeader
         title="My Participants"
         description="Participants you support and can post jobs on behalf of."
-        actions={
-          <button
-            onClick={() => router.push("/participants/new")}
-            style={{ height: 40, padding: "0 18px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
-          >
-            + Add Participant
-          </button>
-        }
+        actions={<div className="flex gap-2"><Button variant="outline" onClick={() => router.push("/participants/connect")}>Connect existing participant</Button><Button onClick={() => router.push("/participants/new")}>+ Add Participant</Button></div>}
       />
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div className="mx-auto max-w-3xl px-5 py-6 flex flex-col gap-5">
 
-{error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>{error}</div>}
+        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-sm text-red-700">{error}</div>}
+
+        {/* SC-B03 — participant enquiries (connection requests started by the participant). */}
+        {connections.filter((c) => c.status === "PENDING" && c.initiatedBy === "PARTICIPANT").length > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="m-0 text-sm text-amber-800">
+              <strong>{connections.filter((c) => c.status === "PENDING" && c.initiatedBy === "PARTICIPANT").length}</strong> participant {connections.filter((c) => c.status === "PENDING" && c.initiatedBy === "PARTICIPANT").length === 1 ? "enquiry is" : "enquiries are"} waiting for your response.
+            </p>
+            <Link href="/coordinator-connections"><Button size="sm">View enquiry</Button></Link>
+          </div>
+        )}
+
+        <div className="flex gap-3 flex-wrap items-center">
+          <input className={`${inp} max-w-xs`} placeholder="Search by name or suburb" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex gap-2">
+            {([
+              { v: "ALL", l: "All" }, { v: "ACTIVE", l: "Active" },
+              { v: "NEW_RESPONSES", l: "New responses" }, { v: "UNFILLED", l: "Unfilled" },
+            ] as const).map((opt) => (
+              <button key={opt.v} type="button" onClick={() => setStatusFilter(opt.v)}
+                className={`h-8 px-3 rounded-full border text-xs font-medium transition-colors ${statusFilter === opt.v ? "border-brand-500 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                {opt.l}
+              </button>
+            ))}
+          </div>
+          <select className={`${inp} max-w-[11rem]`} value={connFilter} onChange={(e) => setConnFilter(e.target.value as typeof connFilter)} aria-label="Connection status">
+            <option value="ANY">Any connection</option>
+            <option value="CONNECTED">Connected</option>
+            <option value="MANAGED">Managed account</option>
+            <option value="PENDING">Awaiting approval</option>
+          </select>
+        </div>
 
         <Card>
-          <CardHeader><CardTitle>Participants ({participants.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Participants ({filtered.length})</CardTitle></CardHeader>
           <CardContent>
-            {loading ? <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
-              : participants.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "32px 0" }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>👤</div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>No participants yet</p>
-                  <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>Add participants to post jobs on their behalf.</p>
+            {loading ? <p className="text-sm text-slate-400">Loading...</p>
+              : filtered.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-4xl mb-3">👤</div>
+                  <p className="text-sm font-semibold text-slate-700">No participants found</p>
+                  <p className="text-xs text-slate-400 mt-1">Add participants to post jobs on their behalf, or connect with an existing one.</p>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {participants.map(p => (
-                    <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#fce7f3", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#be185d" }}>
-                        {p.name[0]}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>{p.name}</div>
-                        <div style={{ fontSize: 12, color: "#94a3b8" }}>
-                          {p.email ?? p.phone ?? "No contact"}
-                          {p.ndisNumber && <span> · NDIS: {p.ndisNumber}</span>}
+                <div className="flex flex-col gap-2.5">
+                  {filtered.map((p) => (
+                    <div key={p.id} className="flex flex-col gap-2 px-3.5 py-3 border border-slate-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-pink-50 flex items-center justify-center text-base font-bold text-pink-700 shrink-0">
+                          {p.name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-slate-800">{p.name}</span>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${p.source === "MANAGED" ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
+                              {p.source === "MANAGED" ? "Managed account" : p.connectionStatus === "PENDING" ? "Awaiting participant approval" : "Connected"}
+                            </span>
+                            {p.source === "CONNECTION" && p.canPostRequests === false && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Posting not authorised</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {p.suburb ? `${p.suburb}${p.state ? `, ${p.state}` : ""}` : (p.email ?? p.phone ?? "No location")}
+                            {p.lastActivity && <span> · Last activity {new Date(p.lastActivity).toLocaleDateString("en-AU")}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          <Link href={`/participants/${p.id}?source=${p.source}`}><Button variant="outline" size="sm">View</Button></Link>
+                          {p.source === "MANAGED" && (
+                            <>
+                              <Link href={`/participants/${p.id}/edit`}><Button variant="outline" size="sm">Edit</Button></Link>
+                              <Button variant="outline" size="sm" onClick={() => handleUnlink(p.id, p.name)} disabled={unlinking === p.id}>
+                                {unlinking === p.id ? "..." : "Remove"}
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <Link href={`/participants/${p.id}/edit`}>
-                          <button style={{ height: 32, padding: "0 12px", background: "transparent", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#374151", cursor: "pointer" }}>Edit</button>
-                        </Link>
-                        <button
-                          onClick={() => handleUnlink(p.id, p.name)}
-                          disabled={unlinking === p.id}
-                          style={{ height: 32, padding: "0 12px", background: "transparent", border: "1px solid #fecaca", borderRadius: 8, fontSize: 12, color: "#b91c1c", cursor: "pointer" }}
-                        >
-                          {unlinking === p.id ? "..." : "Remove"}
-                        </button>
+                      <div className="flex items-center gap-2 flex-wrap pl-12">
+                        <span className="text-[11px] text-slate-500">{p.activeCount} active</span>
+                        <span className="text-[11px] text-slate-300">·</span>
+                        <span className="text-[11px] text-slate-500">{p.unfilledCount} unfilled</span>
+                        <span className="text-[11px] text-slate-300">·</span>
+                        <span className="text-[11px] text-slate-500">{p.newResponseCount} new responses</span>
+                        {p.mostRecentJobId && (
+                          <button type="button" onClick={() => setRepeatJobId(p.mostRecentJobId!)}
+                            className="ml-auto text-[11px] font-medium text-brand-600 hover:text-brand-700 underline">
+                            Repeat previous request
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -112,6 +229,7 @@ export default function ParticipantsPage() {
           </CardContent>
         </Card>
       </div>
+      {repeatJobId && <RepeatSupportModal jobId={repeatJobId} onClose={() => setRepeatJobId(null)} />}
     </>
   );
 }

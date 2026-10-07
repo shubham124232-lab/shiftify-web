@@ -33,7 +33,7 @@ const metaLabel: React.CSSProperties = {
 const metaInput: React.CSSProperties = {
   width: '100%', height: 36, padding: '0 10px', borderRadius: 8,
   border: '1px solid var(--clr-border)', fontSize: 12, outline: 'none',
-  background: '#fff', boxSizing: 'border-box',
+  background: 'var(--td-white)', boxSizing: 'border-box',
 };
 
 export function FileUploadField({
@@ -138,8 +138,8 @@ export function FileUploadField({
         style={{
           width: '100%', padding: '14px 16px',
           borderRadius: 10,
-          border: isDone ? '1.5px solid #22c55e' : '1.5px dashed var(--clr-border)',
-          background: isDone ? '#F0FFF4' : 'var(--clr-surface)',
+          border: isDone ? '1.5px solid var(--td-muted-dark)' : '1.5px dashed var(--clr-border)',
+          background: isDone ? 'var(--td-grey-tint)' : 'var(--clr-surface)',
           cursor: 'pointer', textAlign: 'left',
           display: 'flex', alignItems: 'center', gap: 10,
           transition: 'all 0.15s',
@@ -147,10 +147,10 @@ export function FileUploadField({
       >
         <i
           className={`bi ${isDone ? 'bi-check-circle-fill' : 'bi-cloud-upload-fill'}`}
-          style={{ fontSize: 18, color: isDone ? '#22c55e' : 'var(--clr-primary)', flexShrink: 0 }}
+          style={{ fontSize: 18, color: isDone ? 'var(--td-muted-dark)' : 'var(--clr-primary)', flexShrink: 0 }}
         />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: isDone ? '#16a34a' : 'var(--clr-text)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: isDone ? 'var(--td-dark-text-soft)' : 'var(--clr-text)' }}>
             {isDone
               ? localName ?? 'File uploaded ✓'
               : status === 'idle'
@@ -183,7 +183,7 @@ export function FileUploadField({
       )}
 
       {error && (
-        <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4, marginBottom: 0 }}>
+        <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4, marginBottom: 0 }}>
           <i className="bi bi-exclamation-circle" style={{ marginRight: 4 }} />{error}
         </p>
       )}

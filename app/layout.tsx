@@ -6,12 +6,12 @@ import ScrollEffects from '@/components/ui/ScrollEffects';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Shiftify — NDIS Support Marketplace',
+    default: 'Shiftify — Live Shiftboard for Disability Support',
     template: '%s | Shiftify',
   },
   description:
-    "Australia's trusted NDIS marketplace. Find verified support workers, providers, and coordinators instantly. Emergency help available 24/7.",
-  keywords: ['NDIS', 'disability support', 'support workers', 'Australia', 'care'],
+    "Shiftify is an independent technology platform connecting participants, support coordinators, providers and support workers across Australia's disability support community. Use the Live Shiftboard to post, find and respond to support opportunities.",
+  keywords: ['disability support', 'support workers', 'support coordination', 'Live Shiftboard', 'Australia'],
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://shiftify.com.au'),
   openGraph: {
     siteName: 'Shiftify',
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Poppins:wght@300;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>

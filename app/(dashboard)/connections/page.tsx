@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { UserRole } from "@/lib/types";
 
 interface Connection {
@@ -19,6 +20,7 @@ export default function ConnectionsPage() {
   const [conns,   setConns]   = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [userId,  setUserId]  = useState("");
   const [sending, setSending] = useState(false);
   const [acting,  setActing]  = useState<string | null>(null);
@@ -46,12 +48,19 @@ export default function ConnectionsPage() {
     finally { setSending(false); }
   }
 
-  async function respond(id: string, action: "accept" | "decline") {
+  async function respond(id: string, action: "ACCEPT" | "DECLINE") {
     setActing(id);
+    setError(null); setUpgradeMessage(null);
     try {
       await api.patch(`/pm/connections/${id}/respond`, { action });
       load();
-    } catch (err: any) { setError(err?.message); }
+    } catch (err: unknown) {
+      if (err instanceof ApiError && (err.code === "SUBSCRIPTION_LIMIT" || err.code === "SUBSCRIPTION_REQUIRED")) {
+        setUpgradeMessage(err.message);
+      } else {
+        setError((err as { message?: string })?.message ?? "Action failed.");
+      }
+    }
     finally { setActing(null); }
   }
 
@@ -60,7 +69,7 @@ export default function ConnectionsPage() {
       <>
         <PageHeader title="Connections" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>This page is only available to Plan Managers.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>This page is only available to Plan Managers.</p>
         </div>
       </>
     );
@@ -82,7 +91,7 @@ export default function ConnectionsPage() {
               <input
                 value={userId} onChange={e => setUserId(e.target.value)}
                 placeholder="Participant user ID..."
-                style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid #e2e8f0", borderRadius: 8, fontSize: 14, outline: "none" }}
+                style={{ flex: 1, height: 40, padding: "0 12px", border: "1.5px solid var(--td-border)", borderRadius: 8, fontSize: 14, outline: "none" }}
               />
               <Button type="submit" loading={sending} disabled={!userId.trim()}>
                 Send request
@@ -91,7 +100,8 @@ export default function ConnectionsPage() {
           </CardContent>
         </Card>
 
-        {error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>{error}</div>}
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
+        {error && <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>{error}</div>}
 
         {/* Pending */}
         {pending.length > 0 && (
@@ -99,13 +109,13 @@ export default function ConnectionsPage() {
             <CardHeader><CardTitle>Pending requests ({pending.length})</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {pending.map(c => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #fde68a", borderRadius: 10, background: "#fffbeb" }}>
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid var(--td-border)", borderRadius: 10, background: "var(--td-grey-tint)" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{c.participant.name}</div>
-                    <div style={{ fontSize: 12, color: "#94a3b8" }}>{c.participant.email ?? "No email"}</div>
+                    <div style={{ fontSize: 12, color: "var(--td-muted)" }}>{c.participant.email ?? "No email"}</div>
                   </div>
-                  <Button size="sm" disabled={acting === c.id} onClick={() => respond(c.id, "accept")}>Accept</Button>
-                  <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respond(c.id, "decline")}>Decline</Button>
+                  <Button size="sm" disabled={acting === c.id} onClick={() => respond(c.id, "ACCEPT")}>Accept</Button>
+                  <Button size="sm" variant="ghost" disabled={acting === c.id} onClick={() => respond(c.id, "DECLINE")}>Decline</Button>
                 </div>
               ))}
             </CardContent>
@@ -116,20 +126,20 @@ export default function ConnectionsPage() {
         <Card>
           <CardHeader><CardTitle>Active connections ({accepted.length})</CardTitle></CardHeader>
           <CardContent>
-            {loading ? <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
-              : accepted.length === 0 ? <p style={{ color: "#94a3b8", fontSize: 13 }}>No active connections yet.</p>
+            {loading ? <p style={{ color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
+              : accepted.length === 0 ? <p style={{ color: "var(--td-muted)", fontSize: 13 }}>No active connections yet.</p>
               : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {accepted.map(c => (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#15803d" }}>
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--td-grey)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "var(--td-ink-700)" }}>
                         {c.participant.name[0]}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 14, fontWeight: 600 }}>{c.participant.name}</div>
-                        <div style={{ fontSize: 12, color: "#94a3b8" }}>{c.participant.email ?? "No email"}</div>
+                        <div style={{ fontSize: 12, color: "var(--td-muted)" }}>{c.participant.email ?? "No email"}</div>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d", background: "#dcfce7", padding: "2px 10px", borderRadius: 20 }}>Active</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "var(--td-ink-700)", background: "var(--td-grey)", padding: "2px 10px", borderRadius: 20 }}>Active</span>
                     </div>
                   ))}
                 </div>

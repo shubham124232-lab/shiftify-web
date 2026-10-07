@@ -1,33 +1,35 @@
-import Header             from '@/components/landing/Header';
-import HeroSection         from '@/components/landing/HeroSection';
-import QuickActionSection  from '@/components/landing/QuickActionSection';
-import ServicesSection     from '@/components/landing/ServicesSection';
-import HowItWorksSection   from '@/components/landing/HowItWorksSection';
-import TrustSection        from '@/components/landing/TrustSection';
-import MarketplaceSection  from '@/components/landing/MarketplaceSection';
-import RolesSection        from '@/components/landing/RolesSection';
-import TestimonialsSection from '@/components/landing/TestimonialsSection';
-import PricingSection      from '@/components/landing/PricingSection';
-import FinalCTASection     from '@/components/landing/FinalCTASection';
-import Footer              from '@/components/landing/Footer';
-import EmergencyFAB        from '@/components/landing/EmergencyFAB';
+import './home.css';
+
+import HomeNav                from '@/components/landing/home/HomeNav';
+import HomeHero               from '@/components/landing/home/HomeHero';
+import AccessibilityBar       from '@/components/landing/home/AccessibilityBar';
+import TimingLanesSection     from '@/components/landing/home/TimingLanesSection';
+import HomeServicesSection    from '@/components/landing/home/HomeServicesSection';
+import CommunityStoriesSection from '@/components/landing/home/CommunityStoriesSection';
+import PricingSection         from '@/components/landing/home/PricingSection';
+import HowItWorksSection      from '@/components/landing/home/HowItWorksSection';
+import PlatinumPlacementSection from '@/components/landing/home/PlatinumPlacementSection';
+import ListingBoostCta        from '@/components/landing/home/ListingBoostCta';
+import SilSdaSection          from '@/components/landing/home/SilSdaSection';
+import LaneTicker            from '@/components/landing/home/LaneTicker';
+import SiteFooter             from '@/components/landing/home/SiteFooter';
 
 export default function HomePage() {
   return (
-    <>
-      <Header />
-      <HeroSection />
-      <QuickActionSection />
-      <ServicesSection />
+    <div className="sf-home">
+      <HomeNav />
+      <HomeHero />
+      <AccessibilityBar />
+      <TimingLanesSection />
       <HowItWorksSection />
-      <TrustSection />
-      <MarketplaceSection />
-      <RolesSection />
-      <TestimonialsSection />
+      <HomeServicesSection />
+      <CommunityStoriesSection />
       <PricingSection />
-      <FinalCTASection />
-      <Footer />
-      <EmergencyFAB />
-    </>
+      <PlatinumPlacementSection />
+      <ListingBoostCta />
+      <SilSdaSection />
+      <LaneTicker />
+      <SiteFooter />
+    </div>
   );
 }

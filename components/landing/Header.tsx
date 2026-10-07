@@ -12,8 +12,9 @@ const navLinks = [
 
 export default function Header() {
   return (
-    <header className="site-header" role="banner">
-      <a href="#main-content" className="skip-link">Skip to main content</a>
+    <>
+      <header className="site-header" role="banner">
+        <a href="#main-content" className="skip-link">Skip to main content</a>
       <div className="container-xl">
         <div className="flex items-center justify-between">
 
@@ -28,7 +29,7 @@ export default function Header() {
               <a
                 key={label}
                 href={href}
-                style={{ fontSize: 14, fontWeight: 600, color: 'var(--clr-text)', padding: '8px 14px', borderRadius: 9, transition: 'all 0.2s', textDecoration: 'none' }}
+                style={{ fontSize: 18, fontWeight: 600, color: 'var(--clr-text)', padding: '8px 14px', borderRadius: 9, transition: 'all 0.2s', textDecoration: 'none' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--clr-primary)'; (e.currentTarget as HTMLAnchorElement).style.background = 'var(--clr-primary-xlight)'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--clr-text)'; (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
               >
@@ -39,20 +40,25 @@ export default function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <a href="/login" className="btn-shiftify-black hidden md:inline-flex" style={{ padding: '9px 20px', fontSize: 14 }}>
+            <a href="/login" className="hidden md:inline-flex items-center gap-2" style={{ padding: '9px 12px', fontSize: 14, fontWeight: 700, color: 'var(--clr-text)', textDecoration: 'none' }}>
+              <i className="bi bi-box-arrow-in-right" style={{ color: 'var(--clr-text)' }} aria-hidden="true" />
               Log In
             </a>
-            <a href="/register" className="btn-shiftify" style={{ padding: '9px 20px', fontSize: 14 }}>
-              Get Started
+            <a href="/register" className="btn-join-dark inline-flex items-center gap-2" style={{ padding: '9px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', border: '2px solid transparent', borderRadius: 'var(--btn-radius)' }}>
+              <span className="blink-text inline-flex items-center gap-2">
+                <i className="bi bi-person-fill" aria-hidden="true" />
+                Join Shiftify
+              </span>
             </a>
-            <a href="#emergency" className="btn-emergency ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Emergency Support — Get help immediately">
-              <span className="dot" aria-hidden="true" />
-              Emergency
+            <a href="/shiftboard" className="btn-shiftify ml-1" style={{ padding: '9px 18px', fontSize: 13 }} aria-label="Open the Live Shiftboard">
+              <i className="bi bi-broadcast" aria-hidden="true" />
+              Live Shiftboard
             </a>
           </div>
 
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 }

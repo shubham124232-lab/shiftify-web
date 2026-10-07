@@ -6,28 +6,50 @@ import logoImg from '@/public/images/logo.png';
 interface AuthLayoutProps {
   children: React.ReactNode;
   mode?: 'login' | 'register';
+  /** 'split' keeps the branded left panel (login). 'centered' drops it and
+   *  centres the form on the theme-grey canvas (register). */
+  variant?: 'split' | 'centered';
+  /** Centered variant only: journey title + step rail rendered above the card. */
+  head?: React.ReactNode;
+  /** Centered variant only: width of the centred column. */
+  maxWidth?: number;
+  /** Drops the card's own padding so children can run edge to edge. */
+  flush?: boolean;
 }
 
 const trustBadges = [
-  { icon: 'bi-shield-fill-check',       label: 'NDIS Registered & Compliant', sub: 'Fully certified platform'  },
-  { icon: 'bi-patch-check-fill',         label: 'Verified Support Workers',    sub: '100% background checked'   },
-  { icon: 'bi-lightning-charge-fill',    label: 'Emergency Response 24/7',     sub: 'Average 8-min response'    },
+  { icon: 'bi-shield-fill-check',       label: 'Independent Platform',        sub: 'Not endorsed by the NDIA or NDIS' },
+  { icon: 'bi-patch-check-fill',         label: 'Credentials on Profiles',     sub: 'Workers submit required documents' },
+  { icon: 'bi-lightning-charge-fill',    label: 'Live Shiftboard',             sub: 'Post, find and respond to shifts'  },
 ] as const;
 
 const stats = [
-  { num: '12K+', lbl: 'Support Workers'   },
-  { num: '98%',  lbl: 'Satisfaction Rate' },
-  { num: '24/7', lbl: 'Emergency Cover'   },
+  { num: '4',  lbl: 'Job priority labels' },
+  { num: '5',  lbl: 'Account types'       },
+  { num: '0%', lbl: 'Shift commission'    },
 ] as const;
 
-export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps) {
-  const isLogin = mode === 'login';
+export default function AuthLayout({ children, mode = 'login', variant = 'split', head, maxWidth = 720, flush = false }: AuthLayoutProps) {
+  const isLogin  = mode === 'login';
+  const centered = variant === 'centered';
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--clr-bg)' }}>
+    <div
+      className={centered ? 'td-auth' : undefined}
+      style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: centered ? 'var(--td-light-bg-1)' : 'var(--clr-bg)' }}
+    >
 
       {/* Mini Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 999, background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--clr-border)', height: 68, display: 'flex', alignItems: 'center' }} role="banner">
+      <header
+        style={{
+          position: 'sticky', top: 0, zIndex: 999,
+          background: centered ? 'var(--td-white)' : 'rgba(255,255,255,0.96)',
+          backdropFilter: centered ? undefined : 'blur(12px)',
+          borderBottom: '1px solid var(--clr-border)',
+          height: 68, display: 'flex', alignItems: 'center',
+        }}
+        role="banner"
+      >
         <a href="#main-content" className="skip-link">Skip to main content</a>
         <div style={{ width: '100%', padding: '0 1.5rem' }}>
           <div className="flex items-center justify-between">
@@ -35,8 +57,8 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
               <Image src={logoImg.src} alt="Shiftify" width={160} height={55} priority />
             </Link>
             <div className="flex items-center gap-2">
-              <span style={{ fontSize: 14, color: 'var(--clr-muted)', fontWeight: 500 }}>
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}
+              <span className="hidden sm:inline" style={{ fontSize: 14, color: 'var(--clr-muted)', fontWeight: 500 }}>
+                {isLogin ? 'Don’t have an account?' : 'Already have an account?'}
               </span>
               <Link href={isLogin ? '/register' : '/login'} className="btn-shiftify" style={{ fontSize: 13, padding: '8px 18px' }}>
                 {isLogin ? 'Sign Up' : 'Log In'}
@@ -46,7 +68,16 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
         </div>
       </header>
 
-      {/* Split Body */}
+      {centered ? (
+        /* Centered: a single column on the theme-grey canvas — no branded side panel */
+        <main id="main-content" className="auth-centered">
+          <div className="auth-shell" style={{ maxWidth }}>
+            {head}
+            <div className={flush ? 'auth-card is-flush' : 'auth-card'}>{children}</div>
+          </div>
+        </main>
+      ) : (
+      /* Split Body */
       <main id="main-content" style={{ flex: 1, display: 'flex', minHeight: 'calc(100vh - 68px)' }}>
 
         {/* Left: Branded Panel */}
@@ -63,14 +94,14 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
           <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 100, padding: '7px 16px', fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: '#fff', marginBottom: 28 }}>
               <span style={{ width: 7, height: 7, background: '#fff', borderRadius: '50%', animation: 'blink 1.5s infinite' }} />
-              Trusted NDIS Marketplace
+              Independent Support Platform
             </div>
 
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(26px, 2.8vw, 38px)', fontWeight: 800, lineHeight: 1.15, letterSpacing: -1, color: '#fff', marginBottom: 16 }}>
-              Support when <span style={{ color: '#FFCDD2' }}>every minute</span> matters
+              Support, <span style={{ color: '#FFCDD2' }}>right where</span> it&apos;s needed
             </h2>
             <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.78)', lineHeight: 1.75, fontWeight: 500, marginBottom: 36, maxWidth: 360 }}>
-              Connecting participants, support workers, and providers across Australia — fast, safe, and NDIS compliant.
+              An independent technology platform connecting participants, support coordinators, providers and support workers across Australia&apos;s disability support community.
             </p>
 
             {/* Trust Badges */}
@@ -101,7 +132,7 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
             {/* Live chip */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 100, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: '#fff' }}>
               <span style={{ width: 7, height: 7, background: '#fff', borderRadius: '50%', animation: 'blink 1.5s infinite' }} />
-              247 support requests active right now
+              Live Shiftboard · Australia-wide
             </div>
           </div>
         </aside>
@@ -114,17 +145,11 @@ export default function AuthLayout({ children, mode = 'login' }: AuthLayoutProps
         </section>
 
       </main>
+      )}
 
-      {/* Sticky Emergency FAB */}
-      <button
-        className="emergency-fab"
-        aria-label="Emergency Support — Get immediate help"
-        onClick={() => { window.location.href = '/#emergency'; }}
-      >
-        <span aria-hidden="true">🆘</span>
-        Emergency Support
-        <span style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%', animation: 'blink 1s infinite' }} aria-hidden="true" />
-      </button>
+      <p role="note" style={{ margin: 0, padding: '12px 16px', textAlign: 'center', fontSize: 12, color: 'var(--clr-muted)' }}>
+        Shiftify is not an emergency service. If someone is in immediate danger, call 000.
+      </p>
 
     </div>
   );

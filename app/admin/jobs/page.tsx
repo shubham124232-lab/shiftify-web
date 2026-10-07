@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { listAdminJobs, cancelJob, type AdminJob } from "@/lib/api/admin";
 
 const STATUSES   = ["", "OPEN", "ASSIGNED", "IN_PROGRESS", "COMPLETED", "CONFIRMED", "CANCELLED", "DRAFT"];
-const URGENCIES  = ["", "EMERGENCY", "SAME_DAY", "SCHEDULED"];
+const URGENCIES  = ["", "RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
 
 export default function AdminJobsPage() {
   const [jobs, setJobs]       = useState<AdminJob[]>([]);
@@ -90,8 +90,8 @@ export default function AdminJobsPage() {
                       <td className="px-4 py-3 text-slate-500">{j.category.replace("_", " ")}</td>
                       <td className="px-4 py-3">
                         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          j.urgency === "EMERGENCY" ? "bg-red-100 text-red-700" :
-                          j.urgency === "SAME_DAY"  ? "bg-orange-100 text-orange-700" :
+                          j.urgency === "RAPID"  ? "bg-red-100 text-red-700" :
+                          j.urgency === "URGENT" ? "bg-orange-100 text-orange-700" :
                           "bg-slate-100 text-slate-600"
                         }`}>{j.urgency}</span>
                       </td>

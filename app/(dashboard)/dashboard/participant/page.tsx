@@ -1,53 +1,50 @@
 "use client";
 
+import "../../../home.css";
+import "../../../shiftboard.css";
+
 import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-tiles";
+import { MyRequestsCard, categoryLabel } from "@/components/dashboard/my-requests-card";
+import { DashboardListRow } from "@/components/dashboard/list-row";
+import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
+import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
+import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { getDashboard, type ParticipantDashboard } from "@/lib/api/dashboard";
+import { api } from "@/lib/api";
+import {
+  Zap, Clock, CalendarClock, CalendarDays, Plus, RefreshCw,
+  MessageSquare, ClipboardList, SlidersHorizontal, User,
+} from "lucide-react";
 
-// ─── Placeholder data ──────────────────────────────────────────────────────────────────────────────
-// TODO: replace each block with a real API call when the backend endpoint is ready.
+interface SavedPro {
+  id: string;
+  professionalUserId: string;
+  professional: {
+    name: string;
+    workerProfile: { rating: number; totalReviews: number; servicesOffered: string[] | null } | null;
+    providerProfile: { averageRating: number; totalRatings: number; coreServices: string[] | null; businessName: string | null } | null;
+  };
+}
 
-const PH_STATS = {
-  applicationsReceived: 7,
-  urgentRequests:       1,
-  draftPosts:           3,
-  unreadMessages:       4,
-  savedWorkers:        12,
-};
-
-const PH_DRAFTS = [
-  { id: "d1", title: "Morning Personal Care Support",  updatedAt: "14 Jun" },
-  { id: "d2", title: "Community Access – Saturday",    updatedAt: "13 Jun" },
-  { id: "d3", title: "Overnight Support – Weekly",     updatedAt: "11 Jun" },
-];
-
-const PH_RECURRING = [
-  { id: "r1", title: "Weekly Domestic Assistance",   schedule: "Every Mon 9 am"     },
-  { id: "r2", title: "Fortnightly Community Access", schedule: "Every 2nd Fri 1 pm" },
-];
-
-const PH_SAVED_WORKERS = [
-  { id: "w1", name: "Sarah M.", service: "Personal Care",       rating: 4.9 },
-  { id: "w2", name: "James T.", service: "Community Access",    rating: 4.7 },
-  { id: "w3", name: "Priya K.", service: "Domestic Assistance", rating: 4.8 },
-];
-
-const PH_RECOMMENDED = [
-  { id: "m1", name: "Alex R.",  match: 96, service: "Personal Care, Transport" },
-  { id: "m2", name: "Chloe B.", match: 91, service: "Community Access"         },
-];
-// ──────────────────────────────────────────────────────────────────────────────
+interface MyJob {
+  id: string; title: string; status: string; category: string; postedAt: string;
+  isRecurring: boolean; scheduledStartAt: string; urgency?: string;
+  _count: { applications: number };
+}
 
 export default function ParticipantDashboard() {
   const { user } = useAuth();
   const [data,    setData]    = useState<ParticipantDashboard | null>(null);
+  const [myJobs,  setMyJobs]  = useState<MyJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [savedPros, setSavedPros] = useState<SavedPro[]>([]);
+  const [savedLoading, setSavedLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,189 +52,161 @@ export default function ParticipantDashboard() {
       .then((d) => setData(d as ParticipantDashboard))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+    api.get<{ jobs: MyJob[] }>("/jobs/my")
+      .then((r) => setMyJobs(r.jobs ?? []))
+      .catch(() => {})
+      .finally(() => setJobsLoading(false));
+    api.get<{ saved: SavedPro[] }>("/saved-professionals")
+      .then((r) => setSavedPros(r.saved ?? []))
+      .catch(() => {})
+      .finally(() => setSavedLoading(false));
   }, []);
 
   if (!user) return null;
 
-  return (
-    <>
-      <PageHeader
-        title={`Welcome, ${(user.name || (user as any).username || "there").split(" ")[0]}`}
-        description="Your support requests and upcoming shifts."
-        actions={
-          <div className="flex gap-2">
-            <Link href="/jobs/post"><Button>Post New Request</Button></Link>
-            <Link href="/jobs/post?urgent=true">
-              <Button variant="outline" size="sm">⚡ Post Urgent</Button>
-            </Link>
-          </div>
-        }
-      />
-      <SetupBanner />
+  const drafts    = myJobs.filter((j) => j.status === "DRAFT");
+  const recurring = myJobs.filter((j) => j.isRecurring && j.status !== "DRAFT" && j.status !== "CANCELLED");
+  const applicationsReceived = data?.stats?.applicationsReceived ?? 0;
+  const unread = data?.stats?.unreadMessages ?? 0;
 
-      <div className="container-page py-8 space-y-8">
+  const postTiles: ActionTile[] = [
+    { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
+    { key: "urgent",      icon: Clock,        title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
+    { key: "last-minute", icon: CalendarClock,title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
+    { key: "routine",     icon: CalendarDays, title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
+  ];
+
+  const quickActions: QuickAction[] = [
+    { key: "post-another", icon: Plus,            label: "Post another request",  href: "/jobs/post" },
+    { key: "repeat",       icon: RefreshCw,        label: "Repeat a past request", href: "#", disabled: true },
+    { key: "messages",     icon: MessageSquare,    label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
+    { key: "applications", icon: ClipboardList,     label: applicationsReceived > 0 ? `Responses received (${applicationsReceived})` : "Responses received", href: "/jobs/my" },
+    { key: "preferences",  icon: SlidersHorizontal, label: "Update preferences",   href: "/profile/edit" },
+  ];
+
+  return (
+    <div className="sf-home sf-dash">
+      <div className="container-page space-y-6 py-8">
+        <DashboardHeader
+          name={(user.name || (user as any).username || "there").split(" ")[0]}
+          description="What support do you need today?"
+        />
+        <SetupBanner />
+
         {error && (
           <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
         )}
 
-        {/* ── Stat cards: first 3 LIVE, rest PLACEHOLDER ── */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-8">
-          {/* LIVE */}
-          <StatCard label="Active Requests"    value={loading ? "…" : (data?.openJobs?.length            ?? 0)} tone="ok"   />
-          <StatCard label="Upcoming Bookings"  value={loading ? "…" : (data?.upcomingShifts?.length      ?? 0)}             />
-          <StatCard label="Awaiting Confirm"   value={loading ? "…" : (data?.awaitingConfirmation?.length ?? 0)} tone="warn" />
-          {/* PLACEHOLDER – TODO: include in ParticipantDashboard API response */}
-          <StatCard label="Applications In"    value={PH_STATS.applicationsReceived}               />
-          <StatCard label="Urgent Requests"    value={PH_STATS.urgentRequests}  tone="danger"      />
-          <StatCard label="Draft Posts"        value={PH_STATS.draftPosts}                         />
-          <StatCard label="Unread Messages"    value={PH_STATS.unreadMessages}  tone="warn"        />
-          <StatCard label="Saved Workers"      value={PH_STATS.savedWorkers}    tone="ok"          />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_1fr]">
+          {/* ── Main column ── */}
+          <div className="space-y-6">
+            <ActionTilesCard
+              title="Post a support request"
+              tiles={postTiles}
+              note="Shiftify is not an emergency service. If there is immediate danger, call 000."
+            />
+
+            <MyRequestsCard
+              title="My support requests"
+              tabs={[
+                {
+                  key: "active", label: "Active", empty: "No open requests yet.", total: data?.stats?.activeRequests,
+                  items: loading ? null : (data?.openJobs ?? []).map((j) => ({
+                    id: j.id, href: `/jobs/${j.id}`, cta: "View",
+                    heading: [j.suburb, j.state].filter(Boolean).join(", "),
+                    sub: j.title || categoryLabel(j.category),
+                    urgency: j.urgency, startAt: j.scheduledStartAt, hours: j.totalHours,
+                  })),
+                },
+                {
+                  key: "upcoming", label: "Upcoming", empty: "No upcoming shifts.", total: data?.stats?.upcomingBookings,
+                  items: loading ? null : (data?.upcomingShifts ?? []).map((s) => ({
+                    id: s.id, href: `/jobs/${s.id}`, cta: "View details",
+                    heading: s.suburb, sub: s.title, startAt: s.scheduledStartAt,
+                  })),
+                },
+                {
+                  key: "awaiting", label: "Awaiting confirmation", empty: "Nothing awaiting confirmation.", total: data?.stats?.awaitingConfirmation,
+                  items: loading ? null : (data?.awaitingConfirmation ?? []).map((s) => ({
+                    id: s.id, href: `/jobs/${s.id}`, cta: "Confirm",
+                    heading: s.suburb, sub: s.title, startAt: s.scheduledStartAt,
+                  })),
+                },
+                {
+                  key: "drafts", label: "Drafts", empty: "No drafts yet.",
+                  // Drafts have no suburb yet, so the category leads.
+                  items: jobsLoading ? null : drafts.map((d) => ({
+                    id: d.id, href: `/jobs/${d.id}`, cta: "Edit",
+                    heading: categoryLabel(d.category), sub: d.title || "Untitled draft",
+                    urgency: d.urgency, startAt: d.scheduledStartAt, showStartsIn: false,
+                    meta: `Saved ${new Date(d.postedAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`,
+                  })),
+                },
+              ]}
+            />
+
+            <Card>
+              <CardHeader><CardTitle>Recurring supports</CardTitle></CardHeader>
+              <CardContent className="py-2">
+                {jobsLoading ? (
+                  <p className="py-4 text-sm text-slate-400">Loading…</p>
+                ) : !recurring.length ? (
+                  <p className="py-4 text-sm text-slate-500">No recurring supports set up.</p>
+                ) : (
+                  recurring.slice(0, 5).map((r) => (
+                    <DashboardListRow
+                      key={r.id}
+                      icon={<CalendarDays className="h-5 w-5" />}
+                      title={r.title}
+                      subtitle={new Date(r.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}
+                      href={`/jobs/${r.id}`}
+                      rightLabel="View"
+                    />
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Saved workers / providers</CardTitle></CardHeader>
+              <CardContent className="py-2">
+                {savedLoading ? (
+                  <p className="py-3 text-sm text-slate-400">Loading…</p>
+                ) : savedPros.length === 0 ? (
+                  <p className="py-3 text-sm text-slate-500">
+                    You haven&apos;t saved anyone yet. <a href="/find" className="font-semibold text-emerald-700">Find workers</a>
+                  </p>
+                ) : (
+                  savedPros.slice(0, 3).map((p) => {
+                    const wp = p.professional.workerProfile;
+                    const pp = p.professional.providerProfile;
+                    const services = (wp?.servicesOffered ?? pp?.coreServices ?? []).slice(0, 2).join(", ");
+                    const rating = wp && wp.totalReviews > 0 ? wp.rating : pp && pp.totalRatings > 0 ? pp.averageRating : null;
+                    return (
+                      <DashboardListRow
+                        key={p.id}
+                        icon={<User className="h-5 w-5" />}
+                        title={pp?.businessName || p.professional.name}
+                        subtitle={services || undefined}
+                        href="/saved-professionals"
+                        badge={rating !== null ? <span className="text-xs font-semibold text-emerald-700">★ {Number(rating).toFixed(1)}</span> : undefined}
+                      />
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+
+            <LiveShiftboardTeaser />
+          </div>
+
+          {/* ── Right rail ── */}
+          <div className="space-y-6">
+            <QuickActionsPanel actions={quickActions} className="max-w-xs" />
+            <ProfileProgressCard />
+          </div>
         </div>
-
-        {/* ── Quick actions ── */}
-        <div className="flex flex-wrap gap-2">
-          <Link href="/jobs/post">      <Button variant="outline" size="sm">＋ Post Request</Button></Link>
-          <Link href="/jobs/post?urgent=true"><Button variant="outline" size="sm">⚡ Post Urgent</Button></Link>
-          {/* TODO: repeat-past flow */}
-          <Button variant="outline" size="sm" disabled>↩ Repeat Past</Button>
-          <Link href="/jobs/my">        <Button variant="outline" size="sm">📋 View Applications</Button></Link>
-          <Link href="/shifts">         <Button variant="outline" size="sm">📅 View Bookings</Button></Link>
-          <Link href="/messages">       <Button variant="outline" size="sm">💬 Message Applicants</Button></Link>
-          <Link href="/profile/preferences"><Button variant="outline" size="sm">⚙ Update Preferences</Button></Link>
-        </div>
-
-        {/* ── Row 1: LIVE ── */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>My open requests</CardTitle>
-              <Link href="/jobs/my"><Button variant="ghost" size="sm">View all</Button></Link>
-            </CardHeader>
-            <CardContent>
-              {loading
-                ? <p className="text-sm text-slate-400">Loading…</p>
-                : !data?.openJobs?.length
-                  ? <p className="text-sm text-slate-500">No open requests yet.</p>
-                  : (
-                    <ul className="divide-y divide-slate-100 text-sm">
-                      {data.openJobs.map((j) => (
-                        <li key={j.id} className="py-2 flex justify-between">
-                          <span className="font-medium">{j.title}</span>
-                          <span className="text-slate-500">{j.suburb}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle>Upcoming shifts</CardTitle></CardHeader>
-            <CardContent>
-              {loading
-                ? <p className="text-sm text-slate-400">Loading…</p>
-                : !data?.upcomingShifts?.length
-                  ? <p className="text-sm text-slate-500">No upcoming shifts.</p>
-                  : (
-                    <ul className="divide-y divide-slate-100 text-sm">
-                      {data.upcomingShifts.map((s) => (
-                        <li key={s.id} className="py-2 flex justify-between">
-                          <span className="font-medium">{s.title}</span>
-                          <span className="text-slate-500">
-                            {new Date(s.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── PLACEHOLDER – draft requests ── */}
-        {/* TODO: GET /jobs?status=DRAFT&postedBy=me */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Draft requests</CardTitle>
-            <Link href="/jobs/post"><Button variant="ghost" size="sm">New draft</Button></Link>
-          </CardHeader>
-          <CardContent>
-            <ul className="divide-y divide-slate-100 text-sm">
-              {PH_DRAFTS.map((d) => (
-                <li key={d.id} className="py-2 flex justify-between items-center">
-                  <span className="font-medium">{d.title}</span>
-                  <span className="text-xs text-slate-400">{d.updatedAt}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        {/* ── Row 2: PLACEHOLDER – recurring + saved workers ── */}
-        {/* TODO: GET /jobs?recurring=true&postedBy=me  |  GET /users/me/saved-workers */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recurring supports</CardTitle>
-              <Button variant="ghost" size="sm">View all</Button>
-            </CardHeader>
-            <CardContent>
-              <ul className="divide-y divide-slate-100 text-sm">
-                {PH_RECURRING.map((r) => (
-                  <li key={r.id} className="py-2 flex justify-between items-center">
-                    <span className="font-medium">{r.title}</span>
-                    <span className="text-xs text-slate-400">{r.schedule}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Saved workers / providers</CardTitle>
-              <Button variant="ghost" size="sm">View all</Button>
-            </CardHeader>
-            <CardContent>
-              <ul className="divide-y divide-slate-100 text-sm">
-                {PH_SAVED_WORKERS.map((w) => (
-                  <li key={w.id} className="py-2 flex justify-between items-center">
-                    <div>
-                      <span className="font-medium">{w.name}</span>
-                      <span className="ml-2 text-xs text-slate-400">{w.service}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-emerald-700">★ {w.rating}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* ── PLACEHOLDER – recommended ── */}
-        {/* TODO: GET /jobs/matched?role=PARTICIPANT */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recommended for you</CardTitle>
-            <Link href="/jobs"><Button variant="ghost" size="sm">Browse all</Button></Link>
-          </CardHeader>
-          <CardContent>
-            <ul className="divide-y divide-slate-100 text-sm">
-              {PH_RECOMMENDED.map((m) => (
-                <li key={m.id} className="py-2 flex justify-between items-center">
-                  <div>
-                    <span className="font-medium">{m.name}</span>
-                    <span className="ml-2 text-xs text-slate-400">{m.service}</span>
-                  </div>
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                    {m.match}% match
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
       </div>
-    </>
+    </div>
   );
 }

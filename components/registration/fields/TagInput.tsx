@@ -45,8 +45,8 @@ export function TagInput({ value, onChange, placeholder = 'Type and press Enter'
       )}
       <div style={{
         minHeight: 42, padding: '6px 10px',
-        border: `1.5px solid ${error ? '#ef4444' : 'var(--clr-border)'}`,
-        borderRadius: 'var(--btn-radius)', background: '#fff',
+        border: `1.5px solid ${error ? 'var(--td-pink)' : 'var(--clr-border)'}`,
+        borderRadius: 'var(--btn-radius)', background: 'var(--td-white)',
         display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center',
         cursor: 'text',
       }}
@@ -55,7 +55,7 @@ export function TagInput({ value, onChange, placeholder = 'Type and press Enter'
         {value.map(tag => (
           <span key={tag} style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
-            background: 'rgba(79,70,229,0.1)', color: 'var(--clr-primary)',
+            background: 'rgba(183,37,88,0.1)', color: 'var(--clr-primary)',
             borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600,
           }}>
             {tag}
@@ -81,7 +81,7 @@ export function TagInput({ value, onChange, placeholder = 'Type and press Enter'
           }}
         />
       </div>
-      {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3, marginBottom: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3, marginBottom: 0 }}>{error}</p>}
       <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3, marginBottom: 0 }}>
         Press Enter or comma to add each item
       </p>

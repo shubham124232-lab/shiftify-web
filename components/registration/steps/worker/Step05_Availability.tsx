@@ -18,7 +18,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
   const val = watch(name) as boolean;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px',
-      border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+      border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
         {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
@@ -27,11 +27,11 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <div style={{
           width: 42, height: 24, borderRadius: 12, transition: 'background 0.2s',
-          background: val ? '#DC2626' : 'var(--clr-border)', position: 'relative',
+          background: val ? 'var(--td-pink)' : 'var(--clr-border)', position: 'relative',
         }}>
           <div style={{
             position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18,
-            borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)',
           }} />
         </div>
       </label>
@@ -47,7 +47,7 @@ export function WorkerStep05_Availability() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Availability type */}
       <div>
-        <label style={labelStyle}>Availability Type <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Availability Type <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {AVAIL_TYPES.map(opt => {
             const selected = availType === opt.value;
@@ -56,7 +56,7 @@ export function WorkerStep05_Availability() {
                 display: 'flex', flexDirection: 'column', gap: 3, padding: '10px 12px',
                 border: `1.5px solid ${selected ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
                 borderRadius: 10, cursor: 'pointer',
-                background: selected ? 'rgba(79,70,229,0.06)' : '#fff',
+                background: selected ? 'rgba(183,37,88,0.06)' : 'var(--td-white)',
               }}>
                 <input type="radio" value={opt.value} {...register('availabilityType')} style={{ display: 'none' }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--clr-text)' }}>{opt.label}</span>
@@ -65,20 +65,46 @@ export function WorkerStep05_Availability() {
             );
           })}
         </div>
-        {errors.availabilityType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.availabilityType.message as string}</p>}
+        {errors.availabilityType && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{errors.availabilityType.message as string}</p>}
       </div>
 
       {/* Emergency availability */}
       <Toggle
-        label="Available for emergency shifts"
+        label="Available for short-notice shifts"
         name="emergencyAvailability"
         desc="You may be contacted for urgent or same-day jobs in your area"
       />
 
+      {/* Sleepover / overnight shifts */}
+      <Toggle
+        label="Accepts sleepover shifts"
+        name="acceptsSleepoverShifts"
+        desc="Overnight shifts where you sleep on-site and are available if needed"
+      />
+      <Toggle
+        label="Accepts active overnight shifts"
+        name="acceptsActiveOvernightShifts"
+        desc="Overnight shifts where you remain awake and actively supporting the participant"
+      />
+
+      {/* Minimum shift length */}
+      <div>
+        <label style={labelStyle}>Minimum Shift Length (hours)</label>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 8, marginTop: 0 }}>
+          The shortest shift you're willing to accept.
+        </p>
+        <input type="number" min={0} max={24} step={0.5}
+          {...register('minimumShiftHours', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+          placeholder="e.g. 2" style={{
+            width: 160, height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)',
+            border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box',
+          }} />
+      </div>
+
       {/* Weekly slots */}
       <div>
         <label style={{ ...labelStyle, marginBottom: 8 }}>
-          Weekly Availability <span style={{ color: '#ef4444' }}>*</span>
+          Weekly Availability <span style={{ color: 'var(--td-pink)' }}>*</span>
         </label>
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 10, marginTop: 0 }}>
           Click a day to add time slots. These are your recurring available hours each week.
@@ -96,6 +122,27 @@ export function WorkerStep05_Availability() {
           )}
         />
       </div>
+
+      {/* Post My Availability — public listing */}
+      <Toggle
+        label="Post my availability publicly"
+        name="isPubliclyListed"
+        desc="Let participants, coordinators and providers browse and reach out to you directly"
+      />
+      {watch('isPubliclyListed') && (
+        <div>
+          <label style={labelStyle}>Listing Headline</label>
+          <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginBottom: 8, marginTop: 0 }}>
+            A short line shown on your public listing card (optional).
+          </p>
+          <input type="text" maxLength={140}
+            {...register('listingHeadline')}
+            placeholder="e.g. Available for immediate start in Parramatta" style={{
+              width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)',
+              border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box',
+            }} />
+        </div>
+      )}
     </div>
   );
 }

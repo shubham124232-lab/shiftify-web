@@ -11,17 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
+import { inp as twInp, lbl as twLbl } from "@/components/jobs/post/shared";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
   display: "block", fontSize: 12, fontWeight: 600,
-  color: "#374151", marginBottom: 4,
+  color: "var(--td-dark-text-soft)", marginBottom: 4,
 };
 const row: React.CSSProperties = {
   display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14,
@@ -47,6 +48,31 @@ function Textarea({ value, onChange, rows = 3, placeholder }: {
       placeholder={placeholder}
       style={{ ...inp, height: "auto", padding: "8px 10px", resize: "vertical" }}
     />
+  );
+}
+
+function TagToggleGroup({ label, options, value, onChange }: {
+  label: string; options: string[]; value: string[]; onChange: (v: string[]) => void;
+}) {
+  return (
+    <div>
+      <label style={lbl}>{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map(opt => {
+          const selected = value.includes(opt);
+          return (
+            <button key={opt} type="button"
+              onClick={() => onChange(selected ? value.filter(v => v !== opt) : [...value, opt])}
+              className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                selected ? "border-indigo-600 bg-indigo-50 text-indigo-700" : "border-slate-200 bg-white text-slate-600"
+              }`}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -78,6 +104,21 @@ export default function ProfilePage() {
   const [acceptingClients, setAcceptingClients] = useState(true);
   const [servicesOffered, setServicesOffered] = useState<string[]>([]);
 
+  // Worker-only visibility controls (SW doc §2-3 Window 14)
+
+  // Worker-only introduction (Window 6), boundaries (Window 13), travel (Window 11),
+  // rate breakdown / meet-and-greet (Window 12), document visibility (Window 9)
+
+  // Coordinator-only fields (SC-A05/A08 + capacity/availability)
+  const [roleType,               setRoleType]               = useState("");
+  const [organisationRole,       setOrganisationRole]       = useState("");
+  const [preferredContactMethod, setPreferredContactMethod] = useState("");
+  const [currentCapacityStatus,  setCurrentCapacityStatus]  = useState("");
+  const [availabilityType,       setAvailabilityType]       = useState("");
+  const [maxParticipantLoad,     setMaxParticipantLoad]     = useState("");
+  const [orgInviteCode,          setOrgInviteCode]          = useState<string | null>(null);
+  const [generatingCode,         setGeneratingCode]         = useState(false);
+
   // ── Avatar ────────────────────────────────────────────────────────────────
   const [avatarUrl,      setAvatarUrl]      = useState<string | null>(null);
   const [uploading,      setUploading]      = useState(false);
@@ -99,6 +140,7 @@ export default function ProfilePage() {
   const [success,    setSuccess]    = useState(false);
   const [profile,    setProfile]    = useState<any>(null);
   const [completion, setCompletion] = useState<number>(0);
+  const [completionMissing, setCompletionMissing] = useState<string[]>([]);
 
   useEffect(() => {
     // Guard lives inside the effect — fires on every mount and activeRole change,
@@ -112,7 +154,7 @@ export default function ProfilePage() {
     setPhoneVerified(!!(user as any).phoneVerified);
 
     // Load full user (includes embedded role profile)
-    api.get<{ user: any; profileCompletion: number }>("/users/me")
+    api.get<{ user: any; profileCompletion: number; completionMissing: string[] }>("/users/me")
       .then(res => {
         const u = res.user;
         if (
@@ -129,6 +171,7 @@ export default function ProfilePage() {
         setPhone(u.phone ?? "");
         setAvatarUrl(u.avatarUrl ?? null);
         setCompletion(res.profileCompletion ?? 0);
+        setCompletionMissing(res.completionMissing ?? []);
         setPhoneVerified(!!u.phoneVerified);
         // Pick profile for the current active role only (multi-role users have multiple profiles)
         const profileByRole: Record<string, any> = {
@@ -159,6 +202,14 @@ export default function ProfilePage() {
         setEmergencyRel(p.emergencyContactRelationship ?? "");
         // Workers: servicesOffered  Providers: coreServices
         setServicesOffered(p.servicesOffered ?? p.coreServices ?? []);
+        // Coordinator-only fields
+        setRoleType(p.roleType ?? "");
+        setOrganisationRole(p.organisationRole ?? "");
+        setPreferredContactMethod(p.preferredContactMethod ?? "");
+        setCurrentCapacityStatus(p.currentCapacityStatus ?? "");
+        setAvailabilityType(p.availabilityType ?? "");
+        setMaxParticipantLoad(p.maxParticipantLoad != null ? String(p.maxParticipantLoad) : "");
+        setOrgInviteCode(p.orgInviteCode ?? null);
       })
       .catch(() => {})
       .finally(() => setPageLoading(false));
@@ -176,6 +227,9 @@ export default function ProfilePage() {
       await api.patch("/users/me", { avatarUrl: presign.publicUrl });
       setAvatarUrl(presign.publicUrl);
       updateProfile({ avatarUrl: presign.publicUrl } as any);
+      // Photo counts toward profile completion — keep the gate in sync,
+      // same as the profile-save and document-save paths.
+      useAuthStore.getState().refreshGateStatus();
     } catch {
       setError("Avatar upload failed.");
     } finally {
@@ -209,20 +263,21 @@ export default function ProfilePage() {
 
       // Update role profile
       const profilePayload: Record<string, any> = {};
-      if (activeRole === UserRole.SUPPORT_WORKER) {
-        // suburb goes via base user defaultSuburb (already in the PATCH above)
-        profilePayload.bio             = bio || undefined;
-        profilePayload.servicesOffered = servicesOffered;
-      } else if (activeRole === UserRole.PROVIDER) {
+      if (activeRole === UserRole.PROVIDER) {
         profilePayload.businessName   = businessName || undefined;
         profilePayload.abn            = abn || undefined;
         profilePayload.ndisRegistered = ndisRegistered;
         profilePayload.coreServices   = servicesOffered;
       } else if (activeRole === UserRole.COORDINATOR) {
         // coordinator schema uses organisationName, not businessName
-        profilePayload.organisationName = businessName || undefined;
-        profilePayload.abn              = abn || undefined;
-        profilePayload.bio              = bio || undefined;
+        profilePayload.organisationName       = businessName || undefined;
+        profilePayload.abn                    = abn || undefined;
+        profilePayload.bio                    = bio || undefined;
+        profilePayload.organisationRole       = organisationRole || undefined;
+        profilePayload.preferredContactMethod = preferredContactMethod || undefined;
+        profilePayload.currentCapacityStatus  = currentCapacityStatus || undefined;
+        profilePayload.availabilityType       = availabilityType || undefined;
+        profilePayload.maxParticipantLoad     = maxParticipantLoad ? Number(maxParticipantLoad) : undefined;
       } else if (activeRole === UserRole.PLAN_MANAGER) {
         profilePayload.businessName     = businessName || undefined;
         profilePayload.abn              = abn || undefined;
@@ -241,12 +296,33 @@ export default function ProfilePage() {
         await api.post(`/users/me/profile/${rolePath}`, profilePayload);
       }
 
+      // Re-fetch profileCompletion/marketplaceMissing now that both saves are in —
+      // otherwise AppLayout's gate keeps reading pre-save values and bounces the
+      // user straight back here even though the profile is now complete. Also
+      // updates this page's own completion bar (local state, not the auth store)
+      // from the same response — no second /users/me round trip, and a failure
+      // here (it never throws) can't mask an already-successful save.
+      const gate = await useAuthStore.getState().refreshGateStatus();
+      if (gate) {
+        setCompletion(gate.profileCompletion ?? 0);
+        setCompletionMissing(gate.completionMissing);
+      }
+
       setSuccess(true);
     } catch (err: any) {
       setError(err?.message ?? "Save failed.");
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleGenerateInviteCode() {
+    setGeneratingCode(true);
+    try {
+      const res = await api.post<{ profile: { orgInviteCode: string | null } }>("/users/me/profile/coordinator/invite-code", {});
+      setOrgInviteCode(res.profile.orgInviteCode ?? null);
+    } catch (err: any) { setError(err?.message ?? "Failed to generate invite code."); }
+    finally { setGeneratingCode(false); }
   }
 
   function toggleService(val: string) {
@@ -275,7 +351,10 @@ export default function ProfilePage() {
     try {
       await api.post("/auth/verify/confirm", { channel: "phone", code: otpCode.trim() });
       setPhoneVerified(true);
-      useAuthStore.setState({ phoneVerified: true });
+      useAuthStore.getState().markPhoneVerified();
+      // marketplaceMissing's "Verify your phone number" item is backend-derived —
+      // markPhoneVerified only updates the local flag, so re-fetch to clear it.
+      useAuthStore.getState().refreshGateStatus();
       setVerifyStep("done");
       setOtpCode("");
     } catch (err: any) { setOtpError(err?.message ?? "Incorrect code."); }
@@ -292,12 +371,12 @@ export default function ProfilePage() {
         <PageHeader title="My Profile" description="Update your contact details and role information." />
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
           {[1,2,3].map(i => (
-            <div key={i} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 24 }}>
-              <div style={{ height: 16, width: "30%", background: "#f3f4f6", borderRadius: 6, marginBottom: 20, animation: "pulse 1.5s ease-in-out infinite" }} />
+            <div key={i} style={{ background: "var(--td-white)", border: "1px solid var(--td-border)", borderRadius: 12, padding: 24 }}>
+              <div style={{ height: 16, width: "30%", background: "var(--td-grey)", borderRadius: 6, marginBottom: 20, animation: "pulse 1.5s ease-in-out infinite" }} />
               {[1,2].map(j => (
                 <div key={j} style={{ marginBottom: 14 }}>
-                  <div style={{ height: 10, width: "20%", background: "#f3f4f6", borderRadius: 4, marginBottom: 6 }} />
-                  <div style={{ height: 40, background: "#f9fafb", borderRadius: 8, border: "1px solid #e5e7eb" }} />
+                  <div style={{ height: 10, width: "20%", background: "var(--td-grey)", borderRadius: 4, marginBottom: 6 }} />
+                  <div style={{ height: 40, background: "var(--td-grey-tint)", borderRadius: 8, border: "1px solid var(--td-border)" }} />
                 </div>
               ))}
             </div>
@@ -315,14 +394,24 @@ export default function ProfilePage() {
 
           {/* Profile completion bar */}
           {completion > 0 && (
-            <div style={{ background: "#fff", borderRadius: 12, padding: "16px 20px", border: "1.5px solid #e2e8f0" }}>
+            <div style={{ background: "var(--td-white)", borderRadius: 12, padding: "16px 20px", border: "1.5px solid var(--td-border)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Profile completion</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: completion >= 80 ? "#16a34a" : "#f59e0b" }}>{completion}%</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>Profile completion</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: completion >= 80 ? "var(--td-dark-text-soft)" : "var(--td-muted-dark)" }}>{completion}%</span>
               </div>
-              <div style={{ height: 6, borderRadius: 6, background: "#e2e8f0" }}>
-                <div style={{ height: 6, borderRadius: 6, width: `${completion}%`, background: completion >= 80 ? "#16a34a" : "#f59e0b", transition: "width 0.3s" }} />
+              <div style={{ height: 6, borderRadius: 6, background: "var(--td-border)" }}>
+                <div style={{ height: 6, borderRadius: 6, width: `${completion}%`, background: completion >= 80 ? "var(--td-dark-text-soft)" : "var(--td-muted-dark)", transition: "width 0.3s" }} />
               </div>
+              {completionMissing.length > 0 && (
+                <ul style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--td-grey)", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {completionMissing.map((label) => (
+                    <li key={label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--td-muted-dark)" }}>
+                      <span style={{ width: 14, height: 14, borderRadius: 4, border: "1.5px solid var(--td-border-hard)", flexShrink: 0 }} />
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
@@ -335,10 +424,10 @@ export default function ProfilePage() {
                   onClick={() => fileRef.current?.click()}
                   style={{
                     width: 80, height: 80, borderRadius: "50%", cursor: "pointer",
-                    background: avatarUrl ? "transparent" : "var(--clr-primary, #c2185b)",
-                    border: "3px solid #e2e8f0", overflow: "hidden",
+                    background: avatarUrl ? "transparent" : "var(--clr-primary, var(--td-pink))",
+                    border: "3px solid var(--td-border)", overflow: "hidden",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 28, fontWeight: 700, color: "#fff",
+                    fontSize: 28, fontWeight: 700, color: "var(--td-white)",
                   }}
                 >
                   {avatarUrl
@@ -349,7 +438,7 @@ export default function ProfilePage() {
                   <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
                     {uploading ? "Uploading..." : "Change photo"}
                   </Button>
-                  <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 6 }}>JPG or PNG, max 5 MB</p>
+                  <p style={{ fontSize: 12, color: "var(--td-muted)", marginTop: 6 }}>JPG or PNG, max 5 MB</p>
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
               </div>
@@ -365,14 +454,14 @@ export default function ProfilePage() {
               </Field>
               {(username !== null) && (
                 <Field label="Username">
-                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: '#f9fafb', color: '#374151', cursor: 'default', userSelect: 'all' as const }}>
+                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: 'var(--td-grey-tint)', color: 'var(--td-dark-text-soft)', cursor: 'default', userSelect: 'all' as const }}>
                     {username || '—'}
                   </div>
                 </Field>
               )}
               <div style={row}>
                 <Field label="Email">
-                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: '#f9fafb', color: '#374151', cursor: 'default', userSelect: 'all' as const }}>
+                  <div style={{ ...inp, display: 'flex', alignItems: 'center', background: 'var(--td-grey-tint)', color: 'var(--td-dark-text-soft)', cursor: 'default', userSelect: 'all' as const }}>
                     {email || '—'}
                   </div>
                 </Field>
@@ -381,20 +470,20 @@ export default function ProfilePage() {
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <input style={{ ...inp, flex: 1 }} type="tel" value={phone} onChange={e => { setPhone(e.target.value); setVerifyStep("idle"); }} placeholder="+61 4xx xxx xxx" />
                     {phoneVerified ? (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>✓ Verified</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "var(--td-dark-text-soft)", whiteSpace: "nowrap" }}>✓ Verified</span>
                     ) : (
                       <button
                         type="button"
                         onClick={handleSendOtp}
                         disabled={otpSending || verifyStep === "sent"}
-                        style={{ height: 40, padding: "0 14px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", opacity: otpSending ? 0.7 : 1 }}
+                        style={{ height: 40, padding: "0 14px", background: "var(--td-pink)", color: "var(--td-white)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", opacity: otpSending ? 0.7 : 1 }}
                       >
                         {otpSending ? "Sending…" : verifyStep === "sent" ? "Code sent" : "Verify phone"}
                       </button>
                     )}
                   </div>
                   {verifyStep === "sent" && !phoneVerified && otpDevCode && (
-                    <div style={{ background: '#E8F5E9', border: '1px solid #A5D6A7', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#2E7D32', marginTop: 8 }}>
+                    <div style={{ background: 'var(--td-grey)', border: '1px solid var(--td-border-hard)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: 'var(--td-ink-700)', marginTop: 8 }}>
                       <span style={{ fontWeight: 700 }}>Dev OTP: </span>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: 2 }}>{otpDevCode}</span>
                     </div>
@@ -412,18 +501,18 @@ export default function ProfilePage() {
                         type="button"
                         onClick={handleConfirmOtp}
                         disabled={otpConfirming || otpCode.length < 6}
-                        style={{ height: 40, padding: "0 14px", background: "#1e293b", color: "#fff", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: otpConfirming ? 0.7 : 1 }}
+                        style={{ height: 40, padding: "0 14px", background: "var(--td-ink-800)", color: "var(--td-white)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: otpConfirming ? 0.7 : 1 }}
                       >
                         {otpConfirming ? "Verifying…" : "Confirm"}
                       </button>
-                      <button type="button" onClick={handleSendOtp} style={{ fontSize: 12, color: "#c2185b", background: "none", border: "none", cursor: "pointer" }}>
+                      <button type="button" onClick={handleSendOtp} style={{ fontSize: 12, color: "var(--td-pink)", background: "none", border: "none", cursor: "pointer" }}>
                         Resend
                       </button>
                     </div>
                   )}
-                  {otpError && <p style={{ fontSize: 12, color: "#C62828", marginTop: 6 }}>{otpError}</p>}
+                  {otpError && <p style={{ fontSize: 12, color: "var(--td-pink-hover)", marginTop: 6 }}>{otpError}</p>}
                   {!phoneVerified && verifyStep !== "sent" && (
-                    <p style={{ fontSize: 12, color: "#f59e0b", marginTop: 6 }}>⚠ Phone not verified — required to post support requests.</p>
+                    <p style={{ fontSize: 12, color: "var(--td-muted-dark)", marginTop: 6 }}>⚠ Phone not verified — required to post support requests.</p>
                   )}
                 </div>
               </div>
@@ -434,13 +523,58 @@ export default function ProfilePage() {
           </Card>
 
           {/* Role-specific fields */}
-          {(activeRole === UserRole.SUPPORT_WORKER || activeRole === UserRole.COORDINATOR) && (
+          {activeRole === UserRole.COORDINATOR && (
             <Card>
               <CardHeader><CardTitle>About you</CardTitle></CardHeader>
               <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <Field label="Bio">
                   <Textarea value={bio} onChange={setBio} placeholder="Tell participants about your experience..." />
                 </Field>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeRole === UserRole.SUPPORT_WORKER && (
+            <Card>
+              <CardHeader><CardTitle>Your Support Worker profile</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <p className="text-sm text-slate-600">
+                  Services, documents, rates, travel, boundaries and who can find you are set once in the profile builder, so you are not asked again on each request.
+                </p>
+                <div>
+                  <Link href="/profile/build" className="btn-shiftify inline-flex items-center no-underline">Open profile builder</Link>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeRole === UserRole.COORDINATOR && (
+            <Card>
+              <CardHeader><CardTitle>Availability & capacity</CardTitle></CardHeader>
+              <CardContent className="flex flex-col gap-3.5">
+                <Field label="Current capacity status">
+                  <select className={twInp} value={currentCapacityStatus} onChange={e => setCurrentCapacityStatus(e.target.value)}>
+                    <option value="">Select…</option>
+                    <option value="ACCEPTING">Accepting new participants</option>
+                    <option value="LIMITED">Limited availability</option>
+                    <option value="WAITLIST_ONLY">Waitlist only</option>
+                    <option value="NOT_ACCEPTING">Not accepting</option>
+                  </select>
+                </Field>
+                <div className="grid grid-cols-2 gap-3.5">
+                  <Field label="Availability type">
+                    <select className={twInp} value={availabilityType} onChange={e => setAvailabilityType(e.target.value)}>
+                      <option value="">Select…</option>
+                      <option value="BUSINESS_HOURS">Business hours</option>
+                      <option value="FLEXIBLE">Flexible</option>
+                      <option value="EMERGENCY_AVAILABLE">Short-notice availability</option>
+                    </select>
+                  </Field>
+                  <Field label="Maximum participant load">
+                    <input className={twInp} type="number" min={0} max={200} value={maxParticipantLoad}
+                      onChange={e => setMaxParticipantLoad(e.target.value)} placeholder="e.g. 20" />
+                  </Field>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -462,9 +596,9 @@ export default function ProfilePage() {
                   <Field label="Funding management type">
                     <select style={inp} value={fundingType} onChange={e => setFundingType(e.target.value)}>
                       <option value="">Select…</option>
-                      <option value="SELF">Self-managed</option>
-                      <option value="PLAN">Plan-managed</option>
-                      <option value="NDIA">NDIA-managed</option>
+                      <option value="SELF_MANAGED">Self-managed</option>
+                      <option value="PLAN_MANAGED">Plan-managed</option>
+                      <option value="NDIA_MANAGED">NDIA-managed</option>
                     </select>
                   </Field>
                 </CardContent>
@@ -488,7 +622,7 @@ export default function ProfilePage() {
             </>
           )}
 
-          {(activeRole === UserRole.SUPPORT_WORKER || activeRole === UserRole.PROVIDER) && (
+          {activeRole === UserRole.PROVIDER && (
             <Card>
               <CardHeader><CardTitle>Services offered</CardTitle></CardHeader>
               <CardContent>
@@ -502,9 +636,9 @@ export default function ProfilePage() {
                         onClick={() => toggleService(cat.value)}
                         style={{
                           padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          border: selected ? "2px solid #c2185b" : "1.5px solid #e2e8f0",
-                          background: selected ? "rgba(194,24,91,0.08)" : "#fff",
-                          color: selected ? "#c2185b" : "#64748b",
+                          border: selected ? "2px solid var(--td-pink)" : "1.5px solid var(--td-border)",
+                          background: selected ? "rgba(183,37,88,0.08)" : "var(--td-white)",
+                          color: selected ? "var(--td-pink)" : "var(--td-muted-dark)",
                         }}
                       >
                         {cat.label}
@@ -539,6 +673,45 @@ export default function ProfilePage() {
                     Currently accepting new clients
                   </label>
                 )}
+                {activeRole === UserRole.COORDINATOR && (
+                  <>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div>
+                        <label className={twLbl}>Coordinator type</label>
+                        <div className="h-10 flex items-center px-2.5 rounded-lg bg-slate-50 text-slate-600 text-sm">
+                          {{ INDEPENDENT: "Independent", SC_ORGANISATION: "SC Organisation", NDIS_PROVIDER: "NDIS Provider", OTHER_ORGANISATION: "Other Organisation" }[roleType] ?? "—"}
+                        </div>
+                      </div>
+                      <Field label="Your role in the organisation">
+                        <input className={twInp} value={organisationRole} onChange={e => setOrganisationRole(e.target.value)} placeholder="e.g. Senior Support Coordinator" />
+                      </Field>
+                    </div>
+                    <Field label="Preferred contact method">
+                      <select className={twInp} value={preferredContactMethod} onChange={e => setPreferredContactMethod(e.target.value)}>
+                        <option value="">Select…</option>
+                        <option value="EMAIL">Email</option>
+                        <option value="PHONE">Phone call</option>
+                        <option value="SMS">SMS</option>
+                        <option value="PLATFORM_MESSAGE">Platform message</option>
+                      </select>
+                    </Field>
+                    {roleType && roleType !== "INDEPENDENT" && (
+                      <div>
+                        <label className={twLbl}>Team invitation code</label>
+                        {orgInviteCode ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-sm px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 tracking-widest">{orgInviteCode}</span>
+                            <span className="text-xs text-slate-400">Share this with colleagues joining your organisation.</span>
+                          </div>
+                        ) : (
+                          <Button type="button" variant="outline" size="sm" onClick={handleGenerateInviteCode} disabled={generatingCode}>
+                            {generatingCode ? "Generating…" : "Generate invite code"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
@@ -556,12 +729,12 @@ export default function ProfilePage() {
                 {saving ? "Saving..." : "Save profile"}
               </Button>
               {success && (
-                <span style={{ fontSize: 13, color: "#16a34a", display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontSize: 13, color: "var(--td-dark-text-soft)", display: "flex", alignItems: "center", gap: 6 }}>
                   <i className="bi bi-check-circle-fill" /> Saved successfully
                 </span>
               )}
               {error && (
-                <span style={{ fontSize: 13, color: "#dc2626" }}>{error}</span>
+                <span style={{ fontSize: 13, color: "var(--td-pink)" }}>{error}</span>
               )}
             </div>
           </form>

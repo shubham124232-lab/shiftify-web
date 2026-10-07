@@ -1,4 +1,4 @@
-// Per-step Zod schemas for Plan Manager profile wizard (14 steps).
+// Per-step Zod schemas for Plan Manager profile wizard (15 steps).
 
 import { z } from 'zod';
 
@@ -24,6 +24,11 @@ export const pmStep1Schema = z.object({
   yearsInOperation:    z.string().optional(),
 });
 
+// Step — Role Type (aligns config with the existing PmStep02_RoleType component)
+export const pmStepRoleTypeSchema = z.object({
+  pmRoleType: z.enum(['PLAN_MANAGER', 'PM_ORG_ADMIN', 'PM_STAFF_MEMBER']).optional(),
+});
+
 // Step 2 — NDIS Registration Status
 export const pmStep2Schema = z.object({
   ndisRegistrationStatus:      z.string().optional(),
@@ -38,6 +43,8 @@ export const pmStep3Schema = z.object({
   plansRecurringInvoices:   z.boolean().optional(),
   plansOnceOffInvoices:     z.boolean().optional(),
   providesBudgetStatements: z.boolean().optional(),
+  statementContactName:    z.string().optional(),
+  statementContactEmail:   z.string().email().optional().or(z.literal("")),
 });
 
 // Step 4 — Participant Scope
@@ -49,11 +56,11 @@ export const pmStep4Schema = z.object({
 // Step 5 — Service Coverage
 export const pmStep5Schema = z.object({
   serviceCoverageType:  z.string().optional(),
-  serviceAreas:         z.array(z.string()).min(1, 'Add at least one service area'),
   stateCoverage:        z.array(z.string()).optional(),
   postcodesServed:      z.array(z.string()).optional(),
   timezone:             z.string().optional(),
   operatingHours:       z.string().optional(),
+  phoneSupportHours:    z.string().optional(),
   invoiceTurnaroundTime: z.string().optional(),
 });
 
@@ -67,8 +74,10 @@ export const pmStep6Schema = z.object({
   paymentEnquiryContactPhone:       z.string().optional(),
   invoiceReferenceFormat:            z.string().optional(),
   acceptsRegisteredProvidersOnly:   z.boolean().optional(),
+  acceptsUnregisteredProviders:     z.boolean().optional(),
   requiresServiceDatesOnInvoices:   z.boolean().optional(),
   requiresSupportCategoryCode:      z.boolean().optional(),
+  requiresParticipantConsentConfirmation: z.boolean().optional(),
 });
 
 // Step 7 — Compliance & Governance
@@ -91,10 +100,13 @@ export const pmStep8Schema = z.object({
   staffAdminName:        z.string().optional(),
   staffAdminEmail:       z.string().email().optional().or(z.literal('')),
   staffSeatsRequired:    z.number().int().min(1).optional(),
+  staffRoles:            z.array(z.string()).optional(),
+  adminOnlyBillingMode:  z.boolean().optional(),
 });
 
 // Step 9 — Participant Linking
 export const pmStep9Schema = z.object({
+  participantReferenceIdLabel:             z.string().optional(),
   participantLinkingMethod:                z.array(z.string()).optional(),
   linkApprovalRequired:                    z.boolean().optional(),
   requiresServiceAgreementBeforeInvoicing: z.boolean().optional(),
@@ -105,6 +117,9 @@ export const pmStep10Schema = z.object({
   invoiceAcceptanceRules:       z.array(z.string()).optional(),
   acceptsRecurringClaims:       z.boolean().optional(),
   acceptsOnceOffClaims:         z.boolean().optional(),
+  acceptsTransportClaims:       z.boolean().optional(),
+  acceptsAlliedHealthInvoices:  z.boolean().optional(),
+  requiresDocsForHighValueInvoices: z.boolean().optional(),
   allowsProviderPortalMessaging: z.boolean().optional(),
 });
 
@@ -143,6 +158,7 @@ export const pmStep14Schema = z.object({
   consentToInvoiceRoutingRules:       z.boolean().refine(v => v === true, { message: 'You must consent to invoice routing rules' }),
 });
 
+export type PmStepRoleType = z.infer<typeof pmStepRoleTypeSchema>;
 export type PmStep1  = z.infer<typeof pmStep1Schema>;
 export type PmStep2  = z.infer<typeof pmStep2Schema>;
 export type PmStep3  = z.infer<typeof pmStep3Schema>;

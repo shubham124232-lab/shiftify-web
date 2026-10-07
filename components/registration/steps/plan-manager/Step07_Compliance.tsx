@@ -1,7 +1,7 @@
 'use client';
 import { useFormContext } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 function CheckboxDeclaration({ name, label }: { name: string; label: string }) {
@@ -10,7 +10,7 @@ function CheckboxDeclaration({ name, label }: { name: string; label: string }) {
   return (
     <label style={{ display: 'flex', gap: 10, cursor: 'pointer', padding: '12px 14px', borderRadius: 10,
       border: `1.5px solid ${val ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-      background: val ? 'rgba(79,70,229,0.04)' : '#fff' }}>
+      background: val ? 'rgba(183,37,88,0.04)' : 'var(--td-white)' }}>
       <input type="checkbox" {...register(name)} style={{ marginTop: 2, accentColor: 'var(--clr-primary)', width: 15, height: 15, flexShrink: 0 }} />
       <span style={{ fontSize: 12, color: 'var(--clr-text)', lineHeight: 1.5 }}>{label}</span>
     </label>
@@ -18,7 +18,7 @@ function CheckboxDeclaration({ name, label }: { name: string; label: string }) {
 }
 
 export function PmStep07_Compliance() {
-  const { register } = useFormContext();
+  const { register, formState: { errors } } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <p style={{ margin: 0, fontSize: 13, color: 'var(--clr-muted)' }}>
@@ -43,7 +43,11 @@ export function PmStep07_Compliance() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Complaints Contact Name</label><input {...register('complaintsContactName')} placeholder="Full name" style={inputStyle} /></div>
-            <div><label style={labelStyle}>Complaints Contact Email</label><input {...register('complaintsContactEmail')} type="email" placeholder="complaints@planmanager.com.au" style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Complaints Contact Email</label>
+              <input {...register('complaintsContactEmail')} type="email" placeholder="complaints@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.complaintsContactEmail ? 'var(--td-pink)' : undefined }} />
+              {errors.complaintsContactEmail && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.complaintsContactEmail.message as string}</p>}
+            </div>
           </div>
           <div><label style={labelStyle}>Incident Escalation Contact</label><input {...register('incidentEscalationContact')} placeholder="Name or email" style={inputStyle} /></div>
           <div><label style={labelStyle}>Privacy Contact</label><input {...register('privacyContact')} placeholder="Name or email for privacy enquiries" style={inputStyle} /></div>

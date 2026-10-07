@@ -4,15 +4,18 @@ import { z } from 'zod';
 
 // Step 1 — Professional Identity
 export const coordStep1Schema = z.object({
-  roleType:           z.enum(['INDEPENDENT', 'AGENCY_EMPLOYED'], { required_error: 'Role type is required' }),
-  organisationName:   z.string().optional(),
-  abn:                z.string().optional(),
-  ndisRegistered:     z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
-  ndisProviderNumber: z.string().optional(),
-  yearsExperience:    z.string().min(1, 'Years of experience is required'),
+  roleType:               z.enum(['INDEPENDENT', 'SC_ORGANISATION', 'NDIS_PROVIDER', 'OTHER_ORGANISATION'], { required_error: 'Role type is required' }),
+  organisationName:       z.string().optional(),
+  organisationRole:       z.string().optional(),
+  preferredContactMethod: z.enum(['EMAIL', 'PHONE', 'SMS', 'PLATFORM_MESSAGE']).optional(),
+  joinedViaInviteCode:    z.string().optional(),
+  abn:                    z.string().optional(),
+  ndisRegistered:         z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().optional()),
+  ndisProviderNumber:     z.string().optional(),
+  yearsExperience:        z.string().min(1, 'Years of experience is required'),
 }).superRefine((val, ctx) => {
-  if (val.roleType === 'AGENCY_EMPLOYED' && !val.organisationName) {
-    ctx.addIssue({ code: 'custom', path: ['organisationName'], message: 'Organisation name is required for agency coordinators' });
+  if (val.roleType !== 'INDEPENDENT' && !val.organisationName) {
+    ctx.addIssue({ code: 'custom', path: ['organisationName'], message: 'Organisation name is required' });
   }
 });
 
@@ -41,34 +44,36 @@ export const coordStep3Schema = z.object({
 // Step 4 — Service Coverage
 export const coordStep4Schema = z.object({
   serviceAreas:  z.array(z.string()).min(1, 'Add at least one service area'),
-  serviceMode:   z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { required_error: 'Service mode is required' }),
+  serviceRadius: z.number().int().min(0).max(500).optional(),
+  serviceMode:   z.enum(['IN_PERSON', 'TELEHEALTH', 'HYBRID'], { required_error: 'Service mode is required' }),
 });
 
 // Step 5 — Availability & Capacity
 export const coordStep5Schema = z.object({
   currentCapacityStatus: z.string().optional(),
-  maxParticipantLoad:    z.number().int().min(0).max(500).optional(),
-  availabilityType:      z.string().optional(),
+  maxParticipantLoad:    z.number().int().min(0).max(200).optional(),
+  availabilityType:      z.string({ required_error: 'Availability for new participants is required' }).min(1, 'Availability for new participants is required'),
+  isPubliclyListed:      z.boolean().optional(),
 });
 
 // Step 6 — Plan Management Handling
 export const coordStep6Schema = z.object({
-  participantTypesAccepted: z.array(z.string()).optional(),
   fundingTypeCompatibility: z.array(z.string()).optional(),
   billingMethodPreference:  z.string().optional(),
 });
 
 // Step 7 — Rates & Commercials
 export const coordStep7Schema = z.object({
-  hourlyRate:    z.number().min(0).max(9999).optional(),
-  travelCharges: z.string().optional(),
+  hourlyRate:       z.number().min(0).max(9999).optional(),
+  travelCharges:    z.string().optional(),
+  showRatePublicly: z.boolean().optional(),
 });
 
 // Step 8 — Profile & Trust Layer
 export const coordStep8Schema = z.object({
   bio:                z.string().max(2000).optional(),
   languages:          z.array(z.string()).optional(),
-  gender:             z.string().optional(),
+  gender:             z.string().nullable().optional(),
   profilePhoto:       z.string().optional(),
   seekingPlanManager: z.boolean().optional(),
 });

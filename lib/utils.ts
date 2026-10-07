@@ -95,3 +95,45 @@ export function sanitiseDates(payload: Record<string, unknown>): Record<string, 
   }
   return out;
 }
+
+/**
+ * Strip empty-string values from a payload before sending to the backend.
+ *
+ * React Hook Form defaults an untouched <select>/radio group to "" (never
+ * undefined), but every optional Zod enum on the backend only excuses a
+ * MISSING key — it still rejects "" because "" isn't one of the allowed
+ * enum values. Left as-is, leaving any optional dropdown on ANY step of
+ * ANY role's registration/edit form untouched produces a raw "Invalid enum
+ * value" 422 the moment that field is submitted blank.
+ *
+ * Recurses one level into plain nested objects (e.g. `address`) since those
+ * can carry their own optional enum-like string fields. Arrays and dates
+ * are left alone — an empty array is a meaningful "nothing selected", not
+ * a value to strip, and dates are handled separately by sanitiseDates.
+ */
+export function stripEmptyStrings<T extends Record<string, unknown>>(payload: T): T {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === '') continue; // drop — same as "not sent"
+    if (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      !(value instanceof Date)
+    ) {
+      out[key] = stripEmptyStrings(value as Record<string, unknown>);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out as T;
+}
+
+/**
+ * Full pre-submit cleanup used by every profile/registration form: normalise
+ * dates, then drop any field left blank so optional enums never see "".
+ * Use this instead of calling sanitiseDates directly for new call sites.
+ */
+export function sanitisePayload(payload: Record<string, unknown>): Record<string, unknown> {
+  return stripEmptyStrings(sanitiseDates(payload));
+}

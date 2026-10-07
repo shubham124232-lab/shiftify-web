@@ -99,3 +99,58 @@ export function listPmConnections() {
   return api.get<{ connections: unknown[] }>("/pm/connections").then((r) => r.connections);
 }
 
+// ─── Load board (browse open requests) ────────────────────────────────────────
+// Backend: success(res, { requests, total, page, limit })
+
+export interface LoadBoardRequest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  urgency: string;
+  status: string;
+  suburb: string;
+  state: string;
+  scheduledStartAt: string;
+  scheduledEndAt: string;
+  totalHours: number | string | null;
+  createdAt: string;
+  forParticipant: { id: string; name: string } | null;
+  postedBy: { id: string; name: string };
+  _count: { applications: number };
+  isLinkedParticipant: boolean;
+}
+
+export function browseLoadBoard(params?: { category?: string; urgency?: string; suburb?: string; page?: number; limit?: number }) {
+  return api.get<{ requests: LoadBoardRequest[]; total: number; page: number; limit: number }>(
+    "/pm/load-board",
+    { params },
+  );
+}
+
+// ─── Referrals posted by this plan manager ────────────────────────────────────
+// Backend: success(res, { referrals, total, page, limit })
+
+export interface Referral {
+  id: string;
+  title: string;
+  category: string;
+  urgency: string;
+  status: string;
+  suburb: string;
+  state: string;
+  scheduledStartAt: string;
+  scheduledEndAt: string;
+  totalHours: number | string | null;
+  createdAt: string;
+  forParticipant: { id: string; name: string } | null;
+  _count: { applications: number };
+}
+
+export function listReferrals(params?: { status?: string; page?: number; limit?: number }) {
+  return api.get<{ referrals: Referral[]; total: number; page: number; limit: number }>(
+    "/pm/referrals",
+    { params },
+  );
+}
+

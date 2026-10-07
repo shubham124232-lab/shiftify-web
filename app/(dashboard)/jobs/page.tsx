@@ -1,70 +1,22 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Job {
-  id: string;
-  title: string;
-  category: string;
-  urgency: string;
-  suburb: string;
-  state: string;
-  scheduledStartAt: string;
-  totalHours: number | null;
-  postedAt: string;
-  status: string;
-  isRecurring?: boolean;
-  shiftType?: string;
-  fundingType?: string;
-  workerPreferences?: {
-    workerType?: string;
-    requiredQualifications?: string[];
-    experienceLevel?: string;
-  };
-  budget?: { type: string; amount?: number };
-  ownApplication?: { status: string } | null;
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const URGENCY_STYLE: Record<string, { bg: string; color: string }> = {
-  EMERGENCY: { bg: "#fee2e2", color: "#b91c1c" },
-  SAME_DAY:  { bg: "#ffedd5", color: "#c2410c" },
-  SCHEDULED: { bg: "#f1f5f9", color: "#475569" },
-};
-
-const SHIFT_TYPE_LABELS: Record<string, string> = {
-  STANDARD: "Standard", OVERNIGHT: "Overnight", SLEEPOVER: "Sleepover",
-  "24_HOUR": "24-Hour", DROP_IN: "Drop-in",
-};
-
-const FUNDING_LABELS: Record<string, string> = {
-  SELF: "Self-managed", PLAN: "Plan-managed", NDIA: "NDIA-managed",
-};
-
-const POSTED_WITHIN_OPTIONS = [
-  { value: "", label: "Any time" },
-  { value: "1", label: "Last 24 hours" },
-  { value: "7", label: "Last 7 days" },
-  { value: "30", label: "Last 30 days" },
-];
-
-const SORT_OPTIONS = [
-  { value: "recent", label: "Most recent" },
-  { value: "urgency", label: "Urgency" },
-  { value: "start_date", label: "Start date" },
-];
+import { createSavedSearch, type SavedSearchFilters } from "@/lib/api/saved-searches";
+import { JobCard, type Job } from "@/components/jobs/job-card";
+import {
+  URGENCY_TABS, URGENCY_STYLE, SHIFT_TYPE_LABELS, FUNDING_LABELS,
+  POSTED_WITHIN_OPTIONS, SORT_OPTIONS, WORKER_SORT_OPTIONS, TIME_OF_DAY_FILTERS, inp, lbl,
+} from "@/lib/constants/job-filters";
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 
@@ -81,24 +33,52 @@ interface Filters {
   dateFrom: string;
   dateTo: string;
   sortBy: string;
+  // Provider opportunity board (PR-OA01)
+  postedBy: string;      // PARTICIPANT | COORDINATOR | ""
+  duration: string;      // SHORT | MEDIUM | LONG | ""
+  deadline: string;      // hours until response deadline | ""
+  openTo: string;        // PROVIDERS_ONLY | ""
+  // SW Window 16
+  minRate: string;
+  maxDistanceKm: string;
+  timeOfDay: string;
+  participantTransport: boolean;
+  ageGroup: string;
+  workerPreference: string;
+  qualification: boolean;
 }
 
 const defaultFilters: Filters = {
   suburb: "", category: "", urgency: "", shiftType: "", fundingType: "",
   isRecurring: "", workerType: "", experienceLevel: "", postedWithin: "",
-  dateFrom: "", dateTo: "", sortBy: "recent",
+  dateFrom: "", dateTo: "", sortBy: "urgency",
+  postedBy: "", duration: "", deadline: "", openTo: "",
+  minRate: "", maxDistanceKm: "", timeOfDay: "", participantTransport: false,
+  ageGroup: "", workerPreference: "", qualification: false,
 };
 
-const inp = "w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
-const lbl = "block text-xs font-semibold text-slate-600 mb-1";
+function toSavedSearchFilters(f: Filters): SavedSearchFilters {
+  const out: SavedSearchFilters = {};
+  if (f.suburb)      out.suburb = f.suburb;
+  if (f.category)    out.category = f.category;
+  if (f.urgency)     out.urgency = f.urgency;
+  if (f.shiftType)   out.shiftType = f.shiftType;
+  if (f.fundingType) out.fundingType = f.fundingType;
+  if (f.isRecurring !== "") out.isRecurring = f.isRecurring === "true";
+  return out;
+}
 
 function FilterSidebar({
-  filters, onChange, onReset, onApply,
+  filters, onChange, onReset, onApply, onSave, saving, isProvider, isWorker,
 }: {
+  isProvider?: boolean;
+  isWorker?: boolean;
   filters: Filters;
   onChange: (f: Partial<Filters>) => void;
   onReset: () => void;
   onApply: () => void;
+  onSave?: () => void;
+  saving?: boolean;
 }) {
   return (
     <aside className="w-full lg:w-64 shrink-0 space-y-4">
@@ -107,19 +87,74 @@ function FilterSidebar({
         <button onClick={onReset} className="text-xs text-brand-600 hover:underline">Reset all</button>
       </div>
 
-      {/* Suburb */}
+      {/* Suburb or postcode */}
       <div>
-        <label className={lbl}>Suburb</label>
-        <input className={inp} placeholder="e.g. Parramatta" value={filters.suburb} onChange={e => onChange({ suburb: e.target.value })} />
+        <label className={lbl}>Suburb or postcode</label>
+        <input className={inp} placeholder="e.g. Parramatta or 2150" value={filters.suburb} onChange={e => onChange({ suburb: e.target.value })} />
       </div>
 
       {/* Sort */}
       <div>
         <label className={lbl}>Sort by</label>
-        <select className={inp} value={filters.sortBy} onChange={e => onChange({ sortBy: e.target.value })}>
-          {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        <select className={inp} value={isWorker && filters.sortBy === "urgency" ? "bestMatch" : filters.sortBy} onChange={e => onChange({ sortBy: e.target.value })}>
+          {(isWorker ? WORKER_SORT_OPTIONS : SORT_OPTIONS).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
+
+      {/* SW Window 16 filters */}
+      <div>
+        <label className={lbl}>Time of day</label>
+        <select className={inp} value={filters.timeOfDay} onChange={e => onChange({ timeOfDay: e.target.value })}>
+          {TIME_OF_DAY_FILTERS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
+      {isWorker && (
+        <div>
+          <label className={lbl}>Distance from you</label>
+          <select className={inp} value={filters.maxDistanceKm} onChange={e => onChange({ maxDistanceKm: e.target.value })}>
+            <option value="">Any distance</option>
+            {["5", "10", "15", "25", "50"].map(k => <option key={k} value={k}>Within {k} km</option>)}
+          </select>
+        </div>
+      )}
+      <div>
+        <label className={lbl}>Duration</label>
+        <select className={inp} value={filters.duration} onChange={e => onChange({ duration: e.target.value })}>
+          <option value="">Any duration</option>
+          <option value="SHORT">Up to 2 hours</option>
+          <option value="MEDIUM">2 to 6 hours</option>
+          <option value="LONG">Over 6 hours</option>
+        </select>
+      </div>
+      <div>
+        <label className={lbl}>Minimum hourly rate ($)</label>
+        <input type="number" min={0} className={inp} placeholder="e.g. 45" value={filters.minRate} onChange={e => onChange({ minRate: e.target.value })} />
+      </div>
+      <div>
+        <label className={lbl}>Age group</label>
+        <select className={inp} value={filters.ageGroup} onChange={e => onChange({ ageGroup: e.target.value })}>
+          <option value="">Any age group</option>
+          {["Child", "Teen", "Adult", "Older adult"].map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className={lbl}>Worker preference</label>
+        <select className={inp} value={filters.workerPreference} onChange={e => onChange({ workerPreference: e.target.value })}>
+          <option value="">Any</option>
+          <option value="ANY">No gender requirement</option>
+          <option value="FEMALE">Female worker requested</option>
+          <option value="MALE">Male worker requested</option>
+          <option value="NON_BINARY">Non-binary worker requested</option>
+        </select>
+      </div>
+      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+        <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={filters.qualification} onChange={e => onChange({ qualification: e.target.checked })} />
+        Qualification or training required
+      </label>
+      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+        <input type="checkbox" className="h-4 w-4 accent-brand-600" checked={filters.participantTransport} onChange={e => onChange({ participantTransport: e.target.checked })} />
+        Transport of the participant required
+      </label>
 
       {/* Category */}
       <div>
@@ -133,12 +168,15 @@ function FilterSidebar({
       {/* Urgency */}
       <div>
         <label className={lbl}>Urgency</label>
-        <select className={inp} value={filters.urgency} onChange={e => onChange({ urgency: e.target.value })}>
-          <option value="">Any urgency</option>
-          <option value="EMERGENCY">Emergency</option>
-          <option value="SAME_DAY">Same day</option>
-          <option value="SCHEDULED">Scheduled</option>
-        </select>
+        <div className="flex flex-wrap gap-2">
+          {URGENCY_TABS.map(({ value, label }) => (
+            <button key={value} type="button" onClick={() => onChange({ urgency: value })}
+              className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
+                filters.urgency === value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Recurring */}
@@ -166,9 +204,9 @@ function FilterSidebar({
       <div>
         <label className={lbl}>Funding type</label>
         <div className="flex flex-col gap-1.5">
-          {([ ["", "Any"], ["SELF", "Self-managed"], ["PLAN", "Plan-managed"], ["NDIA", "NDIA-managed"] ] as [string, string][]).map(([v, l]) => (
+          {([ ["", "Any"], ["SELF_MANAGED", "Self-managed"], ["PLAN_MANAGED", "Plan-managed"], ["NDIA_MANAGED", "NDIA-managed"] ] as [string, string][]).map(([v, l]) => (
             <label key={v} className={cn("flex items-center gap-2 cursor-pointer text-xs px-2.5 py-2 rounded-lg border transition-colors", filters.fundingType === v ? "border-brand-500 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
-              <input type="radiod" onChange={() => onChange({ fundingType: v })} />{l}
+              <input type="radio" className="sr-only" checked={filters.fundingType === v} onChange={() => onChange({ fundingType: v })} />{l}
             </label>
           ))}
         </div>
@@ -215,128 +253,109 @@ function FilterSidebar({
         </select>
       </div>
 
+      {isProvider && (
+        <>
+          <div>
+            <label className={lbl}>Posted by</label>
+            <select className={inp} value={filters.postedBy} onChange={e => onChange({ postedBy: e.target.value })}>
+              <option value="">Participants and Coordinators</option>
+              <option value="PARTICIPANT">Participant</option>
+              <option value="COORDINATOR">Support Coordinator</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Open to</label>
+            <select className={inp} value={filters.openTo} onChange={e => onChange({ openTo: e.target.value })}>
+              <option value="">Providers and workers</option>
+              <option value="PROVIDERS_ONLY">Providers only</option>
+            </select>
+          </div>
+          <div>
+            <label className={lbl}>Response deadline</label>
+            <select className={inp} value={filters.deadline} onChange={e => onChange({ deadline: e.target.value })}>
+              <option value="">Any time</option>
+              <option value="2">Within 2 hours</option>
+              <option value="24">Within 24 hours</option>
+              <option value="72">Within 3 days</option>
+            </select>
+          </div>
+          <p className="text-xs text-slate-500 m-0">Funding above shows the registration needed: NDIA-managed work requires an NDIS Registered Provider.</p>
+        </>
+      )}
+
       <Button className="w-full" onClick={onApply}>Apply Filters</Button>
+      {onSave && (
+        <Button className="w-full" variant="outline" onClick={onSave} disabled={saving}>
+          {saving ? "Saving…" : "🔔 Save this search"}
+        </Button>
+      )}
     </aside>
   );
 }
 
-function JobCard({ job, canApply, applying, onApply, onView }: {
-  job: Job;
-  canApply: boolean;
-  applying: boolean;
-  onApply: () => void;
-  onView: () => void;
-}) {
-  const urg = URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.SCHEDULED;
-  const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
-  const applied = !!job.ownApplication;
-  const qualsCount = job.workerPreferences?.requiredQualifications?.length ?? 0;
-  const budgetStr = job.budget?.type === "HOURLY" && job.budget.amount
-    ? `$${job.budget.amount}/hr`
-    : job.budget?.type === "TOTAL" && job.budget.amount
-    ? `$${job.budget.amount} total`
-    : null;
-
-  return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:border-brand-300 transition-colors">
-      <div className="flex gap-2 flex-wrap mb-3">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" style={{ background: urg.bg, color: urg.color }}>
-          {job.urgency.replace("_", " ")}
-        </span>
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-          {catLabel}
-        </span>
-        {job.shiftType && job.shiftType !== "STANDARD" && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700">
-            {SHIFT_TYPE_LABELS[job.shiftType] ?? job.shiftType}
-          </span>
-        )}
-        {job.isRecurring && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-            Recurring
-          </span>
-        )}
-        {job.fundingType && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-            {FUNDING_LABELS[job.fundingType] ?? job.fundingType}
-          </span>
-        )}
-      </div>
-
-      <Link href={`/jobs/${job.id}`} className="block text-base font-semibold text-slate-900 hover:text-brand-600 mb-1.5 leading-snug">
-        {job.title}
-      </Link>
-
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
-        <span>{job.suburb}, {job.state}</span>
-        {job.totalHours && <span>{job.totalHours}h</span>}
-        <span>{new Date(job.scheduledStartAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}</span>
-        {budgetStr && <span className="font-semibold text-emerald-700">{budgetStr}</span>}
-      </div>
-
-      {qualsCount > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {(job.workerPreferences?.requiredQualifications ?? []).slice(0, 3).map(q => (
-            <span key={q} className="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">{q}</span>
-          ))}
-          {qualsCount > 3 && <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-500">+{qualsCount - 3} more</span>}
-        </div>
-      )}
-
-      <div className="flex gap-2 justify-end mt-1">
-        <Button size="sm" variant="ghost" onClick={onView}>View</Button>
-        {canApply && (
-          <Button size="sm" variant={applied ? "ghost" : "outline"} disabled={applied || applying} onClick={() => !applied && onApply()}>
-            {applied ? `Applied (${job.ownApplication!.status})` : applying ? "Applying..." : "Quick Apply"}
-          </Button>
-        )}
-      </div>
-    </div>
-  );
+function urgencyFiltersFromParams(searchParams: URLSearchParams): Filters {
+  const urgencyParam = searchParams.get("urgency");
+  return urgencyParam && Object.prototype.hasOwnProperty.call(URGENCY_STYLE, urgencyParam)
+    ? { ...defaultFilters, urgency: urgencyParam, sortBy: "urgency" }
+    : defaultFilters;
 }
 
 export default function JobsBrowsePage() {
   const { activeRole } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [jobs,    setJobs]    = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [total,   setTotal]   = useState(0);
   const [page,    setPage]    = useState(1);
   const [error,   setError]   = useState<string | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState<Filters>(defaultFilters);
+  const [filters, setFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(() => urgencyFiltersFromParams(searchParams));
+  const [savingSearch, setSavingSearch] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [savedOnly, setSavedOnly] = useState(false);
 
-  const canPost = ["PARTICIPANT", "COORDINATOR"].includes(activeRole ?? "");
+  const canPost = ["PARTICIPANT", "COORDINATOR", "PROVIDER"].includes(activeRole ?? "");
   const canApply = ["SUPPORT_WORKER", "PROVIDER"].includes(activeRole ?? "");
 
-  const load = useCallback((f: Filters, p: number) => {
+  const load = useCallback((f: Filters, p: number, saved: boolean) => {
     setLoading(true);
     const params = new URLSearchParams({ status: "OPEN", page: String(p), limit: "20" });
-    if (f.suburb)   params.set("suburb", f.suburb);
-    if (f.category) params.set("category", f.category);
-    if (f.urgency)  params.set("urgency", f.urgency);
+    if (saved)         params.set("savedOnly", "true");
+    if (f.suburb)      params.set("search", f.suburb);
+    if (f.duration)    params.set("duration", f.duration);
+    if (f.minRate)     params.set("minRate", f.minRate);
+    if (f.maxDistanceKm) params.set("maxDistanceKm", f.maxDistanceKm);
+    if (f.timeOfDay)   params.set("timeOfDay", f.timeOfDay);
+    if (f.participantTransport) params.set("participantTransport", "true");
+    if (f.ageGroup)    params.set("ageGroup", f.ageGroup);
+    if (f.workerPreference) params.set("workerPreference", f.workerPreference);
+    if (f.qualification) params.set("qualification", "true");
+    if (f.category)    params.set("category", f.category);
+    if (f.urgency)     params.set("urgency", f.urgency);
     if (f.isRecurring !== "") params.set("isRecurring", f.isRecurring);
+    if (f.shiftType)   params.set("shiftType", f.shiftType);
+    if (f.fundingType) params.set("fundingType", f.fundingType);
+    if (f.dateFrom)    params.set("startFrom", new Date(f.dateFrom).toISOString());
+    if (f.dateTo)      params.set("startTo", new Date(f.dateTo + "T23:59:59").toISOString());
+    if (f.postedWithin) params.set("postedWithinHours", String(parseInt(f.postedWithin) * 24));
+    if (f.sortBy)      params.set("sortBy", f.sortBy);
+    if (f.postedBy)    params.set("postedByRole", f.postedBy);
+    if (f.openTo)      params.set("visibilityTarget", f.openTo);
 
     api.get<{ jobs: Job[]; total: number }>(`/jobs?${params}`)
       .then(r => {
         let result = r.jobs ?? [];
-        if (f.shiftType)       result = result.filter(j => j.shiftType === f.shiftType);
-        if (f.fundingType)     result = result.filter(j => j.fundingType === f.fundingType);
+        // workerType / experienceLevel aren't backend-filterable (live in a JSON blob) — filtered client-side only.
         if (f.workerType)      result = result.filter(j => j.workerPreferences?.workerType === f.workerType);
         if (f.experienceLevel) result = result.filter(j => j.workerPreferences?.experienceLevel === f.experienceLevel);
-        if (f.dateFrom) result = result.filter(j => new Date(j.scheduledStartAt) >= new Date(f.dateFrom));
-        if (f.dateTo)   result = result.filter(j => new Date(j.scheduledStartAt) <= new Date(f.dateTo + "T23:59:59"));
-        if (f.postedWithin) {
-          const cutoff = new Date(Date.now() - parseInt(f.postedWithin) * 24 * 60 * 60 * 1000);
-          result = result.filter(j => new Date(j.postedAt) >= cutoff);
-        }
-        if (f.sortBy === "urgency") {
-          const urgOrder: Record<string, number> = { EMERGENCY: 0, SAME_DAY: 1, SCHEDULED: 2 };
-          result = [...result].sort((a, b) => (urgOrder[a.urgency] ?? 3) - (urgOrder[b.urgency] ?? 3));
-        } else if (f.sortBy === "start_date") {
-          result = [...result].sort((a, b) => new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime());
+        // Response deadline is derived from the deadline timestamp, so it filters client-side.
+        if (f.deadline) {
+          const limit = Date.now() + parseInt(f.deadline) * 3_600_000;
+          result = result.filter(j => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() <= limit);
         }
         setJobs(result);
         setTotal(r.total ?? result.length);
@@ -345,18 +364,54 @@ export default function JobsBrowsePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(appliedFilters, page); }, [appliedFilters, page, load]);
+  useEffect(() => { load(appliedFilters, page, savedOnly); }, [appliedFilters, page, savedOnly, load]);
 
   function applyFilters() { setAppliedFilters({ ...filters }); setPage(1); setShowFilters(false); }
   function resetFilters()  { setFilters(defaultFilters); setAppliedFilters(defaultFilters); setPage(1); }
 
-  async function handleApply(id: string) {
-    setApplying(id);
+  async function handleSaveSearch() {
+    setSavingSearch(true);
+    setSaveMessage(null);
     try {
-      await api.post(`/jobs/${id}/apply`, {});
-      load(appliedFilters, page);
-    } catch (e: unknown) { setError((e as { message?: string })?.message ?? "Apply failed."); }
-    finally { setApplying(null); }
+      await createSavedSearch(undefined, toSavedSearchFilters(appliedFilters));
+      setSaveMessage("Saved — we'll notify you when a matching job is posted.");
+    } catch (e: unknown) {
+      setSaveMessage((e as { message?: string })?.message ?? "Could not save this search.");
+    } finally {
+      setSavingSearch(false);
+    }
+  }
+
+  // Connecting needs the single acknowledgement (SW v3.0 Window 1), which lives on the request page.
+  function handleApply(id: string) {
+    router.push(`/jobs/${id}`);
+  }
+
+  async function handleToggleSave(job: Job) {
+    const nextSaved = !job.saved;
+    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, saved: nextSaved } : j));
+    try {
+      if (nextSaved) await api.patch(`/jobs/${job.id}/save`, { saved: true });
+      else if (!job.hidden) await api.delete(`/jobs/${job.id}/save`);
+      else await api.patch(`/jobs/${job.id}/save`, { saved: false });
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? "Could not update saved state.");
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, saved: job.saved } : j));
+    }
+  }
+
+  async function handleToggleHide(job: Job) {
+    const nextHidden = !job.hidden;
+    if (nextHidden) setJobs(prev => prev.filter(j => j.id !== job.id));
+    else setJobs(prev => prev.map(j => j.id === job.id ? { ...j, hidden: false } : j));
+    try {
+      if (nextHidden) await api.patch(`/jobs/${job.id}/save`, { hidden: true });
+      else if (!job.saved) await api.delete(`/jobs/${job.id}/save`);
+      else await api.patch(`/jobs/${job.id}/save`, { hidden: false });
+    } catch (e: unknown) {
+      setError((e as { message?: string })?.message ?? "Could not update hidden state.");
+      load(appliedFilters, page, savedOnly);
+    }
   }
 
   const activeFilterCount = Object.entries(appliedFilters).filter(
@@ -366,18 +421,47 @@ export default function JobsBrowsePage() {
   return (
     <>
       <PageHeader
-        title="Browse Jobs"
+        title={activeRole === "SUPPORT_WORKER" ? "Find Work" : activeRole === "PROVIDER" ? "Find Support Opportunities" : "Browse Jobs"}
         description={`${total} open support request${total !== 1 ? "s" : ""}`}
-        actions={canPost ? <Link href="/jobs/post"><Button>+ Post a Request</Button></Link> : undefined}
+        actions={
+          <div className="flex gap-2">
+            {canApply && <Link href="/jobs/alerts"><Button variant="outline">🔔 My Alerts</Button></Link>}
+            {canPost && <Link href="/jobs/post"><Button>{activeRole === "PROVIDER" ? "+ Post Staffing Request" : "+ Post a Request"}</Button></Link>}
+          </div>
+        }
       />
       <div className="mx-auto max-w-6xl px-5 py-6">
+        {upgradeMessage && <UpgradePrompt message={upgradeMessage} />}
+        {saveMessage && <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700">{saveMessage}</div>}
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {canApply && (
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {([["", "Best matches"], ["RAPID", "Rapid"], ["URGENT", "Urgent"], ["LAST_MINUTE", "Last-Minute"], ["ROUTINE", "Routine"], ["SAVED", "Saved"]] as [string, string][]).map(([v, l]) => {
+              const active = v === "SAVED" ? savedOnly : !savedOnly && appliedFilters.urgency === v;
+              return (
+                <button key={v} type="button"
+                  onClick={() => {
+                    setSavedOnly(v === "SAVED");
+                    const urgency = v === "SAVED" ? "" : v;
+                    setFilters(p => ({ ...p, urgency }));
+                    setAppliedFilters(p => ({ ...p, urgency }));
+                    setPage(1);
+                  }}
+                  className={cn("h-8 px-4 rounded-full border text-sm font-semibold transition-colors",
+                    active ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex gap-8">
           <div className="hidden lg:block">
             <div className="sticky top-6">
               <Card>
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
+                  <FilterSidebar isProvider={activeRole === "PROVIDER"} isWorker={activeRole === "SUPPORT_WORKER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                    onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>
             </div>
@@ -392,7 +476,8 @@ export default function JobsBrowsePage() {
             {showFilters && (
               <Card className="mb-4 lg:hidden">
                 <CardContent className="py-4 px-4">
-                  <FilterSidebar filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters} />
+                  <FilterSidebar isProvider={activeRole === "PROVIDER"} isWorker={activeRole === "SUPPORT_WORKER"} filters={filters} onChange={f => setFilters(p => ({ ...p, ...f }))} onReset={resetFilters} onApply={applyFilters}
+                    onSave={canApply ? handleSaveSearch : undefined} saving={savingSearch} />
                 </CardContent>
               </Card>
             )}
@@ -404,7 +489,7 @@ export default function JobsBrowsePage() {
               </div>
             ) : jobs.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-base font-semibold text-slate-700">No open jobs found</p>
+                <p className="text-base font-semibold text-slate-700">{canApply ? "No open requests found" : "No open jobs found"}</p>
                 <p className="text-sm text-slate-400 mt-1">Try adjusting your filters or check back later.</p>
                 {activeFilterCount > 0 && <Button className="mt-4" variant="outline" onClick={resetFilters}>Clear Filters</Button>}
               </div>
@@ -413,7 +498,8 @@ export default function JobsBrowsePage() {
                 <div className="space-y-3">
                   {jobs.map(job => (
                     <JobCard key={job.id} job={job} canApply={canApply} applying={applying === job.id}
-                      onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)} />
+                      onApply={() => handleApply(job.id)} onView={() => router.push(`/jobs/${job.id}`)}
+                      onToggleSave={() => handleToggleSave(job)} onToggleHide={() => handleToggleHide(job)} />
                   ))}
                 </div>
                 {total > 20 && (

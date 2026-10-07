@@ -66,7 +66,7 @@ export const WORKER_STEPS: StepConfig[] = [
   {
     index:       7,
     title:       'Compliance Documents',
-    description: 'Upload your NDIS, police check and certifications',
+    description: 'Upload your Worker Screening Check, police check and certifications',
     icon:        'bi-shield-fill-check',
     schema:      workerStep8Schema,
     requiredForMarketplace: ['NDIS_SCREENING', 'POLICE_CHECK'],

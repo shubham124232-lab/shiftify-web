@@ -1,14 +1,14 @@
 'use client';
 import { useFormContext, Controller } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {
   const { register, watch } = useFormContext();
   const val = watch(name) as boolean;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
         {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
@@ -16,7 +16,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
       <label style={{ cursor: 'pointer' }}>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <div style={{ width: 42, height: 24, borderRadius: 12, background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative', transition: 'background 0.2s' }}>
-          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)' }} />
         </div>
       </label>
     </div>
@@ -26,7 +26,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
 const INTAKE_METHODS = ['Email', 'Portal Upload', 'Post / Mail', 'Fax', 'EDI', 'Xero / MYOB integration'];
 
 export function PmStep06_PaymentOps() {
-  const { register, control } = useFormContext();
+  const { register, control, formState: { errors } } = useFormContext();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
@@ -40,7 +40,7 @@ export function PmStep06_PaymentOps() {
                   onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== m) : [...cur, m]); }}
                   style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                     border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                    background: sel ? 'rgba(79,70,229,0.1)' : '#fff', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                    background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
                   {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{m}
                 </button>
               );
@@ -51,7 +51,8 @@ export function PmStep06_PaymentOps() {
 
       <div>
         <label style={labelStyle}>Primary Invoice Contact Email</label>
-        <input {...register('primaryInvoiceContactEmail')} type="email" placeholder="invoices@planmanager.com.au" style={inputStyle} />
+        <input {...register('primaryInvoiceContactEmail')} type="email" placeholder="invoices@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.primaryInvoiceContactEmail ? 'var(--td-pink)' : undefined }} />
+        {errors.primaryInvoiceContactEmail && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.primaryInvoiceContactEmail.message as string}</p>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -64,7 +65,11 @@ export function PmStep06_PaymentOps() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div><label style={labelStyle}>Name</label><input {...register('paymentEnquiryContactName')} placeholder="Full name" style={inputStyle} /></div>
-            <div><label style={labelStyle}>Email</label><input {...register('paymentEnquiryContactEmail')} type="email" placeholder="payments@planmanager.com.au" style={inputStyle} /></div>
+            <div>
+              <label style={labelStyle}>Email</label>
+              <input {...register('paymentEnquiryContactEmail')} type="email" placeholder="payments@planmanager.com.au" style={{ ...inputStyle, borderColor: errors.paymentEnquiryContactEmail ? 'var(--td-pink)' : undefined }} />
+              {errors.paymentEnquiryContactEmail && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.paymentEnquiryContactEmail.message as string}</p>}
+            </div>
           </div>
           <div><label style={labelStyle}>Phone</label><input {...register('paymentEnquiryContactPhone')} type="tel" placeholder="0400 000 000" style={inputStyle} /></div>
         </div>
@@ -97,10 +102,14 @@ export function PmStep06_PaymentOps() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Toggle label="Registered Providers Only" name="acceptsRegisteredProvidersOnly"
           desc="Only accept invoices from NDIS-registered providers" />
+        <Toggle label="Accept Unregistered Providers" name="acceptsUnregisteredProviders"
+          desc="Also accept invoices from providers who are not NDIS-registered" />
         <Toggle label="Require Service Dates on Invoices" name="requiresServiceDatesOnInvoices"
           desc="All invoices must include the dates services were delivered" />
         <Toggle label="Require Support Category Code" name="requiresSupportCategoryCode"
           desc="Invoices must include the NDIS support category / line item code" />
+        <Toggle label="Require Participant Consent Confirmation" name="requiresParticipantConsentConfirmation"
+          desc="Participant must formally confirm consent before you start managing their plan" />
       </div>
     </div>
   );

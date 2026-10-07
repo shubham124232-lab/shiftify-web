@@ -1,7 +1,7 @@
 'use client';
 import { useFormContext, Controller } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const STATES = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
@@ -13,7 +13,7 @@ export function PmStep05_ServiceCoverage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
-        <label style={labelStyle}>Service Coverage <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Service Coverage <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
             { value: 'AUSTRALIA_WIDE', label: 'National', desc: 'Can manage participants across all states and territories' },
@@ -22,7 +22,7 @@ export function PmStep05_ServiceCoverage() {
           ].map(opt => (
             <label key={opt.value} style={{ display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
               border: `1.5px solid ${coverageType === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-              background: coverageType === opt.value ? 'rgba(79,70,229,0.06)' : '#fff' }}>
+              background: coverageType === opt.value ? 'rgba(183,37,88,0.06)' : 'var(--td-white)' }}>
               <input type="radio" value={opt.value} {...register('serviceCoverageType')} style={{ marginTop: 3, accentColor: 'var(--clr-primary)' }} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{opt.label}</div>
@@ -31,12 +31,12 @@ export function PmStep05_ServiceCoverage() {
             </label>
           ))}
         </div>
-        {errors.serviceCoverageType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.serviceCoverageType.message as string}</p>}
+        {errors.serviceCoverageType && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.serviceCoverageType.message as string}</p>}
       </div>
 
       {coverageType === 'STATE_BASED' && (
         <div>
-          <label style={{ ...labelStyle, marginBottom: 8 }}>States / Territories Covered <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={{ ...labelStyle, marginBottom: 8 }}>States / Territories Covered <span style={{ color: 'var(--td-pink)' }}>*</span></label>
           <Controller name="stateCoverage" control={control} defaultValue={[]} render={({ field }) => (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
               {STATES.map(s => {
@@ -46,7 +46,7 @@ export function PmStep05_ServiceCoverage() {
                     onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((x: string) => x !== s) : [...cur, s]); }}
                     style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                       border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                      background: sel ? 'var(--clr-primary)' : '#fff', color: sel ? '#fff' : 'var(--clr-text)' }}>
+                      background: sel ? 'var(--clr-primary)' : 'var(--td-white)', color: sel ? 'var(--td-white)' : 'var(--clr-text)' }}>
                     {s}
                   </button>
                 );
@@ -58,7 +58,7 @@ export function PmStep05_ServiceCoverage() {
 
       {coverageType === 'REGION_BASED' && (
         <div>
-          <label style={labelStyle}>Postcodes / Suburbs Served <span style={{ color: '#ef4444' }}>*</span></label>
+          <label style={labelStyle}>Postcodes / Suburbs Served <span style={{ color: 'var(--td-pink)' }}>*</span></label>
           <textarea {...register('postcodesServed.0')} rows={3} placeholder="List postcodes or suburb names, one per line or comma-separated"
             style={{ ...inputStyle, height: 'auto', padding: '10px 12px', resize: 'vertical', fontSize: 12 }} />
         </div>
@@ -73,6 +73,11 @@ export function PmStep05_ServiceCoverage() {
           <option value="AWST">AWST — WA</option>
           <option value="MULTIPLE">Multiple timezones</option>
         </select>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Phone Support Hours</label>
+        <input {...register('phoneSupportHours')} placeholder="e.g. Mon–Fri 9am–5pm AEST" style={inputStyle} />
       </div>
 
       <div>

@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { Bell, ChevronDown, LogOut, User, CheckCircle } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
-import type { UserRole } from "@/lib/types";
+import { getNotifications } from "@/lib/api/dashboard";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/store/auth.store";
+import { UserRole } from "@/lib/types";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
@@ -32,6 +36,14 @@ const ROLE_COLORS: Record<string, string> = {
 export function AppTopbar() {
   const { user, switchRole, logout } = useAuth();
   const router = useRouter();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getNotifications()
+      .then(r => setHasUnread((r.notifications ?? []).some(n => !n.read)))
+      .catch(() => {});
+  }, [user]);
 
   if (!user) return null;
 
@@ -52,6 +64,26 @@ export function AppTopbar() {
   }
 
   const hasMultipleRoles = user.roles.length > 1;
+  // PR-MR01 — a Provider owner who also works personally can hold a Support Worker role on the same login.
+  const canAddWorker = user.roles.includes(UserRole.PROVIDER) && !user.roles.includes(UserRole.SUPPORT_WORKER);
+  async function addWorkerRole() {
+    try {
+      const res = await api.post<{ roles: UserRole[] }>("/auth/roles", { role: UserRole.SUPPORT_WORKER });
+      useAuthStore.setState({ user: { ...user!, roles: res.roles } });
+    } catch { /* already held or not allowed — the switcher simply stays as is */ }
+  }
+  const removableRole = user.activeRole === UserRole.PROVIDER && user.roles.includes(UserRole.SUPPORT_WORKER);
+  async function removeWorkerRole() {
+    if (!window.confirm("Remove the Support Worker role from this login? Your Provider access is not affected.")) return;
+    try {
+      const res = await api.del<{ roles: UserRole[] }>(`/auth/roles/${UserRole.SUPPORT_WORKER}`);
+      useAuthStore.setState({ user: { ...user!, roles: res.roles } });
+    } catch { /* not allowed right now */ }
+  }
+  const identityLine = (role: UserRole) =>
+    role === UserRole.PROVIDER ? "Acting as your Provider organisation — requests and responses show your organisation."
+    : role === UserRole.SUPPORT_WORKER ? "Acting as an individual Support Worker — Provider workforce tools are not available."
+    : `Acting as ${ROLE_LABELS[role]}.`;
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
@@ -67,8 +99,8 @@ export function AppTopbar() {
         )}
       </div>
 
-      {/* Right: bell + account menu */}
-      <div className="flex items-center gap-3">
+      {/* Right: bell + messages + account menu */}
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => router.push("/notifications")}
@@ -76,10 +108,21 @@ export function AppTopbar() {
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
+          {hasUnread && (
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" />
+          )}
         </button>
 
+        <Link
+          href="/messages"
+          className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 sm:flex"
+        >
+          <MessageSquare className="h-[18px] w-[18px]" />
+          Messages
+        </Link>
+
         <Menu as="div" className="relative">
-          <MenuButton className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          <MenuButton className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
               {initials(displayName)}
             </span>
@@ -131,6 +174,21 @@ export function AppTopbar() {
                       </button>
                     ))}
                   </div>
+                  <p className="mt-2 text-[11px] text-slate-500">{identityLine(user.activeRole)}</p>
+                </div>
+              )}
+              {removableRole && (
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <button type="button" onClick={() => void removeWorkerRole()} className="text-xs font-medium text-slate-500 hover:underline">
+                    Remove my Support Worker role
+                  </button>
+                </div>
+              )}
+              {canAddWorker && (
+                <div className="border-b border-slate-100 px-4 py-3">
+                  <button type="button" onClick={() => void addWorkerRole()} className="text-xs font-medium text-brand-700 hover:underline">
+                    I also work personally — add a Support Worker role
+                  </button>
                 </div>
               )}
 

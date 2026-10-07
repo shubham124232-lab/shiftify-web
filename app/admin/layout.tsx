@@ -14,8 +14,9 @@ const ADMIN_NAV = [
   { href: "/admin/verification",     label: "Suspended Users" },
   { href: "/admin/jobs",             label: "Jobs" },
   { href: "/admin/subscriptions",    label: "Subscriptions" },
-  { href: "/admin/broadcast",        label: "Notifications" },
-  { href: "/admin/audit",            label: "Audit Log" },
+  { href: "/admin/broadcast",        label: "Notifications", superAdminOnly: true },
+  { href: "/admin/reports",          label: "Reports" },
+  { href: "/admin/audit",            label: "Audit Log",     superAdminOnly: true },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -35,14 +36,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading || !initialized || !user || !user.adminTier) {
     return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
+      <div className="td-theme flex h-screen items-center justify-center text-slate-500">
         <Spinner /> <span className="ml-2">Loading admin console...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="td-theme flex h-screen">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-slate-900 text-slate-200 md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-slate-800 px-5">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">S</span>
@@ -53,7 +54,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <nav className="flex-1 p-3">
           <ul className="space-y-1">
-            {ADMIN_NAV.map(item => (
+            {ADMIN_NAV.filter(item => !item.superAdminOnly || user.adminTier === "SUPER_ADMIN").map(item => (
               <li key={item.href}>
                 <Link
                   href={item.href}

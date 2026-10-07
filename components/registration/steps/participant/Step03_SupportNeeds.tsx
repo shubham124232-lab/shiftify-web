@@ -1,12 +1,12 @@
 'use client';
 import { useFormContext, Controller } from 'react-hook-form';
 import { TagInput } from './TagInput';
+import { JOB_CATEGORIES, CATEGORY_GROUPS } from '@/lib/constants/categories';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const DISABILITY_TYPES = ['Autism Spectrum Disorder', 'Intellectual Disability', 'Physical Disability', 'Acquired Brain Injury', 'Psychosocial / Mental Health', 'Sensory Impairment', 'Neurological Condition', 'Multiple Conditions', 'Other'];
-const SUPPORT_NEEDS = ['Personal Care', 'Community Access', 'Domestic Assistance', 'Transport', 'Allied Health', 'Behaviour Support', 'SIL / Accommodation', 'Early Intervention', 'Day Programs', 'High Intensity Support'];
 const MOBILITY_NEEDS = ['Wheelchair user', 'Walking frame', 'Manual transfers needed', 'Hoist required', 'Independent mobility', 'Limited mobility'];
 const COMMS_NEEDS = ['Verbal communication', 'Non-verbal / AAC device', 'Simplified language', 'Visual supports', 'Sign language / Auslan', 'Interpreter required'];
 const BEHAVIOUR_NOTES = ['Challenging behaviours', 'Behaviour support plan in place', 'Requires consistent routine', 'Sensory sensitivities', 'Elopement risk'];
@@ -19,7 +19,8 @@ const PERSONAL_CARE_LEVELS = ['None', 'Basic assistance', 'Moderate assistance',
 const LANGUAGES = ['English', 'Mandarin', 'Cantonese', 'Arabic', 'Vietnamese', 'Greek', 'Italian', 'Hindi', 'Korean', 'Tagalog', 'Spanish', 'Other'];
 
 function ChipPicker({ name, options, label }: { name: string; options: string[]; label: string }) {
-  const { control } = useFormContext();
+  const { control, formState: { errors } } = useFormContext();
+  const err = (errors[name]?.message) as string | undefined;
   return (
     <div>
       <label style={labelStyle}>{label}</label>
@@ -32,13 +33,56 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
                 onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== opt) : [...cur, opt]); }}
                 style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   border: sel ? '1.5px solid var(--clr-primary)' : '1.5px solid var(--clr-border)',
-                  background: sel ? 'rgba(79,70,229,0.1)' : '#fff', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                  background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
                 {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{opt}
               </button>
             );
           })}
         </div>
       )} />
+      {err && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{err}</p>}
+    </div>
+  );
+}
+
+// Same 5-category support taxonomy used for worker "Services Offered" and job
+// posting categories, so a participant's stated needs match the same vocabulary.
+function GroupedNeedsPicker({ name, label }: { name: string; label: string }) {
+  const { control, formState: { errors } } = useFormContext();
+  const err = (errors[name]?.message) as string | undefined;
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <Controller name={name} control={control} defaultValue={[]} render={({ field }) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {CATEGORY_GROUPS.map(group => {
+            const cats = JOB_CATEGORIES.filter(c => c.group === group);
+            if (cats.length === 0) return null;
+            return (
+              <div key={group}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--clr-muted)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 5 }}>
+                  {group}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  {cats.map(cat => {
+                    const sel = (field.value ?? []).includes(cat.label);
+                    return (
+                      <button key={cat.value} type="button"
+                        onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== cat.label) : [...cur, cat.label]); }}
+                        style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          border: sel ? '1.5px solid var(--clr-primary)' : '1.5px solid var(--clr-border)',
+                          background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                        {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{cat.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )} />
+      {err && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{err}</p>}
     </div>
   );
 }
@@ -61,7 +105,7 @@ export function ParticipantStep03_SupportNeeds() {
         </select>
       </div>
 
-      <ChipPicker name="primarySupportNeeds" options={SUPPORT_NEEDS} label="Primary Support Needs" />
+      <GroupedNeedsPicker name="primarySupportNeeds" label="Primary Support Needs" />
 
       <div>
         <label style={labelStyle}>Support Type Needed</label>
@@ -71,7 +115,7 @@ export function ParticipantStep03_SupportNeeds() {
             return (
               <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 12px', borderRadius: 20,
                 border: cur === o.value ? '1.5px solid var(--clr-primary)' : '1.5px solid var(--clr-border)',
-                background: cur === o.value ? 'rgba(79,70,229,0.07)' : '#fff', fontSize: 12, fontWeight: 500 }}>
+                background: cur === o.value ? 'rgba(183,37,88,0.07)' : 'var(--td-white)', fontSize: 12, fontWeight: 500 }}>
                 <input type="radio" value={o.value} {...register('preferredSupportType')} style={{ display: 'none' }} />
                 {o.label}
               </label>

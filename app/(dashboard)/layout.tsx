@@ -7,6 +7,7 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
+import { ResumeDraftBanner } from "@/components/jobs/ResumeDraftBanner";
 import { Spinner } from "@/components/ui/spinner";
 import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
 import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
@@ -23,6 +24,8 @@ const PUBLIC_EXEMPT = ["/jobs/post"];
 // Areas that belong to specific roles (mirrors the "only available to …" notices on those pages).
 const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/connect-invites",         roles: ["SUPPORT_WORKER"] },
+  { prefix: "/earnings",                roles: ["SUPPORT_WORKER"] },
+  { prefix: "/connections/my",          roles: ["SUPPORT_WORKER", "PROVIDER"] }, // SW Window 27 — must match before the Plan Manager /connections area
   { prefix: "/connections",             roles: ["PLAN_MANAGER"] },
   { prefix: "/load-board",              roles: ["PLAN_MANAGER"] },
   { prefix: "/job-invites",             roles: ["SUPPORT_WORKER", "PROVIDER"] },
@@ -146,6 +149,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppTopbar />
         <StatusBanner />
+        <ResumeDraftBanner />
         <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
       </div>
     </div>

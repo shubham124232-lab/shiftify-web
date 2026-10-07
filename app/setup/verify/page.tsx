@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { api } from '@/lib/api';
+import { peekResumableDraft } from '@/lib/store/guestJobDraft';
+import { prepareAccountForDraft, draftReviewPath } from '@/lib/guestDraftResume';
 export default function VerifyPage() {
   const router = useRouter();
   const { user, activeRole } = useAuth();
@@ -58,6 +60,14 @@ export default function VerifyPage() {
       sessionStorage.removeItem('shiftify_dev_otp');
       // silentInit() exits early when accessToken is already set, so set phoneVerified directly
       useAuthStore.setState({ phoneVerified: true });
+      // Verification was interrupted earlier (tab closed, came back later): a request saved before signing up
+      // is still waiting, so go back to its review step instead of the profile wizard.
+      const draft = peekResumableDraft(activeRole);
+      if (draft) {
+        await prepareAccountForDraft(draft);
+        router.replace(draftReviewPath(draft));
+        return;
+      }
       // All roles go to the profile wizard — participants activate after wizard completion
       router.replace('/setup/profile/3');
     } catch (err: any) {

@@ -41,6 +41,7 @@ const PROTECTED = [
   '/saved-professionals',
   '/subscription',
   '/upcoming-support',
+  '/earnings',
   '/workers',
 ];
 

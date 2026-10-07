@@ -19,6 +19,7 @@ import {
   StoredSubscription,
 } from '@/lib/types';
 import { getPlan } from '@/lib/constants/plans';
+import { clearGuestDraft } from '@/lib/store/guestJobDraft';
 
 export const SUB_STORAGE_KEY = 'shiftify_sub';
 
@@ -268,6 +269,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (typeof window !== 'undefined') {
       document.cookie = 'shiftify_is_auth=; path=/; max-age=0; SameSite=Lax';
       localStorage.removeItem(SUB_STORAGE_KEY);
+      // A request saved on this device belongs to whoever was posting it — never to the next person to log in.
+      clearGuestDraft();
     }
     set({ user: null, accessToken: null, loading: false, initialized: false, error: null, profileCompletion: null, profileStep: 0, phoneVerified: false, marketplaceMissing: [], completionMissing: [] });
 
@@ -294,7 +297,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
       // Profile completion / marketplace gates are per active role — re-read them.
-      void refreshUserMe(set, get);
+      // Awaited so the destination dashboard never flashes the previous role's completion list.
+      await refreshUserMe(set, get).catch(() => null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Role switch failed';
       set({ loading: false, error: msg });

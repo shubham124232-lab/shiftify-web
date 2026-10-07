@@ -6,6 +6,7 @@ import type { PostingTier } from "@/lib/types/posting";
 
 const DRAFT_KEY = "shiftify_guest_job_draft";
 const ROLE_KEY  = "shiftify_guest_job_role";
+const ATTEMPT_KEY = "shiftify_job_post_attempt";
 
 export type GuestPostingRole = "PARTICIPANT" | "COORDINATOR";
 
@@ -18,7 +19,8 @@ export interface GuestJobDraft {
 
 // A draft saved just before signing up may be picked up by the newly signed-in account, but only
 // while it is fresh — an old abandoned draft must never leak into a later logged-in posting session.
-const RESUME_WINDOW_MS = 30 * 60 * 1000;
+// A coordinator still has a profile to complete after verifying, so the saved request has to outlast that.
+export const RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function saveGuestRole(role: GuestPostingRole): void {
   try { localStorage.setItem(ROLE_KEY, role); } catch { /* storage unavailable */ }
@@ -42,6 +44,7 @@ export function loadGuestDraft(tier: PostingTier): Record<string, unknown> | nul
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GuestJobDraft;
+    if (parsed.savedAt && Date.now() - parsed.savedAt > RESUME_WINDOW_MS) return null;
     return parsed.tier === tier ? parsed.state : null;
   } catch { return null; }
 }
@@ -77,5 +80,28 @@ export function peekGuestDraft(): GuestJobDraft | null {
 }
 
 export function clearGuestDraft(): void {
-  try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem(ROLE_KEY); } catch { /* storage unavailable */ }
+  try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem(ROLE_KEY); localStorage.removeItem(ATTEMPT_KEY); } catch { /* storage unavailable */ }
+}
+
+// One id per posting attempt. It is sent with the publish call so a retry, a double click or a
+// timeout-then-retry returns the request that already exists instead of creating a second one.
+// It survives a reload (localStorage) and is dropped once the request is posted or discarded.
+export function getPostAttemptId(): string {
+  try {
+    const existing = localStorage.getItem(ATTEMPT_KEY);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    localStorage.setItem(ATTEMPT_KEY, id);
+    return id;
+  } catch { return crypto.randomUUID(); }
+}
+
+export function clearPostAttemptId(): void {
+  try { localStorage.removeItem(ATTEMPT_KEY); } catch { /* storage unavailable */ }
+}
+
+// Where "Review and post" should send someone who has a fresh saved request for the role they are acting as.
+export function resumeDraftPath(activeRole: string | null | undefined, tierPath: (t: PostingTier) => string): string | null {
+  const d = peekResumableDraft(activeRole);
+  return d ? `/jobs/post/${tierPath(d.tier)}` : null;
 }

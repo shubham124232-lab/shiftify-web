@@ -190,6 +190,7 @@ export default function ProviderListingsPage() {
 
   async function changeStatus(id: string, status: Listing["status"]) {
     setUpdatingId(id);
+    setError(null);
     try {
       await api.patch(`/provider/listings/${id}`, { status });
       await loadListings();
@@ -202,6 +203,7 @@ export default function ProviderListingsPage() {
 
   async function featureListing(id: string) {
     setFeaturingId(id);
+    setError(null);
     try {
       // Disclose the queue position before payment (Pricing V2 §7.3).
       const preview = await api.get<{ queuePosition: number; priceAud: number; durationDays: number }>(`/provider/listings/${id}/featured-preview`);
@@ -306,6 +308,11 @@ export default function ProviderListingsPage() {
                       </Button>
                     )}
                     <div className="flex gap-1 justify-end">
+                      {l.listingCategory === "HOUSING" && l.status !== "CLOSED" && (
+                        <Button size="sm" variant="outline" onClick={() => { window.location.href = `/provider/sil-vacancy?edit=${l.id}`; }}>
+                          Edit
+                        </Button>
+                      )}
                       {l.status === "DRAFT" && (
                         <Button
                           size="sm" variant="outline" disabled={updatingId === l.id}

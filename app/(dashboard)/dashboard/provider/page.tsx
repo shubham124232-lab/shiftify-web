@@ -106,7 +106,7 @@ export default function ProviderDashboardPage() {
     { key: "rapid",   icon: Zap,           title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid staffing request",       href: "/jobs/post/rapid", highlighted: true },
     { key: "urgent",  icon: Clock,         title: "Urgent",      subtitle: "Within 4 hours",    ctaLabel: "Post Urgent staffing request",      href: "/jobs/post/urgent" },
     { key: "lastmin", icon: CalendarClock, title: "Last-Minute", subtitle: "4–48 hours",        ctaLabel: "Post Last-Minute staffing request", href: "/jobs/post/last-minute" },
-    { key: "now",     icon: Users,         title: "Available Now workers", subtitle: "Find someone free right now", ctaLabel: "Find an Available Now worker", href: "/workers/available" },
+    { key: "now",     icon: Users,         title: "Available Now workers", subtitle: "Find someone free right now", ctaLabel: "Find an Available Now worker", href: "/workers/available?availableNow=1" },
     { key: "opps",    icon: Search,        title: "Opportunities", subtitle: "Participant and Support Coordinator requests", ctaLabel: "View matching opportunities", href: "/jobs" },
   ];
 

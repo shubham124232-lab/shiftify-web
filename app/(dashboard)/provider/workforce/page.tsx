@@ -14,7 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { TeamMembersTab, type WorkforceBranch, type WorkforceTeamMember } from "@/components/provider/TeamMembersTab";
 
-interface ManagedWorker { id: string; name: string; email: string | null; phone: string | null; status: string }
+interface ManagedWorker {
+  id: string; name: string; email: string | null; phone: string | null; status: string;
+  availableNow?: boolean; upcomingAssignments?: number;
+  compliance?: { documents: number; expired: number; expiringSoon: number; nextExpiry: string | null };
+}
 
 interface Capacity {
   planLabel: string;
@@ -135,6 +139,16 @@ export default function InternalWorkforcePage() {
                         <div className="flex-1 min-w-0">
                           <p className="m-0 text-sm font-semibold text-slate-900 truncate">{w.name}</p>
                           <p className="m-0 text-xs text-slate-500 truncate">{w.email ?? w.phone ?? "No contact"}</p>
+                          <p className="m-0 mt-0.5 text-xs text-slate-500">
+                            {w.compliance
+                              ? (w.compliance.expired > 0 ? `${w.compliance.expired} document(s) expired`
+                                : w.compliance.expiringSoon > 0 ? `${w.compliance.expiringSoon} document(s) expiring within 30 days`
+                                : w.compliance.documents === 0 ? "No documents yet"
+                                : `Documents current${w.compliance.nextExpiry ? ` · next expiry ${new Date(w.compliance.nextExpiry).toLocaleDateString("en-AU")}` : ""}`)
+                              : ""}
+                            {w.availableNow ? " · Available now" : ""}
+                            {typeof w.upcomingAssignments === "number" ? ` · ${w.upcomingAssignments} upcoming` : ""}
+                          </p>
                         </div>
                         <span className={`rounded-full px-2 py-0.5 text-xs ${w.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                           {w.status === "ACTIVE" ? "Active" : w.status === "DRAFT" ? "Setup incomplete" : "Inactive"}

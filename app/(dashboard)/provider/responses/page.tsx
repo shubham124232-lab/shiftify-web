@@ -131,6 +131,26 @@ export default function ProviderResponsesPage() {
     finally { setBusy(false); }
   }
 
+  // PR-M03 — stop further contact from the other party on an enquiry thread (existing block API; reversible in Blocked users).
+  async function blockOther(thread: Thread) {
+    const other = thread.messages.find((m) => m.senderUserId !== me)?.senderUserId;
+    if (!other) return;
+    if (!window.confirm(`Block ${thread.other}? They will no longer be able to message you or see your profile. You can undo this in Blocked users.`)) return;
+    setBusy(true); setError(null);
+    try { await api.post("/users/blocks", { blockedUserId: other, blockMessages: true, hideProfile: true }); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Could not block this user"); }
+    finally { setBusy(false); }
+  }
+
+  async function reportThread(thread: Thread) {
+    const reason = window.prompt("What is wrong with this conversation? Shiftify administrators will review it.");
+    if (!reason || reason.trim().length < 3) return;
+    setBusy(true); setError(null);
+    try { await api.post(`/direct-inquiries/${thread.rootId}/report`, { reason: reason.trim() }); window.alert("Thanks — your report was sent to Shiftify administrators."); }
+    catch (e) { setError(e instanceof Error ? e.message : "Could not send the report"); }
+    finally { setBusy(false); }
+  }
+
   const newWorkers = workers.filter((w) => w.status === "INTERESTED" && !w.viewedAt).length;
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: "workers", label: "Worker responses", count: newWorkers },
@@ -181,6 +201,8 @@ export default function ProviderResponsesPage() {
               )}
               {t.unread && <button type="button" onClick={() => markViewed(t.rootId)} className="text-xs font-semibold text-indigo-600 hover:underline">Mark as viewed</button>}
               {canReply && <button type="button" onClick={() => setReplyFor(replyFor === t.rootId ? null : t.rootId)} className="text-xs font-semibold text-indigo-600 hover:underline">Reply</button>}
+              {t.messages.some((m) => m.senderUserId !== me) && <button type="button" disabled={busy} onClick={() => blockOther(t)} className="text-xs font-semibold text-rose-600 hover:underline">Block</button>}
+              {t.messages.some((m) => m.senderUserId !== me) && <button type="button" disabled={busy} onClick={() => reportThread(t)} className="text-xs font-semibold text-slate-500 hover:underline">Report</button>}
             </div>
             {replyFor === t.rootId && (
               <div className="mt-2 flex gap-2">

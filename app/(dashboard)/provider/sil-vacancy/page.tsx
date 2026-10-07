@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api, ApiError } from "@/lib/api";
+import { api, http, ApiError } from "@/lib/api";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 
 const schema = z.object({
@@ -36,6 +36,7 @@ const schema = z.object({
     costs: z.string().optional(),
     requiredApprovals: z.string().optional(),
     inspectionProcess: z.string().optional(),
+    photoUrls: z.array(z.string()).optional(),
   }).optional(),
   acknowledgement: z.boolean().refine(v => v === true, { message: "You must confirm the vacancy details are accurate" }),
 });
@@ -77,10 +78,63 @@ export default function SilVacancyPage() {
   });
   const { register, watch, setValue, formState: { errors } } = form;
 
+  // PR-HL03 — reopen a saved or live listing (?edit=<id>) and change it in place.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editStatus, setEditStatus] = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("edit");
+    if (!id) return;
+    setEditId(id); setLoadingEdit(true);
+    api.get<{ listings?: Array<Record<string, unknown>> } | Array<Record<string, unknown>>>("/provider/listings?category=HOUSING")
+      .then((res) => {
+        const rows = Array.isArray(res) ? res : (res.listings ?? []);
+        const l = rows.find((r) => r.id === id) as (Record<string, any>) | undefined;
+        if (!l) { setError("That listing could not be found."); return; }
+        setEditStatus(String(l.status));
+        form.reset({
+          vacancyCategory: l.vacancyCategory, title: l.title, suburb: l.suburb, state: l.state ?? "", postcode: l.postcode ?? "",
+          propertyType: l.propertyType ?? "", vacancyCount: l.vacancyCount ?? undefined, supportModel: l.supportModel ?? "",
+          description: l.description, suitableFor: l.suitableFor ?? [], fundingRoutes: l.fundingRoutes ?? [], urgency: l.urgency ?? undefined,
+          housingDetails: l.housingDetails ?? undefined, acknowledgement: true,
+        } as FormData);
+      })
+      .catch(() => setError("Could not load that listing."))
+      .finally(() => setLoadingEdit(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveChanges() {
+    const ok = await form.trigger(["vacancyCategory", "title", "suburb", "description"]);
+    if (!ok || !editId) return;
+    setSubmitting(true); setError(null);
+    try {
+      const { acknowledgement: _ack, vacancyCount, ...rest } = form.getValues();
+      const clean = Object.fromEntries(Object.entries({ ...rest, ...(Number.isFinite(vacancyCount) ? { vacancyCount } : {}) }).filter(([, v]) => v !== "" && v !== undefined));
+      await api.patch(`/provider/listings/${editId}`, clean);
+      router.push("/provider/listings");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save your changes.");
+    } finally { setSubmitting(false); }
+  }
+
   const vacancyCategory = watch("vacancyCategory");
   const suitableFor     = watch("suitableFor") ?? [];
   const fundingRoutes   = watch("fundingRoutes") ?? [];
   const accessibility   = watch("housingDetails.accessibilityFeatures") ?? [];
+  const photos          = watch("housingDetails.photoUrls") ?? [];
+  const [uploading, setUploading] = useState(false);
+  async function addPhoto(file: File | undefined) {
+    if (!file) return;
+    if (photos.length >= 6) { setError("You can add up to 6 photos."); return; }
+    setUploading(true); setError(null);
+    try {
+      const fd = new FormData(); fd.append("photo", file);
+      const res = await http.post<{ data: { url: string } }>("/upload/listing-photo", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setValue("housingDetails.photoUrls", [...photos, res.data.data.url]);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not upload that photo."); }
+    finally { setUploading(false); }
+  }
   const restricted      = vacancyCategory === "SIL" || vacancyCategory === "SDA";
   const blockedByRegistration = restricted && registered === false;
 
@@ -91,13 +145,15 @@ export default function SilVacancyPage() {
   async function saveDraft() {
     const ok = await form.trigger(["vacancyCategory", "title", "suburb", "description"]);
     if (!ok) return;
-    setSubmitting(true); setError(null);
+    setSubmitting(true); setError(null); setUpgradeMessage(null);
     try {
-      const data = form.getValues();
-      await api.post("/provider/listings", { ...data, listingCategory: "HOUSING", saveAsDraft: true, acknowledgement: undefined });
+      const { vacancyCount, ...data } = form.getValues();
+      // An untouched "Number of Vacancies" is NaN — leave it out rather than send null.
+      await api.post("/provider/listings", { ...data, ...(Number.isFinite(vacancyCount) ? { vacancyCount } : {}), listingCategory: "HOUSING", saveAsDraft: true, acknowledgement: undefined });
       router.push("/provider/listings");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save the draft.");
+      if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) setUpgradeMessage(e.message);
+      else setError(e instanceof Error ? e.message : "Could not save the draft.");
     } finally { setSubmitting(false); }
   }
 
@@ -125,10 +181,11 @@ export default function SilVacancyPage() {
   return (
     <>
       <PageHeader
-        title="Post a Home and Living vacancy"
-        description="Advertise open placements and attract suitable participants and coordinators."
+        title={editId ? "Edit Home and Living vacancy" : "Post a Home and Living vacancy"}
+        description={editId ? "Update this listing. Changes apply to the same listing — no new package is started." : "Advertise open placements and attract suitable participants and coordinators."}
       />
       <div className="container-page py-8 max-w-2xl">
+        {loadingEdit && <p className="text-sm text-slate-500 mb-4">Loading your listing…</p>}
         {blockedByRegistration && (
           <div className="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 mb-4">
             SIL and SDA listings can only be published by a Provider with a verified NDIS registration covering these supports. You can save this as a draft now and publish it once your registration is verified.
@@ -216,7 +273,7 @@ export default function SilVacancyPage() {
                   </div>
                   <div>
                     <label style={lbl}>Number of Vacancies</label>
-                    <input type="number" {...register("vacancyCount", { valueAsNumber: true })} min={1} max={20} placeholder="1" style={inp} />
+                    <input type="number" {...register("vacancyCount", { setValueAs: (v) => (v === "" || v == null ? undefined : Number(v)) })} min={1} max={20} placeholder="1" style={inp} />
                   </div>
                 </div>
                 <div>
@@ -301,7 +358,23 @@ export default function SilVacancyPage() {
                   <label style={lbl}>Inspection / enquiry process</label>
                   <textarea {...register("housingDetails.inspectionProcess")} rows={2} placeholder="How interested people can enquire and arrange an inspection" style={{ ...inp, height: "auto", padding: "10px 12px", resize: "vertical" }} />
                 </div>
-                <p className="text-xs text-slate-500 m-0">Photo upload is not available on this form yet.</p>
+                <div>
+                  <label style={lbl}>Photos (up to 6, JPG/PNG/WebP, 5 MB each)</label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {photos.map((u) => (
+                      <div key={u} style={{ position: "relative" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={u} alt="Listing" style={{ width: 84, height: 84, objectFit: "cover", borderRadius: 8, border: "1px solid var(--clr-border)" }} />
+                        <button type="button" aria-label="Remove photo" onClick={() => setValue("housingDetails.photoUrls", photos.filter((p) => p !== u))}
+                          style={{ position: "absolute", top: -6, right: -6, width: 20, height: 20, borderRadius: 10, border: 0, background: "#be123c", color: "#fff", cursor: "pointer", fontSize: 12 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                  <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading || photos.length >= 6}
+                    onChange={(e) => { void addPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                  {uploading && <p className="text-xs text-slate-500 m-0 mt-1">Uploading…</p>}
+                  <p className="text-xs text-slate-500 m-0 mt-1">Do not include participants, addresses on signs or other identifying details in photos.</p>
+                </div>
               </CardContent>
             </Card>
 
@@ -365,10 +438,18 @@ export default function SilVacancyPage() {
 
             <div className="flex gap-3">
               <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>Cancel</Button>
-              <Button type="button" variant="outline" className="flex-1" disabled={submitting} onClick={saveDraft}>Save draft</Button>
-              <Button type="submit" className="flex-1" disabled={submitting || blockedByRegistration}>
-                Review package — $199 / 30 days
-              </Button>
+              {editId ? (
+                <Button type="button" className="flex-1" disabled={submitting || loadingEdit} onClick={saveChanges}>
+                  {editStatus === "DRAFT" ? "Save draft changes" : "Save changes"}
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" variant="outline" className="flex-1" disabled={submitting} onClick={saveDraft}>Save draft</Button>
+                  <Button type="submit" className="flex-1" disabled={submitting || blockedByRegistration}>
+                    Review package — $199 / 30 days
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         </FormProvider>

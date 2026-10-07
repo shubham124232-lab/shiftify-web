@@ -17,6 +17,8 @@ import {
   inp, lbl,
 } from "@/components/jobs/post/shared";
 import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
+import { getPostAttemptId, clearPostAttemptId } from "@/lib/store/guestJobDraft";
+import { postFailureMessage } from "@/lib/guestDraftResume";
 import {
   TIER_META, EMPTY_CATALOGUE, EMPTY_REQUIREMENTS, EMPTY_SAFETY, EMPTY_FUNDING, EMPTY_PROVIDER_CONTEXT,
   type PostingTier, type CatalogueSelection, type WorkerRequirements, type SafetyChecklist, type FundingChoice, type ProviderContext,
@@ -96,7 +98,7 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
-  const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean; verificationRequired: boolean } | null>(null);
+  const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean; verificationRequired: boolean; scheduledFor?: string | null } | null>(null);
   const [allowance, setAllowance] = useState<{ applies: boolean; remaining: number; limit: number } | null>(null);
 
   // PR-R01 — when
@@ -221,7 +223,8 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function submit(asDraft: boolean) {
+  const [scheduleAt, setScheduleAt] = useState("");
+  async function submit(asDraft: boolean, publishAt?: Date) {
     const start = effectiveStart() ?? new Date();
     const total = Number.isFinite(hours) && hours > 0 ? hours : 1;
     const end = new Date(start.getTime() + total * 3600000);
@@ -274,26 +277,30 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
         workerPreferences,
         visibilityTarget: "WORKERS_ONLY",
         safetyFlags: { ...(buildSafetyFlagsPayload(safety) ?? {}), environmentalInfo: environmental.trim() || undefined },
-        responsePreferences: tier === "ROUTINE" && introSteps.length ? { introductorySteps: introSteps } : undefined,
+        responsePreferences: (tier === "ROUTINE" && introSteps.length) || publishAt
+          ? { ...(tier === "ROUTINE" && introSteps.length ? { introductorySteps: introSteps } : {}), ...(publishAt ? { scheduledPublishAtMs: publishAt.getTime(), scheduledPublishRole: "PROVIDER" } : {}) }
+          : undefined,
         ...buildFundingPayload(funding),
+        clientRequestId: asDraft ? undefined : getPostAttemptId(),
         asDraft,
       };
       // Emergency contact + escalation route (private until confirmation) and the response deadline.
       const payload = applyProviderContext(body, { ...safetyCtx, responseDeadline });
       const res = await api.post<{ job: { id: string; status?: string } }>("/jobs", payload, { timeout: 45_000 });
+      clearPostAttemptId();
       // PR-R06 — incomplete minimum verification: the server keeps the request as a draft to resume.
       const held = !asDraft && res.job.status === "DRAFT";
-      setSubmitted({ id: res.job.id, isDraft: asDraft || held, verificationRequired: held });
+      setSubmitted({ id: res.job.id, isDraft: asDraft || held, verificationRequired: held, scheduledFor: publishAt ? publishAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) : null });
     } catch (e) {
       if (e instanceof ApiError && e.code === "SUBSCRIPTION_LIMIT") setShiftPassBlocked(true);
-      else setError(e instanceof ApiError ? e.message : "Failed to post request.");
+      else setError(postFailureMessage(e));
     } finally {
       setSaving(false);
     }
   }
 
   if (submitted) {
-    return <LiveRequestScreen tier={tier} tierLabel={tierLabel} jobId={submitted.id} isDraft={submitted.isDraft} verificationRequired={submitted.verificationRequired} audience="PROVIDER" />;
+    return <LiveRequestScreen tier={tier} tierLabel={tierLabel} jobId={submitted.id} isDraft={submitted.isDraft} verificationRequired={submitted.verificationRequired} scheduledFor={submitted.scheduledFor} audience="PROVIDER" />;
   }
 
   const category = getCatalogueCategory(catalogue.categoryId);
@@ -535,6 +542,29 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
             </p>
             <ProviderAuthorityConfirm checked={authority} onChange={setAuthority} />
             <CheckboxRow checked={agreeShare} onChange={setAgreeShare} label="I agree the shown request details can be shared with suitable workers" />
+            <p className="text-xs text-slate-500 m-0">Optional: once published you can add a Featured Shift ($19.99) from your request page. Urgency never changes what you pay.</p>
+            {(tier === "ROUTINE" || tier === "LAST_MINUTE") && (
+              <div className="rounded-lg border border-slate-200 px-3 py-2.5 space-y-2">
+                <p className="text-xs font-semibold text-slate-700 m-0">Schedule instead of publishing now</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="datetime-local" className={`${inp} w-60`} value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
+                  <button
+                    type="button"
+                    disabled={saving || !scheduleAt || !authority || !agreeShare}
+                    onClick={() => {
+                      const at = new Date(scheduleAt);
+                      if (!(at.getTime() > Date.now() + 60_000)) { setError("Choose a publish time in the future."); return; }
+                      const start = effectiveStart();
+                      if (start && at.getTime() >= start.getTime()) { setError("The publish time must be before the shift starts."); return; }
+                      if (tier === "LAST_MINUTE" && start && start.getTime() - at.getTime() > 48 * 3600000) { setError("A Last-Minute request can be published at most 48 hours before it starts."); return; }
+                      void submit(true, at);
+                    }}
+                    className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                  >Schedule publish</button>
+                </div>
+                <p className="text-xs text-slate-500 m-0">Nothing is used until it publishes. If it cannot publish (for example your allowance has run out) it stays a draft and you are told.</p>
+              </div>
+            )}
             <div className="flex justify-end">
               <button type="button" onClick={() => void submit(true)} className="text-xs text-brand-700 underline">Save draft</button>
             </div>

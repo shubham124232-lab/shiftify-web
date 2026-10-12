@@ -58,7 +58,9 @@ function LastMinuteJourneyBase() {
   const isCoordinator = activeRole === "COORDINATOR" || (!isAuth && guestRole === "COORDINATOR");
   const isProvider = activeRole === "PROVIDER";
   const audience = audienceOf(isCoordinator, isProvider);
-  const keys = isCoordinator ? COORDINATOR_KEYS : isProvider ? PROVIDER_KEYS : PARTICIPANT_KEYS;
+  // A guest who already chose "I need support myself" on /jobs/post is not asked "who" a second time.
+  const keysAll = isCoordinator ? COORDINATOR_KEYS : isProvider ? PROVIDER_KEYS : PARTICIPANT_KEYS;
+  const keys = !isAuth && !isCoordinator ? keysAll.filter((k) => k !== "person") : keysAll;
   const TOTAL_STEPS = keys.length;
   const [step, setStep] = useState(0);
   const key = keys[Math.min(step, keys.length - 1)];

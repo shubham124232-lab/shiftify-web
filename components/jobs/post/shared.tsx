@@ -604,17 +604,23 @@ export function PersonStep({
     const coordWho = value.who === "SOMEONE_ELSE" || value.who === "EXISTING_PARTICIPANT" ? value.who : undefined;
     return (
       <div className="space-y-5">
-        <label className={lbl}>Who is this support request for?</label>
-        <RadioCards
-          value={coordWho}
-          onChange={(who) => onChange({ who })}
-          options={isAuth ? [
-            { v: "EXISTING_PARTICIPANT", l: "Select a connected participant" },
-            { v: "SOMEONE_ELSE", l: "Add a new participant" },
-          ] : [
-            { v: "SOMEONE_ELSE", l: "Add a new participant" },
-          ]}
-        />
+        {isAuth ? (
+          <>
+            <label className={lbl}>Who is this support request for?</label>
+            <RadioCards
+              value={coordWho}
+              onChange={(who) => onChange({ who })}
+              options={[
+                { v: "EXISTING_PARTICIPANT", l: "Select a connected participant" },
+                { v: "SOMEONE_ELSE", l: "Add a new participant" },
+              ]}
+            />
+          </>
+        ) : (
+          // A guest coordinator has no existing participants, and "Add a new participant" is already set
+          // by the entry choice on /jobs/post, so the question is not asked again.
+          <p className="m-0 text-sm font-semibold text-slate-800">Tell us about the participant</p>
+        )}
         {value.who === "EXISTING_PARTICIPANT" && (
           <div>
             <label className={lbl}>Select participant *</label>

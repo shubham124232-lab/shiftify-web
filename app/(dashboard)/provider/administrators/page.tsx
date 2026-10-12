@@ -1,5 +1,6 @@
 "use client";
 
+import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,13 +17,14 @@ interface Administrator {
   id: string;
   rolePreset: Preset;
   status: "ACTIVE" | "INACTIVE";
+  billingAccess?: boolean;
   user: { id: string; name: string; email: string };
   branches: { id: string; name: string }[];
 }
 interface Branch { id: string; name: string }
 
 const PRESETS: { value: Preset; label: string }[] = [
-  { value: "ADMINISTRATOR", label: "Administrator" },
+  { value: "ADMINISTRATOR", label: "Organisation Administrator" },
   { value: "BRANCH_MANAGER", label: "Branch Manager" },
   { value: "INTAKE", label: "Intake" },
   { value: "WORKFORCE", label: "Workforce" },
@@ -41,9 +43,11 @@ export default function ProviderAdministratorsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   // Invite form
+  const workspaceBranch = useBranchWorkspace((s) => s.branchId);
   const [inviting, setInviting] = useState(false);
   const [email, setEmail] = useState("");
   const [invitePreset, setInvitePreset] = useState<Preset>("ADMINISTRATOR");
+  const [inviteBilling, setInviteBilling] = useState(false);
   const [inviteBranches, setInviteBranches] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +56,7 @@ export default function ProviderAdministratorsPage() {
   const [editPreset, setEditPreset] = useState<Preset>("ADMINISTRATOR");
   const [editStatus, setEditStatus] = useState<"ACTIVE" | "INACTIVE">("ACTIVE");
   const [editBranches, setEditBranches] = useState<Set<string>>(new Set());
+  const [editBilling, setEditBilling] = useState(false);
 
   const load = useCallback(() => {
     return Promise.all([
@@ -78,8 +83,8 @@ export default function ProviderAdministratorsPage() {
     if (!email.trim()) return;
     setSaving(true); setError(null); setLimitMessage(null);
     try {
-      await api.post("/provider-org/administrators", { email: email.trim(), rolePreset: invitePreset, branchIds: [...inviteBranches] });
-      setInviting(false); setEmail(""); setInvitePreset("ADMINISTRATOR"); setInviteBranches(new Set());
+      await api.post("/provider-org/administrators", { email: email.trim(), rolePreset: invitePreset, billingAccess: inviteBilling, branchIds: [...inviteBranches] });
+      setInviting(false); setEmail(""); setInvitePreset("ADMINISTRATOR"); setInviteBilling(false); setInviteBranches(new Set());
       setRefresh((n) => n + 1);
       await load();
     } catch (e) { handleError(e); } finally { setSaving(false); }
@@ -87,14 +92,14 @@ export default function ProviderAdministratorsPage() {
 
   function startEdit(a: Administrator) {
     setError(null); setLimitMessage(null);
-    setEditId(a.id); setEditPreset(a.rolePreset); setEditStatus(a.status); setEditBranches(new Set(a.branches.map((b) => b.id)));
+    setEditId(a.id); setEditPreset(a.rolePreset); setEditStatus(a.status); setEditBranches(new Set(a.branches.map((b) => b.id))); setEditBilling(!!a.billingAccess);
   }
 
   async function saveEdit() {
     if (!editId) return;
     setBusyId(editId); setError(null);
     try {
-      await api.patch(`/provider-org/administrators/${editId}`, { rolePreset: editPreset, status: editStatus, branchIds: [...editBranches] });
+      await api.patch(`/provider-org/administrators/${editId}`, { rolePreset: editPreset, status: editStatus, billingAccess: editBilling, branchIds: [...editBranches] });
       setEditId(null);
       await load();
     } catch (e) { handleError(e); } finally { setBusyId(null); }
@@ -151,6 +156,12 @@ export default function ProviderAdministratorsPage() {
                 </select>
               </div>
               <div>
+                <label className={lbl}>Billing access</label>
+                <select className={inp} value={inviteBilling ? "YES" : "NO"} onChange={(e) => setInviteBilling(e.target.value === "YES")}>
+                  <option value="NO">No</option><option value="YES">Yes</option>
+                </select>
+              </div>
+              <div>
                 <label className={lbl}>Branch access (leave empty for all branches)</label>
                 <BranchChips selected={inviteBranches} onToggle={(id) => setInviteBranches((s) => toggleIn(s, id))} />
               </div>
@@ -168,12 +179,13 @@ export default function ProviderAdministratorsPage() {
               <div className="m-5 h-24 animate-pulse rounded-xl bg-slate-100" />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] text-left text-sm">
+                <table className="w-full min-w-[720px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
                       <th className="px-5 py-3 font-medium">Administrator</th>
                       <th className="px-3 py-3 font-medium">Role</th>
                       <th className="px-3 py-3 font-medium">Branch access</th>
+                      <th className="px-3 py-3 font-medium">Billing</th>
                       <th className="px-3 py-3 font-medium">Status</th>
                       <th className="px-5 py-3 text-right font-medium">Actions</th>
                     </tr>
@@ -184,11 +196,12 @@ export default function ProviderAdministratorsPage() {
                         <td className="px-5 py-3"><p className="m-0 font-semibold text-slate-900">{user.name}</p><p className="m-0 text-xs text-slate-400">{user.email}</p></td>
                         <td className="px-3 py-3 text-slate-700">Owner</td>
                         <td className="px-3 py-3 text-slate-700">All branches</td>
+                        <td className="px-3 py-3 text-slate-700">Yes</td>
                         <td className="px-3 py-3"><span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Active</span></td>
                         <td className="px-5 py-3" />
                       </tr>
                     )}
-                    {admins.map((a) => (
+                    {admins.filter((a) => !workspaceBranch || a.branches.length === 0 || a.branches.some((b) => b.id === workspaceBranch)).map((a) => (
                       <tr key={a.id} className="border-b border-slate-100 align-top last:border-0">
                         <td className="px-5 py-3"><p className="m-0 font-semibold text-slate-900">{a.user.name}</p><p className="m-0 text-xs text-slate-400">{a.user.email}</p></td>
                         <td className="px-3 py-3 text-slate-700">
@@ -202,6 +215,13 @@ export default function ProviderAdministratorsPage() {
                           {editId === a.id
                             ? <BranchChips selected={editBranches} onToggle={(id) => setEditBranches((s) => toggleIn(s, id))} />
                             : a.branches.length ? a.branches.map((b) => b.name).join(", ") : "All branches"}
+                        </td>
+                        <td className="px-3 py-3 text-slate-700">
+                          {editId === a.id ? (
+                            <select className={inp} value={editBilling ? "YES" : "NO"} onChange={(e) => setEditBilling(e.target.value === "YES")}>
+                              <option value="NO">No</option><option value="YES">Yes</option>
+                            </select>
+                          ) : a.billingAccess ? "Yes" : "No"}
                         </td>
                         <td className="px-3 py-3">
                           {editId === a.id ? (
@@ -236,7 +256,7 @@ export default function ProviderAdministratorsPage() {
           </CardContent>
         </Card>
         <p className="m-0 text-xs text-slate-500">
-          Owner, Administrator, Branch Manager, Intake, Workforce and Read-only are role labels for now. Every administrator still counts toward your plan capacity.
+          Owner, Organisation Administrator, Branch Manager, Intake, Workforce, Read-only and Billing access are labels for now. Every administrator still counts toward your plan capacity.
         </p>
       </div>
     </>

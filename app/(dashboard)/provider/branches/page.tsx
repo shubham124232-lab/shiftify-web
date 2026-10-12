@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
 import { inp, lbl } from "@/components/jobs/post/shared";
+import { BRANCH_SERVICE_LINES } from "@/components/provider/branchOptions";
 
 export interface BranchRow {
   id: string;
@@ -19,6 +20,8 @@ export interface BranchRow {
   managerUserId: string | null;
   managerName: string | null;
   serviceLines: string[];
+  address?: string | null;
+  escalationContact?: string | null;
   isActive: boolean;
   _count: { administrators: number; teamMembers: number };
 }
@@ -30,8 +33,8 @@ const TIMEZONES = [
   "Australia/Perth", "Australia/Darwin", "Australia/Hobart",
 ];
 
-interface Draft { name: string; region: string; timezone: string; managerUserId: string; serviceLines: string }
-const EMPTY: Draft = { name: "", region: "", timezone: "Australia/Sydney", managerUserId: "", serviceLines: "" };
+interface Draft { name: string; region: string; address: string; timezone: string; managerUserId: string; serviceLines: string[]; escalationContact: string }
+const EMPTY: Draft = { name: "", region: "", address: "", timezone: "Australia/Sydney", managerUserId: "", serviceLines: [], escalationContact: "" };
 
 export default function ProviderBranchesPage() {
   const [branches, setBranches] = useState<BranchRow[]>([]);
@@ -72,8 +75,8 @@ export default function ProviderBranchesPage() {
     setError(null); setLimitMessage(null);
     if (!b) { setDraft(EMPTY); setEditing("new"); return; }
     setDraft({
-      name: b.name, region: b.region ?? "", timezone: b.timezone ?? "Australia/Sydney",
-      managerUserId: b.managerUserId ?? "", serviceLines: b.serviceLines.join(", "),
+      name: b.name, region: b.region ?? "", address: b.address ?? "", timezone: b.timezone ?? "Australia/Sydney",
+      managerUserId: b.managerUserId ?? "", serviceLines: b.serviceLines, escalationContact: b.escalationContact ?? "",
     });
     setEditing(b.id);
   }
@@ -84,9 +87,11 @@ export default function ProviderBranchesPage() {
     const body = {
       name: draft.name.trim(),
       region: draft.region.trim() || undefined,
+      address: draft.address.trim() || null,
+      escalationContact: draft.escalationContact.trim() || null,
       timezone: draft.timezone || undefined,
       managerUserId: draft.managerUserId || null,
-      serviceLines: draft.serviceLines.split(",").map((s) => s.trim()).filter(Boolean),
+      serviceLines: draft.serviceLines,
     };
     try {
       if (editing === "new") await api.post("/provider-org/branches", body);
@@ -131,6 +136,10 @@ export default function ProviderBranchesPage() {
                   <label className={lbl}>Region</label>
                   <input className={inp} value={draft.region} onChange={(e) => setDraft({ ...draft, region: e.target.value })} placeholder="e.g. Western Sydney" />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className={lbl}>Address</label>
+                  <input className={inp} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} placeholder="Office or hub address (internal — not shown to participants)" />
+                </div>
                 <div>
                   <label className={lbl}>Time zone</label>
                   <select className={inp} value={draft.timezone} onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}>
@@ -147,8 +156,22 @@ export default function ProviderBranchesPage() {
                 </div>
               </div>
               <div>
-                <label className={lbl}>Services (optional, comma-separated)</label>
-                <input className={inp} value={draft.serviceLines} onChange={(e) => setDraft({ ...draft, serviceLines: e.target.value })} placeholder="e.g. Personal Care, Community Access" />
+                <label className={lbl}>Service lines</label>
+                <div className="flex flex-wrap gap-2">
+                  {[...BRANCH_SERVICE_LINES, ...draft.serviceLines.filter((x) => !(BRANCH_SERVICE_LINES as readonly string[]).includes(x))].map((line) => {
+                    const on = draft.serviceLines.includes(line);
+                    return (
+                      <label key={line} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium ${on ? "border-brand-400 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600"}`}>
+                        <input type="checkbox" checked={on} onChange={() => setDraft({ ...draft, serviceLines: on ? draft.serviceLines.filter((x) => x !== line) : [...draft.serviceLines, line] })} />
+                        {line}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <label className={lbl}>Escalation contact</label>
+                <input className={inp} value={draft.escalationContact} onChange={(e) => setDraft({ ...draft, escalationContact: e.target.value })} placeholder="Who to call when something goes wrong (name and phone)" />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" disabled={saving || !draft.name.trim()} onClick={save}>{saving ? "Saving…" : "Save Branch"}</Button>
@@ -180,6 +203,8 @@ export default function ProviderBranchesPage() {
                   </div>
                   <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                     <dt className="text-slate-400">Manager</dt><dd className="m-0 text-slate-700">{b.managerName ?? "Not set"}</dd>
+                    {b.address && (<><dt className="text-slate-400">Address</dt><dd className="m-0 text-slate-700">{b.address}</dd></>)}
+                    {b.escalationContact && (<><dt className="text-slate-400">Escalation</dt><dd className="m-0 text-slate-700">{b.escalationContact}</dd></>)}
                     <dt className="text-slate-400">Team members</dt><dd className="m-0 text-slate-700">{b._count.teamMembers}</dd>
                     <dt className="text-slate-400">Administrators</dt><dd className="m-0 text-slate-700">{b._count.administrators}</dd>
                   </dl>

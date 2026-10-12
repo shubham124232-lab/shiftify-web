@@ -10,12 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api, http, ApiError } from "@/lib/api";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
+import { useAuth } from "@/hooks/useAuth";
 
 const schema = z.object({
   vacancyCategory: z.enum([
-    "SIL", "SDA", "SIL_SDA", "RESPITE", "MEDIUM_TERM", "SHORT_TERM", "OTHER",
+    "SIL", "SDA", "SIL_SDA", "RESPITE", "MEDIUM_TERM", "SHORT_TERM", "SUPPORTED_HOUSING", "OTHER",
   ], { required_error: "Select a vacancy type" }),
   title: z.string().min(5, "Title is required"),
+  branchId: z.string().optional(),
+  ownerUserId: z.string().optional(),
   suburb: z.string().min(2, "Suburb / location is required"),
   state: z.string().optional(),
   postcode: z.string().optional(),
@@ -25,7 +28,7 @@ const schema = z.object({
   description: z.string().min(10, "Description is required"),
   suitableFor: z.array(z.string()).optional(),
   fundingRoutes: z.array(z.string()).optional(),
-  urgency: z.enum(["AVAILABLE_NOW", "AVAILABLE_SOON", "FUTURE", "EXPRESSION_OF_INTEREST"]).optional(),
+  urgency: z.preprocess((v) => (v === "" ? undefined : v), z.enum(["AVAILABLE_NOW", "AVAILABLE_SOON", "FUTURE", "EXPRESSION_OF_INTEREST"]).optional()),
   housingDetails: z.object({
     dwellingCategory: z.string().optional(),
     accessibilityFeatures: z.array(z.string()).optional(),
@@ -43,10 +46,20 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const VACANCY_TYPES = [
-  { value: "SIL",       label: "SIL vacancy",                          desc: "Supported Independent Living placement (registration required)" },
-  { value: "SDA",       label: "SDA dwelling vacancy",                 desc: "Specialist Disability Accommodation (registration required)" },
-  { value: "OTHER",     label: "ILO or other Home and Living option",  desc: "Individualised Living Options and other eligible arrangements" },
-  { value: "RESPITE",   label: "Respite / STA vacancy",                desc: "Short-term accommodation or respite, where separately supported" },
+  { value: "SIL",               label: "SIL vacancy",                          desc: "Supported Independent Living placement (registration required)" },
+  { value: "SDA",               label: "SDA dwelling vacancy",                 desc: "Specialist Disability Accommodation (registration required)" },
+  { value: "SIL_SDA",           label: "SIL + SDA",                            desc: "A dwelling offering both SIL support and SDA (registration required)" },
+  { value: "RESPITE",           label: "Respite",                              desc: "Short breaks for participants and carers, where separately supported" },
+  { value: "MEDIUM_TERM",       label: "MTA — medium-term accommodation",      desc: "Medium-term accommodation placement" },
+  { value: "SHORT_TERM",        label: "STA — short-term accommodation",       desc: "Short-term accommodation placement" },
+  { value: "SUPPORTED_HOUSING", label: "Supported housing",                    desc: "Other supported housing arrangements" },
+  { value: "OTHER",             label: "ILO or other Home and Living option",  desc: "Individualised Living Options and other eligible arrangements" },
+];
+const AVAILABILITY = [
+  { value: "AVAILABLE_NOW",          label: "Available now" },
+  { value: "AVAILABLE_SOON",         label: "From a specific date" },
+  { value: "FUTURE",                 label: "Future vacancy" },
+  { value: "EXPRESSION_OF_INTEREST", label: "Expression of interest" },
 ];
 const ACCESSIBILITY = ["Step-free entry", "Wheelchair-accessible bathroom", "Wide doorways", "Ceiling hoist", "Height-adjustable kitchen", "Assistive technology ready", "On-site overnight assistance"];
 const DWELLING_CATEGORIES = ["Improved Liveability", "Fully Accessible", "Robust", "High Physical Support", "Not applicable / not SDA"];
@@ -66,6 +79,15 @@ export default function SilVacancyPage() {
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
   const [pending, setPending] = useState<FormData | null>(null);
   const [registered, setRegistered] = useState<boolean | null>(null);
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const [owners, setOwners] = useState<{ id: string; name: string }[]>([]);
+  const { user } = useAuth();
+  useEffect(() => {
+    Promise.all([
+      api.get<{ branches: { id: string; name: string }[] }>("/provider-org/branches").catch(() => ({ branches: [] })),
+      api.get<{ administrators: { user: { id: string; name: string } }[] }>("/provider-org/administrators").catch(() => ({ administrators: [] })),
+    ]).then(([b, a]) => { setBranches(b.branches ?? []); setOwners((a.administrators ?? []).map((x) => ({ id: x.user.id, name: x.user.name }))); });
+  }, []);
   useEffect(() => {
     api.get<{ user: { providerProfile?: { ndisRegistered?: boolean } | null } }>("/users/me")
       .then(r => setRegistered(!!r.user?.providerProfile?.ndisRegistered))
@@ -93,7 +115,7 @@ export default function SilVacancyPage() {
         if (!l) { setError("That listing could not be found."); return; }
         setEditStatus(String(l.status));
         form.reset({
-          vacancyCategory: l.vacancyCategory, title: l.title, suburb: l.suburb, state: l.state ?? "", postcode: l.postcode ?? "",
+          vacancyCategory: l.vacancyCategory, title: l.title, branchId: l.branchId ?? "", ownerUserId: l.ownerUserId ?? "", suburb: l.suburb, state: l.state ?? "", postcode: l.postcode ?? "",
           propertyType: l.propertyType ?? "", vacancyCount: l.vacancyCount ?? undefined, supportModel: l.supportModel ?? "",
           description: l.description, suitableFor: l.suitableFor ?? [], fundingRoutes: l.fundingRoutes ?? [], urgency: l.urgency ?? undefined,
           housingDetails: l.housingDetails ?? undefined, acknowledgement: true,
@@ -149,7 +171,7 @@ export default function SilVacancyPage() {
     try {
       const { vacancyCount, ...data } = form.getValues();
       // An untouched "Number of Vacancies" is NaN — leave it out rather than send null.
-      await api.post("/provider/listings", { ...data, ...(Number.isFinite(vacancyCount) ? { vacancyCount } : {}), listingCategory: "HOUSING", saveAsDraft: true, acknowledgement: undefined });
+      await api.post("/provider/listings", { ...data, branchId: data.branchId || undefined, ownerUserId: data.ownerUserId || undefined, ...(Number.isFinite(vacancyCount) ? { vacancyCount } : {}), listingCategory: "HOUSING", saveAsDraft: true, acknowledgement: undefined });
       router.push("/provider/housing");
     } catch (e) {
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) setUpgradeMessage(e.message);
@@ -164,7 +186,7 @@ export default function SilVacancyPage() {
     setError(null);
     setUpgradeMessage(null);
     try {
-      await api.post("/provider/listings", { ...data, listingCategory: "HOUSING" });
+      await api.post("/provider/listings", { ...data, branchId: data.branchId || undefined, ownerUserId: data.ownerUserId || undefined, listingCategory: "HOUSING" });
       router.push("/provider/housing");
     } catch (e) {
       setPending(null);
@@ -248,6 +270,30 @@ export default function SilVacancyPage() {
                   <label style={lbl}>Listing Title <span style={{ color: "var(--td-pink)" }}>*</span></label>
                   <input {...register("title")} placeholder="e.g. SIL Vacancy Available in Liverpool" style={{ ...inp, borderColor: errors.title ? "var(--td-pink)" : undefined }} />
                   {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div>
+                    <label style={lbl}>Branch</label>
+                    <select {...register("branchId")} style={{ ...inp, cursor: "pointer" }}>
+                      <option value="">No branch</option>
+                      {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Owner</label>
+                    <select {...register("ownerUserId")} style={{ ...inp, cursor: "pointer" }}>
+                      <option value="">No owner set</option>
+                      {user && <option value={user.id}>{user.name} (Owner)</option>}
+                      {owners.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Availability</label>
+                    <select {...register("urgency")} style={{ ...inp, cursor: "pointer" }}>
+                      <option value="">Select</option>
+                      {AVAILABILITY.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">

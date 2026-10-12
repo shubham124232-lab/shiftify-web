@@ -7,7 +7,6 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-tiles";
 import { DashboardTabCard } from "@/components/dashboard/tab-card";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
-import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
 import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { getDashboard, type PlanManagerDashboard } from "@/lib/api/dashboard";
 import { listLinkedParticipants, type LinkedParticipant } from "@/lib/api/pm";
@@ -154,7 +153,6 @@ export default function PlanManagerDashboardPage() {
         {/* ── Right rail ── */}
         <div className="space-y-6">
           <QuickActionsPanel actions={quickActions} />
-          <ProfileProgressCard />
         </div>
       </div>
     </div>

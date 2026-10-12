@@ -9,7 +9,6 @@ import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-
 import { DashboardTabCard } from "@/components/dashboard/tab-card";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
-import { ProfileProgressCard } from "@/components/dashboard/profile-progress-card";
 import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
@@ -401,7 +400,6 @@ function IndependentWorkerDashboard() {
           <IntroductoryActionsCard />
           <AvailableNowCard state={data?.availableNow} stateLoading={loading} />
           <QuickActionsPanel actions={quickActions} />
-          <ProfileProgressCard />
         </div>
       </div>
     </div>

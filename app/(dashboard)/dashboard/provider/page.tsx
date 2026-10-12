@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { useAuth } from "@/hooks/useAuth";
+import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,6 +141,7 @@ export default function ProviderDashboardPage() {
           </>
         }
       />
+
       <SetupBanner />
 
       {error && (

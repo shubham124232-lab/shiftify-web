@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { IconRapid } from './PremiumIcons';
 import { LaneIcon } from '../shiftboard/rowIcons';
+import { useHomeData } from './useHomeData';
 
 /* The word that swaps inside the headline — one per timing lane, each in its
    own tier colour. */
@@ -57,6 +58,7 @@ const ALL_LIMIT = 6;
 const allShifts = shifts.slice(0, ALL_LIMIT);
 
 export default function HomeHero() {
+  const home = useHomeData();
   const [index, setIndex] = useState(0);
   const [out, setOut] = useState(false);
   const [laneIndex, setLaneIndex] = useState(-1); // -1 = the full list
@@ -127,7 +129,11 @@ export default function HomeHero() {
             </p>
 
             <div className="sf-hero-cta">
-              <a href="/register?role=PARTICIPANT" className="sf-btn sf-btn-pink">
+              <a href="/jobs/post" className="sf-btn sf-btn-pink">
+                <i className="bi bi-megaphone-fill" aria-hidden="true" />
+                Post a request
+              </a>
+              <a href="/register?role=PARTICIPANT" className="sf-btn sf-btn-ghost-dark">
                 <i className="bi bi-send-fill" aria-hidden="true" />
                 Find Support
               </a>
@@ -143,6 +149,11 @@ export default function HomeHero() {
             <p className="sf-hero-sub" style={{ marginTop: 14, fontSize: 14 }}>
               <strong>Roster gap right now?</strong> <a href="/register?role=PROVIDER">Find a worker fast.</a>
             </p>
+            {home && home.totalOpen > 0 && (
+              <p className="sf-hero-sub" style={{ marginTop: 6, fontSize: 14 }}>
+                <strong>{home.totalOpen}</strong> open support {home.totalOpen === 1 ? 'request' : 'requests'} on the board right now.
+              </p>
+            )}
             <p className="sf-hero-sub" style={{ marginTop: 6, fontSize: 13 }}>
               Verified profiles · Permission-based information sharing · 0% commission
             </p>

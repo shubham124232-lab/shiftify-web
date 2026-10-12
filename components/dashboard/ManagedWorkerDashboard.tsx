@@ -12,6 +12,7 @@ import { DashboardListRow } from "@/components/dashboard/list-row";
 import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboard, type WorkerDashboard } from "@/lib/api/dashboard";
+import { OrgAvailabilityRequests } from "@/components/dashboard/OrgAvailabilityRequests";
 import { CalendarDays, MessageSquare, FileText, SlidersHorizontal, Briefcase } from "lucide-react";
 
 export function ManagedWorkerDashboard() {
@@ -48,6 +49,7 @@ export function ManagedWorkerDashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          <OrgAvailabilityRequests />
           <Card>
             <CardHeader><CardTitle>My assignments</CardTitle></CardHeader>
             <CardContent className="py-2">

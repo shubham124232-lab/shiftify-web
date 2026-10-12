@@ -8,16 +8,24 @@ import {
   Users, MessageSquare, UserCheck, BarChart2, Bell, User,
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
   CreditCard, Building2, Home, Star, ShieldCheck, Inbox,
+  Radio, CalendarDays, Handshake, Bookmark, Target, CheckCircle2, GitBranch,
+  Layers, Settings, Megaphone, BarChart3, UserCog, FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { getDashboard, type ProviderDashboard } from "@/lib/api/dashboard";
 import { cn } from "@/lib/utils";
 import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import type { UserRole } from "@/lib/types";
 
-interface NavItem { href: string; label: string; icon: LucideIcon; }
+type NavBadge = "openRequests" | "newEnquiries";
 
-interface RoleNav { main: NavItem[]; account: NavItem[]; }
+interface NavItem { href: string; label: string; icon: LucideIcon; badge?: NavBadge; }
+
+interface NavGroup { title: string; items: NavItem[]; }
+
+// `groups` (when present) is rendered with headings instead of the flat main/account lists.
+interface RoleNav { main: NavItem[]; account: NavItem[]; groups?: NavGroup[]; }
 
 const NOTIFICATIONS: NavItem = { href: "/notifications", label: "Notifications", icon: Bell };
 
@@ -86,24 +94,54 @@ function navForRole(role: string, managed = false): RoleNav {
         ],
         account: [NOTIFICATIONS],
       };
-    case "PROVIDER":
-      return {
-        main: [
-          dash,
-          { href: "/jobs",                  label: "Find Support Opportunities", icon: Search },
-          { href: "/workers/available",     label: "Find Workers",               icon: UserCheck },
-          { href: "/jobs/post",             label: "Post Staffing Request",      icon: FilePlus },
-          { href: "/jobs/my",               label: "My Requests",                icon: ClipboardList },
-          { href: "/provider/responses",    label: "Responses & Enquiries",      icon: Inbox },
-          { href: "/provider/workforce",    label: "Internal Workforce",         icon: Users },
-          { href: "/provider/post-service", label: "Services & Capacity",        icon: Briefcase },
-          { href: "/provider/sil-vacancy",  label: "SIL/SDA & Home and Living",  icon: Home },
-          { href: "/messages",              label: "Messages",                   icon: MessageSquare },
-          { href: "/profile",               label: "Provider Profile",           icon: User },
-          { href: "/subscription",          label: "Subscription & Billing",     icon: CreditCard },
-        ],
-        account: [NOTIFICATIONS],
-      };
+    case "PROVIDER": {
+      // Approved Provider demo (2026-10-09): 6 groups. Pages not built yet open a shared Coming soon page.
+      const soon = (slug: string) => `/provider/coming-soon/${slug}`;
+      const groups: NavGroup[] = [
+        { title: "Workspace", items: [
+          { ...dash, label: "My Dashboard" },
+          { href: "/live-dashboard", label: "Live Shiftboard", icon: Radio },
+        ] },
+        { title: "Staffing", items: [
+          { href: "/jobs/post",                    label: "Post a Shift",           icon: FilePlus },
+          { href: "/jobs/my",                      label: "Staffing Requests",      icon: ClipboardList, badge: "openRequests" },
+          { href: "/provider/team-availability",       label: "Team Availability",      icon: CalendarDays },
+          { href: "/provider/offers-assignments",  label: "Offers and Assignments", icon: Handshake },
+          { href: "/workers/available",            label: "Find External Workers",  icon: UserCheck },
+          { href: "/saved-professionals",          label: "Saved Workers",          icon: Star },
+        ] },
+        { title: "Opportunities", items: [
+          { href: "/jobs",                          label: "Browse Requests",          icon: Search },
+          { href: "/provider/matched-requests",         label: "Matched Requests",         icon: Target },
+          { href: "/provider/saved-requests",           label: "Saved Requests",           icon: Bookmark },
+          { href: "/provider/my-responses",             label: "My Responses",             icon: Inbox },
+          { href: "/provider/confirmed-starts", label: "Confirmed Service Starts", icon: CheckCircle2 },
+        ] },
+        { title: "Business", items: [
+          { href: "/provider/services",                 label: "Services & Capacity",      icon: Briefcase },
+          { href: "/provider/housing",                  label: "Housing Vacancies",        icon: Home },
+          { href: "/provider/enquiries",   label: "Enquiries & Applications", icon: Inbox, badge: "newEnquiries" },
+          { href: "/messages",                          label: "Messages",                 icon: MessageSquare },
+          { href: soon("calendar"),                     label: "Calendar",                 icon: Calendar },
+        ] },
+        { title: "Organisation", items: [
+          { href: "/provider/organisation", label: "Organisation Profile",   icon: Building2 },
+          { href: "/provider/branches",     label: "Branches",               icon: GitBranch },
+          { href: soon("service-lines"),    label: "Service Lines",          icon: Layers },
+          { href: "/provider/administrators", label: "Administrators",       icon: UserCog },
+          { href: "/provider/workforce",    label: "Internal Team",          icon: Users },
+          { href: "/documents",             label: "Documents & Compliance", icon: FolderOpen },
+          { href: "/provider/reports",          label: "Reports",                icon: BarChart3 },
+        ] },
+        { title: "Account", items: [
+          { href: "/subscription",          label: "Subscription & Billing", icon: CreditCard },
+          { href: "/provider/promotions",       label: "Promotions",             icon: Megaphone },
+          NOTIFICATIONS,
+          { href: "/provider/settings", label: "Settings & Help",       icon: Settings },
+        ] },
+      ];
+      return { main: groups.flatMap((g) => g.items), account: [], groups };
+    }
     case "COORDINATOR":
       return {
         main: [
@@ -171,6 +209,21 @@ export function AppSidebar() {
     return () => window.removeEventListener("shiftify:job-owner", h);
   }, []);
 
+  // Count badges on the Provider menu (open requests, new enquiries) come from the dashboard summary.
+  const [badges, setBadges] = useState<Partial<Record<NavBadge, number>>>({});
+  const isProvider = user?.activeRole === "PROVIDER";
+  useEffect(() => {
+    if (!isProvider) return;
+    let cancelled = false;
+    getDashboard()
+      .then((d) => {
+        const stats = (d as ProviderDashboard).stats;
+        if (!cancelled && stats) setBadges({ openRequests: stats.openRequests, newEnquiries: stats.newEnquiries + (stats.newInquiries ?? 0) });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isProvider]);
+
   if (!user) return null;
 
   const nav = navForRole(user.activeRole as string, user.accountType === "MANAGED");
@@ -203,6 +256,12 @@ export function AppSidebar() {
             isActive ? "text-white" : "text-slate-400 group-hover:text-brand-600",
           )} />
           {!collapsed && <span className="truncate tracking-tight">{item.label}</span>}
+          {!collapsed && !!item.badge && !!badges[item.badge] && (
+            <span className={cn(
+              "ml-auto rounded-full px-1.5 text-[10px] font-bold leading-4",
+              isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700",
+            )}>{badges[item.badge]}</span>
+          )}
         </Link>
       </li>
     );
@@ -238,6 +297,22 @@ export function AppSidebar() {
           )}
         </div>
         <nav className="flex flex-1 flex-col justify-between overflow-y-auto p-3">
+          {nav.groups ? (
+            <div className="space-y-3">
+              {nav.groups.map((g) => (
+                <div key={g.title}>
+                  {(!collapsed || mobile) ? (
+                    <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{g.title}</p>
+                  ) : (
+                    <div className="mx-3 mb-1 border-t border-slate-100" />
+                  )}
+                  <ul className="space-y-1">
+                    {g.items.map((item) => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
           <div>
             {(!collapsed || mobile) && (
               <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Menu</p>
@@ -246,6 +321,8 @@ export function AppSidebar() {
               {items.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
+          )}
+          {nav.account.length > 0 && (
           <div className="border-t border-slate-100 pt-3">
             {(!collapsed || mobile) && (
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
@@ -254,6 +331,7 @@ export function AppSidebar() {
               {nav.account.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
+          )}
         </nav>
       </>
     );

@@ -79,6 +79,7 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
                 Live shiftboard
               </a>
             )}
+            <a href="/jobs/post" className="sf-nav-board">Post a request</a>
             <a href="/login" className="sf-nav-board">Log In</a>
             <a href="/register" className="sf-btn sf-btn-pink sf-btn-sm">
               <i className="bi bi-person-plus-fill" aria-hidden="true" />
@@ -101,6 +102,7 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
             <a key={l.label} href={l.href} onClick={() => setOpen(false)}>{l.label}</a>
           ))}
           {!hideBoardLink && <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>}
+          <a href="/jobs/post" onClick={() => setOpen(false)}>Post a request</a>
           <a href="/login" onClick={() => setOpen(false)}>Log In</a>
           <a href="/register" className="sf-btn sf-btn-pink">Join Shiftify</a>
         </div>

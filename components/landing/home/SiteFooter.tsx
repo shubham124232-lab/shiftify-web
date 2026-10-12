@@ -7,7 +7,7 @@ const columns: { heading: string; links: [string, string][] }[] = [
     links: [
       ['How it works',    '#how-it-works'],
       ['Live Shiftboard', '/shiftboard'],
-      ['SIL & SDA',       '/shiftboard'],
+      ['SIL & SDA',       '/sil-sda'],
       ['Pricing',         '#pricing'],
     ],
   },
@@ -24,7 +24,10 @@ const columns: { heading: string; links: [string, string][] }[] = [
   {
     heading: 'Support',
     links: [
-      ['Provider sign up', '/register?role=PROVIDER'],
+      ['Help centre',      '/help'],
+      ['Contact us',       '/contact'],
+      ['Safety',           '/safety'],
+      ['Become a partner', '/partners'],
     ],
   },
   {
@@ -32,6 +35,8 @@ const columns: { heading: string; links: [string, string][] }[] = [
     links: [
       ['Terms of service', '/terms'],
       ['Privacy policy',   '/privacy'],
+      ['Cookie policy',    '/cookies'],
+      ['Accessibility',    '/accessibility'],
     ],
   },
 ];

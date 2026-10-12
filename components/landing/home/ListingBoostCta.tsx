@@ -26,8 +26,8 @@ export default function ListingBoostCta() {
             </p>
           </div>
           <div className="sf-boost-actions">
-            <a href="/register?role=PROVIDER" className="sf-boost-cta-btn">Explore Featured Listing</a>
-            <a href="/register?role=PROVIDER" className="sf-boost-cta-link">
+            <a href="/shiftboard" className="sf-boost-cta-btn">Explore Featured Listing</a>
+            <a href="/sil-sda/options" className="sf-boost-cta-link">
               See SIL &amp; SDA options
               <i className="bi bi-arrow-right" aria-hidden="true" />
             </a>

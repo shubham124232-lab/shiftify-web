@@ -193,7 +193,7 @@ const PANEL_POINTS = [
   "0% commission on support",
 ];
 
-function WizardSidePanel({ tierLabel }: { tierLabel: string }) {
+export function WizardSidePanel({ tierLabel }: { tierLabel: string }) {
   const lane = LANE_PANELS.find((l) => tierLabel.toLowerCase().includes(l.match));
   const accent = lane?.accent ?? "#be185d";
   const headline = lane?.headline ?? "Tell us what you need.";

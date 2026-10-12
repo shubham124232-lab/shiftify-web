@@ -10,13 +10,34 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { TIER_META, type PostingTier } from "@/lib/types/posting";
+import { WizardSidePanel } from "@/components/jobs/post/shared";
 import { saveGuestRole, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const TIER_ORDER: PostingTier[] = ["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
+
+// Lane colours match the homepage timing lanes and the wizard side panel.
+const TIER_ACCENT: Record<PostingTier, string> = {
+  RAPID: "#FF2340",
+  URGENT: "#FF8500",
+  LAST_MINUTE: "#00A06A",
+  ROUTINE: "#547FC4",
+};
+
+// Half-and-half shell shared by the picker screens: branded panel + choices.
+function PickerShell({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return (
+    <>
+      <PageHeader title={title} description={description} />
+      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-6 lg:grid-cols-2 lg:items-stretch lg:gap-10">
+        <WizardSidePanel tierLabel="Post a request" />
+        <div className="mx-auto w-full max-w-2xl space-y-3">{children}</div>
+      </div>
+    </>
+  );
+}
 
 const TIER_DESCRIPTIONS: Record<PostingTier, string> = {
   RAPID: "Shortest journey — essential information only, no long-form writing required.",
@@ -46,9 +67,7 @@ export default function PostRequestTierPicker() {
   // Guest, no role chosen yet — ask before showing the tier list.
   if (!isAuth && !guestRole) {
     return (
-      <>
-        <PageHeader title="Post a Support Request" description="Who is this request for?" />
-        <div className="mx-auto max-w-2xl px-5 py-6 space-y-3">
+      <PickerShell title="Post a Support Request" description="Who is this request for?">
           <button
             type="button"
             onClick={() => { saveGuestRole("PARTICIPANT"); setGuestRole("PARTICIPANT"); }}
@@ -65,19 +84,16 @@ export default function PostRequestTierPicker() {
             <span className="text-base font-semibold text-slate-800">I&apos;m posting for someone else</span>
             <p className="text-sm text-slate-500 mt-1">Posting as a support coordinator.</p>
           </button>
-        </div>
-      </>
+      </PickerShell>
     );
   }
 
   const isProvider = activeRole === "PROVIDER";
   return (
-    <>
-      <PageHeader
-        title={isProvider ? "Post a Staffing Request" : "Post a Support Request"}
-        description={isProvider ? "How soon do you need a worker?" : "How quickly do you need support?"}
-      />
-      <div className="mx-auto max-w-2xl px-5 py-6 space-y-3">
+    <PickerShell
+      title={isProvider ? "Post a Staffing Request" : "Post a Support Request"}
+      description={isProvider ? "How soon do you need a worker?" : "How quickly do you need support?"}
+    >
         {TIER_ORDER.map((tier) => {
           const meta = TIER_META[tier];
           return (
@@ -85,27 +101,25 @@ export default function PostRequestTierPicker() {
               key={tier}
               type="button"
               onClick={() => router.push(`/jobs/post/${meta.path}`)}
+              style={{ borderLeftWidth: 4, borderLeftColor: TIER_ACCENT[tier] }}
               className={cn(
                 "w-full text-left border rounded-xl px-5 py-4 transition-colors hover:border-brand-400 hover:bg-brand-50/40",
                 "border-slate-200",
               )}
             >
-              <Card className="border-0 shadow-none">
-                <CardContent className="p-0">
-                  <div className="flex items-center justify-between">
+              <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-base font-semibold text-slate-800">{meta.label}</span>
                     <span className="text-xs font-medium text-brand-700 bg-brand-100 rounded-full px-3 py-1">{meta.timing}</span>
                   </div>
                   <p className="text-sm text-slate-500 mt-1">{TIER_DESCRIPTIONS[tier]}</p>
-                </CardContent>
-              </Card>
+              </div>
             </button>
           );
         })}
         <p className="text-xs text-slate-400 pt-2">
           If you are in immediate danger or need emergency medical help, call Triple Zero (000). Shiftify is not an emergency service.
         </p>
-      </div>
-    </>
+    </PickerShell>
   );
 }

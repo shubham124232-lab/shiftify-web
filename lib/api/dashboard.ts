@@ -123,6 +123,8 @@ export interface ProviderDashboardStats {
   openRequests: number;
   responsesReceived: number;
   outgoingPendingApplications: number;
+  /** Direct, service-capacity and housing enquiries waiting for a first response. */
+  newInquiries?: number;
 }
 
 export interface ProviderDashboard {
@@ -140,6 +142,12 @@ export interface ProviderDashboard {
   activeShifts: ShiftSummary[];
   unassignedAccepted: JobSummary[];
   unreadNotifications?: number;
+  /** Service pipeline strip: referrals awaiting acceptance, intake, and confirmed starts. */
+  pipeline?: { awaitingAcceptance: number; awaitingIntake: number; startConfirmed: number };
+  /** Other people's open, upcoming requests in a category this Provider services. */
+  relevantOpportunities?: JobSummary[];
+  /** Newest-first feed of applications, enquiries and confirmations. */
+  recentActivity?: { id: string; type: "APPLICATION" | "ENQUIRY" | "CONFIRMATION"; at: string; text: string }[];
 }
 
 export interface PlanManagerDashboard {

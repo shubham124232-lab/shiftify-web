@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import type { SVGProps } from 'react';
+import LiveVacancies from './LiveVacancies';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
@@ -107,6 +108,7 @@ export default function SilSdaSection() {
             <p className="sf-lede" style={{ marginBottom: 22 }}>
               Connect vacancies, homes and suitable participants through one trusted marketplace.
             </p>
+            <LiveVacancies />
             <div className="sf-sil-actions">
               <a href="/sil-sda" className="sf-btn sf-btn-outline">Explore SIL &amp; SDA →</a>
               <p className="sf-script sf-sil-script">More than support.<br />A place to belong.</p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +22,7 @@ const schema = z.object({
   fundingTypes: z.array(z.string()).min(1, "Select at least one funding type"),
   responseExpectation: z.enum(["SAME_DAY", "WITHIN_48_HOURS", "WITHIN_A_WEEK"], { required_error: "Set how quickly you respond to enquiries", invalid_type_error: "Set how quickly you respond to enquiries" }),
   serviceMode: z.enum(["IN_PERSON", "REMOTE", "BOTH"]).optional(),
+  openSlots: z.number().int().min(0).max(999).optional(),
   notes: z.string().max(4000).optional(),
   acknowledgement: z.boolean().refine(v => v === true, { message: "You must confirm this information is accurate" }),
 });
@@ -97,6 +98,37 @@ export default function ServicesCapacityPage() {
   const days         = watch("daysAvailable") ?? [];
   const fundingTypes = watch("fundingTypes") ?? [];
 
+  // Reopen a live service listing (?edit=<id>) and change it in place.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("edit");
+    if (!id) return;
+    setEditId(id); setLoadingEdit(true);
+    api.get<{ listings?: Array<Record<string, any>> }>("/provider/listings?category=SERVICE")
+      .then((res) => {
+        const l = (res.listings ?? []).find((r) => r.id === id);
+        if (!l) { setError("That listing could not be found."); return; }
+        const autoText = typeof l.description === "string" && l.description.startsWith("Current capacity for ");
+        form.reset({
+          acceptingStatus: l.acceptingStatus ?? undefined,
+          serviceCategories: l.serviceCategories ?? (l.serviceCategory ? [l.serviceCategory] : []),
+          suburb: l.suburb,
+          daysAvailable: l.daysAvailable ?? [],
+          listingType: l.listingType ?? undefined,
+          fundingTypes: l.fundingTypes ?? [],
+          responseExpectation: l.responseExpectation ?? undefined,
+          serviceMode: l.serviceMode ?? undefined,
+          openSlots: l.openSlots ?? undefined,
+          notes: autoText ? "" : l.description,
+          acknowledgement: true,
+        } as FormData);
+      })
+      .catch(() => setError("Could not load that listing."))
+      .finally(() => setLoadingEdit(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     setError(null);
@@ -104,16 +136,20 @@ export default function ServicesCapacityPage() {
     try {
       const labels = data.serviceCategories.map(v => JOB_CATEGORIES.find(c => c.value === v)?.label ?? v);
       const acceptingLabel = ACCEPTING.find(a => a.value === data.acceptingStatus)?.label ?? "";
-      const { notes, ...rest } = data;
-      // Ordinary capacity updates do not consume a Provider Action (Provider doc PR-CP01).
-      await api.post("/provider/listings", {
+      const { notes, acknowledgement, ...rest } = data;
+      const body = {
         ...rest,
-        listingCategory: "SERVICE",
         serviceCategory: data.serviceCategories[0],
         title: `Service capacity — accepting new participants: ${acceptingLabel}`,
         description: notes?.trim() ? notes.trim() : `Current capacity for ${labels.join(", ")} in ${data.suburb}.`,
-      });
-      router.push("/provider/listings");
+      };
+      if (editId) {
+        await api.patch(`/provider/listings/${editId}`, body);
+      } else {
+        // Ordinary capacity updates do not consume a Provider Action (Provider doc PR-CP01).
+        await api.post("/provider/listings", { ...body, listingCategory: "SERVICE", acknowledgement });
+      }
+      router.push("/provider/services");
     } catch (e) {
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {
         setUpgradeMessage(e.message);
@@ -128,7 +164,7 @@ export default function ServicesCapacityPage() {
   return (
     <>
       <PageHeader
-        title="Services & Capacity"
+        title={editId ? "Edit service listing" : "Services & Capacity"}
         description="Tell participants, coordinators and plan managers what capacity you have. Updates are free and never use a Provider Action."
       />
       <div className="container-page py-8 max-w-2xl">
@@ -271,6 +307,8 @@ export default function ServicesCapacityPage() {
                   {errors.responseExpectation && <p className="text-xs text-red-500 mt-1">{errors.responseExpectation.message}</p>}
                 </div>
                 <div>
+                  <label style={lbl}>Open places (optional)</label>
+                  <input type="number" min={0} max={999} {...register("openSlots", { setValueAs: (v) => (v === "" || v == null ? undefined : Number(v)) })} style={{ ...inp, marginBottom: 12 }} placeholder="e.g. 3" />
                   <label style={lbl}>Notes for enquirers (optional)</label>
                   <textarea {...register("notes")} rows={3}
                     placeholder="Typical participant fit, any limits on services, areas or times…"
@@ -295,7 +333,7 @@ export default function ServicesCapacityPage() {
             <div className="flex gap-3">
               <Button type="button" variant="outline" className="flex-1" onClick={() => router.back()}>Cancel</Button>
               <Button type="submit" className="flex-1" disabled={submitting}>
-                {submitting ? "Saving…" : "Save Capacity"}
+                {submitting ? "Saving…" : editId ? "Save changes" : "Save Capacity"}
               </Button>
             </div>
           </form>

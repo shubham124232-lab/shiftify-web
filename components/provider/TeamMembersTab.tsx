@@ -49,6 +49,46 @@ export function TeamMembersTab({
   const [verifyCode, setVerifyCode] = useState<Record<string, string>>({});
   const [verifying, setVerifying] = useState<string | null>(null);
 
+  // Edit in place (name, branch, skills, locations, relationship, access, visibility).
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState({
+    name: "", branchId: "", skills: "", locations: "",
+    relationshipType: "EMPLOYEE" as "EMPLOYEE" | "CONTRACTOR" | "OTHER",
+    accessLevel: "STANDARD" as "STANDARD" | "LIMITED",
+    profileVisibility: "ORGANISATION_ONLY" as "ORGANISATION_ONLY" | "VISIBLE_TO_PARTICIPANTS",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+
+  function startEdit(m: WorkforceTeamMember) {
+    clearMessages();
+    setEditId(m.id);
+    setEditDraft({
+      name: m.name, branchId: m.branch.id, skills: (m.skills ?? []).join(", "), locations: (m.locations ?? []).join(", "),
+      relationshipType: m.relationshipType ?? "EMPLOYEE", accessLevel: m.accessLevel ?? "STANDARD",
+      profileVisibility: m.profileVisibility ?? "ORGANISATION_ONLY",
+    });
+  }
+
+  async function saveEdit() {
+    if (!editId || !editDraft.name.trim()) return;
+    clearMessages();
+    setEditSaving(true);
+    try {
+      await api.patch(`/provider-org/team-members/${editId}`, {
+        name: editDraft.name.trim(), branchId: editDraft.branchId,
+        skills: editDraft.skills.split(",").map(x => x.trim()).filter(Boolean),
+        locations: editDraft.locations.split(",").map(x => x.trim()).filter(Boolean),
+        relationshipType: editDraft.relationshipType, accessLevel: editDraft.accessLevel, profileVisibility: editDraft.profileVisibility,
+      });
+      setEditId(null);
+      onCreated();
+    } catch (e) {
+      onError(e);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   async function create() {
     if (!name.trim() || !mobile.trim() || !branchId || !consent) return;
     clearMessages();
@@ -210,9 +250,60 @@ export function TeamMembersTab({
                     }`}>
                       {m.inviteStatus === "VERIFIED" ? "Verified" : "Pending verification"}
                     </span>
+                    <Button size="sm" variant="outline" onClick={() => startEdit(m)}>Edit</Button>
                     <Button size="sm" variant="ghost" onClick={() => remove(m.id)}>Remove</Button>
                   </div>
                 </div>
+                {editId === m.id && (
+                  <div className="mt-3 space-y-3 rounded-lg bg-slate-50 p-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={lbl}>Name</label>
+                        <input className={inp} value={editDraft.name} onChange={e => setEditDraft(d => ({ ...d, name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className={lbl}>Branch</label>
+                        <select className={inp} value={editDraft.branchId} onChange={e => setEditDraft(d => ({ ...d, branchId: e.target.value }))}>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className={lbl}>Locations (comma-separated)</label>
+                        <input className={inp} value={editDraft.locations} onChange={e => setEditDraft(d => ({ ...d, locations: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className={lbl}>Skills (comma-separated)</label>
+                        <input className={inp} value={editDraft.skills} onChange={e => setEditDraft(d => ({ ...d, skills: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className={lbl}>Relationship</label>
+                        <select className={inp} value={editDraft.relationshipType} onChange={e => setEditDraft(d => ({ ...d, relationshipType: e.target.value as typeof d.relationshipType }))}>
+                          <option value="EMPLOYEE">Employee</option><option value="CONTRACTOR">Contractor</option><option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={lbl}>Access level</label>
+                        <select className={inp} value={editDraft.accessLevel} onChange={e => setEditDraft(d => ({ ...d, accessLevel: e.target.value as typeof d.accessLevel }))}>
+                          <option value="STANDARD">Standard</option><option value="LIMITED">Limited</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className={lbl}>Profile visibility</label>
+                        <select className={inp} value={editDraft.profileVisibility} onChange={e => setEditDraft(d => ({ ...d, profileVisibility: e.target.value as typeof d.profileVisibility }))}>
+                          <option value="ORGANISATION_ONLY">Organisation only</option><option value="VISIBLE_TO_PARTICIPANTS">Visible when nominated</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" disabled={editSaving || !editDraft.name.trim()} onClick={saveEdit}>{editSaving ? "..." : "Save changes"}</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditId(null)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
                 {m.inviteStatus === "PENDING" && (
                   <div className="mt-3 flex items-center gap-2">
                     <input

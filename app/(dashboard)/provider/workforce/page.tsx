@@ -85,7 +85,7 @@ export default function InternalWorkforcePage() {
 
   return (
     <>
-      <PageHeader title="Internal Workforce" description="Your own workers — invite them, track verification and allocate opportunities." />
+      <PageHeader title="Internal Team" description="Your own workers — invite them, track verification and allocate opportunities." />
       <div className="mx-auto max-w-4xl px-5 py-6">
         {error && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
         {limitMessage && <UpgradePrompt message={limitMessage} />}

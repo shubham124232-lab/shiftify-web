@@ -112,7 +112,7 @@ export default function SilVacancyPage() {
       const { acknowledgement: _ack, vacancyCount, ...rest } = form.getValues();
       const clean = Object.fromEntries(Object.entries({ ...rest, ...(Number.isFinite(vacancyCount) ? { vacancyCount } : {}) }).filter(([, v]) => v !== "" && v !== undefined));
       await api.patch(`/provider/listings/${editId}`, clean);
-      router.push("/provider/listings");
+      router.push("/provider/housing");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save your changes.");
     } finally { setSubmitting(false); }
@@ -150,7 +150,7 @@ export default function SilVacancyPage() {
       const { vacancyCount, ...data } = form.getValues();
       // An untouched "Number of Vacancies" is NaN — leave it out rather than send null.
       await api.post("/provider/listings", { ...data, ...(Number.isFinite(vacancyCount) ? { vacancyCount } : {}), listingCategory: "HOUSING", saveAsDraft: true, acknowledgement: undefined });
-      router.push("/provider/listings");
+      router.push("/provider/housing");
     } catch (e) {
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) setUpgradeMessage(e.message);
       else setError(e instanceof Error ? e.message : "Could not save the draft.");
@@ -165,7 +165,7 @@ export default function SilVacancyPage() {
     setUpgradeMessage(null);
     try {
       await api.post("/provider/listings", { ...data, listingCategory: "HOUSING" });
-      router.push("/provider/listings");
+      router.push("/provider/housing");
     } catch (e) {
       setPending(null);
       if (e instanceof ApiError && (e.code === "SUBSCRIPTION_LIMIT" || e.code === "SUBSCRIPTION_REQUIRED")) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +39,7 @@ export function TeamMembersTab({
   const [mobile, setMobile] = useState("");
   const [skills, setSkills] = useState("");
   const [email, setEmail] = useState("");
+  const workspaceBranch = useBranchWorkspace(s => s.branchId);
   const [relationship, setRelationship] = useState<"EMPLOYEE" | "CONTRACTOR" | "OTHER">("EMPLOYEE");
   const [locations, setLocations] = useState("");
   const [consent, setConsent] = useState(false);
@@ -229,7 +231,7 @@ export function TeamMembersTab({
         <p className="text-sm text-slate-400 text-center py-8">No Team Members yet.</p>
       ) : (
         <div className="space-y-2">
-          {teamMembers.map(m => (
+          {teamMembers.filter(m => !workspaceBranch || m.branch.id === workspaceBranch).map(m => (
             <Card key={m.id}>
               <CardContent className="py-3 px-5">
                 <div className="flex items-center justify-between">

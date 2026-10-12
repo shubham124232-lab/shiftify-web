@@ -1,5 +1,7 @@
 "use client";
 
+import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
+import { VACANCY_LABEL } from "@/components/provider/housingOptions";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -9,6 +11,7 @@ import { ListingEnquiries, type ListingInquiry } from "@/components/provider/Lis
 import { api } from "@/lib/api";
 
 interface HousingListing {
+  branchId?: string | null;
   id: string;
   status: "ACTIVE" | "PAUSED" | "FILLED" | "CLOSED" | "DRAFT";
   title: string;
@@ -74,7 +77,11 @@ export default function ProviderHousingPage() {
   }
   useEffect(() => { load(); }, []);
 
-  const visible = useMemo(() => (filter === "ALL" ? listings : listings.filter((l) => l.status === filter)), [listings, filter]);
+  const workspaceBranch = useBranchWorkspace((s) => s.branchId);
+  const visible = useMemo(() => {
+    const inBranch = workspaceBranch ? listings.filter((l) => l.branchId === workspaceBranch) : listings;
+    return filter === "ALL" ? inBranch : inBranch.filter((l) => l.status === filter);
+  }, [listings, filter, workspaceBranch]);
 
   async function run(id: string, action: () => Promise<unknown>, done?: string) {
     setBusyId(id);
@@ -167,7 +174,7 @@ export default function ProviderHousingPage() {
                 <Card key={l.id}>
                   <CardContent className="space-y-3 py-5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">{l.vacancyCategory?.replace("_", "/") ?? "Housing"}</span>
+                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">{(l.vacancyCategory && VACANCY_LABEL[l.vacancyCategory]) || "Housing"}</span>
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
                       {l.isFeatured
                         ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Featured · position {l.featuredQueuePosition}</span>

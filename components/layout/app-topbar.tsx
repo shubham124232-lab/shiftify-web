@@ -12,6 +12,7 @@ import { getNotifications } from "@/lib/api/dashboard";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store/auth.store";
 import { UserRole } from "@/lib/types";
+import { BranchWorkspaceSelect } from "@/components/provider/BranchWorkspaceSelect";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
@@ -92,6 +93,7 @@ export function AppTopbar() {
         <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", ROLE_COLORS[user.activeRole])}>
           {ROLE_LABELS[user.activeRole]}
         </span>
+        {user.activeRole === UserRole.PROVIDER && <BranchWorkspaceSelect />}
         {user.status && user.status !== "ACTIVE" && (
           <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", STATUS_BADGE[user.status] ?? "bg-slate-100 text-slate-700")}>
             {user.status.charAt(0) + user.status.slice(1).toLowerCase()}

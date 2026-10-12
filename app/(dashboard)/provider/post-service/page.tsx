@@ -23,6 +23,7 @@ const schema = z.object({
   responseExpectation: z.enum(["SAME_DAY", "WITHIN_48_HOURS", "WITHIN_A_WEEK"], { required_error: "Set how quickly you respond to enquiries", invalid_type_error: "Set how quickly you respond to enquiries" }),
   serviceMode: z.enum(["IN_PERSON", "REMOTE", "BOTH"]).optional(),
   openSlots: z.number().int().min(0).max(999).optional(),
+  branchId: z.string().optional(),
   notes: z.string().max(4000).optional(),
   acknowledgement: z.boolean().refine(v => v === true, { message: "You must confirm this information is accurate" }),
 });
@@ -83,6 +84,10 @@ export default function ServicesCapacityPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [upgradeMessage, setUpgradeMessage] = useState<string | null>(null);
+  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    api.get<{ branches: { id: string; name: string }[] }>("/provider-org/branches").then((r) => setBranches(r.branches ?? [])).catch(() => {});
+  }, []);
 
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -120,6 +125,7 @@ export default function ServicesCapacityPage() {
           responseExpectation: l.responseExpectation ?? undefined,
           serviceMode: l.serviceMode ?? undefined,
           openSlots: l.openSlots ?? undefined,
+          branchId: l.branchId ?? "",
           notes: autoText ? "" : l.description,
           acknowledgement: true,
         } as FormData);
@@ -139,6 +145,7 @@ export default function ServicesCapacityPage() {
       const { notes, acknowledgement, ...rest } = data;
       const body = {
         ...rest,
+        branchId: rest.branchId || undefined,
         serviceCategory: data.serviceCategories[0],
         title: `Service capacity — accepting new participants: ${acceptingLabel}`,
         description: notes?.trim() ? notes.trim() : `Current capacity for ${labels.join(", ")} in ${data.suburb}.`,
@@ -305,6 +312,13 @@ export default function ServicesCapacityPage() {
                     ))}
                   </div>
                   {errors.responseExpectation && <p className="text-xs text-red-500 mt-1">{errors.responseExpectation.message}</p>}
+                </div>
+                <div>
+                  <label style={lbl}>Branch (optional)</label>
+                  <select {...register("branchId")} style={{ ...inp, cursor: "pointer" }}>
+                    <option value="">No branch</option>
+                    {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label style={lbl}>Open places (optional)</label>

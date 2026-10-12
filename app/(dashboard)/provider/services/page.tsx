@@ -1,5 +1,6 @@
 "use client";
 
+import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -10,6 +11,7 @@ import { api } from "@/lib/api";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 
 interface ServiceListing {
+  branchId?: string | null;
   id: string;
   status: "ACTIVE" | "PAUSED" | "FILLED" | "CLOSED" | "DRAFT";
   title: string;
@@ -70,7 +72,11 @@ export default function ProviderServicesPage() {
   }
   useEffect(() => { load(); }, []);
 
-  const visible = useMemo(() => (filter === "ALL" ? listings : listings.filter((l) => l.status === filter)), [listings, filter]);
+  const workspaceBranch = useBranchWorkspace((s) => s.branchId);
+  const visible = useMemo(() => {
+    const inBranch = workspaceBranch ? listings.filter((l) => l.branchId === workspaceBranch) : listings;
+    return filter === "ALL" ? inBranch : inBranch.filter((l) => l.status === filter);
+  }, [listings, filter, workspaceBranch]);
 
   async function patch(id: string, body: Record<string, unknown>) {
     setBusyId(id);

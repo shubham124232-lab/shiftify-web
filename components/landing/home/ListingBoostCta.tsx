@@ -26,7 +26,7 @@ export default function ListingBoostCta() {
             </p>
           </div>
           <div className="sf-boost-actions">
-            <a href="/sil-sda/listing-boost" className="sf-boost-cta-btn">Explore Featured Listing</a>
+            <a href="/shiftboard" className="sf-boost-cta-btn">Explore Featured Listing</a>
             <a href="/sil-sda/options" className="sf-boost-cta-link">
               See SIL &amp; SDA options
               <i className="bi bi-arrow-right" aria-hidden="true" />
@@ -44,8 +44,8 @@ export default function ListingBoostCta() {
             <p className="sf-boost-strip-sub">Explore SIL and SDA properties across Australia.</p>
           </div>
           <div className="sf-boost-actions">
-            <a href="/sil-sda/search" className="sf-boost-strip-btn">Search SIL &amp; SDA</a>
-            <a href="/sil-sda/list" className="sf-boost-strip-link">
+            <a href="/shiftboard" className="sf-boost-strip-btn">Search SIL &amp; SDA</a>
+            <a href="/register?role=PROVIDER" className="sf-boost-strip-link">
               List a property
               <i className="bi bi-arrow-right" aria-hidden="true" />
             </a>

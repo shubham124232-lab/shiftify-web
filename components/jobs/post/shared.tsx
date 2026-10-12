@@ -165,19 +165,59 @@ export function fundingChoiceError(f: FundingChoice): string | null {
 
 // ─── Wizard shell (progress bar + card + back/continue footer) ────────────────
 
-export function WizardProgress({ step, total }: { step: number; total: number }) {
+export function WizardProgress({ step, total, accent }: { step: number; total: number; accent?: string }) {
+  const pct = Math.round(((step + 1) / Math.max(total, 1)) * 100);
   return (
-    <div className="flex items-center gap-0 mb-6 overflow-x-auto pb-2">
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} className="flex items-center">
-          <div className={cn("flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold shrink-0",
-            i === step ? "bg-brand-600 text-white" : i < step ? "bg-brand-100 text-brand-700" : "bg-slate-100 text-slate-400")}>
-            {i < step ? "✓" : i + 1}
-          </div>
-          {i < total - 1 && <div className={cn("h-0.5 w-6 shrink-0", i < step ? "bg-brand-400" : "bg-slate-200")} />}
-        </div>
-      ))}
+    <div className="mb-6" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step + 1} aria-label={`Step ${step + 1} of ${total}`}>
+      <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
+        <span>Step {step + 1} of {total}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+        <div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${pct}%`, background: accent ?? "#be185d" }} />
+      </div>
     </div>
+  );
+}
+
+// Left-hand panel copy per timing lane. Colours match the homepage lane tokens.
+const LANE_PANELS: { match: string; accent: string; headline: string; sub: string }[] = [
+  { match: "rapid",       accent: "#FF2340", headline: "Support in the next 60 minutes.",       sub: "Tell us what you need. We’ll show it to matched workers straight away." },
+  { match: "urgent",      accent: "#FF8500", headline: "Support in 1 to 4 hours.",              sub: "Tell us what you need. We’ll show it to matched workers while there’s still time." },
+  { match: "last-minute", accent: "#00A06A", headline: "Support in 4 to 48 hours.",             sub: "Tell us what you need. We’ll show it to matched workers on the live board." },
+  { match: "routine",     accent: "#547FC4", headline: "One-time or recurring support.",        sub: "Tell us what you need and when. We’ll show it to matched workers on the live board." },
+];
+const PANEL_POINTS = [
+  "Shown on the live board to workers who match",
+  "Your address is shared only after you both confirm",
+  "0% commission on support",
+];
+
+function WizardSidePanel({ tierLabel }: { tierLabel: string }) {
+  const lane = LANE_PANELS.find((l) => tierLabel.toLowerCase().includes(l.match));
+  const accent = lane?.accent ?? "#be185d";
+  const headline = lane?.headline ?? "Tell us what you need.";
+  const sub = lane?.sub ?? "We’ll show it to matched workers on the live board.";
+  return (
+    <aside className="relative overflow-hidden rounded-2xl bg-[#0b0f1a] p-6 text-white lg:flex lg:min-h-[72vh] lg:flex-col lg:justify-between lg:p-10" aria-label="About this request">
+      <span className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full opacity-25 blur-3xl" style={{ background: accent }} aria-hidden="true" />
+      <div className="relative">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-widest">
+          <span className="h-2 w-2 rounded-full" style={{ background: accent }} aria-hidden="true" />
+          {tierLabel}
+        </span>
+        <h2 className="mt-5 text-2xl font-extrabold leading-tight lg:text-4xl" style={{ color: "#fff" }}>{headline}</h2>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70 lg:text-base">{sub}</p>
+      </div>
+      <ul className="relative mt-6 hidden space-y-3 p-0 lg:block" style={{ listStyle: "none" }}>
+        {PANEL_POINTS.map((t) => (
+          <li key={t} className="flex items-start gap-3 text-sm text-white/85">
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: accent }} aria-hidden="true">✓</span>
+            {t}
+          </li>
+        ))}
+      </ul>
+    </aside>
   );
 }
 
@@ -197,17 +237,21 @@ export function WizardScreen({
   nextDisabled?: boolean;
   saving?: boolean;
 }) {
+  const accent = LANE_PANELS.find((l) => tierLabel.toLowerCase().includes(l.match))?.accent;
   return (
     <>
       <PageHeader title={tierLabel} description={screenTitle} />
-      <div className="mx-auto max-w-2xl px-5 py-6">
-        <WizardProgress step={step} total={total} />
-        {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {belowError && <div className="mb-4">{belowError}</div>}
-        <Card><CardContent className="py-6">{children}</CardContent></Card>
-        <div className="flex justify-between mt-6">
-          <Button variant="ghost" onClick={onBack} disabled={step === 0}>Back</Button>
-          <Button onClick={onNext} disabled={nextDisabled || saving} loading={saving}>{nextLabel}</Button>
+      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-6 lg:grid-cols-2 lg:items-stretch lg:gap-10">
+        <WizardSidePanel tierLabel={tierLabel} />
+        <div className="mx-auto w-full max-w-2xl">
+          <WizardProgress step={step} total={total} accent={accent} />
+          {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          {belowError && <div className="mb-4">{belowError}</div>}
+          <Card><CardContent className="py-6">{children}</CardContent></Card>
+          <div className="flex justify-between mt-6">
+            <Button variant="ghost" onClick={onBack} disabled={step === 0}>Back</Button>
+            <Button onClick={onNext} disabled={nextDisabled || saving} loading={saving}>{nextLabel}</Button>
+          </div>
         </div>
       </div>
     </>

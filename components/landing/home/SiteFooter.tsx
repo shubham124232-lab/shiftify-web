@@ -77,7 +77,7 @@ export default function SiteFooter() {
               <i className="bi bi-send-fill" aria-hidden="true" />
               Request support
             </a>
-            <a href="/marketplace" className="sf-ft-btn sf-ft-btn-ghost">
+            <a href="/shiftboard" className="sf-ft-btn sf-ft-btn-ghost">
               <i className="bi bi-search" aria-hidden="true" />
               Find shifts
             </a>

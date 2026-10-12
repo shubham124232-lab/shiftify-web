@@ -110,7 +110,7 @@ export default function SilSdaSection() {
             </p>
             <LiveVacancies />
             <div className="sf-sil-actions">
-              <a href="/sil-sda" className="sf-btn sf-btn-outline">Explore SIL &amp; SDA →</a>
+              <a href="/shiftboard" className="sf-btn sf-btn-outline">Explore SIL &amp; SDA →</a>
               <p className="sf-script sf-sil-script">More than support.<br />A place to belong.</p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function SilSdaSection() {
               ))}
             </ul>
 
-            <a href="/sil-sda/listing-boost" className="sf-boostcard-btn">
+            <a href="/register?role=PROVIDER" className="sf-boostcard-btn">
               Get a Featured Listing
               <span className="sf-boostcard-go" aria-hidden="true"><i className="bi bi-arrow-right" /></span>
             </a>

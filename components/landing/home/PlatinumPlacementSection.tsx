@@ -115,7 +115,7 @@ export default function PlatinumPlacementSection() {
             </div>
 
             <div className="sf-place-actions">
-              <a href="/platinum/availability" className="sf-place-btn">
+              <a href="/register?role=PROVIDER" className="sf-place-btn">
                 <IconSend className="sf-place-btn-icon" />
                 Check availability
               </a>

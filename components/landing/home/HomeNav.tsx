@@ -7,11 +7,11 @@ import { useEffect, useState } from 'react';
 // they still reach the home page sections from /shiftboard.
 const links = [
   { label: 'How it works',         href: '/#how-it-works' },
-  { label: 'Providers',            href: '/#roles' },
-  { label: 'Support Workers',      href: '/#roles' },
-  { label: 'Support Coordinators', href: '/#roles' },
-  { label: 'Participants',         href: '/#roles' },
-  { label: 'Plan Managers',        href: '/#roles' },
+  { label: 'Providers',            href: '/register?role=PROVIDER' },
+  { label: 'Support Workers',      href: '/register?role=SUPPORT_WORKER' },
+  { label: 'Support Coordinators', href: '/register?role=COORDINATOR' },
+  { label: 'Participants',         href: '/register?role=PARTICIPANT' },
+  { label: 'Plan Managers',        href: '/register?role=PLAN_MANAGER' },
 ] as const;
 
 /* `hideBoardLink` drops the Live shiftboard shortcut on the board page itself. */
@@ -80,7 +80,6 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
               </a>
             )}
             <a href="/jobs/post" className="sf-nav-board">Post a request</a>
-            <a href="/login" className="sf-nav-board">Log In</a>
             <a href="/register" className="sf-btn sf-btn-pink sf-btn-sm">
               <i className="bi bi-person-plus-fill" aria-hidden="true" />
               Join Shiftify
@@ -103,7 +102,6 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
           ))}
           {!hideBoardLink && <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>}
           <a href="/jobs/post" onClick={() => setOpen(false)}>Post a request</a>
-          <a href="/login" onClick={() => setOpen(false)}>Log In</a>
           <a href="/register" className="sf-btn sf-btn-pink">Join Shiftify</a>
         </div>
       </div>

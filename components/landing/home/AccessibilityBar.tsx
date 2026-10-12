@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  IconTextSize, IconContrast, IconEasyRead, IconAuslan, IconTranslate,
-} from './PremiumIcons';
+import { IconTextSize, IconContrast } from './PremiumIcons';
 
 /* Reading preferences live on the <html> element so every section picks them
    up, and they persist so a returning visitor keeps their setting. */
@@ -17,12 +15,6 @@ const sizes = [
 ] as const;
 
 type SizeKey = (typeof sizes)[number]['key'];
-
-const links = [
-  { Icon: IconEasyRead,  label: 'Easy Read',   href: '/easy-read',  hint: 'Plain language with pictures' },
-  { Icon: IconAuslan,    label: 'Auslan',      href: '/auslan',     hint: 'Watch in Auslan' },
-  { Icon: IconTranslate, label: 'Languages',   href: '/languages',  hint: 'Translated information' },
-];
 
 export default function AccessibilityBar() {
   const [size, setSize] = useState<SizeKey>('base');
@@ -87,14 +79,6 @@ export default function AccessibilityBar() {
           <span className="sf-a11y-switch" aria-hidden="true"><span /></span>
         </button>
 
-        <div className="sf-a11y-links">
-          {links.map(({ Icon, label, href, hint }) => (
-            <a key={label} href={href} className="sf-a11y-link" title={hint}>
-              <Icon width={17} height={17} />
-              {label}
-            </a>
-          ))}
-        </div>
 
       </div>
     </section>

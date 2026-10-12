@@ -14,7 +14,7 @@ export default function LiveVacancies() {
       <ul className="sf-livevac-list">
         {list.map((l) => (
           <li key={l.id}>
-            <a href="/sil-sda">
+            <a href="/shiftboard">
               <span className="sf-livevac-title">{l.title}</span>
               <span className="sf-livevac-loc">{l.suburb}{l.state ? `, ${l.state}` : ''}{l.vacancyCategory ? ` · ${l.vacancyCategory.replace('_', ' / ')}` : ''}{l.isFeatured ? ' · Featured' : ''}</span>
             </a>

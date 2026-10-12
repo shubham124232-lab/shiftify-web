@@ -7,7 +7,7 @@ const columns: { heading: string; links: [string, string][] }[] = [
     links: [
       ['How it works',    '#how-it-works'],
       ['Live Shiftboard', '/shiftboard'],
-      ['SIL & SDA',       '/sil-sda'],
+      ['SIL & SDA',       '/shiftboard'],
       ['Pricing',         '#pricing'],
     ],
   },
@@ -24,10 +24,7 @@ const columns: { heading: string; links: [string, string][] }[] = [
   {
     heading: 'Support',
     links: [
-      ['Help centre',      '/help'],
-      ['Contact us',       '/contact'],
-      ['Safety',           '/safety'],
-      ['Become a partner', '/partners'],
+      ['Provider sign up', '/register?role=PROVIDER'],
     ],
   },
   {
@@ -35,8 +32,6 @@ const columns: { heading: string; links: [string, string][] }[] = [
     links: [
       ['Terms of service', '/terms'],
       ['Privacy policy',   '/privacy'],
-      ['Cookie policy',    '/cookies'],
-      ['Accessibility',    '/accessibility'],
     ],
   },
 ];
@@ -77,7 +72,7 @@ export default function SiteFooter() {
               <i className="bi bi-send-fill" aria-hidden="true" />
               Request support
             </a>
-            <a href="/marketplace" className="sf-ft-btn sf-ft-btn-ghost">
+            <a href="/shiftboard" className="sf-ft-btn sf-ft-btn-ghost">
               <i className="bi bi-search" aria-hidden="true" />
               Find shifts
             </a>

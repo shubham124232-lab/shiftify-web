@@ -114,10 +114,6 @@ export default function HowItWorksSection() {
               ))}
             </div>
 
-            <a href="/how-it-works" className="sf-btn sf-btn-pink" style={{ marginTop: 30 }}>
-              See how it works
-              <i className="bi bi-arrow-right" aria-hidden="true" />
-            </a>
           </div>
 
           <div>

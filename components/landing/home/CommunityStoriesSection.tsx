@@ -70,10 +70,6 @@ export default function CommunityStoriesSection() {
           ))}
         </ul>
 
-        <a href="/stories" className="sf-story-all">
-          Read community stories
-          <i className="bi bi-arrow-right" aria-hidden="true" />
-        </a>
 
       </div>
     </section>

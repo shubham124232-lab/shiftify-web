@@ -13,7 +13,8 @@ import { api } from "@/lib/api";
 import { getDashboard, type ProviderDashboard, type JobSummary } from "@/lib/api/dashboard";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import {
-  Briefcase, ChevronRight, CalendarDays, FileText, Users, Search, Plus,
+  Briefcase, CalendarDays, Users, Search, Plus, Clock, MapPin, Repeat, HelpCircle,
+  MessageCircle, CheckCircle2, ChevronDown, Zap, ArrowRight,
 } from "lucide-react";
 
 const SOON = (slug: string) => `/provider/coming-soon/${slug}`;
@@ -45,16 +46,54 @@ function categoryLabel(value: string): string {
   return JOB_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 }
 
-function StatTile({ label, value, hint, href }: { label: string; value: number; hint: string; href: string }) {
+function StatTile({ label, value, hint, href, icon }: { label: string; value: number; hint: string; href: string; icon: React.ReactNode }) {
   return (
     <Link href={href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-colors hover:border-brand-200">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">{icon}</span>
+      </div>
       <div className="mt-2 text-3xl font-semibold text-slate-900">{value}</div>
       <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
         <span>{hint}</span>
-        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-brand-600" />
+        <ArrowRight className="h-4 w-4 text-brand-600" />
       </div>
     </Link>
+  );
+}
+
+const URGENCY_ICON: Record<string, React.ReactNode> = {
+  RAPID: <Zap className="h-3 w-3" />,
+  URGENT: <Clock className="h-3 w-3" />,
+  LAST_MINUTE: <Clock className="h-3 w-3" />,
+  ROUTINE: <CalendarDays className="h-3 w-3" />,
+};
+
+const ACTIVITY_ICON: Record<string, React.ReactNode> = {
+  APPLICATION: <Users className="h-4 w-4" />,
+  ENQUIRY: <MessageCircle className="h-4 w-4" />,
+  CONFIRMATION: <CheckCircle2 className="h-4 w-4" />,
+};
+
+// "Match details & feedback" — why a request surfaced, with a lightweight useful / not-relevant response.
+function MatchDetails({ why }: { why: string }) {
+  const [vote, setVote] = useState<"USEFUL" | "NOT_RELEVANT" | null>(null);
+  return (
+    <details className="mt-1.5 text-xs text-slate-500">
+      <summary className="cursor-pointer select-none">Match details &amp; feedback</summary>
+      <div className="mt-2 space-y-2 rounded-lg bg-slate-50 px-3 py-2">
+        <p className="m-0 font-semibold text-slate-700">Why this match</p>
+        <p className="m-0">{why}</p>
+        {vote ? (
+          <p className="m-0 font-medium text-slate-600">Thanks — noted as {vote === "USEFUL" ? "useful" : "not relevant"}.</p>
+        ) : (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setVote("USEFUL")} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50">Useful</button>
+            <button type="button" onClick={() => setVote("NOT_RELEVANT")} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50">Not relevant</button>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -121,6 +160,8 @@ export default function ProviderDashboardPage() {
     <div className="container-page space-y-6 py-8">
       <DashboardHeader
         name={(user.name || (user as any).username || "there").split(" ")[0]}
+        title="My Dashboard"
+        breadcrumb="Provider / My Dashboard"
         description="Your staffing and service activity at a glance."
         actions={
           <>
@@ -136,8 +177,8 @@ export default function ProviderDashboardPage() {
                 </div>
               )}
             </div>
-            <Link href="/jobs"><Button variant="outline" size="sm">Browse Requests</Button></Link>
-            <Link href="/jobs/post"><Button size="sm">Post a Shift</Button></Link>
+            <Link href="/jobs"><Button variant="outline" size="sm"><Search className="mr-1 h-4 w-4" /> Browse Requests</Button></Link>
+            <Link href="/jobs/post"><Button size="sm"><Plus className="mr-1 h-4 w-4" /> Post a Shift</Button></Link>
           </>
         }
       />
@@ -161,17 +202,17 @@ export default function ProviderDashboardPage() {
           </span>
         )}
         <span className="flex gap-4">
-          <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">How it works</Link>
+          <Link href="/subscription" className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:underline"><HelpCircle className="h-4 w-4" /> How it works</Link>
           <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">View plans</Link>
         </span>
       </div>
 
       {/* Number tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Open staffing requests" value={stats?.openRequests ?? 0} hint="Posted and still open" href="/jobs/my" />
-        <StatTile label="Applications to review" value={stats?.newEnquiries ?? 0} hint="For your open requests" href="/jobs/my" />
-        <StatTile label="Upcoming assignments" value={upcoming.length} hint="View confirmed work" href="/provider/offers-assignments" />
-        <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} />
+        <StatTile label="Open staffing requests" value={stats?.openRequests ?? 0} hint="Posted and still open" href="/jobs/my" icon={<Briefcase className="h-4 w-4" />} />
+        <StatTile label="Applications to review" value={stats?.newEnquiries ?? 0} hint="For your open requests" href="/jobs/my" icon={<Users className="h-4 w-4" />} />
+        <StatTile label="Upcoming assignments" value={upcoming.length} hint="View confirmed work" href="/provider/offers-assignments" icon={<CalendarDays className="h-4 w-4" />} />
+        <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} icon={<MessageCircle className="h-4 w-4" />} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -187,11 +228,11 @@ export default function ProviderDashboardPage() {
               ) : (
                 <>
                   {attention.map((j) => (
-                    <DashboardListRow key={j.id} icon={<Briefcase className="h-5 w-5" />} title={j.title}
+                    <DashboardListRow key={j.id} icon={<Clock className="h-5 w-5" />} title={j.title}
                       subtitle={`${startsIn(j.scheduledStartAt)} · ${j.suburb}`} href={`/jobs/${j.id}`} rightLabel="Review applications" />
                   ))}
                   {expiring.length > 0 && (
-                    <DashboardListRow icon={<FileText className="h-5 w-5" />} title="Documents expiring soon"
+                    <DashboardListRow icon={<Briefcase className="h-5 w-5" />} title="Documents expiring soon"
                       subtitle={expiring.map((e) => `${e.label} (${new Date(e.date).toLocaleDateString("en-AU")})`).join(" · ")}
                       href="/documents" rightLabel="Review documents" />
                   )}
@@ -206,6 +247,7 @@ export default function ProviderDashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Relevant opportunities</CardTitle>
                 <Link href="/jobs" className="text-sm font-semibold text-brand-600 hover:underline">View matches</Link>
+                <Link href="/jobs"><Button variant="outline" size="sm"><MapPin className="mr-1 h-4 w-4" /> View nearby requests</Button></Link>
               </div>
             </CardHeader>
             <CardContent className="py-2">
@@ -220,10 +262,15 @@ export default function ProviderDashboardPage() {
                 opportunities.map((j) => {
                   const u = URGENCY_BADGE[j.urgency] ?? URGENCY_BADGE.ROUTINE;
                   return (
-                    <DashboardListRow key={j.id} icon={<Search className="h-5 w-5" />} title={j.title}
-                      subtitle={`${j.suburb} · Matches your ${categoryLabel(j.category)} service`} href={`/jobs/${j.id}`}
-                      badge={<span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.label}</span>}
-                      rightLabel="View request" />
+                    <div key={j.id} className="-mx-6 flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-3 last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{URGENCY_ICON[j.urgency] ?? URGENCY_ICON.ROUTINE}{u.label}</span>
+                        <p className="m-0 mt-1.5 truncate text-sm font-semibold text-slate-900">{j.title}</p>
+                        <p className="m-0 mt-0.5 truncate text-xs text-slate-500">{`${j.suburb} · Matches your ${categoryLabel(j.category)} service`}</p>
+                        <MatchDetails why={`This request is in ${j.suburb} and matches the ${categoryLabel(j.category)} service on your live listings.`} />
+                      </div>
+                      <Link href={`/jobs/${j.id}`} className="shrink-0"><Button variant="outline" size="sm">View request</Button></Link>
+                    </div>
                   );
                 })
               )}
@@ -265,27 +312,49 @@ export default function ProviderDashboardPage() {
                 ["Start confirmed",     pipeline?.startConfirmed ?? 0,     "/provider/confirmed-starts"],
               ] as const).map(([label, n, href]) => (
                 <Link key={label} href={href} className="flex items-center justify-between rounded-lg px-1 py-2 hover:bg-slate-50">
-                  <span className="text-sm text-slate-600">{label}</span>
-                  <span className="flex items-center gap-1 text-lg font-semibold text-slate-900">{n}<ChevronRight className="h-4 w-4 text-slate-300" /></span>
+                  <span className="flex items-center gap-3 text-sm text-slate-600">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-base font-semibold text-slate-900">{n}</span>{label}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-brand-600" />
                 </Link>
               ))}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle>Team availability</CardTitle></CardHeader>
-            <CardContent className="py-3 text-sm text-slate-600">
-              <p className="m-0 mb-3">Check replies for a specific shift.</p>
-              <Link href={"/provider/team-availability"}>
-                <Button variant="outline" size="sm"><Users className="mr-1 h-4 w-4" /> Team availability</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <details className="group rounded-2xl border border-slate-200 bg-white shadow-card">
+            <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Users className="h-5 w-5" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-slate-900">Team availability</span>
+                <span className="block text-xs text-slate-500">Check replies for a specific shift</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="space-y-2 border-t border-slate-100 px-5 py-3">
+              {attention.length === 0 ? (
+                <p className="m-0 text-sm text-slate-500">No open shifts to check.</p>
+              ) : attention.slice(0, 3).map((j) => (
+                <div key={j.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="m-0 truncate text-sm font-medium text-slate-800">{j.title}</p>
+                    <p className="m-0 truncate text-xs text-slate-500">{`${new Date(j.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · ${j.suburb}`}</p>
+                  </div>
+                  <Link href="/provider/team-availability"><Button variant="outline" size="sm">Check</Button></Link>
+                </div>
+              ))}
+              <Link href="/provider/team-availability" className="inline-block text-sm font-semibold text-brand-600 hover:underline">View team availability</Link>
+            </div>
+          </details>
 
-          <Card>
-            <CardHeader><CardTitle>Post again</CardTitle></CardHeader>
-            <CardContent className="space-y-3 py-3 text-sm text-slate-600">
-              <p className="m-0">Reuse a previous shift as a new draft.</p>
+          <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-card">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Repeat className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="m-0 text-sm font-semibold text-slate-900">Post again</p>
+                <p className="m-0 text-xs text-slate-500">Reuse a previous shift as a new draft</p>
+              </div>
+            </div>
+            <div className="mt-3 space-y-2">
               <select
                 className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
                 value={repostId}
@@ -298,8 +367,8 @@ export default function ProviderDashboardPage() {
               <Button size="sm" disabled={!repostId || reposting} onClick={postAgain}>
                 {reposting ? "Creating…" : "Create draft"}
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           <Card>
             <CardHeader><CardTitle>Recent activity</CardTitle></CardHeader>
@@ -311,9 +380,12 @@ export default function ProviderDashboardPage() {
               ) : (
                 <ul className="m-0 list-none divide-y divide-slate-100 p-0">
                   {activity.map((a) => (
-                    <li key={a.id} className="py-2.5">
-                      <p className="m-0 text-sm text-slate-800">{a.text}</p>
-                      <p className="m-0 mt-0.5 text-xs text-slate-400">{ago(a.at)}</p>
+                    <li key={a.id} className="flex items-start gap-3 py-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">{ACTIVITY_ICON[a.type] ?? ACTIVITY_ICON.APPLICATION}</span>
+                      <div className="min-w-0">
+                        <p className="m-0 text-sm text-slate-800">{a.text}</p>
+                        <p className="m-0 mt-0.5 text-xs text-slate-400">{ago(a.at)}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>

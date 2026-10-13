@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { StatCard } from '@/components/dashboard/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Users, Clock, Ban, Briefcase, CheckCircle2, ClipboardList, Heart, UserCog, Building2, Flag, AlertTriangle, CalendarCheck, DollarSign, Bell } from 'lucide-react';
 import { getStats, listUsers, getFlags, type PlatformStats, type AdminUser, type UrgentFlag } from '@/lib/api/admin';
 
 const FLAG_COLOR: Record<string, string> = {
@@ -84,33 +85,33 @@ export default function AdminPage() {
         {/* ── Stat cards row 1: LIVE ── */}
         {/* GET /admin/stats */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Total Users"           value={dataLoading ? "…" : (stats?.totalUsers            ?? 0)} tone="ok"     />
-          <StatCard label="Pending Verifications" value={dataLoading ? "…" : (stats?.pendingUsers          ?? 0)} tone="warn"   />
-          <StatCard label="Suspended Accounts"    value={dataLoading ? "…" : (stats?.suspendedUsers        ?? 0)} tone="warn"   />
-          <StatCard label="Active Jobs"           value={dataLoading ? "…" : (stats?.activeJobs            ?? 0)}               />
-          <StatCard label="Completed Today"       value={dataLoading ? "…" : (stats?.completedToday        ?? 0)} tone="ok"     />
-          <StatCard label="Total Jobs"            value={dataLoading ? "…" : (stats?.totalJobs             ?? 0)}               />
+          <StatCard label="Total Users"           icon={<Users className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.totalUsers            ?? 0)} tone="ok"     />
+          <StatCard label="Pending Verifications" icon={<Clock className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.pendingUsers          ?? 0)} tone="warn"   />
+          <StatCard label="Suspended Accounts"    icon={<Ban className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.suspendedUsers        ?? 0)} tone="warn"   />
+          <StatCard label="Active Jobs"           icon={<Briefcase className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.activeJobs            ?? 0)}               />
+          <StatCard label="Completed Today"       icon={<CheckCircle2 className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.completedToday        ?? 0)} tone="ok"     />
+          <StatCard label="Total Jobs"            icon={<ClipboardList className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.totalJobs             ?? 0)}               />
         </div>
 
         {/* ── Stat cards row 2: role breakdown (LIVE) + placeholder ── */}
         {/* GET /admin/stats → roleBreakdown */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Participants"   value={dataLoading ? "…" : (stats?.roleBreakdown?.PARTICIPANT    ?? 0)} tone="ok"     />
-          <StatCard label="Workers"        value={dataLoading ? "…" : (stats?.roleBreakdown?.SUPPORT_WORKER ?? 0)} tone="ok"     />
-          <StatCard label="Providers"      value={dataLoading ? "…" : (stats?.roleBreakdown?.PROVIDER       ?? 0)}               />
-          <StatCard label="Coordinators"   value={dataLoading ? "…" : (stats?.roleBreakdown?.COORDINATOR    ?? 0)}               />
-          <StatCard label="Plan Managers"  value={dataLoading ? "…" : (stats?.roleBreakdown?.PLAN_MANAGER   ?? 0)}               />
-          <StatCard label="Urgent Flags"   value={dataLoading ? "…" : (stats?.openComplaints ?? 0)} tone="danger" />
+          <StatCard label="Participants"   icon={<Heart className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.roleBreakdown?.PARTICIPANT    ?? 0)} tone="ok"     />
+          <StatCard label="Workers"        icon={<UserCog className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.roleBreakdown?.SUPPORT_WORKER ?? 0)} tone="ok"     />
+          <StatCard label="Providers"      icon={<Building2 className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.roleBreakdown?.PROVIDER       ?? 0)}               />
+          <StatCard label="Coordinators"   icon={<Users className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.roleBreakdown?.COORDINATOR    ?? 0)}               />
+          <StatCard label="Plan Managers"  icon={<ClipboardList className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.roleBreakdown?.PLAN_MANAGER   ?? 0)}               />
+          <StatCard label="Urgent Flags"   icon={<Flag className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.openComplaints ?? 0)} tone="danger" />
         </div>
 
         {/* ── Stat cards row 3: LIVE ── */}
         {/* GET /admin/stats — no "Failed Payments" figure: Phase 1 mock payments
             never fail, so there is nothing real to show for it. */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Confirmed Bookings"  value={dataLoading ? "…" : (stats?.confirmedBookings ?? 0)} tone="ok"     />
-          <StatCard label="Open Complaints"     value={dataLoading ? "…" : (stats?.openComplaints ?? 0)}    tone="danger" />
-          <StatCard label="Monthly Revenue"     value={dataLoading ? "…" : `$${(stats?.monthlyRevenueAud ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`} tone="ok" />
-          <StatCard label="Unread Admin Alerts" value={dataLoading ? "…" : (stats?.unreadAdminAlerts ?? 0)} tone="warn"   />
+          <StatCard label="Confirmed Bookings"  icon={<CalendarCheck className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.confirmedBookings ?? 0)} tone="ok"     />
+          <StatCard label="Open Complaints"     icon={<AlertTriangle className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.openComplaints ?? 0)}    tone="danger" />
+          <StatCard label="Monthly Revenue"     icon={<DollarSign className="h-4 w-4" />} value={dataLoading ? "…" : `$${(stats?.monthlyRevenueAud ?? 0).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`} tone="ok" />
+          <StatCard label="Unread Admin Alerts" icon={<Bell className="h-4 w-4" />} value={dataLoading ? "…" : (stats?.unreadAdminAlerts ?? 0)} tone="warn"   />
         </div>
 
         {/* ── Quick actions ── */}

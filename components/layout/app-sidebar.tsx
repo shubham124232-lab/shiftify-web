@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, FileText, Calendar, Link2, Receipt, Menu, X,
   CreditCard, Building2, Home, Star, ShieldCheck, Inbox,
   Radio, CalendarDays, Handshake, Bookmark, Target, CheckCircle2, GitBranch,
-  Layers, Settings, Megaphone, BarChart3, UserCog, FolderOpen,
+  Layers, Settings, Megaphone, BarChart3, UserCog, FolderOpen, Zap, Plus, Clock, Heart, LifeBuoy, Gift,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -95,26 +95,25 @@ function navForRole(role: string, managed = false): RoleNav {
         account: [NOTIFICATIONS],
       };
     case "PROVIDER": {
-      // Approved Provider demo (2026-10-09): 6 groups. Pages not built yet open a shared Coming soon page.
-      const soon = (slug: string) => `/provider/coming-soon/${slug}`;
+      // Approved Provider demo (2026-10-09): 6 groups.
       const groups: NavGroup[] = [
         { title: "Workspace", items: [
           { ...dash, label: "My Dashboard" },
-          { href: "/live-dashboard", label: "Live Shiftboard", icon: Radio },
+          { href: "/live-dashboard", label: "Live Shiftboard", icon: Zap },
         ] },
         { title: "Staffing", items: [
-          { href: "/jobs/post",                    label: "Post a Shift",           icon: FilePlus },
+          { href: "/jobs/post",                    label: "Post a Shift",           icon: Plus },
           { href: "/jobs/my",                      label: "Staffing Requests",      icon: ClipboardList, badge: "openRequests" },
-          { href: "/provider/team-availability",       label: "Team Availability",      icon: CalendarDays },
-          { href: "/provider/offers-assignments",  label: "Offers and Assignments", icon: Handshake },
-          { href: "/workers/available",            label: "Find External Workers",  icon: UserCheck },
-          { href: "/saved-professionals",          label: "Saved Workers",          icon: Star },
+          { href: "/provider/team-availability",       label: "Team Availability",      icon: Clock },
+          { href: "/provider/offers-assignments",  label: "Offers and Assignments", icon: CalendarDays },
+          { href: "/workers/available",            label: "Find External Workers",  icon: Search },
+          { href: "/saved-professionals",          label: "Saved Workers",          icon: Heart },
         ] },
         { title: "Opportunities", items: [
           { href: "/jobs",                          label: "Browse Requests",          icon: Search },
-          { href: "/provider/matched-requests",         label: "Matched Requests",         icon: Target },
-          { href: "/provider/saved-requests",           label: "Saved Requests",           icon: Bookmark },
-          { href: "/provider/my-responses",             label: "My Responses",             icon: Inbox },
+          { href: "/provider/matched-requests",         label: "Matched Requests",         icon: Zap },
+          { href: "/provider/saved-requests",           label: "Saved Requests",           icon: Heart },
+          { href: "/provider/my-responses",             label: "My Responses",             icon: FileText },
           { href: "/provider/confirmed-starts", label: "Confirmed Service Starts", icon: CheckCircle2 },
         ] },
         { title: "Business", items: [
@@ -122,12 +121,12 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/provider/housing",                  label: "Housing Vacancies",        icon: Home },
           { href: "/provider/enquiries",   label: "Enquiries & Applications", icon: Inbox, badge: "newEnquiries" },
           { href: "/messages",                          label: "Messages",                 icon: MessageSquare },
-          { href: soon("calendar"),                     label: "Calendar",                 icon: Calendar },
+          { href: "/provider/calendar",                  label: "Calendar",                 icon: Calendar },
         ] },
         { title: "Organisation", items: [
           { href: "/provider/organisation", label: "Organisation Profile",   icon: Building2 },
           { href: "/provider/branches",     label: "Branches",               icon: GitBranch },
-          { href: soon("service-lines"),    label: "Service Lines",          icon: Layers },
+          { href: "/provider/service-lines",    label: "Service Lines",          icon: Layers },
           { href: "/provider/administrators", label: "Administrators",       icon: UserCog },
           { href: "/provider/workforce",    label: "Internal Team",          icon: Users },
           { href: "/documents",             label: "Documents & Compliance", icon: FolderOpen },
@@ -138,6 +137,11 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/provider/promotions",       label: "Promotions",             icon: Megaphone },
           NOTIFICATIONS,
           { href: "/provider/settings", label: "Settings & Help",       icon: Settings },
+        ] },
+        { title: "Help", items: [
+          { href: "/provider/help", label: "Help & Tickets", icon: LifeBuoy },
+          { href: "/provider/saved-searches", label: "Saved searches & alerts", icon: Star },
+          { href: "/provider/coming-soon/refer-and-earn", label: "Refer & Earn", icon: Gift },
         ] },
       ];
       return { main: groups.flatMap((g) => g.items), account: [], groups };
@@ -247,19 +251,21 @@ export function AppSidebar() {
           className={cn(
             "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
             isActive
-              ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/25"
+              ? isProvider
+                ? "bg-brand-50 text-brand-700"
+                : "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/25"
               : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900",
           )}
         >
           <Icon className={cn(
             "h-[18px] w-[18px] shrink-0 transition-colors",
-            isActive ? "text-white" : "text-slate-400 group-hover:text-brand-600",
+            isActive ? (isProvider ? "text-brand-700" : "text-white") : "text-slate-400 group-hover:text-brand-600",
           )} />
-          {!collapsed && <span className="truncate tracking-tight">{item.label}</span>}
+          {!collapsed && <span className={cn("tracking-tight", isProvider ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
           {!collapsed && !!item.badge && !!badges[item.badge] && (
             <span className={cn(
               "ml-auto rounded-full px-1.5 text-[10px] font-bold leading-4",
-              isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700",
+              isActive ? (isProvider ? "bg-white text-brand-700" : "bg-white/25 text-white") : "bg-brand-50 text-brand-700",
             )}>{badges[item.badge]}</span>
           )}
         </Link>
@@ -367,7 +373,7 @@ export function AppSidebar() {
 
       <aside className={cn(
         "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)] transition-[width] duration-200 overflow-hidden",
-        collapsed ? "w-16" : "w-56",
+        collapsed ? "w-16" : isProvider ? "w-64" : "w-56",
       )}>
         <SidebarContents />
       </aside>

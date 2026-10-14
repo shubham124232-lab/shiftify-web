@@ -2,14 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Building2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
-import { inp, lbl } from "@/components/jobs/post/shared";
+import { ModalShell, inp } from "@/components/jobs/post/shared";
 import { BRANCH_SERVICE_LINES } from "@/components/provider/branchOptions";
 
 export interface BranchRow {
@@ -22,19 +21,22 @@ export interface BranchRow {
   serviceLines: string[];
   address?: string | null;
   escalationContact?: string | null;
+  contact?: string | null;
+  serviceRadiusKm?: number | null;
   isActive: boolean;
   _count: { administrators: number; teamMembers: number };
 }
 
-interface Administrator { id: string; user: { id: string; name: string; email: string } }
+interface Administrator { id: string; user: { id: string; name: string; email: string }; branches?: { id: string; name: string }[] }
+interface TeamPerson { id: string; name: string; branch: { id: string; name: string } }
 
 const TIMEZONES = [
   "Australia/Sydney", "Australia/Melbourne", "Australia/Brisbane", "Australia/Adelaide",
   "Australia/Perth", "Australia/Darwin", "Australia/Hobart",
 ];
 
-interface Draft { name: string; region: string; address: string; timezone: string; managerUserId: string; serviceLines: string[]; escalationContact: string }
-const EMPTY: Draft = { name: "", region: "", address: "", timezone: "Australia/Sydney", managerUserId: "", serviceLines: [], escalationContact: "" };
+interface Draft { name: string; region: string; address: string; timezone: string; managerUserId: string; serviceLines: string[]; escalationContact: string; contact: string; radius: string }
+const EMPTY: Draft = { name: "", region: "", address: "", timezone: "Australia/Sydney", managerUserId: "", serviceLines: [], escalationContact: "", contact: "", radius: "" };
 
 export default function ProviderBranchesPage() {
   const [branches, setBranches] = useState<BranchRow[]>([]);
@@ -48,15 +50,24 @@ export default function ProviderBranchesPage() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  // Deactivate asks first; if the Branch still has active work the server refuses and that message is shown in its own popup.
+  const [confirmOff, setConfirmOff] = useState<BranchRow | null>(null);
+  const [activeWork, setActiveWork] = useState<{ branch: BranchRow; message: string } | null>(null);
+  const [transferTo, setTransferTo] = useState("");
+  const [people, setPeople] = useState<TeamPerson[]>([]);
+  const [assigning, setAssigning] = useState<BranchRow | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     return Promise.all([
       api.get<{ branches: BranchRow[] }>("/provider-org/branches"),
       api.get<{ administrators: Administrator[] }>("/provider-org/administrators"),
+      api.get<{ teamMembers: TeamPerson[] }>("/provider-org/team-members").catch(() => ({ teamMembers: [] as TeamPerson[] })),
     ])
-      .then(([b, a]) => {
+      .then(([b, a, t]) => {
         setBranches(b.branches ?? []);
         setAdmins(a.administrators ?? []);
+        setPeople(t.teamMembers ?? []);
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : "Could not load your branches"))
       .finally(() => setLoading(false));
@@ -77,18 +88,23 @@ export default function ProviderBranchesPage() {
     setDraft({
       name: b.name, region: b.region ?? "", address: b.address ?? "", timezone: b.timezone ?? "Australia/Sydney",
       managerUserId: b.managerUserId ?? "", serviceLines: b.serviceLines, escalationContact: b.escalationContact ?? "",
+      contact: b.contact ?? "", radius: b.serviceRadiusKm != null ? String(b.serviceRadiusKm) : "",
     });
     setEditing(b.id);
   }
 
+  const canSave = !!draft.name.trim() && !!draft.region.trim() && draft.serviceLines.length > 0;
+
   async function save() {
-    if (!draft.name.trim()) return;
+    if (!canSave) return;
     setSaving(true); setError(null); setLimitMessage(null);
     const body = {
       name: draft.name.trim(),
       region: draft.region.trim() || undefined,
       address: draft.address.trim() || null,
       escalationContact: draft.escalationContact.trim() || null,
+      contact: draft.contact.trim() || null,
+      serviceRadiusKm: draft.radius.trim() ? Math.max(1, Math.round(Number(draft.radius))) || null : null,
       timezone: draft.timezone || undefined,
       managerUserId: draft.managerUserId || null,
       serviceLines: draft.serviceLines,
@@ -102,66 +118,85 @@ export default function ProviderBranchesPage() {
     } catch (e) { handleError(e); } finally { setSaving(false); }
   }
 
-  async function setActive(b: BranchRow, isActive: boolean) {
-    if (!isActive && !window.confirm(`Deactivate ${b.name}? Its team and history stay, but you can't add new Team Members to it until you activate it again.`)) return;
+  async function setActive(b: BranchRow, isActive: boolean, transferToBranchId?: string) {
     setBusyId(b.id); setError(null);
     try {
-      await api.patch(`/provider-org/branches/${b.id}`, { isActive });
+      await api.patch(`/provider-org/branches/${b.id}`, { isActive, ...(transferToBranchId ? { transferToBranchId } : {}) });
+      setActiveWork(null); setTransferTo("");
       await load();
-    } catch (e) { handleError(e); } finally { setBusyId(null); }
+    } catch (e) {
+      if (!isActive && e instanceof ApiError && e.code === "BRANCH_HAS_ACTIVE_WORK") setActiveWork({ branch: b, message: e.message });
+      else handleError(e);
+    } finally { setBusyId(null); setConfirmOff(null); }
   }
+
+  function startAssign(b: BranchRow) {
+    setPicked(new Set(people.filter((p) => p.branch.id === b.id).map((p) => p.id)));
+    setAssigning(b);
+  }
+
+  // Moves people between Branches: those ticked join this Branch; those unticked who were here are left where they are (move them from the other Branch).
+  async function saveAssign() {
+    if (!assigning) return;
+    setSaving(true); setError(null);
+    try {
+      const toMove = people.filter((p) => picked.has(p.id) && p.branch.id !== assigning.id);
+      await Promise.all(toMove.map((p) => api.patch(`/provider-org/team-members/${p.id}`, { branchId: assigning.id })));
+      setAssigning(null);
+      await load();
+    } catch (e) { handleError(e); } finally { setSaving(false); }
+  }
+
+  const label = "block text-sm font-semibold text-slate-900";
 
   return (
     <>
-      <PageHeader
-        title="Branches"
-        description="An operational office, hub or team — not every shift address."
-        actions={<Button onClick={() => startEdit(null)}>Add Branch</Button>}
-      />
-      <div className="container-page space-y-5 py-8">
+      <div className="space-y-5 px-8 pt-6">
+        <p className="m-0 text-xs text-slate-400">Provider / Branches</p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Branch workspaces</h1>
+            <p className="m-0 mt-1.5 text-[15px] text-slate-500">An operational office, hub or team — not every shift address.</p>
+          </div>
+          <Button onClick={() => startEdit(null)}>+ Add Branch</Button>
+        </div>
+      </div>
+      <div className="space-y-5 px-8 py-6">
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {limitMessage && <UpgradePrompt message={limitMessage} />}
         <OrgCapacityBar kind="branches" refreshKey={refresh} />
 
         {editing && (
-          <Card>
-            <CardContent className="space-y-3 px-5 py-4">
-              <p className="m-0 text-sm font-semibold text-slate-900">{editing === "new" ? "Add Branch" : "Edit Branch"}</p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className={lbl}>Branch name</label>
-                  <input className={inp} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. Parramatta" />
-                </div>
-                <div>
-                  <label className={lbl}>Region</label>
-                  <input className={inp} value={draft.region} onChange={(e) => setDraft({ ...draft, region: e.target.value })} placeholder="e.g. Western Sydney" />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={lbl}>Address</label>
-                  <input className={inp} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} placeholder="Office or hub address (internal — not shown to participants)" />
-                </div>
-                <div>
-                  <label className={lbl}>Time zone</label>
-                  <select className={inp} value={draft.timezone} onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}>
-                    {TIMEZONES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={lbl}>Manager</label>
-                  <select className={inp} value={draft.managerUserId} onChange={(e) => setDraft({ ...draft, managerUserId: e.target.value })}>
+          <ModalShell title="Branch workspace" subtitle={editing === "new" ? undefined : "Edit existing record"} onClose={() => setEditing(null)}>
+            <div className="border-b border-slate-100 px-6"><p className="m-0 w-fit border-b-2 border-brand-600 py-3 text-xs font-semibold text-brand-700">1. Branch workspace</p></div>
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+              <div>
+                <h3 className="m-0 text-xl font-bold text-slate-900">Branch workspace</h3>
+                <p className="m-0 mt-1 text-sm text-slate-500">An operational group, office or service hub.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={label}>Branch name <span className="text-brand-600">*</span>
+                  <input className={`${inp} mt-1 w-full`} value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. Parramatta" /></label>
+                <label className={label}>Coverage area <span className="text-brand-600">*</span>
+                  <input className={`${inp} mt-1 w-full`} value={draft.region} onChange={(e) => setDraft({ ...draft, region: e.target.value })} placeholder="e.g. Western Sydney" /></label>
+                <label className={label}>Operational base
+                  <input className={`${inp} mt-1 w-full`} value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} placeholder="Office or hub address (internal only)" /></label>
+                <label className={label}>Timezone
+                  <select className={`${inp} mt-1 w-full`} value={draft.timezone} onChange={(e) => setDraft({ ...draft, timezone: e.target.value })}>
+                    {TIMEZONES.map((t) => <option key={t} value={t}>{t}</option>)}</select></label>
+                <label className={label}>Branch manager
+                  <select className={`${inp} mt-1 w-full`} value={draft.managerUserId} onChange={(e) => setDraft({ ...draft, managerUserId: e.target.value })}>
                     <option value="">No manager set</option>
                     {user && <option value={user.id}>{user.name} (Owner)</option>}
-                    {admins.map((a) => <option key={a.id} value={a.user.id}>{a.user.name}</option>)}
-                  </select>
-                </div>
+                    {admins.map((a) => <option key={a.id} value={a.user.id}>{a.user.name}</option>)}</select></label>
               </div>
               <div>
-                <label className={lbl}>Service lines</label>
-                <div className="flex flex-wrap gap-2">
+                <p className="m-0 text-sm font-semibold text-slate-900">Service lines <span className="text-brand-600">*</span></p>
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
                   {[...BRANCH_SERVICE_LINES, ...draft.serviceLines.filter((x) => !(BRANCH_SERVICE_LINES as readonly string[]).includes(x))].map((line) => {
                     const on = draft.serviceLines.includes(line);
                     return (
-                      <label key={line} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium ${on ? "border-brand-400 bg-brand-50 text-brand-700" : "border-slate-200 text-slate-600"}`}>
+                      <label key={line} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
                         <input type="checkbox" checked={on} onChange={() => setDraft({ ...draft, serviceLines: on ? draft.serviceLines.filter((x) => x !== line) : [...draft.serviceLines, line] })} />
                         {line}
                       </label>
@@ -169,59 +204,111 @@ export default function ProviderBranchesPage() {
                   })}
                 </div>
               </div>
-              <div>
-                <label className={lbl}>Escalation contact</label>
-                <input className={inp} value={draft.escalationContact} onChange={(e) => setDraft({ ...draft, escalationContact: e.target.value })} placeholder="Who to call when something goes wrong (name and phone)" />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className={label}>Branch contact
+                  <input className={`${inp} mt-1 w-full`} value={draft.contact} onChange={(e) => setDraft({ ...draft, contact: e.target.value })} placeholder="Phone or email for this Branch" /></label>
+                <label className={label}>Service radius (km)
+                  <input className={`${inp} mt-1 w-full`} type="number" min={1} max={500} value={draft.radius} onChange={(e) => setDraft({ ...draft, radius: e.target.value })} placeholder="e.g. 25" /></label>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" disabled={saving || !draft.name.trim()} onClick={save}>{saving ? "Saving…" : "Save Branch"}</Button>
-                <Button size="sm" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <label className={label}>Escalation contact
+                <input className={`${inp} mt-1 w-full`} value={draft.escalationContact} onChange={(e) => setDraft({ ...draft, escalationContact: e.target.value })} placeholder="Who to call when something goes wrong (name and phone)" /></label>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-500">1 of 1</span>
+                <Button disabled={saving || !canSave} onClick={save}>{saving ? "Saving…" : editing === "new" ? "Save and continue" : "Save changes"}</Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </ModalShell>
+        )}
+
+        {confirmOff && (
+          <ModalShell title={`Deactivate ${confirmOff.name}?`} onClose={() => setConfirmOff(null)}>
+            <div className="px-6 py-5"><p className="m-0 text-sm text-slate-600">Its team and history stay, but you cannot add new Team Members to it until you activate it again.</p></div>
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+              <Button variant="outline" onClick={() => setConfirmOff(null)}>Cancel</Button>
+              <Button disabled={busyId === confirmOff.id} onClick={() => void setActive(confirmOff, false)}>Deactivate Branch</Button>
+            </div>
+          </ModalShell>
+        )}
+        {activeWork && (
+          <ModalShell title="Branch has active work" onClose={() => { setActiveWork(null); setTransferTo(""); }}>
+            <div className="space-y-3 px-6 py-5">
+              <p className="m-0 text-sm text-slate-600">Transfer active requests and assignments before deactivating {activeWork.branch.name}. History and ownership must remain accessible.</p>
+              <p className="m-0 text-xs text-slate-500">{activeWork.message}</p>
+              <label className={label}>Transfer to
+                <select className={`${inp} mt-1 w-full`} value={transferTo} onChange={(e) => setTransferTo(e.target.value)}>
+                  <option value="">Choose a Branch</option>
+                  {branches.filter((x) => x.isActive && x.id !== activeWork.branch.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                </select></label>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+              <Link href="/jobs/my"><Button variant="outline">View Branch requests</Button></Link>
+              <Button disabled={!transferTo || busyId === activeWork.branch.id} onClick={() => void setActive(activeWork.branch, false, transferTo)}>Transfer and deactivate</Button>
+            </div>
+          </ModalShell>
+        )}
+        {assigning && (
+          <ModalShell title={`Assign Team to ${assigning.name}`} subtitle="Tick the Team Members who work from this Branch." onClose={() => setAssigning(null)}>
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto px-6 py-5">
+              {people.length === 0 ? <p className="m-0 text-sm text-slate-500">No internal Team Members yet. Add one from Team Availability.</p> : people.map((p) => (
+                <label key={p.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={picked.has(p.id)} onChange={() => setPicked((s) => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; })} />
+                  <span className="font-semibold text-slate-900">{p.name}</span>
+                  <span className="ml-auto text-xs text-slate-500">{p.branch.name}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+              <Button variant="outline" onClick={() => setAssigning(null)}>Cancel</Button>
+              <Button disabled={saving} onClick={() => void saveAssign()}>{saving ? "Saving…" : "Save team"}</Button>
+            </div>
+          </ModalShell>
         )}
 
         {loading ? (
           <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
         ) : branches.length === 0 ? (
-          <Card><CardContent className="py-10 text-center text-sm text-slate-500">
+          <div className="rounded-2xl border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
             No branches yet. Add your first Branch to organise your team and administrators.
-          </CardContent></Card>
+          </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-5 lg:grid-cols-2">
             {branches.map((b) => (
-              <Card key={b.id}>
-                <CardContent className="space-y-3 py-5">
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${b.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                      {b.isActive ? "Active" : "Inactive"}
-                    </span>
+              <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-6">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-slate-500" />
+                  <h3 className="m-0 text-xl font-bold text-slate-900">{b.name}</h3>
+                  <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${b.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                    {b.isActive ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <div className="mt-4 space-y-1 text-base text-slate-500">
+                  <p className="m-0">{b.region || "No coverage area set"}{b.serviceRadiusKm ? ` · ${b.serviceRadiusKm} km radius` : ""}</p>
+                  <p className="m-0">{b.timezone ?? "Australia/Sydney"}</p>
+                  <p className="m-0">Manager: {b.managerName ?? "Not set"}</p>
+                  {b.address && <p className="m-0">Base: {b.address}</p>}
+                  {b.contact && <p className="m-0">Contact: {b.contact}</p>}
+                  {b.escalationContact && <p className="m-0">Escalation: {b.escalationContact}</p>}
+                  <p className="m-0">Administrators: {admins.filter((a) => a.branches?.some((x) => x.id === b.id)).map((a) => a.user.name).join(", ") || "None assigned"}</p>
+                  <p className="m-0 text-sm">{b._count.teamMembers} team members · {b._count.administrators} administrators</p>
+                </div>
+                {b.serviceLines.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {b.serviceLines.map((s) => <span key={s} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{s}</span>)}
                   </div>
-                  <div>
-                    <p className="m-0 text-base font-semibold text-slate-900">{b.name}</p>
-                    <p className="m-0 mt-0.5 text-sm text-slate-500">{[b.region, b.timezone].filter(Boolean).join(" · ") || "No region set"}</p>
-                  </div>
-                  <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                    <dt className="text-slate-400">Manager</dt><dd className="m-0 text-slate-700">{b.managerName ?? "Not set"}</dd>
-                    {b.address && (<><dt className="text-slate-400">Address</dt><dd className="m-0 text-slate-700">{b.address}</dd></>)}
-                    {b.escalationContact && (<><dt className="text-slate-400">Escalation</dt><dd className="m-0 text-slate-700">{b.escalationContact}</dd></>)}
-                    <dt className="text-slate-400">Team members</dt><dd className="m-0 text-slate-700">{b._count.teamMembers}</dd>
-                    <dt className="text-slate-400">Administrators</dt><dd className="m-0 text-slate-700">{b._count.administrators}</dd>
-                  </dl>
-                  {b.serviceLines.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {b.serviceLines.map((s) => <span key={s} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{s}</span>)}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button size="sm" variant="outline" onClick={() => startEdit(b)}>Edit Branch</Button>
-                    <Link href={`/provider/branches/${b.id}`}><Button size="sm" variant="outline">Open workspace</Button></Link>
-                    <Button size="sm" variant="outline" disabled={busyId === b.id} onClick={() => setActive(b, !b.isActive)}>
-                      {b.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                )}
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={() => startEdit(b)}>Edit Branch</Button>
+                  <Button variant="outline" disabled={busyId === b.id} onClick={() => (b.isActive ? setConfirmOff(b) : void setActive(b, true))}>
+                    {b.isActive ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button variant="outline" onClick={() => startAssign(b)}>Assign Team</Button>
+                  <Link href={`/provider/calendar?branch=${b.id}`}><Button variant="outline">View Calendar</Button></Link>
+                  <Link href={`/provider/branches/${b.id}`} className="ml-auto"><Button>Open workspace</Button></Link>
+                </div>
+              </div>
             ))}
           </div>
         )}

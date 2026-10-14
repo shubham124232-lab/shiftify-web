@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ProviderDocuments } from "@/components/provider/ProviderDocuments";
 
 interface Doc {
   id: string;
@@ -72,7 +73,12 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
   REJECTED:  { bg: "var(--td-pink)", color: "var(--td-white)", label: "Rejected" },
 };
 
-export default function DocumentsPage() {
+export default function DocumentsRoute() {
+  const { activeRole } = useAuth();
+  return activeRole === "PROVIDER" ? <ProviderDocuments /> : <DocumentsPage />;
+}
+
+function DocumentsPage() {
   const { activeRole } = useAuth();
   const isProvider = activeRole === "PROVIDER";
   const isWorker = activeRole === "SUPPORT_WORKER" || isProvider;

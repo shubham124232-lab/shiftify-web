@@ -13,6 +13,8 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { createSavedSearch, type SavedSearchFilters } from "@/lib/api/saved-searches";
 import { JobCard, type Job } from "@/components/jobs/job-card";
+import { OpportunityBoard } from "@/components/provider/OpportunityBoard";
+import { PostShiftDialog } from "@/components/provider/DashboardDialogs";
 import {
   URGENCY_TABS, URGENCY_STYLE, SHIFT_TYPE_LABELS, FUNDING_LABELS,
   POSTED_WITHIN_OPTIONS, SORT_OPTIONS, WORKER_SORT_OPTIONS, TIME_OF_DAY_FILTERS, inp, lbl,
@@ -300,7 +302,24 @@ function urgencyFiltersFromParams(searchParams: URLSearchParams): Filters {
     : defaultFilters;
 }
 
-export default function JobsBrowsePage() {
+// Providers get the Provider opportunity board (approved demo); every other role keeps the shared board.
+export default function JobsPage() {
+  const { activeRole } = useAuth();
+  return activeRole === "PROVIDER" ? <ProviderBrowseRequests /> : <JobsBrowsePage />;
+}
+
+function ProviderBrowseRequests() {
+  const [posting, setPosting] = useState(false);
+  return (
+    <>
+      {posting && <PostShiftDialog onClose={() => setPosting(false)} />}
+      <OpportunityBoard mode="browse" crumb="Provider / Opportunities" title="Browse Requests" description="Participant and Support Coordinator requests your organisation can service."
+        headerExtra={<Button size="sm" onClick={() => setPosting(true)}>+ Post a Shift</Button>} />
+    </>
+  );
+}
+
+function JobsBrowsePage() {
   const { activeRole } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

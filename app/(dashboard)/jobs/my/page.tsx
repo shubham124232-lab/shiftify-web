@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ProviderStaffingRequests } from "@/components/provider/ProviderStaffingRequests";
 
 interface Job {
   id: string; title: string; category: string; urgency: string;
@@ -106,6 +107,9 @@ export default function MyJobsPage() {
       if (responseFilter === "UNFILLED") return j.status === "OPEN" && (j._count?.applications ?? 0) === 0;
       return true;
     });
+
+  // Provider: the approved demo's own Staffing requests page (all hooks above have already run).
+  if (isProvider) return <ProviderStaffingRequests />;
 
   const isCoordinator = activeRole === "COORDINATOR";
   const pageTitle = isCoordinator ? "Requests & Responses" : isWorker ? "My Jobs" : "My Requests";

@@ -17,6 +17,9 @@ export interface WorkforceTeamMember {
   email?: string | null;
   relationshipType?: "EMPLOYEE" | "CONTRACTOR" | "OTHER" | null;
   locations?: string[];
+  languages?: string[];
+  credentialStatus?: "CURRENT" | "NEEDS_REVIEW" | "NOT_PROVIDED" | null;
+  experienceYears?: number | null;
   accessLevel?: "STANDARD" | "LIMITED" | null;
   profileVisibility?: "ORGANISATION_ONLY" | "VISIBLE_TO_PARTICIPANTS" | null;
   inviteStatus: "PENDING" | "VERIFIED";
@@ -92,7 +95,7 @@ export function TeamMembersTab({
   }
 
   async function create() {
-    if (!name.trim() || !mobile.trim() || !branchId || !consent) return;
+    if (!name.trim() || !mobile.trim() || !email.trim() || !branchId || !consent) return;
     clearMessages();
     setSaving(true);
     try {
@@ -100,7 +103,7 @@ export function TeamMembersTab({
         name: name.trim(), mobile: mobile.trim(), branchId,
         skills: skills.split(",").map(x => x.trim()).filter(Boolean),
         locations: locations.split(",").map(x => x.trim()).filter(Boolean),
-        ...(email.trim() ? { email: email.trim() } : {}),
+        email: email.trim(),
         relationshipType: relationship,
         accessLevel, profileVisibility: visibility,
         consentAcknowledged: true,
@@ -175,7 +178,7 @@ export function TeamMembersTab({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={lbl}>Email (optional)</label>
+              <label className={lbl}>Email (verification code is sent here)</label>
               <input className={inp} value={email} onChange={e => setEmail(e.target.value)} placeholder="worker@example.com" />
             </div>
             <div>
@@ -219,9 +222,9 @@ export function TeamMembersTab({
           </div>
           <label className="flex items-start gap-2 text-xs text-slate-600">
             <input type="checkbox" className="mt-0.5" checked={consent} onChange={e => setConsent(e.target.checked)} />
-            <span>This worker has agreed to be linked to our organisation on Shiftify. They verify their own mobile, see only their own offers and assignments, and their personal marketplace activity stays separate.</span>
+            <span>This worker has agreed to be linked to our organisation on Shiftify. They verify their own email, see only their own offers and assignments, and their personal marketplace activity stays separate.</span>
           </label>
-          <Button size="sm" disabled={saving || !name.trim() || !mobile.trim() || !consent} onClick={create}>
+          <Button size="sm" disabled={saving || !name.trim() || !mobile.trim() || !email.trim() || !consent} onClick={create}>
             {saving ? "..." : "Invite team member"}
           </Button>
         </CardContent>

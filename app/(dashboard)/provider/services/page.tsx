@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
 import { api } from "@/lib/api";
+import { ServiceOrCapacityDialog } from "@/components/provider/DashboardDialogs";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 
 interface ServiceListing {
@@ -58,6 +59,8 @@ export default function ProviderServicesPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("ALL");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" | "capacity" } | null>(null);
+  const [chooser, setChooser] = useState(false);
+  const [pauseAtZero, setPauseAtZero] = useState(false);
   const [slots, setSlots] = useState("");
   const [accepting, setAccepting] = useState<"YES" | "LIMITED" | "NO">("YES");
 
@@ -102,6 +105,7 @@ export default function ProviderServicesPage() {
   async function saveCapacity(id: string) {
     const body: Record<string, unknown> = { acceptingStatus: accepting };
     if (slots.trim() !== "") body.openSlots = Math.max(0, Math.min(999, Math.floor(Number(slots)) || 0));
+    if (pauseAtZero && body.openSlots === 0) body.status = "PAUSED";
     if (await patch(id, body)) setOpen(null);
   }
 
@@ -110,8 +114,9 @@ export default function ProviderServicesPage() {
       <PageHeader
         title="Services & Capacity"
         description="Advertise what you can deliver and the exact capacity available."
-        actions={<Link href="/provider/post-service"><Button>Post service or capacity</Button></Link>}
+        actions={<Button onClick={() => setChooser(true)}>Post service or capacity</Button>}
       />
+      {chooser && <ServiceOrCapacityDialog onClose={() => setChooser(false)} />}
       <div className="container-page space-y-6 py-8">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {FILTERS.map((f) => (
@@ -158,6 +163,7 @@ export default function ProviderServicesPage() {
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Button size="sm" variant="outline" onClick={() => toggle(l.id, "view")}>View listing</Button>
+                      <Link href={`/provider/post-service?duplicate=${l.id}`}><Button size="sm" variant="outline">Duplicate listing</Button></Link>
                       {l.status !== "CLOSED" && <Link href={`/provider/post-service?edit=${l.id}`}><Button size="sm" variant="outline">Edit</Button></Link>}
                       {l.status === "ACTIVE" && <Button size="sm" variant="outline" disabled={busy} onClick={() => patch(l.id, { status: "PAUSED" })}>Pause</Button>}
                       {l.status === "PAUSED" && <Button size="sm" variant="outline" disabled={busy} onClick={() => patch(l.id, { status: "ACTIVE" })}>Resume</Button>}
@@ -186,6 +192,7 @@ export default function ProviderServicesPage() {
                             </select>
                           </label>
                         </div>
+                        <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={pauseAtZero} onChange={(e) => setPauseAtZero(e.target.checked)} />Pause listing when capacity reaches zero</label>
                         <p className="m-0 text-xs text-slate-500">Capacity updates are free and never use a Provider Action.</p>
                         <div className="flex gap-2">
                           <Button size="sm" disabled={busy} onClick={() => saveCapacity(l.id)}>{busy ? "Saving…" : "Save capacity"}</Button>

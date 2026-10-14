@@ -23,6 +23,7 @@ export interface ShiftSummary {
   suburb: string;
   scheduledStartAt: string;
   status: string;
+  selectedApplicant?: { name: string } | null;
 }
 
 // ─── Dashboard feed ───────────────────────────────────────────────────────────

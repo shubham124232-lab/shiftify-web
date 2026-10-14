@@ -9,9 +9,11 @@ interface DashboardListRowProps {
   badge?: ReactNode;
   rightLabel?: string;
   href?: string;
+  /** When set (and no href) the row is a button that calls this instead of navigating. */
+  onClick?: () => void;
 }
 
-export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, href }: DashboardListRowProps) {
+export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, href, onClick }: DashboardListRowProps) {
   const body = (
     <div className="flex items-center gap-3 py-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
@@ -33,6 +35,13 @@ export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, hre
     </div>
   );
 
+  if (onClick && !href) {
+    return (
+      <button type="button" onClick={onClick} className="-mx-6 block w-[calc(100%+3rem)] border-b border-slate-100 px-6 text-left last:border-0 hover:bg-slate-50/60">
+        {body}
+      </button>
+    );
+  }
   if (href) {
     return (
       <Link href={href} className="-mx-6 block border-b border-slate-100 px-6 last:border-0 hover:bg-slate-50/60">

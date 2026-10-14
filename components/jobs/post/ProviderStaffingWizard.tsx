@@ -1,15 +1,18 @@
 "use client";
 
-// Dedicated Provider staffing-request journey (Provider Complete User Journey, Journeys 5–7).
+// Dedicated Provider staffing-request journey (Provider Complete User Journey, Journeys 5–7), built as the approved
+// 7-step demo: Timing and request, When and where, Support and safety, Worker requirements, Rates and engagement,
+// Distribution and visibility, Review.
 // It is deliberately NOT the Participant/Coordinator wizard: the Provider document defines five
 // sections — PR-R01 When and where, PR-R02 Support required, PR-R03 Essential worker requirements,
 // PR-R04 Rate and engagement, PR-R05 Safety, consent and review (+ PR-C01 confirmation) — and the
 // documented differences for Urgent (PR-U01), Last-Minute (PR-L01) and Routine (PR-O01).
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import {
-  WizardScreen, RadioCards, CheckboxRow, ReviewRow, LiveRequestScreen, ShiftPassPrompt, AddressReleaseNotice,
+  WizardScreen, ModalShell, RadioCards, CheckboxRow, ReviewRow, LiveRequestScreen, ShiftPassPrompt, AddressReleaseNotice,
   CategoryPickerStep, TasksStep, RequirementsStep, SafetyStep, ProviderRateStep, ProviderSafetyExtras,
   ProviderVisibilityPreview, ProviderAuthorityConfirm, providerRateSummary, requirementsSummary, safetySummary,
   hasRequirementsChoice, hasSafetyChoice, providerContextError, applyProviderContext,
@@ -17,6 +20,8 @@ import {
   inp, lbl,
 } from "@/components/jobs/post/shared";
 import { getCatalogueCategory } from "@/lib/constants/support-catalogue";
+import { ReusePostDialog } from "@/components/dashboard/ReusePostDialog";
+import type { JobSummary } from "@/lib/api/dashboard";
 import { getPostAttemptId, clearPostAttemptId } from "@/lib/store/guestJobDraft";
 import { postFailureMessage } from "@/lib/guestDraftResume";
 import {
@@ -27,16 +32,50 @@ import {
 const STATES = ["ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-type SectionKey = "when" | "support" | "requirements" | "rate" | "review";
-const SECTIONS: SectionKey[] = ["when", "support", "requirements", "rate", "review"];
+type SectionKey = "timing" | "when" | "support" | "requirements" | "rate" | "distribution" | "review";
+const SECTIONS: SectionKey[] = ["timing", "when", "support", "requirements", "rate", "distribution", "review"];
 
 const SECTION_TITLES: Record<SectionKey, string> = {
+  timing: "Timing and request",
   when: "When and where",
-  support: "Support required",
-  requirements: "Essential worker requirements",
-  rate: "Rate and engagement",
-  review: "Safety, consent and review",
+  support: "Support and safety",
+  requirements: "Worker requirements",
+  rate: "Rates and engagement",
+  distribution: "Distribution and visibility",
+  review: "Review staffing request",
 };
+
+const REQUEST_TYPES = [
+  { v: "ONE_OFF", l: "One-off shift" }, { v: "REPLACEMENT", l: "Replacement cover" }, { v: "RECURRING_ROSTER", l: "Recurring roster" },
+  { v: "OVERNIGHT", l: "Overnight / sleepover" }, { v: "SPECIALIST", l: "Specialist support" }, { v: "BACKUP", l: "Backup worker" },
+];
+const SHIFT_TYPES = [
+  { v: "STANDARD", l: "Standard shift" }, { v: "ACTIVE_OVERNIGHT", l: "Active overnight" }, { v: "SLEEPOVER", l: "Sleepover" },
+  { v: "SPLIT", l: "Split shift" }, { v: "SHORT_VISIT", l: "Short visit" },
+];
+const EXPERIENCE = [
+  { v: "TASK_COMPETENT", l: "Task-competent worker" }, { v: "EXPERIENCED", l: "Experienced preferred" }, { v: "SPECIALIST", l: "Specialist competency required" },
+];
+const CONTINUITY = [
+  { v: "ONE_OFF", l: "One-off worker" }, { v: "SAME_WORKER", l: "Same worker preferred" }, { v: "SMALL_TEAM", l: "Small consistent team" }, { v: "BACKUP_POOL", l: "Backup pool" },
+];
+const ONBOARDING = [
+  { v: "INDUCTION", l: "Participant-specific induction" }, { v: "MEET_GREET", l: "Meet-and-greet" }, { v: "SHADOW", l: "Shadow shift" },
+  { v: "PAPERWORK", l: "Paperwork first" }, { v: "INDUCTED", l: "Already inducted" },
+];
+const DISTRIBUTION_MODES = [
+  { v: "EXTERNAL_NOW", l: "External now" }, { v: "INTERNAL_FIRST", l: "Internal first" }, { v: "INTERNAL_THEN_EXTERNAL", l: "Internal then external" },
+];
+const ESCALATIONS = [
+  { v: "MANUAL_REVIEW", l: "Manual review before external publish" }, { v: "NOTIFY_NO_RESPONSE", l: "Notify me if no internal response" },
+];
+const AUDIENCES = [{ v: "VERIFIED", l: "Verified workers" }, { v: "INDEPENDENT", l: "Eligible independent workers" }];
+const MATCHING = [{ v: "NOTIFY_MATCHES", l: "Notify eligible matches" }, { v: "MANUAL_ONLY", l: "Manual review only" }];
+const optLabel = (list: { v: string; l: string }[], v: string) => list.find((o) => o.v === v)?.l ?? v;
+
+interface BranchOpt { id: string; name: string; isActive?: boolean }
+interface AdminOpt { id: string; status: string; user: { id: string; name: string } }
+interface MemberOpt { key: string; name: string; status: string }
 
 const DURATION_OPTIONS = [
   { v: "0.5", l: "30 minutes" }, { v: "1", l: "1 hour" }, { v: "2", l: "2 hours" }, { v: "3", l: "3 hours" },
@@ -47,6 +86,11 @@ const SUPPORT_NEEDS = [
   { v: "PERSONAL_CARE", l: "Personal care" },
   { v: "MOBILITY_MANUAL_HANDLING", l: "Mobility / manual handling" },
   { v: "MEDICATION", l: "Medication assistance" },
+  { v: "CLINICAL", l: "Clinical or complex-support tasks" },
+  { v: "TWO_PERSON", l: "Two-person transfer or support" },
+  { v: "LONE_WORKER", l: "Lone-worker arrangements apply" },
+  { v: "HANDOVER", l: "Handover required" },
+  { v: "PROGRESS_NOTES", l: "Progress notes required" },
 ];
 const LOGISTICS_NEEDS = [
   { v: "TRANSPORT", l: "Transport" },
@@ -89,13 +133,23 @@ function localInput(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
+// Step names shown on the popup tabs (Provider demo wording, doc fields unchanged).
+const TAB_NAMES = SECTIONS.map((k) => SECTION_TITLES[k]);
+
+export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes, editJobId, onSaved, onViewRequest }: { tier: PostingTier; onClose?: () => void; onBackToLanes?: () => void; editJobId?: string; onSaved?: () => void; onViewRequest?: (id: string) => void }) {
+  const [tier, setTierState] = useState<PostingTier>(startTier);
   const name = TIER_NAME[tier];
   const tierLabel = TIER_META[tier].label;
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const key = SECTIONS[step];
   const goTo = (k: SectionKey) => setStep(SECTIONS.indexOf(k));
   const [error, setError] = useState<string | null>(null);
+  // A draft can be resumed in place from the "Draft saved" screen, so the record being edited can change after mount.
+  const [resumeId, setResumeId] = useState<string | null>(null);
+  const editId = editJobId ?? resumeId;
+  const [draftEdit, setDraftEdit] = useState(false);
+  const [editLoading, setEditLoading] = useState(!!editJobId);
   const [saving, setSaving] = useState(false);
   const [shiftPassBlocked, setShiftPassBlocked] = useState(false);
   const [submitted, setSubmitted] = useState<{ id: string; isDraft: boolean; verificationRequired: boolean; scheduledFor?: string | null } | null>(null);
@@ -104,7 +158,37 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
   // PR-R01 — when
   const [timing, setTiming] = useState<"ASAP" | "CHOOSE">("ASAP");
   const [startAt, setStartAt] = useState("");
-  const [arrivalWindow, setArrivalWindow] = useState(tier === "RAPID" ? "30" : "60");
+  const [arrivalWindow, setArrivalWindow] = useState(startTier === "RAPID" ? "30" : "60");
+  function setTier(t: PostingTier) {
+    setTierState(t);
+    setArrivalWindow(t === "RAPID" ? "30" : "60");
+    setError(null);
+  }
+
+  // Step 1 — timing and request
+  const [title, setTitle] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [requestType, setRequestType] = useState("ONE_OFF");
+  const [adminId, setAdminId] = useState("");
+  const [workersRequired, setWorkersRequired] = useState("1");
+  const [branches, setBranches] = useState<BranchOpt[]>([]);
+  const [admins, setAdmins] = useState<AdminOpt[]>([]);
+  const [owner, setOwner] = useState<string>("");
+  const [members, setMembers] = useState<MemberOpt[]>([]);
+  const [reuseOpen, setReuseOpen] = useState(false);
+  const [pastPosts, setPastPosts] = useState<JobSummary[]>([]);
+  // Step 2/4 extras
+  const [shiftType, setShiftType] = useState("STANDARD");
+  const [continuity, setContinuity] = useState("ONE_OFF");
+  const [experience, setExperience] = useState("TASK_COMPETENT");
+  const [onboarding, setOnboarding] = useState("INDUCTION");
+  // Step 6 — distribution and visibility
+  const [distMode, setDistMode] = useState("EXTERNAL_NOW");
+  const [internalTeam, setInternalTeam] = useState<string[]>([]);
+  const [escalation, setEscalation] = useState("MANUAL_REVIEW");
+  const [audience, setAudience] = useState("VERIFIED");
+  const [matching, setMatching] = useState("NOTIFY_MATCHES");
+  const [internalNotes, setInternalNotes] = useState("");
   const [duration, setDuration] = useState("2");
   const [otherHours, setOtherHours] = useState("");
   const [altTimes, setAltTimes] = useState("");
@@ -161,6 +245,143 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
       .catch(() => setAllowance(null));
   }, []);
 
+  useEffect(() => {
+    api.get<{ branches: BranchOpt[] }>("/provider-org/branches").then((r) => {
+      const active = (r.branches ?? []).filter((b) => b.isActive !== false);
+      setBranches(active);
+      setBranchId((cur) => cur || active[0]?.id || "");
+    }).catch(() => undefined);
+    api.get<{ administrators: AdminOpt[]; owner?: { name: string } }>("/provider-org/administrators").then((r) => {
+      setAdmins((r.administrators ?? []).filter((a) => a.status === "ACTIVE"));
+      setOwner(r.owner?.name ?? "");
+    }).catch(() => undefined);
+    api.get<{ members: MemberOpt[] }>("/provider-workspace/team-availability").then((r) => setMembers((r.members ?? []).filter((m) => m.status !== "INVITED"))).catch(() => undefined);
+    api.get<{ jobs: JobSummary[] }>("/jobs/my").then((r) => setPastPosts(r.jobs ?? [])).catch(() => undefined);
+  }, []);
+
+
+  // Edit mode: load the saved request and fill every step from it (the inverse of what submit() sends).
+  useEffect(() => {
+    if (!editId) return;
+    type Rec = Record<string, unknown>;
+    const rec = (v: unknown): Rec => (v && typeof v === "object" && !Array.isArray(v) ? (v as Rec) : {});
+    const str = (v: unknown) => (typeof v === "string" ? v : "");
+    const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+    setEditLoading(true);
+    api.get<{ job: Rec }>(`/jobs/${editId}`).then(({ job }) => {
+      setDraftEdit(str(job.status) === "DRAFT");
+      const prefs = rec(job.workerPreferences);
+      const dist = rec(job.distribution);
+      const flags = rec(job.safetyFlags);
+      const resp = rec(job.responsePreferences);
+      const rp = rec(job.recurrencePattern);
+      const startD = new Date(str(job.scheduledStartAt));
+      const hrs = Number(job.totalHours);
+
+      setTitle(str(job.title)); setBranchId(str(job.branchId)); setRequestType(str(job.requestType) || "ONE_OFF");
+      setAdminId(str(job.responsibleAdminUserId)); setWorkersRequired(String(job.workersRequired ?? 1)); setShiftType(str(job.shiftType) || "STANDARD");
+      setTiming("CHOOSE"); setStartAt(Number.isNaN(startD.getTime()) ? "" : localInput(startD));
+      if (DURATION_OPTIONS.some((o) => o.v === String(hrs))) setDuration(String(hrs)); else if (hrs > 0) { setDuration("OTHER"); setOtherHours(String(hrs)); }
+      const tf = str(job.timeFlexibility);
+      if (tf && tf !== "EXACT") { setFlexible("FLEXIBLE"); setFlexNote(tf === "FLEXIBLE_SLIGHT" ? "" : tf); }
+      setReason(str(job.requestPurposeCategory));
+      if (tier === "ROUTINE") {
+        if (rp.type === "ONGOING") {
+          setPattern("RECURRING"); setDays(arr(rp.days)); setFrequency(str(rp.frequency) || "WEEKLY");
+          setOpenEnded(rp.arrangement === "OPEN_ENDED"); setEndDate(str(rp.endDate));
+        } else { setPattern("ONE_OFF"); setFlexible(rp.flexible ? "FLEXIBLE" : "EXACT"); }
+        setIntroSteps(arr(resp.introductorySteps));
+      }
+      setLocationType(str(job.serviceDeliveryMode) || "HOME"); setSuburb(str(job.suburb)); setState(str(job.state) || "NSW");
+      setPostcode(str(job.postcode)); setAddressLine(str(job.addressLine)); setMeetingDetails(str(job.locationNotes));
+
+      // Support: catalogue tasks (flat list, or the richer object when follow-up answers were given).
+      const st = job.selectedTasks;
+      const first = Array.isArray(rec(st).categories) ? rec((rec(st).categories as unknown[])[0]) : {};
+      const description = str(job.description);
+      setCatalogue({
+        categoryId: str(job.category),
+        tasks: Array.isArray(st) ? arr(st) : arr(first.tasks),
+        otherTask: tier !== "ROUTINE" && !description.includes(" staffing request:") ? description : "",
+        answers: Object.fromEntries(Object.entries(rec(first.answers)).filter(([, v]) => typeof v === "string")) as Record<string, string>,
+      });
+      if (tier === "ROUTINE") setServiceGoals(description);
+      setAgeGroup(str(prefs.participantAgeGroup)); setDelivery(prefs.deliveryMode === "REMOTE" ? "REMOTE" : "IN_PERSON");
+      const needLabels = arr(prefs.supportNeeds);
+      setNeeds(SUPPORT_NEEDS.filter((n) => needLabels.includes(n.l)).map((n) => n.v));
+      setLogistics(LOGISTICS_NEEDS.filter((n) => needLabels.includes(n.l)).map((n) => n.v));
+      const beh = needLabels.find((n) => n.startsWith("Behaviour-related / complex support: "));
+      setBehaviour(!!beh); setBehaviourDetail(beh ? beh.replace("Behaviour-related / complex support: ", "") : "");
+      setTravelRadiusKm(prefs.travelRadiusKm ? String(prefs.travelRadiusKm) : "");
+      setAltTimes(str(prefs.alternativeTimes));
+
+      // Requirements
+      const bool = (k: string) => prefs[k] === true;
+      const anyReq = ["genderRequired", "driversLicence", "vehicle", "wheelchairVehicle", "twoWorkers", "certIIIOrAbove", "restrictivePractices", "firstAid", "alliedHealth"].some(bool) || !!prefs.language || !!prefs.qualification;
+      setRequirements({
+        ...EMPTY_REQUIREMENTS, none: !anyReq && !prefs.participantSpecificTraining && arr(prefs.screeningChecks).length === 0,
+        genderRequired: bool("genderRequired"), genderValue: str(prefs.genderValue), genderReason: str(prefs.genderReason),
+        driversLicence: bool("driversLicence"), vehicle: bool("vehicle"), wheelchairVehicle: bool("wheelchairVehicle"),
+        language: !!prefs.language, languageValue: typeof prefs.language === "string" ? prefs.language : "",
+        qualification: !!prefs.qualification, qualificationValue: typeof prefs.qualification === "string" ? prefs.qualification : "",
+        twoWorkers: bool("twoWorkers"), certIIIOrAbove: bool("certIIIOrAbove"), restrictivePractices: bool("restrictivePractices"),
+        firstAid: bool("firstAid"), alliedHealth: bool("alliedHealth"),
+      });
+      setTraining(!!prefs.participantSpecificTraining); setTrainingDetail(str(prefs.participantSpecificTraining));
+      setScreening(arr(prefs.screeningChecks));
+      if (prefs.continuityPreference) setContinuity(str(prefs.continuityPreference));
+      if (prefs.minimumExperience) setExperience(str(prefs.minimumExperience));
+      if (prefs.onboardingRequirement) setOnboarding(str(prefs.onboardingRequirement));
+      if (prefs.consistencyPreference === "ONE_REGULAR" || prefs.consistencyPreference === "SMALL_TEAM") setConsistency(prefs.consistencyPreference);
+      const aw = tier === "RAPID" || tier === "URGENT" ? ARRIVAL_WINDOWS[tier].find((a) => a.l === prefs.arrivalWindow) : undefined;
+      if (aw) setArrivalWindow(aw.v);
+
+      // Safety
+      const fl = (k: string) => flags[k] === true;
+      setSafety({
+        ...EMPTY_SAFETY, none: Object.keys(flags).filter((k) => k !== "environmentalInfo").length === 0,
+        twoPersonSupport: fl("twoPersonSupport"), manualTransfer: fl("manualTransfer"), behaviourPlan: fl("behaviourPlan"),
+        medicationMonitoring: fl("medicationMonitoring"), accessIssues: fl("accessIssues"),
+        other: !!flags.other, otherDetail: typeof flags.other === "string" ? flags.other : "",
+        communicationInstructions: fl("communicationInstructions"), mobilityInstructions: fl("mobilityInstructions"),
+        mealtimePlan: fl("mealtimePlan"), allergyInfo: fl("allergyInfo"), homeAccessInfo: fl("homeAccessInfo"),
+      });
+      setEnvironmental(str(flags.environmentalInfo));
+      const deadline = job.applicationDeadlineAt ? new Date(str(job.applicationDeadlineAt)) : null;
+      setSafetyCtx({
+        ageGroup: str(prefs.participantAgeGroup), delivery: prefs.deliveryMode === "REMOTE" ? "REMOTE" : "IN_PERSON",
+        travelRadiusKm: prefs.travelRadiusKm ? String(prefs.travelRadiusKm) : "",
+        emergencyName: str(job.emergencyContactName), emergencyPhone: str(job.emergencyContactPhone),
+        escalationRoute: str(job.riskSafetyNotes).replace(/^Escalation route: /, ""),
+        responseDeadline: deadline && !Number.isNaN(deadline.getTime()) ? localInput(deadline) : "", alternativeTimes: str(prefs.alternativeTimes),
+      });
+      if (deadline && !Number.isNaN(deadline.getTime())) setResponseDeadline(localInput(deadline));
+
+      // Rate: the inverse of buildFundingPayload.
+      const bt = str(job.budgetType);
+      const note = str(job.internalNote).split("; ").filter(Boolean);
+      const pick = (p: string) => note.find((n) => n.startsWith(p))?.slice(p.length) ?? "";
+      const ft = str(job.fundingType);
+      const engagement = pick("Engagement: ").toUpperCase();
+      setFunding({
+        ...EMPTY_FUNDING,
+        fundingType: ft === "DISCUSS" ? "UNSURE" : ft === "MIXED" ? "" : (ft as FundingChoice["fundingType"]),
+        differentPartsManaged: ft === "MIXED", planManagerName: str(job.planManagerName),
+        rateChoice: bt === "NDIS" ? "NDIS_RATE" : bt === "FIXED_HOURLY" ? "OFFERED_RATE" : bt === "OPEN" ? "ASK_WORKERS" : bt === "DISCUSS" ? "DECIDE_LATER" : "",
+        offeredRate: job.budgetPerHour != null ? String(job.budgetPerHour) : "",
+        engagement: (["EMPLOYEE", "AGENCY", "CONTRACTOR"].includes(engagement) ? engagement : "") as FundingChoice["engagement"],
+        travelPayment: pick("Travel payment: "), minShift: pick("Minimum shift: "), cancelConditions: pick("Cancellation: "),
+        rateNotes: note.filter((n) => !/^(Engagement|Travel payment|Minimum shift|Cancellation): /.test(n)).join("; "),
+      });
+
+      // Distribution
+      setDistMode(str(dist.mode) || "EXTERNAL_NOW"); setInternalTeam(arr(dist.internalTeam)); setEscalation(str(dist.escalation) || "MANUAL_REVIEW");
+      setAudience(str(dist.audience) || "VERIFIED"); setMatching(str(dist.matching) || "NOTIFY_MATCHES"); setInternalNotes(str(dist.internalNotes));
+      setAuthority(true); setAgreeShare(true);
+    }).catch((e) => setError(e instanceof Error ? e.message : "Could not load the request to edit.")).finally(() => setEditLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editId]);
+
   const hours = duration === "OTHER" ? parseFloat(otherHours) : parseFloat(duration);
   const effectiveStart = (): Date | null => {
     if (tier === "RAPID" && timing === "ASAP") return new Date();
@@ -168,6 +389,11 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
   };
 
   function validate(): string | null {
+    if (key === "timing") {
+      if (!title.trim()) return "Enter a request title.";
+      if (branches.length > 0 && !branchId) return "Choose the operational Branch.";
+      if (!(parseInt(workersRequired, 10) >= 1)) return "Enter how many workers are required.";
+    }
     if (key === "when") {
       const start = effectiveStart();
       if (!start || Number.isNaN(start.getTime())) return tier === "ROUTINE" ? "Choose the expected commencement date and time." : "Choose when the support starts.";
@@ -189,6 +415,9 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
       if (catalogue.tasks.length === 0 && !catalogue.otherTask.trim()) return "Select at least one essential task.";
       if (!ageGroup) return "Select the participant age group.";
       if (behaviour && !behaviourDetail.trim()) return "Describe the behaviour-related or complex-support experience needed.";
+      if (!hasSafetyChoice(safety)) return "Select any essential safety information, or choose No special safety information.";
+      const e = providerContextError(safetyCtx, null);
+      if (e) return e;
     }
     if (key === "requirements") {
       if (!hasRequirementsChoice(requirements) && !training && screening.length === 0) return "Select what is essential, or choose No additional requirement.";
@@ -199,10 +428,10 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
       if (funding.rateChoice === "OFFERED_RATE" && !(parseFloat(funding.offeredRate) > 0)) return "Enter the offered hourly rate.";
       if (!funding.engagement) return "Choose the engagement arrangement (employee, agency or contractor).";
     }
+    if (key === "distribution") {
+      if (distMode !== "EXTERNAL_NOW" && internalTeam.length === 0) return "Choose at least one internal team member to contact first.";
+    }
     if (key === "review") {
-      if (!hasSafetyChoice(safety)) return "Select any essential safety information, or choose No special safety information.";
-      const e = providerContextError(safetyCtx, null);
-      if (e) return e;
       if (!authority) return "Confirm you're authorised to post this request for your organisation.";
       if (!agreeShare) return "Please confirm the information-sharing acknowledgement.";
     }
@@ -219,7 +448,8 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
   }
   function back() {
     setError(null);
-    setStep(Math.max(0, step - 1));
+    if (step === 0) { if (!onClose) router.push("/jobs/post"); return; }
+    setStep(step - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -249,6 +479,11 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
         arrivalWindow: tier === "RAPID" || tier === "URGENT" ? ARRIVAL_WINDOWS[tier].find((a) => a.v === arrivalWindow)?.l : undefined,
         alternativeTimes: tier === "URGENT" && altTimes.trim() ? altTimes.trim() : undefined,
         consistencyPreference: tier === "ROUTINE" ? consistency : undefined,
+        continuityPreference: continuity,
+        minimumExperience: experience,
+        onboardingRequirement: onboarding,
+        externalAudience: audience,
+        matchingMode: matching,
       };
       const recurrencePattern = tier === "ROUTINE"
         ? (pattern === "ONE_OFF"
@@ -256,7 +491,7 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
           : { type: "ONGOING", arrangement: openEnded ? "OPEN_ENDED" : "FIXED_END", days, frequency, hoursPerVisit: total, endDate: openEnded ? undefined : endDate || undefined, openEnded: openEnded || undefined })
         : undefined;
       const body: Record<string, unknown> = {
-        title: `${category?.label ?? "Support"} — ${name} staffing request`,
+        title: title.trim() || `${category?.label ?? "Support"} — ${name} staffing request`,
         description: serviceGoals.trim() || catalogue.otherTask.trim() || `${name} staffing request: ${category?.label ?? ""}`,
         category: catalogue.categoryId,
         urgency: TIER_META[tier].urgency,
@@ -276,6 +511,12 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
         selectedTasks: buildSelectedTasksPayload(catalogue),
         workerPreferences,
         visibilityTarget: "WORKERS_ONLY",
+        shiftType,
+        branchId: branchId || undefined,
+        requestType,
+        responsibleAdminUserId: adminId || undefined,
+        workersRequired: Math.max(1, parseInt(workersRequired, 10) || 1),
+        distribution: { mode: distMode, internalTeam, escalation, audience, matching, internalNotes: internalNotes.trim() || undefined },
         safetyFlags: { ...(buildSafetyFlagsPayload(safety) ?? {}), environmentalInfo: environmental.trim() || undefined },
         responsePreferences: (tier === "ROUTINE" && introSteps.length) || publishAt
           ? { ...(tier === "ROUTINE" && introSteps.length ? { introductorySteps: introSteps } : {}), ...(publishAt ? { scheduledPublishAtMs: publishAt.getTime(), scheduledPublishRole: "PROVIDER" } : {}) }
@@ -286,11 +527,35 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
       };
       // Emergency contact + escalation route (private until confirmation) and the response deadline.
       const payload = applyProviderContext(body, { ...safetyCtx, responseDeadline });
-      const res = await api.post<{ job: { id: string; status?: string } }>("/jobs", payload, { timeout: 45_000 });
+      if (editId) {
+        // Editing keeps the request's lane and publication state; only the saved details change.
+        const { urgency: _u, asDraft: _d, clientRequestId: _c, ...patch } = payload;
+        void _u; void _d; void _c;
+        await api.patch(`/jobs/${editId}`, patch, { timeout: 45_000 });
+        if (draftEdit && !asDraft) {
+          // Resuming a saved draft: post it like a new request (external now) or ask the internal team first.
+          if (distMode !== "EXTERNAL_NOW") {
+            if (internalTeam.length > 0) await api.post("/provider-workspace/team-availability/requests", { jobId: editId, memberKeys: internalTeam }).catch(() => undefined);
+            setSubmitted({ id: editId, isDraft: true, verificationRequired: false, scheduledFor: null });
+            return;
+          }
+          const pub = await api.patch<{ job: { status?: string } }>(`/jobs/${editId}/publish`, {}, { timeout: 45_000 });
+          setSubmitted({ id: editId, isDraft: pub.job.status === "DRAFT", verificationRequired: false, scheduledFor: null });
+          return;
+        }
+        onSaved?.();
+        return;
+      }
+      const internalFirst = distMode !== "EXTERNAL_NOW";
+      const res = await api.post<{ job: { id: string; status?: string } }>("/jobs", { ...payload, ...(internalFirst ? { asDraft: true, clientRequestId: undefined } : {}) }, { timeout: 45_000 });
       clearPostAttemptId();
+      // Internal first: nothing is published externally yet (so no action is used); the chosen people are asked now.
+      if (internalFirst && !asDraft && internalTeam.length > 0) {
+        await api.post("/provider-workspace/team-availability/requests", { jobId: res.job.id, memberKeys: internalTeam }).catch(() => undefined);
+      }
       // PR-R06 — incomplete minimum verification: the server keeps the request as a draft to resume.
-      const held = !asDraft && res.job.status === "DRAFT";
-      setSubmitted({ id: res.job.id, isDraft: asDraft || held, verificationRequired: held, scheduledFor: publishAt ? publishAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) : null });
+      const held = !asDraft && !internalFirst && res.job.status === "DRAFT";
+      setSubmitted({ id: res.job.id, isDraft: asDraft || held || internalFirst, verificationRequired: held, scheduledFor: publishAt ? publishAt.toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }) : null });
     } catch (e) {
       if (e instanceof ApiError && e.code === "SUBSCRIPTION_LIMIT") setShiftPassBlocked(true);
       else setError(postFailureMessage(e));
@@ -300,12 +565,13 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
   }
 
   if (submitted) {
-    return <LiveRequestScreen tier={tier} tierLabel={tierLabel} jobId={submitted.id} isDraft={submitted.isDraft} verificationRequired={submitted.verificationRequired} scheduledFor={submitted.scheduledFor} audience="PROVIDER" />;
+    const live = <LiveRequestScreen tier={tier} tierLabel={tierLabel} jobId={submitted.id} isDraft={submitted.isDraft} verificationRequired={submitted.verificationRequired} scheduledFor={submitted.scheduledFor} audience="PROVIDER"
+      onOpenJob={(id, draft) => { if (draft) { setSubmitted(null); setResumeId(id); } else if (onViewRequest) onViewRequest(id); else onClose?.(); }} />;
+    return onClose ? <ModalShell title="Post a staffing request" onClose={onClose}><div className="min-h-0 flex-1 overflow-y-auto">{live}</div></ModalShell> : live;
   }
 
   const category = getCatalogueCategory(catalogue.categoryId);
-  const nextLabel = key === "rate" ? "Continue to safety and review"
-    : key === "review" ? (tier === "RAPID" || tier === "URGENT" ? `Verify and Post ${name} Request` : "Publish request")
+  const nextLabel = key === "review" ? (editId && !draftEdit ? "Save changes" : distMode !== "EXTERNAL_NOW" ? "Save and ask internal team" : tier === "RAPID" || tier === "URGENT" ? `Verify and Post ${name} Request` : "Publish request")
     : "Continue";
   const startWindow = START_WINDOW[tier];
 
@@ -313,8 +579,44 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
     <WizardScreen
       tierLabel={`${name} staffing request`} screenTitle={SECTION_TITLES[key]} step={step} total={SECTIONS.length}
       error={error} onBack={back} onNext={next} nextLabel={nextLabel} saving={saving}
+      hidePanel backAtStart={!onClose}
+      modal={onClose ? { onClose, title: editId && !draftEdit ? "Edit staffing request" : "Post a staffing request", subtitle: editId && !draftEdit ? "Edit existing record" : `${name} · ${TIER_META[tier].timing}`, tabs: TAB_NAMES, firstBack: onBackToLanes } : undefined}
       belowError={shiftPassBlocked ? <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); void submit(false); }} onDismiss={() => setShiftPassBlocked(false)} /> : undefined}
     >
+      {key === "timing" && (
+        <div className="space-y-5">
+          {editLoading && <p className="m-0 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">Loading the saved request…</p>}
+          <p className="m-0 text-sm text-slate-500">Choose the operational Branch and the genuine timing of the work.</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><label className={lbl}>Request title *</label><input className={inp} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+            <div><label className={lbl}>Branch *</label>
+              <select className={inp} value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+                {branches.length === 0 ? <option value="">No branches yet</option> : branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select></div>
+            <div><label className={lbl}>Request type *</label>
+              <select className={inp} value={requestType} onChange={(e) => setRequestType(e.target.value)}>{REQUEST_TYPES.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+            <div><label className={lbl}>Timing lane *</label>
+              <select className={inp} value={tier} disabled={!!editId} onChange={(e) => setTier(e.target.value as PostingTier)}>
+                {(["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"] as PostingTier[]).map((t) => <option key={t} value={t}>{t === "LAST_MINUTE" ? "Last-Minute" : TIER_NAME[t]}</option>)}
+              </select></div>
+            <div><label className={lbl}>Responsible administrator *</label>
+              <select className={inp} value={adminId} onChange={(e) => setAdminId(e.target.value)}>
+                <option value="">{owner || "Organisation owner"}</option>
+                {admins.map((a) => <option key={a.id} value={a.user.id}>{a.user.name}</option>)}
+              </select></div>
+            <div><label className={lbl}>Workers required *</label><input type="number" min={1} className={inp} value={workersRequired} onChange={(e) => setWorkersRequired(e.target.value)} /></div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <span className="text-sm text-slate-600">Reuse your own previous posts to reduce repetitive entry.</span>
+            <button type="button" onClick={() => setReuseOpen(true)} className="rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Find similar previous posts</button>
+          </div>
+          {reuseOpen && (
+            <ReusePostDialog posts={pastPosts} busyId={null} error={null} onClose={() => setReuseOpen(false)}
+              onPick={(id) => { const p = pastPosts.find((x) => x.id === id); if (p) { setTitle(p.title); setSuburb(p.suburb); if (p.state) setState(p.state); } setReuseOpen(false); }} />
+          )}
+        </div>
+      )}
+
       {key === "when" && (
         <div className="space-y-5">
           <p className="text-xs text-slate-500 m-0">
@@ -428,6 +730,8 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
               <div><label className={lbl}>Postcode</label><input className={inp} value={postcode} onChange={(e) => setPostcode(e.target.value)} maxLength={4} /></div>
               <div><label className={lbl}>Travel radius (km)</label><input className={inp} inputMode="numeric" value={travelRadiusKm} onChange={(e) => setTravelRadiusKm(e.target.value.replace(/[^0-9]/g, ""))} placeholder="e.g. 20" /></div>
             </div>
+            <div className="w-64"><label className={lbl}>Shift type</label>
+              <select className={inp} value={shiftType} onChange={(e) => setShiftType(e.target.value)}>{SHIFT_TYPES.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
             {delivery === "IN_PERSON" && (
               <div>
                 <label className={lbl}>Exact private address (when relevant)</label>
@@ -490,6 +794,14 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
             <label className={lbl}>Transport and overnight requirements</label>
             {LOGISTICS_NEEDS.map((n) => <CheckboxRow key={n.v} checked={logistics.includes(n.v)} onChange={() => setLogistics(toggle(logistics, n.v))} label={n.l} />)}
           </div>
+          <div className="space-y-5 border-t border-slate-100 pt-5">
+          <SafetyStep value={safety} onChange={(p) => setSafety({ ...safety, ...p })} audience="PROVIDER" questionLabel="Essential safety and environmental information" />
+          <div>
+            <label className={lbl}>Environmental information (optional)</label>
+            <textarea className={inp} rows={2} value={environmental} onChange={(e) => setEnvironmental(e.target.value)} placeholder="Access, parking, pets, smoking, stairs or other hazards" />
+          </div>
+          <ProviderSafetyExtras value={safetyCtx} onChange={(p) => setSafetyCtx({ ...safetyCtx, ...p })} />
+          </div>
         </div>
       )}
 
@@ -504,6 +816,14 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
             <label className={lbl}>Required screening checks</label>
             {SCREENING_CHECKS.map((c) => <CheckboxRow key={c} checked={screening.includes(c)} onChange={() => setScreening(toggle(screening, c))} label={c} />)}
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><label className={lbl}>Experience</label>
+              <select className={inp} value={experience} onChange={(e) => setExperience(e.target.value)}>{EXPERIENCE.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+            <div><label className={lbl}>Continuity preference</label>
+              <select className={inp} value={continuity} onChange={(e) => setContinuity(e.target.value)}>{CONTINUITY.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+            <div><label className={lbl}>Onboarding requirement</label>
+              <select className={inp} value={onboarding} onChange={(e) => setOnboarding(e.target.value)}>{ONBOARDING.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+          </div>
           <div className="space-y-2">
             <CheckboxRow checked={training} onChange={setTraining} label="Participant-specific training required" />
             {training && <input className={`${inp} ml-6 w-80`} value={trainingDetail} onChange={(e) => setTrainingDetail(e.target.value)} placeholder="Which training?" />}
@@ -513,28 +833,52 @@ export function ProviderStaffingWizard({ tier }: { tier: PostingTier }) {
 
       {key === "rate" && <ProviderRateStep value={funding} onChange={(p) => setFunding({ ...funding, ...p })} />}
 
+      {key === "distribution" && (
+        <div className="space-y-5">
+          <p className="m-0 text-sm text-slate-500">Internal checks are free. Only a new external publication uses an action.</p>
+          <div><label className={lbl}>Distribution *</label>
+            <select className={inp} value={distMode} onChange={(e) => setDistMode(e.target.value)}>{DISTRIBUTION_MODES.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+          <div className="space-y-2">
+            <label className={lbl}>Internal team to contact</label>
+            {members.length === 0 ? <p className="m-0 text-sm text-slate-500">No internal team members yet. Add them from Internal Team.</p>
+              : members.map((m) => <CheckboxRow key={m.key} checked={internalTeam.includes(m.key)} onChange={() => setInternalTeam(toggle(internalTeam, m.key))} label={m.name} />)}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><label className={lbl}>External escalation</label>
+              <select className={inp} value={escalation} onChange={(e) => setEscalation(e.target.value)}>{ESCALATIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+            <div><label className={lbl}>External audience</label>
+              <select className={inp} value={audience} onChange={(e) => setAudience(e.target.value)}>{AUDIENCES.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+            <div><label className={lbl}>Matching</label>
+              <select className={inp} value={matching} onChange={(e) => setMatching(e.target.value)}>{MATCHING.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
+          </div>
+          <div><label className={lbl}>Internal Provider notes</label>
+            <textarea className={inp} rows={3} value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} />
+            <p className="m-0 mt-1 text-xs text-slate-400">Not shown to workers.</p></div>
+        </div>
+      )}
+
       {key === "review" && (
         <div className="space-y-5">
-          <SafetyStep value={safety} onChange={(p) => setSafety({ ...safety, ...p })} audience="PROVIDER" questionLabel="Essential safety and environmental information" />
-          <div>
-            <label className={lbl}>Environmental information (optional)</label>
-            <textarea className={inp} rows={2} value={environmental} onChange={(e) => setEnvironmental(e.target.value)} placeholder="Access, parking, pets, smoking, stairs or other hazards" />
-          </div>
-          <ProviderSafetyExtras value={safetyCtx} onChange={(p) => setSafetyCtx({ ...safetyCtx, ...p })} />
 
           <div className="border-t border-slate-100 pt-4 space-y-4">
             <p className="text-sm font-semibold text-slate-800 m-0">Confirm your {name} request</p>
             <div className="bg-slate-50 rounded-xl p-4 divide-y divide-slate-100">
-              <ReviewRow label="Request type" value={`${name} — ${TIER_META[tier].timing}`} />
+              <ReviewRow label="Request" value={`${title.trim() || "Untitled"} · ${branches.find((b) => b.id === branchId)?.name ?? "No branch"} · ${optLabel(REQUEST_TYPES, requestType)} · ${name} · ${workersRequired} worker${workersRequired === "1" ? "" : "s"}`} onEdit={() => goTo("timing")} />
               <ReviewRow label="When" value={`${tier === "RAPID" && timing === "ASAP" ? "As soon as possible" : startAt ? new Date(startAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" }) : ""} · ${Number.isFinite(hours) ? hours : "?"} h`} onEdit={() => goTo("when")} />
               <ReviewRow label="Where" value={`${suburb}, ${state}${postcode ? " " + postcode : ""} · ${delivery === "REMOTE" ? "Remote" : "In person"}`} onEdit={() => goTo("when")} />
               <ReviewRow label="Support required" value={`${category?.label ?? ""} — ${[...catalogue.tasks, catalogue.otherTask.trim()].filter(Boolean).join(", ")}`} onEdit={() => goTo("support")} />
-              <ReviewRow label="Worker requirements" value={[requirementsSummary(requirements, "PROVIDER"), screening.join(", ")].filter((x) => x && x !== "Not specified").join(", ") + (training ? `, training: ${trainingDetail}` : "")} onEdit={() => goTo("requirements")} />
+              <ReviewRow label="Worker requirements" value={[optLabel(EXPERIENCE, experience), optLabel(CONTINUITY, continuity), requirementsSummary(requirements, "PROVIDER"), screening.join(", ")].filter((x) => x && x !== "Not specified").join(", ") + (training ? `, training: ${trainingDetail}` : "")} onEdit={() => goTo("requirements")} />
               <ReviewRow label="Rate and engagement" value={providerRateSummary(funding)} onEdit={() => goTo("rate")} />
-              <ReviewRow label="Safety summary" value={safetySummary(safety)} onEdit={() => goTo("review")} />
+              <ReviewRow label="Safety summary" value={safetySummary(safety)} onEdit={() => goTo("support")} />
+              <ReviewRow label="Distribution" value={`${optLabel(DISTRIBUTION_MODES, distMode)}${internalTeam.length ? ` · ${internalTeam.length} internal contacted` : ""} · ${optLabel(AUDIENCES, audience)} · ${optLabel(MATCHING, matching)}`} onEdit={() => goTo("distribution")} />
             </div>
             <ProviderVisibilityPreview visible={["Service and essential tasks", "General location (suburb and state)", "Start time and duration", "Participant age group", "Rate and engagement", "Your organisation as the poster"]} />
             <AddressReleaseNotice />
+            <p className="m-0 rounded-lg border border-brand-200 bg-brand-50/50 px-3 py-2.5 text-xs text-slate-700">
+              {distMode === "EXTERNAL_NOW"
+                ? "Publication trigger: pressing the publish button sends this request to external workers now and uses one action, pass or plan entitlement."
+                : "Publication trigger: nothing is published externally when you save. The selected team members are asked first. This request goes to external workers, and uses one action, only when you publish the saved draft yourself."}
+            </p>
             <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 m-0">
               {allowance?.applies
                 ? `Publishing uses one of your once-only Provider Actions (${allowance.remaining} of ${allowance.limit} remaining). Urgency never costs extra and drafts are free.`

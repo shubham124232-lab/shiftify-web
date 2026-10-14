@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
+import { ProviderWorkerBoard } from "@/components/provider/ProviderWorkerBoard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,7 +145,21 @@ function WorkerCard({
 
 interface SavedProfessionalSummary { professionalUserId: string }
 
-export default function BrowseWorkersPage() {
+// A Provider browsing without a shift in mind gets the approved Provider layout; the shift-specific "Find workers" deep link (?forJobId=) keeps the invite view below.
+export default function WorkersPage() {
+  const { activeRole } = useAuth();
+  const forJobId = useSearchParams().get("forJobId");
+  if (activeRole === "PROVIDER" && !forJobId) {
+    return (
+      <>
+        <ProviderWorkerBoard mode="find" />
+      </>
+    );
+  }
+  return <BrowseWorkersPage />;
+}
+
+function BrowseWorkersPage() {
   const { activeRole } = useAuth();
   const isProvider = activeRole === "PROVIDER";
   const isCoordinator = activeRole === "COORDINATOR";

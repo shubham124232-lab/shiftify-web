@@ -7,9 +7,11 @@
 // nearly the same service/safety/funding/requirements questions.
 
 import { useState, useEffect } from "react";
+import { X } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Portal } from "@/components/ui/portal";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -221,9 +223,40 @@ export function WizardSidePanel({ tierLabel }: { tierLabel: string }) {
   );
 }
 
+// Popup frame used when a wizard opens over the dashboard (Provider "Post a Shift").
+export function ModalShell({ title, subtitle, onClose, children, wide }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <Portal>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl max-w-[80vw]`} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-5">
+          <div>
+            <h2 className="m-0 text-xl font-bold text-slate-900">{title}</h2>
+            {subtitle ? <p className="m-0 mt-1 text-xs text-slate-500">{subtitle}</p> : null}
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+    </Portal>
+  );
+}
+
 export function WizardScreen({
-  tierLabel, screenTitle, step, total, error, belowError, children, onBack, onNext, nextLabel, nextDisabled, saving,
+  tierLabel, screenTitle, step, total, error, belowError, children, onBack, onNext, nextLabel, nextDisabled, saving, modal, hidePanel, backAtStart,
 }: {
+  /** Single centred column (no branded side panel) — Provider flow. */
+  hidePanel?: boolean;
+  /** Keep Back enabled on the first step (the parent decides where it goes). */
+  backAtStart?: boolean;
+  /** Render as a popup: header, step tabs, scrolling body and a Back / Continue footer. */
+  modal?: { onClose: () => void; title: string; subtitle?: string; tabs: string[]; firstBack?: () => void };
   tierLabel: string;
   screenTitle: string;
   step: number;
@@ -238,18 +271,47 @@ export function WizardScreen({
   saving?: boolean;
 }) {
   const accent = LANE_PANELS.find((l) => tierLabel.toLowerCase().includes(l.match))?.accent;
+  if (modal) {
+    return (
+      <ModalShell title={modal.title} subtitle={modal.subtitle} onClose={modal.onClose}>
+        <ol className="m-0 flex w-full list-none items-center border-b border-slate-100 px-6 py-4">
+          {modal.tabs.map((t, i) => (
+            <li key={t} title={t} aria-current={i === step ? "step" : undefined} className={cn("flex items-center", i < modal.tabs.length - 1 ? "flex-1" : "")}>
+              <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold",
+                i === step ? "border-brand-600 bg-brand-600 text-white" : i < step ? "border-brand-600 bg-white text-brand-700" : "border-slate-300 bg-white text-slate-400")}>{i + 1}</span>
+              <span className="sr-only">{t}</span>
+              {i < modal.tabs.length - 1 ? <span className={cn("mx-2 h-0.5 flex-1 rounded-full", i < step ? "bg-brand-600" : "bg-slate-200")} /> : null}
+            </li>
+          ))}
+        </ol>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          <h3 className="m-0 mb-4 text-2xl font-bold text-slate-900">{screenTitle}</h3>
+          {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          {belowError && <div className="mb-4">{belowError}</div>}
+          {children}
+        </div>
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+          <Button variant="outline" onClick={step === 0 ? (modal.firstBack ?? modal.onClose) : onBack}>{step === 0 ? (modal.firstBack ? "Back" : "Close") : "Back"}</Button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400">{step + 1} of {total}</span>
+            <Button onClick={onNext} disabled={nextDisabled || saving} loading={saving}>{nextLabel}</Button>
+          </div>
+        </div>
+      </ModalShell>
+    );
+  }
   return (
     <>
       <PageHeader title={tierLabel} description={screenTitle} />
-      <div className="mx-auto grid max-w-6xl gap-6 px-5 py-6 lg:grid-cols-2 lg:items-stretch lg:gap-10">
-        <WizardSidePanel tierLabel={tierLabel} />
-        <div className="mx-auto w-full max-w-2xl">
+      <div className={cn("mx-auto px-5 py-6", hidePanel ? "max-w-3xl" : "grid max-w-6xl gap-6 lg:grid-cols-2 lg:items-stretch lg:gap-10")}>
+        {hidePanel ? null : <WizardSidePanel tierLabel={tierLabel} />}
+        <div className={cn("mx-auto w-full", hidePanel ? "" : "max-w-2xl")}>
           <WizardProgress step={step} total={total} accent={accent} />
           {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           {belowError && <div className="mb-4">{belowError}</div>}
           <Card><CardContent className="py-6">{children}</CardContent></Card>
           <div className="flex justify-between mt-6">
-            <Button variant="ghost" onClick={onBack} disabled={step === 0}>Back</Button>
+            <Button variant="outline" onClick={onBack} disabled={step === 0 && !backAtStart}>Back</Button>
             <Button onClick={onNext} disabled={nextDisabled || saving} loading={saving}>{nextLabel}</Button>
           </div>
         </div>
@@ -1479,7 +1541,7 @@ const PROVIDER_LIVE_ITEMS = [
   "Edit essentials without using another action", "Pause, cancel, extend or duplicate",
 ];
 
-export function LiveRequestScreen({ tier, tierLabel, jobId, isDraft, audience, verificationRequired, scheduledFor }: { tier: PostingTier; tierLabel: string; jobId: string; isDraft: boolean; audience?: "COORDINATOR" | "PROVIDER"; verificationRequired?: boolean; scheduledFor?: string | null }) {
+export function LiveRequestScreen({ tier, tierLabel, jobId, isDraft, audience, verificationRequired, scheduledFor, onOpenJob }: { tier: PostingTier; tierLabel: string; jobId: string; isDraft: boolean; audience?: "COORDINATOR" | "PROVIDER"; verificationRequired?: boolean; scheduledFor?: string | null; onOpenJob?: (id: string, isDraft: boolean) => void }) {
   const base = LIVE_SCREEN_CONFIG[tier];
   const config = {
     ...base,
@@ -1513,7 +1575,9 @@ export function LiveRequestScreen({ tier, tierLabel, jobId, isDraft, audience, v
           </div>
         )}
         <div className="flex flex-col gap-3">
-          <a href={`/jobs/${jobId}`}><Button className="w-full">{isDraft ? "Continue editing" : config.buttonLabel}</Button></a>
+          {onOpenJob
+            ? <Button className="w-full" onClick={() => onOpenJob(jobId, isDraft)}>{isDraft ? "Continue editing" : config.buttonLabel}</Button>
+            : <a href={`/jobs/${jobId}`}><Button className="w-full">{isDraft ? "Continue editing" : config.buttonLabel}</Button></a>}
           {verificationRequired && <a href="/documents"><Button variant="outline" className="w-full">Go to Documents</Button></a>}
           <a href="/jobs/my"><Button variant="outline" className="w-full">My requests board</Button></a>
         </div>

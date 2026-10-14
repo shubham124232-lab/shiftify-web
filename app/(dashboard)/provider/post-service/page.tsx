@@ -107,9 +107,12 @@ export default function ServicesCapacityPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("edit");
+    const sp = new URLSearchParams(window.location.search);
+    const id = sp.get("edit") ?? sp.get("duplicate");
     if (!id) return;
-    setEditId(id); setLoadingEdit(true);
+    // ?duplicate=<id> starts a new listing pre-filled from an existing one.
+    const dup = !sp.get("edit");
+    setEditId(dup ? null : id); setLoadingEdit(true);
     api.get<{ listings?: Array<Record<string, any>> }>("/provider/listings?category=SERVICE")
       .then((res) => {
         const l = (res.listings ?? []).find((r) => r.id === id);
@@ -127,7 +130,7 @@ export default function ServicesCapacityPage() {
           openSlots: l.openSlots ?? undefined,
           branchId: l.branchId ?? "",
           notes: autoText ? "" : l.description,
-          acknowledgement: true,
+          acknowledgement: !dup,
         } as FormData);
       })
       .catch(() => setError("Could not load that listing."))
@@ -171,7 +174,7 @@ export default function ServicesCapacityPage() {
   return (
     <>
       <PageHeader
-        title={editId ? "Edit service listing" : "Services & Capacity"}
+        title={editId ? "Edit service listing" : loadingEdit || new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("duplicate") ? "Duplicate service listing" : "Services & Capacity"}
         description="Tell participants, coordinators and plan managers what capacity you have. Updates are free and never use a Provider Action."
       />
       <div className="container-page py-8 max-w-2xl">

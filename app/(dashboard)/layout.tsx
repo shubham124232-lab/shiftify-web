@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
 import { ResumeDraftBanner } from "@/components/jobs/ResumeDraftBanner";
+import { AdminInviteBanner } from "@/components/provider/AdminInviteBanner";
 import { Spinner } from "@/components/ui/spinner";
 import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
 import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
@@ -144,13 +145,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="td-theme flex h-screen">
-      <AppSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AppTopbar />
-        <StatusBanner />
-        <ResumeDraftBanner />
-        <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
+    <div className="td-theme flex h-screen flex-col">
+      {user?.activeRole === "PROVIDER" && (
+        <div className="flex h-8 shrink-0 items-center justify-between bg-slate-950 px-6 text-[11px] font-semibold uppercase tracking-wider text-white">
+          <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />24/7 LIVE</span>
+          <span>0% Platform commission</span>
+        </div>
+      )}
+      <div className="flex min-h-0 flex-1">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <AppTopbar />
+          <StatusBanner />
+          <ResumeDraftBanner />
+          <AdminInviteBanner />
+          <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
+        </div>
       </div>
     </div>
   );

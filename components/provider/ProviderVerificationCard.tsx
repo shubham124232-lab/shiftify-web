@@ -40,7 +40,7 @@ export function ProviderVerificationCard() {
 
   useEffect(() => {
     api.get<Me>("/users/me").then(setMe).catch(() => setMe(null));
-    api.get<{ documents: Doc[] }>("/documents").then((r) => setDocs(r.documents ?? [])).catch(() => setDocs([]));
+    api.get<{ documents: Doc[] }>("/users/me/documents").then((r) => setDocs(r.documents ?? [])).catch(() => setDocs([]));
   }, []);
 
   if (!me) return null;

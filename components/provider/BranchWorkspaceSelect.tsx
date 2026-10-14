@@ -24,7 +24,6 @@ export function BranchWorkspaceSelect() {
   if (!branches || branches.length === 0) return null;
   return (
     <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
-      <span className="hidden sm:inline">Branch workspace</span>
       <select
         aria-label="Branch workspace"
         value={branchId ?? ""}

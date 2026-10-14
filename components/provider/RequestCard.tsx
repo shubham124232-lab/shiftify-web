@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 export interface ProviderRequestRow {
   id: string;
   title: string;
+  category: string;
   categoryLabel: string;
   urgency: string;
   suburb: string;
@@ -21,6 +22,9 @@ export interface ProviderRequestRow {
   saved?: boolean;
   open?: boolean;
   responseStatus: string | null;
+  isRecurring?: boolean;
+  applicationDeadlineAt?: string | null;
+  createdAt?: string | null;
 }
 
 export const URGENCY_BADGE: Record<string, { label: string; cls: string }> = {

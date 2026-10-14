@@ -13,6 +13,7 @@ import { UserStatus } from '@/lib/types';
 import { api } from '@/lib/api';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { BillingHistoryCard } from '@/components/subscription/BillingHistoryCard';
+import { ProviderBilling } from '@/components/subscription/ProviderBilling';
 
 interface ApiPlan {
   id: string; key: string; name: string; role: string;
@@ -161,6 +162,9 @@ export default function SubscriptionPage() {
     );
   }
 
+  // Provider: organisation capacity layout from the approved demo.
+  if (activeRole === 'PROVIDER') return <ProviderBilling />;
+
   // Plans for the chosen billing period. Free plans have no annual variant, so they show in both views.
   const wantAnnual = billing === 'ANNUAL';
   const hasAnnual = plans.some(p => isAnnual(p.key));
@@ -174,7 +178,7 @@ export default function SubscriptionPage() {
   // A paid base plan gives unlimited core actions, so the once-only counter no longer applies.
   const onPaidBase = subs.some(s => s.plan && !s.plan.isAddOn && !isFree(s.plan));
   const showAllowance = !!allowance?.applies && !onPaidBase && (
-    activeRole === 'COORDINATOR' || activeRole === 'PROVIDER' || activeRole === 'SUPPORT_WORKER'
+    activeRole === 'COORDINATOR' || activeRole === 'SUPPORT_WORKER'
   );
   const shiftPassCopy = SHIFT_PASS_COPY[activeRole ?? ''];
   const canBuyPass = allowance?.shiftPassPriceAud != null && shiftPassCopy;
@@ -318,11 +322,6 @@ export default function SubscriptionPage() {
                 );
               })}
             </div>
-            {activeRole === 'PROVIDER' && (
-              <p style={{ fontSize: 12, color: 'var(--clr-muted)', marginTop: 14, lineHeight: 1.6 }}>
-                Need more Administrators, Team Members or Branches than Scale includes? Contact Shiftify. Limits apply across your whole organisation; one person on several Branches counts once.
-              </p>
-            )}
             {!basePlans.every(isFree) && (
               <p style={{ fontSize: 12, color: 'var(--clr-muted)', marginTop: 14, lineHeight: 1.6 }}>
                 Plans renew automatically each {periodWord} until cancelled. You can cancel at any time — cancellation takes effect at the end of the paid period and access continues until then.

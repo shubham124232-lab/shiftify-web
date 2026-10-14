@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 const PAGES: Record<string, { title: string; note: string }> = {
   "calendar":      { title: "Calendar",      note: "Assignments and upcoming shifts by branch." },
   "service-lines": { title: "Service Lines", note: "The service capabilities your organisation offers." },
+  "refer-and-earn": { title: "Refer & Earn", note: "Referral rewards are available exclusively to active subscribers." },
 };
 
 export default function ProviderComingSoonPage({ params }: { params: { slug: string } }) {

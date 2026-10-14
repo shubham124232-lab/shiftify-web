@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
 import { api } from "@/lib/api";
+import { ModalShell } from "@/components/jobs/post/shared";
 
 interface HousingListing {
   branchId?: string | null;
@@ -64,6 +65,7 @@ export default function ProviderHousingPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("ALL");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ title: string; body: string; label: string; run: () => void } | null>(null);
   const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" } | null>(null);
 
   function load() {
@@ -102,20 +104,23 @@ export default function ProviderHousingPage() {
     run(id, () => api.patch(`/provider/listings/${id}`, { status }), done);
 
   function markFilled(l: HousingListing) {
-    if (!window.confirm(`Mark "${l.title}" as filled? It will no longer be shown to enquirers${l.isFeatured ? " and will leave the Featured queue" : ""}.`)) return;
-    changeStatus(l.id, "FILLED", "Vacancy marked as filled.");
+    setConfirm({
+      title: "Close filled vacancy", label: "Mark filled",
+      body: `Close this genuine vacancy. Its paid position cannot be transferred to another property. "${l.title}" will no longer be shown to enquirers${l.isFeatured ? " and will leave the Featured queue" : ""}.`,
+      run: () => changeStatus(l.id, "FILLED", "Vacancy marked as filled."),
+    });
   }
 
   function renew(l: HousingListing) {
     const price = l.isFeatured ? FEATURED_PRICE : STANDARD_PRICE;
     const kind = l.isFeatured ? "Featured" : "Standard";
-    const ok = window.confirm(
-      `Renew "${l.title}" for another 30 days (${kind} package)?\nPrice: $${price.toFixed(2)}.` +
-      `${l.isFeatured ? " Your Featured queue position is kept." : ""} The new term starts when the current one ends. ` +
-      `Platform products do not guarantee applicants or outcomes.`,
-    );
-    if (!ok) return;
-    run(l.id, () => api.post(`/provider/listings/${l.id}/renew`, {}), "Vacancy renewed for 30 days.");
+    setConfirm({
+      title: `${kind} housing renewal`, label: "Renew listing",
+      body: `Renew "${l.title}" for another 30 days (${kind} package). Price: $${price.toFixed(2)}.` +
+        `${l.isFeatured ? " Your Featured queue position is kept." : ""} The new term starts when the current one ends. ` +
+        `Platform products do not guarantee applicants or outcomes.`,
+      run: () => run(l.id, () => api.post(`/provider/listings/${l.id}/renew`, {}), "Vacancy renewed for 30 days."),
+    });
   }
 
   function feature(l: HousingListing) {
@@ -137,6 +142,15 @@ export default function ProviderHousingPage() {
 
   return (
     <>
+      {confirm && (
+        <ModalShell title={confirm.title} onClose={() => setConfirm(null)}>
+          <div className="px-6 py-5"><p className="m-0 text-sm text-slate-600">{confirm.body}</p></div>
+          <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+            <Button variant="outline" onClick={() => setConfirm(null)}>Back</Button>
+            <Button onClick={() => { const go = confirm.run; setConfirm(null); go(); }}>{confirm.label}</Button>
+          </div>
+        </ModalShell>
+      )}
       <PageHeader
         title="Housing Vacancies"
         description="Manage SIL, SDA, respite and supported-housing vacancies and their enquiries."

@@ -93,6 +93,13 @@ export const WORKER_REQUIREMENT_FILTERS: { value: string; label: string }[] = [
   { value: "alliedHealth",         label: "Allied health background" },
 ];
 
+// Labels of the requirements a job's workerPreferences marks as true (what the posting flow wrote).
+export function requirementLabels(prefs: unknown): string[] {
+  if (!prefs || typeof prefs !== "object") return [];
+  const p = prefs as Record<string, unknown>;
+  return WORKER_REQUIREMENT_FILTERS.filter((f) => p[f.value] === true).map((f) => f.label);
+}
+
 export const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
 
 export const DATE_PRESET_OPTIONS: { value: "" | "today" | "tomorrow" | "week" | "month"; label: string }[] = [

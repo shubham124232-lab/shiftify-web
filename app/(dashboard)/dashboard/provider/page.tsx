@@ -9,11 +9,18 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardListRow } from "@/components/dashboard/list-row";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Portal } from "@/components/ui/portal";
+import { CreateDialog, PostShiftDialog } from "@/components/provider/DashboardDialogs";
+import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
+import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
+import { ApplicationsFlow } from "@/components/provider/ApplicationsFlow";
+import { ReusePostDialog } from "@/components/dashboard/ReusePostDialog";
 import { api } from "@/lib/api";
 import { getDashboard, type ProviderDashboard, type JobSummary } from "@/lib/api/dashboard";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import {
-  Briefcase, ChevronRight, CalendarDays, FileText, Users, Search, Plus,
+  Briefcase, CalendarDays, Users, Search, Plus, Clock, MapPin, Repeat, HelpCircle,
+  MessageCircle, CheckCircle2, ChevronDown, Zap, ArrowRight, X,
 } from "lucide-react";
 
 const SOON = (slug: string) => `/provider/coming-soon/${slug}`;
@@ -45,16 +52,54 @@ function categoryLabel(value: string): string {
   return JOB_CATEGORIES.find((c) => c.value === value)?.label ?? value;
 }
 
-function StatTile({ label, value, hint, href }: { label: string; value: number; hint: string; href: string }) {
+function StatTile({ label, value, hint, href, icon }: { label: string; value: number; hint: string; href: string; icon: React.ReactNode }) {
   return (
     <Link href={href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-colors hover:border-brand-200">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-sm font-medium text-slate-600">{label}</div>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">{icon}</span>
+      </div>
       <div className="mt-2 text-3xl font-semibold text-slate-900">{value}</div>
       <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
         <span>{hint}</span>
-        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-brand-600" />
+        <ArrowRight className="h-4 w-4 text-brand-600" />
       </div>
     </Link>
+  );
+}
+
+const URGENCY_ICON: Record<string, React.ReactNode> = {
+  RAPID: <Zap className="h-3 w-3" />,
+  URGENT: <Clock className="h-3 w-3" />,
+  LAST_MINUTE: <Clock className="h-3 w-3" />,
+  ROUTINE: <CalendarDays className="h-3 w-3" />,
+};
+
+const ACTIVITY_ICON: Record<string, React.ReactNode> = {
+  APPLICATION: <Users className="h-4 w-4" />,
+  ENQUIRY: <MessageCircle className="h-4 w-4" />,
+  CONFIRMATION: <CheckCircle2 className="h-4 w-4" />,
+};
+
+// "Match details & feedback" — why a request surfaced, with a lightweight useful / not-relevant response.
+function MatchDetails({ why }: { why: string }) {
+  const [vote, setVote] = useState<"USEFUL" | "NOT_RELEVANT" | null>(null);
+  return (
+    <details className="mt-1.5 text-xs text-slate-500">
+      <summary className="cursor-pointer select-none">Match details &amp; feedback</summary>
+      <div className="mt-2 space-y-2 rounded-lg bg-slate-50 px-3 py-2">
+        <p className="m-0 font-semibold text-slate-700">Why this match</p>
+        <p className="m-0">{why}</p>
+        {vote ? (
+          <p className="m-0 font-medium text-slate-600">Thanks — noted as {vote === "USEFUL" ? "useful" : "not relevant"}.</p>
+        ) : (
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setVote("USEFUL")} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50">Useful</button>
+            <button type="button" onClick={() => setVote("NOT_RELEVANT")} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50">Not relevant</button>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -67,9 +112,18 @@ export default function ProviderDashboardPage() {
   const [plan, setPlan] = useState<string | null>(null);
   const [allowance, setAllowance] = useState<{ applies: boolean; limit: number; used: number; remaining: number } | null>(null);
   const [past, setPast] = useState<JobSummary[]>([]);
-  const [repostId, setRepostId] = useState("");
-  const [reposting, setReposting] = useState(false);
+  const [repostOpen, setRepostOpen] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const [reviewJob, setReviewJob] = useState<JobSummary | null>(null);
+  // Team availability replies per shift: jobId → { available, awaiting }.
+  const [teamReplies, setTeamReplies] = useState<Record<string, { available: number; awaiting: number }>>({});
+  const [reposting, setReposting] = useState<string | null>(null);
+  const [repostError, setRepostError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [postOpen, setPostOpen] = useState(false);
+  const [nearbyOpen, setNearbyOpen] = useState(false);
+  const [respondJob, setRespondJob] = useState<JobSummary | null>(null);
+  const [detail, setDetail] = useState<{ id: string; own: boolean } | null>(null);
 
   useEffect(() => {
     // Paid organisation plans have unlimited core actions, so the once-only counter only applies without one.
@@ -88,21 +142,35 @@ export default function ProviderDashboardPage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
 
+    api.get<{ requests: { jobId?: string | null; replies: { status: string }[] }[] }>("/provider-workspace/team-availability")
+      .then((r) => {
+        const m: Record<string, { available: number; awaiting: number }> = {};
+        for (const req of r.requests ?? []) {
+          if (!req.jobId) continue;
+          const cur = (m[req.jobId] ??= { available: 0, awaiting: 0 });
+          for (const rep of req.replies ?? []) {
+            if (rep.status === "AVAILABLE") cur.available += 1;
+            else if (rep.status === "PENDING") cur.awaiting += 1;
+          }
+        }
+        setTeamReplies(m);
+      })
+      .catch(() => setTeamReplies({}));
+
     api.get<{ jobs: JobSummary[] }>("/jobs/my")
       .then((r) => setPast(r.jobs ?? []))
       .catch(() => setPast([]));
   }, []);
 
-  async function postAgain() {
-    if (!repostId) return;
-    setReposting(true);
-    setError(null);
+  async function postAgain(id: string) {
+    setReposting(id);
+    setRepostError(null);
     try {
-      const res = await api.post<{ job: { id: string } }>(`/jobs/${repostId}/duplicate`, {});
+      const res = await api.post<{ job: { id: string } }>(`/jobs/${id}/duplicate`, {});
       router.push(`/jobs/${res.job.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not reuse that shift");
-      setReposting(false);
+      setRepostError(e instanceof Error ? e.message : "Could not reuse that shift");
+      setReposting(null);
     }
   }
 
@@ -121,26 +189,43 @@ export default function ProviderDashboardPage() {
     <div className="container-page space-y-6 py-8">
       <DashboardHeader
         name={(user.name || (user as any).username || "there").split(" ")[0]}
+        title="My Dashboard"
+        breadcrumb="Provider / My Dashboard"
         description="Your staffing and service activity at a glance."
         actions={
           <>
-            <div className="relative">
-              <Button variant="outline" size="sm" onClick={() => setCreateOpen((o) => !o)}>
-                <Plus className="mr-1 h-4 w-4" /> Create
-              </Button>
-              {createOpen && (
-                <div className="absolute right-0 z-20 mt-1 w-56 rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg" onMouseLeave={() => setCreateOpen(false)}>
-                  <Link href="/jobs/post" className="block px-3 py-2 hover:bg-slate-50">Post a Shift</Link>
-                  <Link href="/provider/post-service" className="block px-3 py-2 hover:bg-slate-50">Post service or capacity</Link>
-                  <Link href="/provider/sil-vacancy" className="block px-3 py-2 hover:bg-slate-50">List a housing vacancy</Link>
-                </div>
-              )}
-            </div>
-            <Link href="/jobs"><Button variant="outline" size="sm">Browse Requests</Button></Link>
-            <Link href="/jobs/post"><Button size="sm">Post a Shift</Button></Link>
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>Create</Button>
+            <Link href="/jobs"><Button variant="outline" size="sm"><Search className="mr-1 h-4 w-4" /> Browse Requests</Button></Link>
+            <Button size="sm" onClick={() => setPostOpen(true)}><Plus className="mr-1 h-4 w-4" /> Post a Shift</Button>
           </>
         }
       />
+
+      {howOpen && (
+        <Portal><div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setHowOpen(false)}>
+          <div role="dialog" aria-modal="true" aria-label="Your first 10 free actions" className="w-full max-w-[80vw] overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+              <h2 className="m-0 text-xl font-bold text-slate-900">Your first 10 free actions</h2>
+              <button type="button" onClick={() => setHowOpen(false)} aria-label="Close" className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-3 px-6 py-5 text-[15px] text-slate-700">
+              <p className="m-0">Use an action to publish a new external staffing request or send a Provider-initiated response to a Participant or Support Coordinator request.</p>
+              <p className="m-0">Drafts, browsing, internal availability and assignments do not use an action. These 10 actions have no expiry and do not reset.</p>
+              <p className="m-0">Housing listings and optional promotions have separate pricing. After the 10 actions, choose a subscription or a $19.99 single-action pass.</p>
+            </div>
+            <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+              <Button onClick={() => setHowOpen(false)}>Got it</Button>
+            </div>
+          </div>
+        </div></Portal>
+      )}
+
+      {createOpen && <CreateDialog onClose={() => setCreateOpen(false)} />}
+      {postOpen && <PostShiftDialog onClose={() => setPostOpen(false)} />}
+      {nearbyOpen && <NearbyRequestsDialog mode="opportunity" requests={opportunities} onClose={() => setNearbyOpen(false)} onOpen={(id) => { setNearbyOpen(false); setDetail({ id, own: false }); }} onRespond={(id) => { setNearbyOpen(false); setRespondJob(opportunities.find((o) => o.id === id) ?? null); }} />}
+      {respondJob && <ProviderRespondModal job={{ id: respondJob.id, title: respondJob.title, suburb: respondJob.suburb, state: respondJob.state ?? "", scheduledStartAt: respondJob.scheduledStartAt }} onClose={() => setRespondJob(null)} onSuccess={() => setRespondJob(null)} />}
+      {detail && <RequestDetailDialog jobId={detail.id} own={detail.own} onClose={() => setDetail(null)} />}
+      {reviewJob && <ApplicationsFlow job={reviewJob} onClose={() => setReviewJob(null)} onViewDetails={() => { const id = reviewJob.id; setReviewJob(null); setDetail({ id, own: true }); }} />}
 
       <SetupBanner />
 
@@ -161,17 +246,17 @@ export default function ProviderDashboardPage() {
           </span>
         )}
         <span className="flex gap-4">
-          <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">How it works</Link>
+          <button type="button" onClick={() => setHowOpen(true)} className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:underline"><HelpCircle className="h-4 w-4" /> How it works</button>
           <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">View plans</Link>
         </span>
       </div>
 
       {/* Number tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Open staffing requests" value={stats?.openRequests ?? 0} hint="Posted and still open" href="/jobs/my" />
-        <StatTile label="Applications to review" value={stats?.newEnquiries ?? 0} hint="For your open requests" href="/jobs/my" />
-        <StatTile label="Upcoming assignments" value={upcoming.length} hint="View confirmed work" href="/provider/offers-assignments" />
-        <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} />
+        <StatTile label="Open staffing requests" value={stats?.openRequests ?? 0} hint={`${stats?.openRequests ?? 0} unfilled worker slot${(stats?.openRequests ?? 0) === 1 ? "" : "s"}`} href="/jobs/my?filter=open" icon={<Briefcase className="h-4 w-4" />} />
+        <StatTile label="Applications to review" value={stats?.newEnquiries ?? 0} hint="For your open requests" href="/jobs/my?filter=applications" icon={<Users className="h-4 w-4" />} />
+        <StatTile label="Upcoming assignments" value={upcoming.length} hint="View confirmed work" href="/provider/offers-assignments?filter=upcoming" icon={<CalendarDays className="h-4 w-4" />} />
+        <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} icon={<MessageCircle className="h-4 w-4" />} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -187,11 +272,11 @@ export default function ProviderDashboardPage() {
               ) : (
                 <>
                   {attention.map((j) => (
-                    <DashboardListRow key={j.id} icon={<Briefcase className="h-5 w-5" />} title={j.title}
-                      subtitle={`${startsIn(j.scheduledStartAt)} · ${j.suburb}`} href={`/jobs/${j.id}`} rightLabel="Review applications" />
+                    <DashboardListRow key={j.id} icon={<Clock className="h-5 w-5" />} title={j.title}
+                      subtitle={`${startsIn(j.scheduledStartAt)} · 1 unfilled slot`} onClick={() => setReviewJob(j)} rightLabel="Review applications" />
                   ))}
                   {expiring.length > 0 && (
-                    <DashboardListRow icon={<FileText className="h-5 w-5" />} title="Documents expiring soon"
+                    <DashboardListRow icon={<Briefcase className="h-5 w-5" />} title="Documents expiring soon"
                       subtitle={expiring.map((e) => `${e.label} (${new Date(e.date).toLocaleDateString("en-AU")})`).join(" · ")}
                       href="/documents" rightLabel="Review documents" />
                   )}
@@ -206,6 +291,7 @@ export default function ProviderDashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle>Relevant opportunities</CardTitle>
                 <Link href="/jobs" className="text-sm font-semibold text-brand-600 hover:underline">View matches</Link>
+                <Button variant="outline" size="sm" onClick={() => setNearbyOpen(true)}><MapPin className="mr-1 h-4 w-4" /> View nearby requests</Button>
               </div>
             </CardHeader>
             <CardContent className="py-2">
@@ -220,16 +306,24 @@ export default function ProviderDashboardPage() {
                 opportunities.map((j) => {
                   const u = URGENCY_BADGE[j.urgency] ?? URGENCY_BADGE.ROUTINE;
                   return (
-                    <DashboardListRow key={j.id} icon={<Search className="h-5 w-5" />} title={j.title}
-                      subtitle={`${j.suburb} · Matches your ${categoryLabel(j.category)} service`} href={`/jobs/${j.id}`}
-                      badge={<span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.label}</span>}
-                      rightLabel="View request" />
+                    <div key={j.id} className="-mx-6 flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-3 last:border-0">
+                      <div className="min-w-0 flex-1">
+                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{URGENCY_ICON[j.urgency] ?? URGENCY_ICON.ROUTINE}{u.label}</span>
+                        <p className="m-0 mt-1.5 truncate text-sm font-semibold text-slate-900">{j.title}</p>
+                        <p className="m-0 mt-0.5 truncate text-xs text-slate-500">{`${j.suburb} · Matches your ${categoryLabel(j.category)} service`}</p>
+                        <MatchDetails why={`This request is in ${j.suburb} and matches the ${categoryLabel(j.category)} service on your live listings.`} />
+                      </div>
+                      <Button variant="outline" size="sm" className="shrink-0" onClick={() => setDetail({ id: j.id, own: false })}>View request</Button>
+                    </div>
                   );
                 })
               )}
             </CardContent>
           </Card>
+        </div>
 
+        {/* Right rail */}
+        <div className="space-y-6">
           {/* Upcoming work */}
           <Card>
             <CardHeader>
@@ -245,61 +339,77 @@ export default function ProviderDashboardPage() {
                 <p className="py-4 text-sm text-slate-500">No upcoming assignments.</p>
               ) : (
                 upcoming.map((s) => (
-                  <DashboardListRow key={s.id} icon={<CalendarDays className="h-5 w-5" />} title={s.title}
-                    subtitle={`${new Date(s.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · ${s.suburb}`}
-                    href={`/jobs/${s.id}`} rightLabel="View" />
+                  <div key={s.id} className="-mx-6 flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 last:border-0">
+                    <div className="min-w-0">
+                      <p className="m-0 truncate text-base font-semibold text-slate-900">{s.title}</p>
+                      <p className="m-0 mt-1 text-sm text-slate-500">{new Date(s.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
+                      <p className="m-0 text-sm text-slate-500">{[s.selectedApplicant?.name, s.suburb].filter(Boolean).join(" · ")}</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="shrink-0" onClick={() => setDetail({ id: s.id, own: true })}>View</Button>
+                  </div>
                 ))
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Right rail */}
-        <div className="space-y-6">
           <Card>
             <CardHeader><CardTitle>Service pipeline</CardTitle></CardHeader>
-            <CardContent className="space-y-1 py-2">
+            <CardContent className="divide-y divide-slate-100 py-0">
               {([
                 ["Awaiting acceptance", pipeline?.awaitingAcceptance ?? 0, "/provider/my-responses"],
                 ["Awaiting intake",     pipeline?.awaitingIntake ?? 0,     "/provider/confirmed-starts"],
                 ["Start confirmed",     pipeline?.startConfirmed ?? 0,     "/provider/confirmed-starts"],
               ] as const).map(([label, n, href]) => (
-                <Link key={label} href={href} className="flex items-center justify-between rounded-lg px-1 py-2 hover:bg-slate-50">
-                  <span className="text-sm text-slate-600">{label}</span>
-                  <span className="flex items-center gap-1 text-lg font-semibold text-slate-900">{n}<ChevronRight className="h-4 w-4 text-slate-300" /></span>
+                <Link key={label} href={href} className="flex items-center justify-between px-1 py-4 hover:bg-slate-50">
+                  <span className="flex items-center gap-3 text-sm text-slate-600">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-base font-semibold text-slate-900">{n}</span>{label}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-brand-600" />
                 </Link>
               ))}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle>Team availability</CardTitle></CardHeader>
-            <CardContent className="py-3 text-sm text-slate-600">
-              <p className="m-0 mb-3">Check replies for a specific shift.</p>
-              <Link href={"/provider/team-availability"}>
-                <Button variant="outline" size="sm"><Users className="mr-1 h-4 w-4" /> Team availability</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+            <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Users className="h-5 w-5" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-slate-900">Team availability</span>
+                <span className="block text-xs text-slate-500">Check replies for a specific shift</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="border-t border-slate-100">
+              {attention.length === 0 ? (
+                <p className="m-0 px-5 py-4 text-sm text-slate-500">No open shifts to check.</p>
+              ) : attention.slice(0, 3).map((j) => {
+                const t = teamReplies[j.id] ?? { available: 0, awaiting: 0 };
+                return (
+                  <div key={j.id} className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                    <div className="min-w-0">
+                      <p className="m-0 truncate text-base font-semibold text-slate-900">{j.title}</p>
+                      <p className="m-0 mt-1 truncate text-sm text-slate-500">{`${new Date(j.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · ${j.suburb}`}</p>
+                      <p className="m-0 mt-0.5 text-sm text-slate-500">{t.available} available · {t.awaiting} awaiting response</p>
+                    </div>
+                    <Link href={`/provider/team-availability?jobId=${j.id}`} className="shrink-0"><Button variant="outline" size="sm">Check</Button></Link>
+                  </div>
+                );
+              })}
+              <Link href="/provider/team-availability" className="block px-5 py-4 text-sm font-semibold text-slate-500 hover:text-brand-600">View team availability</Link>
+            </div>
+          </details>
 
-          <Card>
-            <CardHeader><CardTitle>Post again</CardTitle></CardHeader>
-            <CardContent className="space-y-3 py-3 text-sm text-slate-600">
-              <p className="m-0">Reuse a previous shift as a new draft.</p>
-              <select
-                className="h-9 w-full rounded-lg border border-slate-200 px-2 text-sm"
-                value={repostId}
-                onChange={(e) => setRepostId(e.target.value)}
-                disabled={past.length === 0}
-              >
-                <option value="">{past.length === 0 ? "No previous shifts" : "Choose post"}</option>
-                {past.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
-              </select>
-              <Button size="sm" disabled={!repostId || reposting} onClick={postAgain}>
-                {reposting ? "Creating…" : "Create draft"}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-card">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Repeat className="h-5 w-5" /></span>
+            <div className="min-w-0 flex-1">
+              <p className="m-0 text-sm font-semibold text-slate-900">Post again</p>
+              <p className="m-0 text-xs text-slate-500">Reuse a previous shift as a new draft</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => { setRepostError(null); setRepostOpen(true); }}>Choose post</Button>
+          </div>
+          {repostOpen && (
+            <ReusePostDialog posts={past} busyId={reposting} error={repostError} onPick={postAgain} onClose={() => setRepostOpen(false)} />
+          )}
 
           <Card>
             <CardHeader><CardTitle>Recent activity</CardTitle></CardHeader>
@@ -311,9 +421,12 @@ export default function ProviderDashboardPage() {
               ) : (
                 <ul className="m-0 list-none divide-y divide-slate-100 p-0">
                   {activity.map((a) => (
-                    <li key={a.id} className="py-2.5">
-                      <p className="m-0 text-sm text-slate-800">{a.text}</p>
-                      <p className="m-0 mt-0.5 text-xs text-slate-400">{ago(a.at)}</p>
+                    <li key={a.id} className="flex items-start gap-3 py-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">{ACTIVITY_ICON[a.type] ?? ACTIVITY_ICON.APPLICATION}</span>
+                      <div className="min-w-0">
+                        <p className="m-0 text-sm text-slate-800">{a.text}</p>
+                        <p className="m-0 mt-0.5 text-xs text-slate-400">{ago(a.at)}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -321,6 +434,10 @@ export default function ProviderDashboardPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4">
+        <p className="m-0 text-sm text-slate-500">Invite a Provider · Referral rewards are available exclusively to active subscribers.</p>
+        <Link href="/provider/coming-soon/refer-and-earn"><Button variant="outline" size="sm">Refer &amp; Earn</Button></Link>
       </div>
     </div>
   );

@@ -195,7 +195,7 @@ export function ProviderRespondModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="bg-white w-full sm:max-w-[80vw] sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-start justify-between shrink-0">
           <div>
             <h2 className="text-base font-semibold text-slate-900">Respond as Provider</h2>

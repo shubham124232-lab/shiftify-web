@@ -10,14 +10,20 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { useAuth } from "@/hooks/useAuth";
+import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
+import { Button } from "@/components/ui/button";
+import { MapPin, Search, RefreshCw, ShieldCheck } from "lucide-react";
 
 interface Inquiry {
   id: string; body: string; createdAt: string; readAt: string | null;
   kind: "DIRECT" | "CAPACITY" | "HOME_LIVING"; status: string; listingId: string | null; listingTitle: string | null;
   parentInquiryId: string | null; senderUserId: string; recipientUserId: string;
   sender?: { id: string; name: string }; recipient?: { id: string; name: string };
+  intake?: Intake | null;
 }
-interface Thread { rootId: string; kind: Inquiry["kind"]; status: string; listingTitle: string | null; other: string; unread: boolean; messages: Inquiry[]; lastAt: string }
+interface Intake { ownerUserId: string | null; ownerName: string | null; internalNote: string | null; appointmentAt: string | null; appointmentType: string | null }
+interface Thread { rootId: string; kind: Inquiry["kind"]; status: string; listingTitle: string | null; other: string; unread: boolean; messages: Inquiry[]; lastAt: string; intake: Intake | null }
+interface AdminOpt { id: string; status: string; user: { id: string; name: string } }
 interface InboxJob { id: string; title: string; suburb: string | null; urgency: string | null; status: string; scheduledStartAt: string | null }
 interface WorkerResponse {
   id: string; status: string; applicantName: string | null; applicantRole: string;
@@ -38,11 +44,17 @@ function opportunityLabel(o: OpportunityResponse): string {
   if (o.status === "INTERESTED") return o.viewedAt ? "Viewed" : "Submitted";
   return ({ SHORTLISTED: "Shortlisted", SELECTED: "Accepted", DECLINED: "Unsuccessful", WITHDRAWN: "Withdrawn", REQUEST_FILLED: "Closed" } as Record<string, string>)[o.status] ?? o.status;
 }
-const ENQUIRY_STATUSES: Record<"DIRECT" | "CAPACITY", { v: string; l: string }[]> = {
-  DIRECT: [{ v: "NEW", l: "New" }, { v: "RESPONDED", l: "Responded" }, { v: "FOLLOW_UP", l: "Follow-up" }, { v: "CONVERTED", l: "Converted" }, { v: "CLOSED", l: "Closed" }],
-  CAPACITY: [{ v: "NEW", l: "New" }, { v: "RESPONDED", l: "Responded" }, { v: "FOLLOW_UP", l: "Follow-up" }, { v: "CONVERTED", l: "Converted" }, { v: "CLOSED", l: "Closed" }],
-};
-const VACANCY_STATUSES = [{ v: "NEW", l: "New" }, { v: "QUALIFIED", l: "Qualified" }, { v: "INSPECTION", l: "Inspection / discussion" }, { v: "IN_PROGRESS", l: "In progress" }, { v: "CLOSED", l: "Closed" }];
+// Provider doc P65: New -> Responded -> Follow-up/Assessment -> Converted/Confirmed -> Closed; housing adds inspection/compatibility.
+const SERVICE_STATUSES = [
+  { v: "NEW", l: "New" }, { v: "RESPONDED", l: "Responded" }, { v: "FOLLOW_UP", l: "Follow-up" }, { v: "ASSESSMENT", l: "Assessment" },
+  { v: "CONFIRMED", l: "Confirmed" }, { v: "CONVERTED", l: "Converted" }, { v: "UNSUITABLE", l: "Unsuitable" }, { v: "CLOSED", l: "Closed" }, { v: "ARCHIVED", l: "Archived" },
+];
+const ENQUIRY_STATUSES: Record<"DIRECT" | "CAPACITY", { v: string; l: string }[]> = { DIRECT: SERVICE_STATUSES, CAPACITY: SERVICE_STATUSES };
+const VACANCY_STATUSES = [
+  { v: "NEW", l: "New" }, { v: "QUALIFIED", l: "Qualified" }, { v: "INSPECTION", l: "Inspection / discussion" }, { v: "COMPATIBILITY", l: "Compatibility" },
+  { v: "IN_PROGRESS", l: "In progress" }, { v: "CONFIRMED", l: "Confirmed" }, { v: "UNSUITABLE", l: "Unsuitable" }, { v: "CLOSED", l: "Closed" }, { v: "ARCHIVED", l: "Archived" },
+];
+const APPOINTMENT_TYPES = [{ v: "INTAKE_CALL", l: "Intake call" }, { v: "PROPERTY_INSPECTION", l: "Property inspection" }, { v: "COMPATIBILITY_MEETING", l: "Compatibility meeting" }];
 const AVAILABILITY: Record<string, string> = {
   YES_EXACT: "Available at the requested time", YES_ADJUSTED: "Available at an adjusted time",
   PARTIAL: "Can cover part of the request", DISCUSS: "Wants to discuss availability", UNAVAILABLE: "Unavailable",
@@ -55,6 +67,92 @@ type Tab = "workers" | "opportunities" | "enquiries" | "homeliving" | "system";
 
 function StatusPill({ label }: { label: string }) {
   return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{label}</span>;
+}
+
+const STATUS_LABELS: Record<string, string> = Object.fromEntries([...SERVICE_STATUSES, ...VACANCY_STATUSES].map((s) => [s.v, s.l]));
+
+// Provider doc P65 "Enquiry detail": assign an intake owner, set the status, keep a private note, schedule a call or inspection.
+function IntakeDialog({ thread, me, admins, onClose, onSaved }: { thread: Thread; me: string; admins: AdminOpt[]; onClose: () => void; onSaved: () => void }) {
+  const root = thread.messages.find((m) => m.id === thread.rootId) ?? thread.messages[0];
+  const statuses = thread.kind === "HOME_LIVING" ? VACANCY_STATUSES : SERVICE_STATUSES;
+  const [owner, setOwner] = useState(thread.intake?.ownerUserId ?? "");
+  const [status, setStatus] = useState(thread.status);
+  const [note, setNote] = useState(thread.intake?.internalNote ?? "");
+  const [scheduling, setScheduling] = useState(false);
+  const [apptAt, setApptAt] = useState("");
+  const [apptType, setApptType] = useState(thread.kind === "HOME_LIVING" ? "PROPERTY_INSPECTION" : "INTAKE_CALL");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+
+  async function save(extra: Record<string, unknown> = {}, message = "Intake update saved") {
+    setBusy(true); setError(null);
+    try {
+      await api.put(`/direct-inquiries/${thread.rootId}/intake`, { ownerUserId: owner || null, internalNote: note, status, ...extra });
+      setDone(message);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not save the intake update"); }
+    finally { setBusy(false); }
+  }
+
+  const shell = "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4";
+  const card = "w-full max-w-[80vw] rounded-2xl bg-white p-6 shadow-xl";
+  if (done) {
+    return (
+      <div className={shell}><div role="dialog" aria-modal="true" className={card}>
+        <h2 className="m-0 text-lg font-bold text-slate-900">{done}</h2>
+        <p className="mt-2 text-sm text-slate-600">Internal notes remain separate from messages. Direct enquiry management is free.</p>
+        <div className="mt-5 flex justify-end"><button type="button" onClick={onSaved} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Done</button></div>
+      </div></div>
+    );
+  }
+  if (scheduling) {
+    return (
+      <div className={shell}><div role="dialog" aria-modal="true" className={card}>
+        <h2 className="m-0 text-lg font-bold text-slate-900">Schedule intake discussion</h2>
+        <label className="mt-4 block text-sm font-semibold text-slate-700">Date and time
+          <input type="datetime-local" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={apptAt} onChange={(e) => setApptAt(e.target.value)} /></label>
+        <label className="mt-3 block text-sm font-semibold text-slate-700">Discussion type
+          <select className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={apptType} onChange={(e) => setApptType(e.target.value)}>
+            {APPOINTMENT_TYPES.map((a) => <option key={a.v} value={a.v}>{a.l}</option>)}</select></label>
+        {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
+        <div className="mt-5 flex items-center justify-between">
+          <button type="button" onClick={() => setScheduling(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Back</button>
+          <button type="button" disabled={busy || !apptAt} onClick={() => void save({ appointmentAt: new Date(apptAt).toISOString(), appointmentType: apptType }, "Appointment saved")} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save appointment"}</button>
+        </div>
+      </div></div>
+    );
+  }
+  return (
+    <div className={shell} onClick={onClose}>
+      <div role="dialog" aria-modal="true" className={`${card} max-h-[92vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+        <p className="m-0 text-xs font-semibold text-slate-500">{thread.kind === "HOME_LIVING" ? "Housing enquiry" : thread.kind === "CAPACITY" ? "Capacity enquiry" : "Service enquiry"} · {STATUS_LABELS[thread.status] ?? thread.status}</p>
+        <h2 className="m-0 mt-1 text-xl font-bold text-slate-900">{thread.listingTitle ?? "Direct enquiry"}</h2>
+        <p className="m-0 mt-1 text-sm text-slate-500">{thread.other}</p>
+        <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{root.body}</p>
+        <label className="mt-4 block text-sm font-semibold text-slate-700">Assign intake owner
+          <select className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={owner} onChange={(e) => setOwner(e.target.value)}>
+            <option value="">Unassigned</option>
+            <option value={me}>You (organisation owner)</option>
+            {admins.map((a) => <option key={a.id} value={a.user.id}>{a.user.name}</option>)}
+          </select></label>
+        <label className="mt-3 block text-sm font-semibold text-slate-700">Status
+          <select className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+            {statuses.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select></label>
+        <label className="mt-3 block text-sm font-semibold text-slate-700">Private internal note
+          <textarea className="mt-1 min-h-[90px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} /></label>
+        <p className="m-0 mt-3 text-xs text-slate-500">Receiving and responding to a direct enquiry is free. A CRM status does not replace Participant consent or confirmed support.</p>
+        {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Close</button>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/messages" className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 no-underline">Open conversation</Link>
+            <button type="button" onClick={() => setScheduling(true)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Schedule call or inspection</button>
+            <button type="button" disabled={busy} onClick={() => void save()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save intake update"}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function buildThreads(rows: Inquiry[], me: string): Thread[] {
@@ -71,7 +169,7 @@ function buildThreads(rows: Inquiry[], me: string): Thread[] {
       rootId, kind: first.kind, status: first.status, listingTitle: first.listingTitle,
       other: (iAmRecipientOfRoot ? first.sender?.name : first.recipient?.name) ?? "Someone",
       unread: ordered.some((m) => m.recipientUserId === me && !m.readAt),
-      messages: ordered, lastAt: ordered[ordered.length - 1].createdAt,
+      messages: ordered, lastAt: ordered[ordered.length - 1].createdAt, intake: first.intake ?? null,
     };
   }).sort((a, b) => b.lastAt.localeCompare(a.lastAt));
 }
@@ -94,6 +192,16 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   const [replyFor, setReplyFor] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState("");
   const [busy, setBusy] = useState(false);
+  const [intakeFor, setIntakeFor] = useState<string | null>(null);
+  const [viewJob, setViewJob] = useState<{ id: string; own: boolean } | null>(null);
+  const [admins, setAdmins] = useState<AdminOpt[]>([]);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [statusF, setStatusF] = useState("");
+  useEffect(() => {
+    if (view === "responses") return;
+    api.get<{ administrators: AdminOpt[] }>("/provider-org/administrators").then((r) => setAdmins((r.administrators ?? []).filter((a) => a.status === "ACTIVE"))).catch(() => undefined);
+  }, [view]);
 
   function load() {
     return Promise.all([
@@ -167,6 +275,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   const visibleKeys: Tab[] = view === "enquiries" ? ["workers", "enquiries", "homeliving"] : view === "responses" ? ["opportunities"] : ["workers", "opportunities", "enquiries", "homeliving", "system"];
   const tabs = allTabs.filter((t) => visibleKeys.includes(t.key));
 
+  const intakeThread = intakeFor ? threads.find((t) => t.rootId === intakeFor) ?? null : null;
   const empty = (title: string, hint: string) => (
     <div className="text-center py-12">
       <p className="text-base font-semibold text-slate-700">{title}</p>
@@ -189,6 +298,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
               </div>
             </div>
             {t.listingTitle && <p className="text-xs text-slate-500 m-0 mb-1">About: {t.listingTitle}</p>}
+            <p className="text-xs text-slate-500 m-0 mb-1">{STATUS_LABELS[t.status] ?? t.status} · Owner: {t.intake?.ownerName ?? "Unassigned"}{t.intake?.appointmentAt ? ` · ${APPOINTMENT_TYPES.find((a) => a.v === t.intake?.appointmentType)?.l ?? "Appointment"} ${new Date(t.intake.appointmentAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : ""}</p>
             <div className="space-y-1.5">
               {t.messages.map((m) => (
                 <p key={m.id} className={`text-sm whitespace-pre-wrap m-0 rounded-lg px-2.5 py-1.5 ${m.senderUserId === me ? "bg-indigo-50 text-slate-700" : "bg-slate-50 text-slate-700"}`}>
@@ -206,6 +316,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
                   </select>
                 </label>
               )}
+              {t.messages.some((m) => m.recipientUserId === me && m.id === t.rootId) && <button type="button" onClick={() => setIntakeFor(t.rootId)} className="text-xs font-semibold text-indigo-600 hover:underline">Open enquiry</button>}
               {t.unread && <button type="button" onClick={() => markViewed(t.rootId)} className="text-xs font-semibold text-indigo-600 hover:underline">Mark as viewed</button>}
               {canReply && <button type="button" onClick={() => setReplyFor(replyFor === t.rootId ? null : t.rootId)} className="text-xs font-semibold text-indigo-600 hover:underline">Reply</button>}
               {t.messages.some((m) => m.senderUserId !== me) && <button type="button" disabled={busy} onClick={() => blockOther(t)} className="text-xs font-semibold text-rose-600 hover:underline">Block</button>}
@@ -223,17 +334,48 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
     </div>
   );
 
+  const filteredOpps = opps.filter((o) => (!statusF || opportunityLabel(o) === statusF) && (!q.trim() || `${o.job.title} ${o.job.suburb ?? ""}`.toLowerCase().includes(q.trim().toLowerCase())));
+  const oppStatuses = Array.from(new Set(opps.map(opportunityLabel)));
+
   return (
     <>
+      {view === "responses" ? (
+        <div className="px-8 pt-6">
+          <p className="m-0 text-xs text-slate-400">Provider / Responses</p>
+          <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">My Provider responses</h1>
+              <p className="m-0 mt-1.5 text-[15px] text-slate-500">Track proposals, discussions and agreed service starts.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}><MapPin className="mr-1.5 h-4 w-4" />Map view</Button>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search responses" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={statusF} onChange={(e) => setStatusF(e.target.value)}>
+              <option value="">All statuses</option>
+              {oppStatuses.map((l) => <option key={l} value={l}>{l}</option>)}
+            </select>
+            <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+          </div>
+          <p className="m-0 mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm text-slate-500">
+            <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
+            Participant identifiers, exact addresses and sensitive details are protected. Payment cannot unlock private information.
+          </p>
+        </div>
+      ) : (
       <PageHeader
-        title={view === "enquiries" ? "Enquiries & Applications" : view === "responses" ? "My Responses" : "Responses & Enquiries"}
+        title={view === "enquiries" ? "Enquiries & Applications" : "Responses & Enquiries"}
         description={view === "enquiries"
           ? "Respond, allocate an intake owner and track the next step on applications and enquiries about your posts and listings."
-          : view === "responses"
-            ? "Track proposals, discussions and agreed service starts."
-            : "One inbox for worker responses, replies to your proposals, enquiries, Home and Living enquiries and system messages."}
+          : "One inbox for worker responses, replies to your proposals, enquiries, Home and Living enquiries and system messages."}
       />
-      <div className="max-w-3xl mx-auto px-5 py-6">
+      )}
+      {mapOpen && <NearbyRequestsDialog mode="opportunity" requests={filteredOpps.map((o) => ({ id: o.job.id, title: o.job.title, urgency: o.job.urgency as never, suburb: o.job.suburb ?? "", scheduledStartAt: o.job.scheduledStartAt ?? "", status: o.job.status as never, state: null }))}
+        onClose={() => setMapOpen(false)} onOpen={(id) => { setMapOpen(false); setViewJob({ id, own: false }); }} />}
+      <div className={view === "responses" ? "px-8 py-6" : "max-w-3xl mx-auto px-5 py-6"}>
         <div className="flex gap-2 flex-wrap mb-5">
           {tabs.length > 1 && tabs.map((t) => (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
@@ -248,13 +390,18 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
 
         {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-sm text-red-700 mb-4">{error}</div>}
 
+        {viewJob && <RequestDetailDialog jobId={viewJob.id} own={viewJob.own} onClose={() => setViewJob(null)} />}
+        {intakeThread && (
+          <IntakeDialog thread={intakeThread} me={me} admins={admins} onClose={() => setIntakeFor(null)}
+            onSaved={() => { setIntakeFor(null); void load(); }} />
+        )}
         {loading ? (
           <p className="text-sm text-slate-400">Loading...</p>
         ) : tab === "workers" ? (
           workers.length === 0 ? empty(view === "enquiries" ? "No applications yet" : "No worker responses yet", "Applications to your staffing requests will show up here.") : (
             <div className="flex flex-col gap-2.5">
               {workers.map((w) => (
-                <Link key={w.id} href={`/jobs/${w.job.id}`} className="no-underline bg-white border border-slate-200 rounded-xl px-4 py-3.5 block hover:border-slate-300">
+                <button key={w.id} type="button" onClick={() => setViewJob({ id: w.job.id, own: true })} className="w-full text-left bg-white border border-slate-200 rounded-xl px-4 py-3.5 block hover:border-slate-300">
                   <div className="flex items-center justify-between gap-3 mb-1">
                     <span className="text-sm font-bold text-slate-800">{w.applicantName ?? "Worker"}</span>
                     <StatusPill label={staffingLabel(w)} />
@@ -263,21 +410,24 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
                   <p className="text-xs text-slate-500 mt-1 mb-0">
                     {[w.availabilityType ? AVAILABILITY[w.availabilityType] : null, w.rateResponse ? RATE[w.rateResponse] : null].filter(Boolean).join(" · ") || "Open the request to compare and confirm."}
                   </p>
-                </Link>
+                </button>
               ))}
             </div>
           )
         ) : tab === "opportunities" ? (
-          opps.length === 0 ? empty("No responses yet", "Opportunities you respond to as a Provider, and what the Participant or Coordinator did with them, are tracked here.") : (
-            <div className="flex flex-col gap-2.5">
-              {opps.map((o) => (
-                <Link key={o.id} href={`/jobs/${o.job.id}`} className="no-underline bg-white border border-slate-200 rounded-xl px-4 py-3.5 block hover:border-slate-300">
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <span className="text-sm font-bold text-slate-800">{o.job.title}</span>
-                    <StatusPill label={opportunityLabel(o)} />
+          filteredOpps.length === 0 ? empty("No responses yet", "Opportunities you respond to as a Provider, and what the Participant or Coordinator did with them, are tracked here.") : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredOpps.map((o) => (
+                <div key={o.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <StatusPill label={opportunityLabel(o)} />
+                  <h3 className="m-0 mt-3 text-lg font-bold text-slate-900">{o.job.title}</h3>
+                  <p className="m-0 mt-1.5 text-sm text-slate-500">Submitted as Provider{o.job.suburb ? ` · ${o.job.suburb}` : ""}</p>
+                  <p className="m-0 mt-1 text-xs text-slate-400">Updated {new Date(o.updatedAt).toLocaleDateString("en-AU")}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setViewJob({ id: o.job.id, own: false })}>View response</Button>
+                    <Link href="/messages"><Button variant="outline" size="sm" type="button">Open conversation</Button></Link>
                   </div>
-                  <p className="text-xs text-slate-500 m-0">{o.job.suburb ?? ""} · updated {new Date(o.updatedAt).toLocaleDateString("en-AU")}</p>
-                </Link>
+                </div>
               ))}
             </div>
           )

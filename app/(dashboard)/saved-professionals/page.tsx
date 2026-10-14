@@ -6,6 +6,8 @@ import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { ProviderWorkerBoard } from "@/components/provider/ProviderWorkerBoard";
 
 const LIST_TYPES = [
   "GENERAL",
@@ -51,7 +53,19 @@ interface SavedProfessional {
   };
 }
 
-export default function SavedProfessionalsPage() {
+export default function SavedProfessionalsRoute() {
+  const { activeRole } = useAuth();
+  if (activeRole === "PROVIDER") {
+    return (
+      <>
+        <ProviderWorkerBoard mode="saved" />
+      </>
+    );
+  }
+  return <SavedProfessionalsPage />;
+}
+
+function SavedProfessionalsPage() {
   const [saved, setSaved] = useState<SavedProfessional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

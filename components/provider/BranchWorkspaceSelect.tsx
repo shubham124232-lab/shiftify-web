@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { api } from "@/lib/api";
 import { useBranchWorkspace, restoreBranchWorkspace } from "@/lib/store/branchWorkspace";
 
@@ -23,16 +24,17 @@ export function BranchWorkspaceSelect() {
 
   if (!branches || branches.length === 0) return null;
   return (
-    <label className="flex items-center gap-2 text-xs font-medium text-slate-500">
+    <label className="relative flex items-center text-sm font-semibold text-slate-700">
       <select
         aria-label="Branch workspace"
         value={branchId ?? ""}
         onChange={(e) => setBranchId(e.target.value || null)}
-        className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700"
+        className="h-8 cursor-pointer appearance-none border-0 bg-transparent pr-5 text-sm font-semibold text-slate-700 focus:outline-none"
       >
         <option value="">All Branches</option>
         {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
       </select>
+      <ChevronDown className="pointer-events-none absolute right-0 h-4 w-4 text-slate-500" />
     </label>
   );
 }

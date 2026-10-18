@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,13 @@ const STATUS_BADGE: Record<string, string> = {
   SUSPENDED: "bg-red-100 text-red-800",
   INACTIVE:  "bg-slate-100 text-slate-700",
 };
+
+const PROVIDER_MENU = [
+  { href: "/documents", label: "Documents", icon: FileText },
+  { href: "/subscription", label: "Membership and billing", icon: CreditCard },
+  { href: "/provider/settings", label: "Settings", icon: Settings },
+  { href: "/provider/help", label: "Help and Tickets", icon: LifeBuoy },
+];
 
 function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
@@ -147,6 +154,18 @@ export function AppTopbar() {
                   </Link>
                 )}
               </MenuItem>
+
+              {/* Provider handoff: profile menu also opens Documents, billing, Settings and Help & Tickets. */}
+              {user.activeRole === "PROVIDER" && PROVIDER_MENU.map((m) => (
+                <MenuItem key={m.href}>
+                  {({ focus }: { focus: boolean }) => (
+                    <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
+                      <m.icon className="h-4 w-4 text-slate-400" />
+                      {m.label}
+                    </Link>
+                  )}
+                </MenuItem>
+              ))}
 
               <MenuItem>
                 {({ focus }: { focus: boolean }) => (

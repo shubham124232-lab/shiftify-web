@@ -77,11 +77,11 @@ function ProviderPostExtras({ children, onContinue }: { children?: React.ReactNo
 
   return (
     <>
-      <p className={cn("m-0 rounded-xl border px-4 py-3 text-sm", allowance?.applies ? "border-brand-100 bg-brand-50/60 text-brand-700" : "border-slate-200 bg-white text-slate-600")}>
-        {allowance?.applies
-          ? <><strong className="text-brand-700">{allowance.remaining} of {allowance.limit} free actions remaining.</strong> A successful external post uses 1 action. Internal checks and drafts are free.</>
-          : "Publishing is included in your plan. Internal checks and drafts are free."}
-      </p>
+      {allowance?.applies && (
+        <p className="m-0 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm text-brand-700">
+          <strong className="text-brand-700">{allowance.remaining} of {allowance.limit} free actions remaining.</strong> A successful external post uses 1 action. Internal checks and drafts are free.
+        </p>
+      )}
       {children}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
         <p className="m-0 border-b border-slate-100 px-6 py-5 text-lg font-bold text-slate-900">Saved drafts</p>
@@ -126,7 +126,7 @@ function ProviderPostShift() {
   const [reload, setReload] = useState(0);
   return (
     <>
-      <PageHeader title="Post a Shift" description="Start with timing, then choose internal or external distribution." />
+      <PageHeader crumb="Provider / Post a Shift" title="Post a Shift" description="Start with timing, then choose internal or external distribution." />
       <div className="mx-auto w-full max-w-[1400px] space-y-4 px-5 py-6">
         <ProviderPostExtras key={reload} onContinue={setResume}>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

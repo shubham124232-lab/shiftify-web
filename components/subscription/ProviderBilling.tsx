@@ -139,7 +139,7 @@ export function ProviderBilling() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="m-0 text-xl font-bold text-slate-900">Choose the right organisation capacity</h2>
-          <p className="m-0 mt-1 text-sm text-slate-500">Unlimited genuine Provider posts and responses in every paid plan.</p>
+          <p className="m-0 mt-1 text-sm text-slate-500">Unlimited genuine Provider posts and responses in every paid plan, plus Direct Connect.</p>
         </div>
         <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
           <button type="button" onClick={() => setAnnual(false)} className={`px-4 py-2 ${!annual ? "bg-slate-900 text-white" : "text-slate-500"}`}>Monthly</button>
@@ -202,7 +202,7 @@ export function ProviderBilling() {
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter your salesperson's code"
             className="mt-1 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm" />
           <Button variant="outline" className="mt-3" onClick={() => { setError(null); setNotice(null); code.trim() ? setError("Sales codes are not active yet.") : setError("Enter a sales code first."); }}>Apply code</Button>
-          <p className="m-0 mt-3 text-xs text-slate-500">Get 10% off your first monthly subscription payment with an eligible sales code. Annual plans, Shift Passes and Pay-as-you-go are excluded.</p>
+          <p className="m-0 mt-3 text-xs text-slate-500">Get 50% off your first monthly subscription payment with an eligible sales code. One code per checkout; it cannot be combined with a referral offer. Annual plans, Shift Passes and Pay-as-you-go are excluded.</p>
         </div>
       </section>
 

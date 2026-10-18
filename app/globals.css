@@ -3856,3 +3856,11 @@ h1, h2, h3, h4, h5, h6 {
   .auth-role-grid { grid-template-columns: 1fr; }
   .auth-role-grid > :last-child { grid-column: auto; }
 }
+
+/* Provider workspace: secondary buttons are white with a grey border and dark text (client demo). Other roles keep the pink outline. */
+[data-active-role="PROVIDER"] .btn-outline {
+  background-color: #fff;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+[data-active-role="PROVIDER"] .btn-outline:hover:not(:disabled) { background-color: #f8fafc; }

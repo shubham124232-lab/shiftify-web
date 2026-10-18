@@ -46,16 +46,29 @@ export function OrganisationProfile() {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [dialog, setDialog] = useState<"edit" | "verify" | "public" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
+    setFailed(false);
+    // One retry: a slow or cold API call must not leave the page on its placeholder for good.
+    const fetchMe = () => api.get<Me>("/users/me").catch(() => api.get<Me>("/users/me").catch(() => null));
     const [m, d] = await Promise.all([
-      api.get<Me>("/users/me").catch(() => null),
+      fetchMe(),
       api.get<{ documents: Doc[] }>("/users/me/documents").catch(() => ({ documents: [] as Doc[] })),
     ]);
+    if (!m) setFailed(true);
     setMe(m); setDocs(d.documents ?? []);
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  if (!me && failed) return (
+    <div className="mx-auto max-w-[1200px] px-5 py-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+        <p className="m-0 text-base font-semibold text-slate-900">Could not load your Organisation profile.</p>
+        <Button className="mt-4" onClick={() => void load()}>Try again</Button>
+      </div>
+    </div>
+  );
   if (!me) return <div className="mx-auto max-w-[1200px] px-5 py-6"><div className="h-64 animate-pulse rounded-2xl bg-slate-100" /></div>;
   const p = me.user.providerProfile ?? {};
   const name = p.businessName || "Your organisation";

@@ -19,10 +19,10 @@ interface Row extends JobSummary {
 }
 
 const TIERS = [
-  { key: "RAPID",       label: "Rapid",       icon: Zap,          badge: "bg-red-50 text-red-700",         bar: "border-l-red-500" },
-  { key: "URGENT",      label: "Urgent",      icon: Clock,        badge: "bg-amber-50 text-amber-700",     bar: "border-l-amber-500" },
-  { key: "LAST_MINUTE", label: "Last Minute", icon: Timer,        badge: "bg-emerald-50 text-emerald-700", bar: "border-l-emerald-500" },
-  { key: "ROUTINE",     label: "Routine",     icon: CalendarDays, badge: "bg-blue-50 text-blue-700",       bar: "border-l-blue-500" },
+  { key: "RAPID",       label: "Rapid",       icon: Zap,          badge: "bg-red-50 text-red-700",         bar: "border-l-red-500", hex: "#ef4444" },
+  { key: "URGENT",      label: "Urgent",      icon: Clock,        badge: "bg-amber-50 text-amber-700",     bar: "border-l-amber-500", hex: "#f59e0b" },
+  { key: "LAST_MINUTE", label: "Last Minute", icon: Timer,        badge: "bg-emerald-50 text-emerald-700", bar: "border-l-emerald-500", hex: "#10b981" },
+  { key: "ROUTINE",     label: "Routine",     icon: CalendarDays, badge: "bg-blue-50 text-blue-700",       bar: "border-l-blue-500", hex: "#3b82f6" },
 ] as const;
 
 // Demo status list -> our stored job statuses (there is no stored Paused/Expired state yet, so those two show nothing).
@@ -136,7 +136,7 @@ export function ProviderStaffingRequests() {
             const apps = j._count?.applications ?? 0;
             const rate = j.budgetPerHour != null && j.budgetPerHour !== "" ? Number(j.budgetPerHour) : null;
             return (
-              <div key={j.id} className={cn("flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 border-l-[3px] bg-white px-5 py-4", t.bar)}>
+              <div key={j.id} style={{ borderLeftColor: t.hex }} className={cn("flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 border-l-[4px] bg-white px-5 py-4", t.bar)}>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className={cn("inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold", t.badge)}><t.icon className="h-3 w-3" />{t.label}</span>

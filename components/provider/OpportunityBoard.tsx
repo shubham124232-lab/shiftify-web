@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MapPin, Search, Zap, Clock, CalendarDays, ShieldCheck, RefreshCw, Check } from "lucide-react";
+import { MapPin, Search, Zap, Clock, CalendarDays, ShieldCheck, RefreshCw, Check, Inbox } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
@@ -45,7 +45,7 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
   const params = useSearchParams();
   const [rows, setRows] = useState<ProviderRequestRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(params.get("q") ?? "");
   const [poster, setPoster] = useState("");
   const [urgency, setUrgency] = useState(params.get("urgency") ?? "");
   const [service, setService] = useState("");
@@ -57,6 +57,7 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
   const [duration, setDuration] = useState("");
   const [deadline, setDeadline] = useState("");
   const [sort, setSort] = useState("match");
+  const [moreFilters, setMoreFilters] = useState(false);
   // Hide / Not suitable is remembered on this device only (no server record yet).
   const [hidden, setHidden] = useState<string[]>([]);
   const [showHidden, setShowHidden] = useState(false);
@@ -128,18 +129,19 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input className={`${field} w-full pl-9`} placeholder="Search by title, suburb or service" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <select className={field} value={poster} onChange={(e) => setPoster(e.target.value)} aria-label="Posted by">
-          <option value="">All posters</option><option value="Participant">Participant</option><option value="Support Coordinator">Support Coordinator</option>
-        </select>
         <select className={field} value={urgency} onChange={(e) => setUrgency(e.target.value)} aria-label="Urgency">
           <option value="">All urgency</option><option value="RAPID">Rapid</option><option value="URGENT">Urgent</option><option value="LAST_MINUTE">Last Minute</option><option value="ROUTINE">Routine</option>
         </select>
-        <select className={field} value={service} onChange={(e) => setService(e.target.value)} aria-label="Service">
-          <option value="">All services</option>
-          {JOB_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-        </select>
         <Button variant="outline" size="sm" className="ml-auto" onClick={clear}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
-        <div className="flex w-full flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+        <button type="button" onClick={() => setMoreFilters((v) => !v)} className="text-sm font-semibold text-slate-600 hover:text-slate-900">{moreFilters ? "Fewer filters" : "More filters"}</button>
+        {moreFilters && <div className="flex w-full flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+          <select className={field} value={poster} onChange={(e) => setPoster(e.target.value)} aria-label="Posted by">
+            <option value="">All posters</option><option value="Participant">Participant</option><option value="Support Coordinator">Support Coordinator</option>
+        </select>
+          <select className={field} value={service} onChange={(e) => setService(e.target.value)} aria-label="Service">
+            <option value="">All services</option>
+            {JOB_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
           <select className={field} value={funding} onChange={(e) => setFunding(e.target.value)} aria-label="Funding">
             <option value="">Any funding</option>{Object.entries(FUNDING).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
@@ -161,7 +163,7 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
             <select className={field} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
               <option value="match">Relevant match</option><option value="newest">Newest</option><option value="urgency">Urgency</option>
             </select></label>
-        </div>
+        </div>}
       </div>
 
       <p className="m-0 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm text-slate-500">
@@ -179,7 +181,8 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
       {rows === null ? (
         <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
       ) : list.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+          <Inbox className="mb-3 h-9 w-9 text-slate-300" />
           <p className="m-0 text-base font-bold text-slate-900">{filtered ? "No requests found" : EMPTY[mode].title}</p>
           <p className="m-0 mt-1 text-sm text-slate-500">{filtered ? "Change your filters to see more requests." : EMPTY[mode].body}</p>
           {mode === "matched" && !filtered && <Link href="/provider/services" className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline">Post your services</Link>}

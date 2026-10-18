@@ -110,10 +110,13 @@ export default function ProviderDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<string | null>(null);
+  const [baseSub, setBaseSub] = useState<{ status: string; currentPeriodEnd: string | null; cancelledAt: string | null } | null>(null);
   const [allowance, setAllowance] = useState<{ applies: boolean; limit: number; used: number; remaining: number } | null>(null);
   const [past, setPast] = useState<JobSummary[]>([]);
   const [repostOpen, setRepostOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
+  const [referral, setReferral] = useState<{ qualified: number; target: number; rewardUnlocked: boolean } | null>(null);
+  useEffect(() => { api.get<{ qualified: number; target: number; rewardUnlocked: boolean }>("/refer-and-earn/me").then(setReferral).catch(() => undefined); }, []);
   const [reviewJob, setReviewJob] = useState<JobSummary | null>(null);
   // Team availability replies per shift: jobId → { available, awaiting }.
   const [teamReplies, setTeamReplies] = useState<Record<string, { available: number; awaiting: number }>>({});
@@ -136,6 +139,10 @@ export default function ProviderDashboardPage() {
         setPlan((cap.capacity as { planLabel?: string } | null)?.planLabel ?? null);
       })
       .catch(() => setAllowance(null));
+    // Handoff strip cases (renewal cancelled, payment issue) come from the organisation's base subscription.
+    api.get<{ subscriptions: { status: string; currentPeriodEnd: string | null; cancelledAt: string | null; plan: { isAddOn?: boolean; amountAud: number | string } }[] }>("/subscriptions/me/all")
+      .then((r) => setBaseSub(r.subscriptions.find((x) => !x.plan.isAddOn && Number(x.plan.amountAud) > 0) ?? null))
+      .catch(() => setBaseSub(null));
 
     getDashboard()
       .then((d) => setData(d as ProviderDashboard))
@@ -233,23 +240,40 @@ export default function ProviderDashboardPage() {
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
-      {/* Free actions / plan bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-        {allowance?.applies ? (
-          <span className="text-slate-700">
-            <strong>{allowance.remaining} / {allowance.limit}</strong> free actions remaining <span className="text-slate-400">· No expiry</span>
-          </span>
-        ) : (
-          <span className="text-slate-700">
-            <strong>{plan ? `Provider ${plan} plan` : "No paid plan"}</strong>
-            {plan && <span className="text-slate-400"> · Unlimited core actions within your plan limits</span>}
-          </span>
-        )}
-        <span className="flex gap-4">
-          <button type="button" onClick={() => setHowOpen(true)} className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:underline"><HelpCircle className="h-4 w-4" /> How it works</button>
-          <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">View plans</Link>
-        </span>
-      </div>
+      {/* Free actions / plan bar: one slim strip, seven cases from the Provider handoff. */}
+      {(() => {
+        const dateText = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
+        const periodOver = !!baseSub?.currentPeriodEnd && new Date(baseSub.currentPeriodEnd) < new Date();
+        let text: React.ReactNode;
+        let action: React.ReactNode = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">View plans</Link>;
+        if (baseSub && (baseSub.status === "EXPIRED" || periodOver) && !baseSub.cancelledAt) {
+          text = <><strong>Payment issue or expired subscription</strong> <span className="text-slate-400">· New chargeable activity may be restricted. Existing records stay available.</span></>;
+          action = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">Resolve billing</Link>;
+        } else if (baseSub && baseSub.cancelledAt) {
+          text = <><strong>{plan ? `Provider ${plan} plan` : "Current plan"}</strong> <span className="text-slate-400">· Current plan active until {dateText(baseSub.currentPeriodEnd)} · Renewal cancelled</span></>;
+          action = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">Manage plan</Link>;
+        } else if (baseSub && plan) {
+          text = <><strong>{plan}</strong> <span className="text-slate-400">· Unlimited genuine Provider actions</span></>;
+          action = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">Manage plan</Link>;
+        } else if (allowance?.applies && allowance.remaining <= 0) {
+          text = <><strong>0 / {allowance.limit}</strong> free actions remaining <span className="text-slate-400">· Subscribe or pay $19.99 for a Shift Pass at your next chargeable action. Browsing and existing work stay available.</span></>;
+        } else if (allowance?.applies) {
+          text = <><strong>{allowance.remaining} / {allowance.limit}</strong> free actions remaining <span className="text-slate-400">· No expiry</span></>;
+        } else {
+          text = <><strong>{plan ? `Provider ${plan} plan` : "No paid plan"}</strong>{plan && <span className="text-slate-400"> · Unlimited genuine Provider actions</span>}</>;
+        }
+        return (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+            <span className="text-slate-700">{text}</span>
+            <span className="flex gap-4">
+              {allowance?.applies && !baseSub && (
+                <button type="button" onClick={() => setHowOpen(true)} className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:underline"><HelpCircle className="h-4 w-4" /> How it works</button>
+              )}
+              {action}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Number tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -273,12 +297,12 @@ export default function ProviderDashboardPage() {
                 <>
                   {attention.map((j) => (
                     <DashboardListRow key={j.id} icon={<Clock className="h-5 w-5" />} title={j.title}
-                      subtitle={`${startsIn(j.scheduledStartAt)} · 1 unfilled slot`} onClick={() => setReviewJob(j)} rightLabel="Review applications" />
+                      subtitle={`${startsIn(j.scheduledStartAt)} · 1 unfilled slot`} onClick={() => setReviewJob(j)} rightLabel="Review applications" rightAsButton />
                   ))}
                   {expiring.length > 0 && (
                     <DashboardListRow icon={<Briefcase className="h-5 w-5" />} title="Documents expiring soon"
                       subtitle={expiring.map((e) => `${e.label} (${new Date(e.date).toLocaleDateString("en-AU")})`).join(" · ")}
-                      href="/documents" rightLabel="Review documents" />
+                      href="/documents" rightLabel="Review documents" rightAsButton />
                   )}
                 </>
               )}
@@ -436,8 +460,8 @@ export default function ProviderDashboardPage() {
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-        <p className="m-0 text-sm text-slate-500">Invite a Provider · Referral rewards are available exclusively to active subscribers.</p>
-        <Link href="/provider/coming-soon/refer-and-earn"><Button variant="outline" size="sm">Refer &amp; Earn</Button></Link>
+        <p className="m-0 text-sm text-slate-500">{referral ? (referral.rewardUnlocked ? "Next month free unlocked" : `${referral.qualified} / ${referral.target} qualifying referrals · ${referral.target - referral.qualified} more to unlock your next month free`) : "Invite a Provider · Referral rewards are available exclusively to active subscribers."}</p>
+        <Link href="/provider/refer-and-earn"><Button variant="outline" size="sm">Refer &amp; Earn</Button></Link>
       </div>
     </div>
   );

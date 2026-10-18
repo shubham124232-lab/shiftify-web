@@ -181,7 +181,7 @@ export type InboxView = "all" | "enquiries" | "responses";
 //   responses  -> My Responses (replies to the Provider's own proposals)
 export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   const { user } = useAuth();
-  const [tab, setTab] = useState<Tab>(view === "responses" ? "opportunities" : "workers");
+  const [tab, setTab] = useState<Tab>(view === "responses" ? "opportunities" : view === "enquiries" ? "enquiries" : "workers");
   const [received, setReceived] = useState<Inquiry[]>([]);
   const [sent, setSent] = useState<Inquiry[]>([]);
   const [workers, setWorkers] = useState<WorkerResponse[]>([]);
@@ -275,6 +275,51 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   const visibleKeys: Tab[] = view === "enquiries" ? ["workers", "enquiries", "homeliving"] : view === "responses" ? ["opportunities"] : ["workers", "opportunities", "enquiries", "homeliving", "system"];
   const tabs = allTabs.filter((t) => visibleKeys.includes(t.key));
 
+  // Enquiries & Applications (demo): search + "Incoming interest" list; worker applications sit behind a header button.
+  const interestMode = view === "enquiries" && tab !== "workers";
+  const [openConv, setOpenConv] = useState<string | null>(null);
+  const interest = threads.filter((t) => !q.trim() || `${t.other} ${t.listingTitle ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const interestList = (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search enquiries" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setQ("")}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-white">
+        <h2 className="m-0 border-b border-slate-100 px-6 py-4 text-lg font-bold text-slate-900">Incoming interest</h2>
+        {interest.length === 0 ? <div className="px-6 py-10 text-center text-sm text-slate-500">No incoming interest yet. Answering an enquiry is free and never uses a Provider Action.</div> : (
+          <ul className="m-0 list-none divide-y divide-slate-100 p-0">
+            {interest.map((t) => {
+              const label = t.unread || t.status === "NEW" ? "New" : t.status === "FOLLOW_UP" ? "Follow-up" : (STATUS_LABELS[t.status] ?? t.status);
+              const canOpen = t.messages.some((m) => m.recipientUserId === me && m.id === t.rootId);
+              return (
+                <li key={t.rootId} className="px-6 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-base font-bold text-slate-900">{t.other}</span>
+                        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${label === "New" ? "bg-brand-50 text-brand-700" : label === "Follow-up" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{label}</span>
+                      </div>
+                      <p className="m-0 mt-1 text-sm text-slate-500">{t.listingTitle ? `About: ${t.listingTitle} · ` : ""}Owner: {t.intake?.ownerName ?? "Unassigned"}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</Button>
+                      {canOpen && <Button size="sm" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</Button>}
+                    </div>
+                  </div>
+                  {openConv === t.rootId && <div className="mt-3">{threadList([t], "")}</div>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+
   const intakeThread = intakeFor ? threads.find((t) => t.rootId === intakeFor) ?? null : null;
   const empty = (title: string, hint: string) => (
     <div className="text-center py-12">
@@ -347,7 +392,6 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
               <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">My Provider responses</h1>
               <p className="m-0 mt-1.5 text-[15px] text-slate-500">Track proposals, discussions and agreed service starts.</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}><MapPin className="mr-1.5 h-4 w-4" />Map view</Button>
           </div>
           <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="relative min-w-[220px] flex-1">
@@ -360,23 +404,23 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
             </select>
             <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
           </div>
-          <p className="m-0 mt-4 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm text-slate-500">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
-            Participant identifiers, exact addresses and sensitive details are protected. Payment cannot unlock private information.
-          </p>
         </div>
       ) : (
       <PageHeader
+        crumb={view === "enquiries" ? "Provider / Enquiries" : undefined}
         title={view === "enquiries" ? "Enquiries & Applications" : "Responses & Enquiries"}
         description={view === "enquiries"
           ? "Respond, allocate an intake owner and track the next step on applications and enquiries about your posts and listings."
           : "One inbox for worker responses, replies to your proposals, enquiries, Home and Living enquiries and system messages."}
+        actions={view === "enquiries"
+          ? <Button variant="outline" onClick={() => setTab(tab === "workers" ? "enquiries" : "workers")}>{tab === "workers" ? "Incoming interest" : `Worker applications${newWorkers > 0 ? ` (${newWorkers})` : ""}`}</Button>
+          : undefined}
       />
       )}
       {mapOpen && <NearbyRequestsDialog mode="opportunity" requests={filteredOpps.map((o) => ({ id: o.job.id, title: o.job.title, urgency: o.job.urgency as never, suburb: o.job.suburb ?? "", scheduledStartAt: o.job.scheduledStartAt ?? "", status: o.job.status as never, state: null }))}
         onClose={() => setMapOpen(false)} onOpen={(id) => { setMapOpen(false); setViewJob({ id, own: false }); }} />}
       <div className={view === "responses" ? "px-8 py-6" : "max-w-3xl mx-auto px-5 py-6"}>
-        <div className="flex gap-2 flex-wrap mb-5">
+        {view === "all" && <div className="flex gap-2 flex-wrap mb-5">
           {tabs.length > 1 && tabs.map((t) => (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
               className={`h-8 px-4 rounded-full border text-sm font-semibold inline-flex items-center gap-1.5 ${tab === t.key ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
@@ -384,9 +428,8 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
             </button>
           ))}
           {view === "all" && <Link href="/job-invites" className="h-8 px-4 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">Job invitations</Link>}
-          {view === "responses" && <Link href="/jobs" className="h-8 px-4 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">Browse requests</Link>}
           <Link href="/messages" className="h-8 px-4 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">Messages</Link>
-        </div>
+        </div>}
 
         {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-sm text-red-700 mb-4">{error}</div>}
 
@@ -431,7 +474,8 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
               ))}
             </div>
           )
-        ) : tab === "enquiries" ? threadList(enquiryThreads, "No enquiries yet")
+        ) : interestMode ? interestList
+        : tab === "enquiries" ? threadList(enquiryThreads, "No enquiries yet")
         : tab === "homeliving" ? threadList(homeThreads, "No Home and Living enquiries yet")
         : system.length === 0 ? empty("No system messages", "Verification, document-expiry and request-timing messages appear here.") : (
           <div className="flex flex-col gap-2.5">

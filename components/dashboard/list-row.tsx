@@ -8,12 +8,14 @@ interface DashboardListRowProps {
   subtitle?: string;
   badge?: ReactNode;
   rightLabel?: string;
+  /** Show the right label as a grey-bordered button instead of a text link (Provider dashboard). */
+  rightAsButton?: boolean;
   href?: string;
   /** When set (and no href) the row is a button that calls this instead of navigating. */
   onClick?: () => void;
 }
 
-export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, href, onClick }: DashboardListRowProps) {
+export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, rightAsButton, href, onClick }: DashboardListRowProps) {
   const body = (
     <div className="flex items-center gap-3 py-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
@@ -25,7 +27,9 @@ export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, hre
       </div>
       <div className="flex shrink-0 items-center gap-3">
         {badge}
-        {rightLabel ? (
+        {rightLabel && rightAsButton ? (
+          <span className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800">{rightLabel}</span>
+        ) : rightLabel ? (
           <span className="flex items-center gap-1 text-sm font-semibold text-brand-600">
             {rightLabel}
             <ChevronRight className="h-4 w-4" />

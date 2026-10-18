@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { ShieldCheck } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
@@ -19,7 +19,7 @@ interface Member {
   upcomingAssignments: number;
   skills?: string[];
 }
-interface Reply { id: string; memberType: "MANAGED" | "ROSTER"; memberName: string; status: "PENDING" | "AVAILABLE" | "UNAVAILABLE" }
+interface Reply { id: string; memberType: "MANAGED" | "ROSTER"; memberName: string; status: "PENDING" | "AVAILABLE" | "CONDITIONS" | "UNAVAILABLE"; conditionsNote?: string | null }
 interface AvailabilityRequest { id: string; title: string; startsAt: string | null; message: string | null; createdAt: string; replies: Reply[] }
 interface ShiftOption { id: string; title: string; status: string; scheduledStartAt: string; suburb?: string | null; urgency?: string | null }
 const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
@@ -34,6 +34,7 @@ const STATUS: Record<Member["status"], { label: string; cls: string }> = {
 const REPLY: Record<Reply["status"], { label: string; cls: string }> = {
   PENDING:     { label: "Waiting", cls: "bg-slate-100 text-slate-500" },
   AVAILABLE:   { label: "Available", cls: "bg-emerald-100 text-emerald-700" },
+  CONDITIONS:  { label: "Available with conditions", cls: "bg-amber-100 text-amber-700" },
   UNAVAILABLE: { label: "Unavailable", cls: "bg-red-100 text-red-700" },
 };
 const fmt = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
@@ -107,7 +108,7 @@ export default function ProviderTeamAvailabilityPage() {
             <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Internal team availability</h1>
             <p className="m-0 mt-1.5 text-[15px] text-slate-500">Check eligible team members before filling or broadcasting a gap.</p>
           </div>
-          <Button onClick={() => { setChoosing(true); setNotice(null); }}>+ Request availability</Button>
+          <Button onClick={() => { setChoosing(true); setNotice(null); }}><Plus className="mr-1.5 h-4 w-4" />Request availability</Button>
         </div>
       </div>
       <div className="space-y-5 px-8 py-6">
@@ -260,6 +261,7 @@ export default function ProviderTeamAvailabilityPage() {
                         <span key={rep.id} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2 py-1 text-xs">
                           <span className="font-medium text-slate-800">{rep.memberName}</span>
                           <span className={`rounded-full px-2 py-0.5 font-semibold ${REPLY[rep.status].cls}`}>{REPLY[rep.status].label}</span>
+                          {rep.status === "CONDITIONS" && rep.conditionsNote && <span className="text-slate-500">{rep.conditionsNote}</span>}
                           {rep.memberType === "ROSTER" && rep.status === "PENDING" && (
                             <>
                               <button type="button" className="font-semibold text-emerald-700 hover:underline" onClick={() => record(rep, "AVAILABLE")}>Mark available</button>

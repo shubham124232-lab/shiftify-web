@@ -52,6 +52,7 @@ export default function ProviderOffersAssignmentsPage() {
   return (
     <>
       <PageHeader
+        crumb="Provider / Offers & Assignments"
         title="Offers and Assignments"
         description="An availability response or application is not a confirmed assignment."
         actions={<Button onClick={() => setSending(true)}><Plus className="mr-1.5 h-4 w-4" /> Send offer</Button>}
@@ -93,7 +94,7 @@ export default function ProviderOffersAssignmentsPage() {
                             <p className="m-0 text-sm font-semibold text-slate-900">{o.job.title}</p>
                             <p className="m-0 mt-0.5 text-xs text-slate-500">
                               {o.kind === "INVITE" ? "Invitation to" : "Offered to"} {o.to} · {o.job.suburb} · {fmt(o.job.scheduledStartAt)}
-                              {o.amountAud != null ? ` · Direct Connect $${o.amountAud.toFixed(2)} if accepted` : ""}
+                              {o.amountAud != null ? " · Direct Connect" : ""}
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">

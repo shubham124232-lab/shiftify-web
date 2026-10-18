@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, Heart, RefreshCw, ShieldCheck } from "lucide-react";
+import { Search, Heart, RefreshCw, ShieldCheck, Users } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 
 // Provider "Find External Workers" and "Saved Workers" (approved demo): worker cards, View profile popup, Save, and Direct Connect
-// (choose an active shift, review the conditional $9.99 charge, send the invitation).
+// (choose an active shift, send the invitation: included in paid plans, no fee).
 export type WorkerBoardMode = "find" | "saved";
 
 interface WorkerCardData {
@@ -26,8 +26,9 @@ interface Listing {
 }
 interface SavedRow {
   id: string; professionalUserId: string; listType: string; forParticipantUserId: string | null;
-  professional: { name: string; workerProfile: { rating: number; totalReviews: number; hourlyRate: number | null; servicesOffered: string[] | null; suburb: string | null; state: string | null } | null };
+  professional: { name: string; workerProfile: { rating: number; totalReviews: number; hourlyRate: number | null; servicesOffered: string[] | null; suburb: string | null; state: string | null; isAvailableNow?: boolean; languagesSpoken?: string[] | null; travelRadiusKm?: number | null } | null };
 }
+interface ConnectInvite { id: string; status: string; createdAt: string; invitedUser: { name: string }; job: { title: string } }
 interface ShiftOpt { id: string; title: string; suburb: string; urgency: string; status: string; scheduledStartAt: string }
 
 const PAGE_SIZE = 20;
@@ -48,7 +49,8 @@ function fromSaved(s: SavedRow): WorkerCardData {
   return {
     userId: s.professionalUserId, name: s.professional.name, headline: null, suburb: p?.suburb ?? null, state: p?.state ?? null,
     rating: p?.rating ?? 0, totalReviews: p?.totalReviews ?? 0, hourlyRate: p?.hourlyRate ?? null, experienceLevel: null,
-    services: (p?.servicesOffered ?? []).map(pretty), availableNow: false, shortNotice: false, sleepover: false, overnight: false,
+    services: (p?.servicesOffered ?? []).map(pretty), availableNow: !!p?.isAvailableNow, shortNotice: false, sleepover: false, overnight: false,
+    languages: p?.languagesSpoken ?? [], radiusKm: p?.travelRadiusKm ?? null,
   };
 }
 
@@ -66,6 +68,12 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
   const [profile, setProfile] = useState<WorkerCardData | null>(null);
   const [connect, setConnect] = useState<WorkerCardData | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [invites, setInvites] = useState<ConnectInvite[] | null>(null);
+  const loadInvites = useCallback(() => {
+    if (mode !== "find") return;
+    api.get<{ directConnect?: ConnectInvite[] }>("/provider-workspace/promotions").then((r) => setInvites(r.directConnect ?? [])).catch(() => setInvites([]));
+  }, [mode]);
+  useEffect(() => { loadInvites(); }, [loadInvites]);
 
   useEffect(() => { const t = setTimeout(() => { setApplied(q.trim()); setPage(1); }, 350); return () => clearTimeout(t); }, [q]);
 
@@ -92,7 +100,7 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
   const savedCards = mode === "saved" ? [...saved.values()].map(fromSaved) : null;
   const needle = applied.toLowerCase();
   const list = mode === "saved"
-    ? (savedCards ?? []).filter((w) => !needle || `${w.name} ${w.suburb ?? ""} ${w.services.join(" ")}`.toLowerCase().includes(needle))
+    ? (savedCards ?? []).filter((w) => (!needle || `${w.name} ${w.suburb ?? ""} ${w.services.join(" ")}`.toLowerCase().includes(needle)) && (!availableNow || w.availableNow))
     : workers;
   const filtered = !!(applied || availableNow);
 
@@ -119,18 +127,16 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
       <p className="m-0 text-xs text-slate-400">{mode === "find" ? "Provider / External" : "Provider / Saved workers"}</p>
       <div>
         <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
-        <p className="m-0 mt-1.5 text-[15px] text-slate-500">Discover eligible external workers and invite them to an active shift.</p>
+        <p className="m-0 mt-1.5 text-[15px] text-slate-500">{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift. Direct Connect is included in your plan." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="relative min-w-[220px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input className={`${field} w-full pl-9`} placeholder={mode === "find" ? "Search people, skills or suburb" : "Search people, skills or suburb"} value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        {mode === "find" && (
-          <select className={field} value={availableNow ? "NOW" : ""} onChange={(e) => { setAvailableNow(e.target.value === "NOW"); setPage(1); }} aria-label="Availability">
-            <option value="">All workers</option><option value="NOW">Available Now</option>
-          </select>
-        )}
+        <select className={field} value={availableNow ? "NOW" : ""} onChange={(e) => { setAvailableNow(e.target.value === "NOW"); setPage(1); }} aria-label={mode === "find" ? "Availability" : "Status"}>
+          <option value="">{mode === "find" ? "All workers" : "All statuses"}</option><option value="NOW">Available Now</option>
+        </select>
         <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setQ(""); setApplied(""); setAvailableNow(false); setPage(1); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
       </div>
       {upgrade && <UpgradePrompt message={upgrade} />}
@@ -140,7 +146,8 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
       {list === null ? (
         <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
       ) : list.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
+          <Users className="mb-3 h-9 w-9 text-slate-300" />
           <p className="m-0 text-base font-bold text-slate-900">No workers found</p>
           <p className="m-0 mt-1 text-sm text-slate-500">{mode === "saved" ? "Adjust your filters or save a worker from Find External Workers." : "Adjust your filters or check back later."}</p>
         </div>
@@ -162,7 +169,7 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
                 {w.shortNotice && <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Short-notice shifts</span>}
                 {w.sleepover && <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">Sleepover</span>}
                 {w.overnight && <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">Overnight</span>}
-                {w.credentialCurrent && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Credential summary current</span>}
+                {w.credentialCurrent && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Checks current</span>}
               </div>
               {(w.languages?.length || w.yearsBucket || w.radiusKm) ? (
                 <p className="m-0 mt-2 text-xs text-slate-500">
@@ -175,11 +182,29 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => setProfile(w)}>View profile</Button>
                 <Button variant="outline" size="sm" disabled={busyId === w.userId} onClick={() => void toggleSave(w)}><Heart className="mr-1.5 h-4 w-4" />{saved.has(w.userId) ? "Saved" : "Save"}</Button>
-                <Button size="sm" className="ml-auto" onClick={() => setConnect(w)}>Invite to Active Shift</Button>
+                <Button size="sm" className="ml-auto" onClick={() => setConnect(w)}>Direct Connect</Button>
               </div>
             </li>
           ))}
         </ul>
+      )}
+      {mode === "find" && invites && (
+        <section className="rounded-2xl border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-6 py-4">
+            <h2 className="m-0 text-lg font-bold text-slate-900">Direct Connect invitations</h2>
+            <span className="text-sm text-slate-500">{invites.length} sent · {invites.filter((i) => i.status === "ACCEPTED").length} accepted</span>
+          </div>
+          {invites.length === 0 ? <p className="m-0 px-6 py-8 text-sm text-slate-500">No Direct Connect invitations yet. Choose Direct Connect on a worker to invite them to an active shift.</p> : (
+            <ul className="m-0 list-none divide-y divide-slate-100 p-0">
+              {invites.map((i) => (
+                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-6 py-3 text-sm">
+                  <span><strong className="text-slate-900">{i.invitedUser.name}</strong> · {i.job.title}</span>
+                  <span className="text-xs text-slate-500">{new Date(i.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} · {i.status === "ACCEPTED" ? "Accepted" : i.status === "DECLINED" ? "Declined" : i.status === "PENDING" ? "Sent" : pretty(i.status)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
       {mode === "find" && total > PAGE_SIZE && (
         <div className="flex justify-center gap-3">
@@ -218,21 +243,20 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
             <Button variant="outline" onClick={() => setProfile(null)}>Close</Button>
             <div className="flex gap-2">
               <Button variant="outline" disabled={busyId === profile.userId} onClick={() => void toggleSave(profile)}>{saved.has(profile.userId) ? "Unsave" : "Save worker"}</Button>
-              <Button onClick={() => { const w = profile; setProfile(null); setConnect(w); }}>Invite to Active Shift</Button>
+              <Button onClick={() => { const w = profile; setProfile(null); setConnect(w); }}>Direct Connect</Button>
             </div>
           </div>
         </ModalShell>
       )}
-      {connect && <DirectConnectFlow worker={connect} onClose={() => setConnect(null)} onSent={(msg) => { setConnect(null); setNotice(msg); }} />}
+      {connect && <DirectConnectFlow worker={connect} onClose={() => setConnect(null)} onSent={(msg) => { setConnect(null); setNotice(msg); loadInvites(); }} />}
     </div>
   );
 }
 
-// Doc P37-P39: Direct Connect starts only from a valid active external staffing request; the $9.99 is charged only if the worker accepts.
+// Doc P37-P39: Direct Connect starts only from a valid active external staffing request. Included in paid plans: no fee, no checkout.
 function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData; onClose: () => void; onSent: (msg: string) => void }) {
   const [shifts, setShifts] = useState<ShiftOpt[] | null>(null);
   const [shift, setShift] = useState<ShiftOpt | null>(null);
-  const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -246,7 +270,7 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
     setBusy(true); setError(null);
     try {
       await api.post(`/job-invites/${shift.id}`, { invitedUserId: worker.userId });
-      onSent(`Invitation to active shift sent to ${worker.name} for ${shift.title}. You are charged $9.99 only if the worker accepts.`);
+      onSent(`Direct Connect invitation sent to ${worker.name} for ${shift.title}.`);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send the invitation"); }
     finally { setBusy(false); }
   }
@@ -255,7 +279,7 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
     return (
       <ModalShell title="Choose an active shift" onClose={onClose}>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <p className="m-0 mb-3 text-sm text-slate-500">An invitation must be linked to a valid active external shift.</p>
+          <p className="m-0 mb-3 text-sm text-slate-500">Direct Connect must be linked to a valid active external shift.</p>
           {shifts === null ? <div className="h-20 animate-pulse rounded-xl bg-slate-100" /> : shifts.length === 0 ? (
             <p className="m-0 text-sm text-slate-600">You have no active external staffing requests. Post a shift first, then invite a worker to it.</p>
           ) : (
@@ -275,17 +299,16 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
   }
 
   return (
-    <ModalShell title="Invite to Active Shift" subtitle={`${worker.name} · ${shift.title}`} onClose={onClose}>
+    <ModalShell title="Direct Connect invitation" subtitle={`${worker.name} · ${shift.title}`} onClose={onClose}>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
-        <p className="m-0 text-lg font-bold text-slate-900">$9.99 per accepted connection</p>
-        <p className="m-0 text-sm text-slate-600">You will not be charged for sending this invitation. If the worker accepts and the private connection opens, $9.99 will be charged. A connection does not guarantee that the worker will accept, perform or complete the shift.</p>
-        <p className="m-0 text-sm text-slate-600">If declined or expired: $0. For a one-worker shift, only the first accepted invitation opens and remaining invitations close. Subscriptions do not include invitation credits.</p>
-        <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" className="mt-1" checked={ack} onChange={(e) => setAck(e.target.checked)} />I authorise the conditional charge for this successful connection.</label>
+        <p className="m-0 text-lg font-bold text-slate-900">Included in your plan</p>
+        <p className="m-0 text-sm text-slate-600">Direct Connect has no connection fee and no checkout. A connection does not guarantee that the worker will accept, perform or complete the shift.</p>
+        <p className="m-0 text-sm text-slate-600">For a one-worker shift, only the first accepted invitation opens and remaining invitations close.</p>
         {error && <p className="m-0 text-sm text-red-700">{error}</p>}
       </div>
       <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
         <Button variant="outline" onClick={() => setShift(null)}>Back</Button>
-        <Button disabled={!ack || busy} onClick={() => void send()}>{busy ? "Sending…" : "Send invitation"}</Button>
+        <Button disabled={busy} onClick={() => void send()}>{busy ? "Sending…" : "Send invitation"}</Button>
       </div>
     </ModalShell>
   );

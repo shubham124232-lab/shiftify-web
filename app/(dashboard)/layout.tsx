@@ -145,7 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="td-theme flex h-screen flex-col">
+    <div className="td-theme flex h-screen flex-col" data-active-role={user?.activeRole}>
       {user?.activeRole === "PROVIDER" && (
         <div className="flex h-8 shrink-0 items-center justify-between bg-slate-950 px-6 text-[11px] font-semibold uppercase tracking-wider text-white">
           <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />24/7 LIVE</span>

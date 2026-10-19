@@ -255,6 +255,7 @@ export function TeamMembersTab({
                     }`}>
                       {m.inviteStatus === "VERIFIED" ? "Verified" : "Pending verification"}
                     </span>
+                    {m.credentialStatus === "CURRENT" && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">Checks current</span>}
                     <Button size="sm" variant="outline" onClick={() => startEdit(m)}>Edit</Button>
                     <Button size="sm" variant="ghost" onClick={() => remove(m.id)}>Remove</Button>
                   </div>

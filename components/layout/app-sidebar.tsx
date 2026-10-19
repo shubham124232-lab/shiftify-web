@@ -141,7 +141,7 @@ function navForRole(role: string, managed = false): RoleNav {
         { title: "Help", items: [
           { href: "/provider/help", label: "Help & Tickets", icon: LifeBuoy },
           { href: "/provider/saved-searches", label: "Saved searches & alerts", icon: Star },
-          { href: "/provider/coming-soon/refer-and-earn", label: "Refer & Earn", icon: Gift },
+          { href: "/provider/refer-and-earn", label: "Refer & Earn", icon: Gift },
         ] },
       ];
       return { main: groups.flatMap((g) => g.items), account: [], groups };
@@ -278,14 +278,10 @@ export function AppSidebar() {
       <>
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-sm shadow-brand-600/30">
-              S
-            </span>
-            {(!collapsed || mobile) && (
-              <span className="truncate text-xl font-extrabold tracking-tight text-slate-900">
-                Shift<span className="text-brand-600">ify</span>
-              </span>
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {(!collapsed || mobile)
+              ? <img src="/images/logo-wordmark.png" alt="Shiftify" className="h-6 w-auto shrink-0" />
+              : <img src="/images/logo-mark.png" alt="Shiftify" className="h-9 w-auto shrink-0" />}
           </div>
           {mobile ? (
             <button type="button" onClick={() => setMobileOpen(false)} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100">

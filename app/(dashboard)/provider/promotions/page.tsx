@@ -39,7 +39,7 @@ export default function ProviderPromotionsPage() {
 
   return (
     <>
-      <PageHeader title="Promotions" description="Optional visibility and connections. Core matching stays included." />
+      <PageHeader crumb="Provider / Promotions" title="Provider promotions" description="Optional visibility and connections. Core matching stays included." />
       <div className="container-page space-y-6 py-8">
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
@@ -113,7 +113,7 @@ export default function ProviderPromotionsPage() {
           </CardContent>
         </Card>
 
-        <h2 className="m-0 text-xl font-bold text-slate-900">Campaigns and connection invitations</h2>
+        <h2 className="m-0 text-xl font-bold text-slate-900">Campaigns and Featured Shifts</h2>
         <Card>
           <CardHeader><CardTitle>Current activity</CardTitle></CardHeader>
           <CardContent className="py-2">

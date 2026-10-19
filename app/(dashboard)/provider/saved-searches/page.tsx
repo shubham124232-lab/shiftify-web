@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,23 +40,19 @@ export default function ProviderSavedSearchesPage() {
 
   return (
     <>
-      <PageHeader title="Saved searches & alerts" description="Save the request types and areas relevant to your organisation." />
+      <PageHeader crumb="Provider / Saved searches & alerts" title="Saved searches & alerts" description="Save the request types and areas relevant to your organisation." />
       <div className="container-page space-y-5 py-8">
         <Card>
           <CardHeader><CardTitle>New saved search</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="max-w-xl space-y-3">
               <label className="block text-sm font-medium text-slate-700">Search name<input value={name} onChange={(e) => setName(e.target.value)} className={cn(input, "mt-1")} /></label>
               <label className="block text-sm font-medium text-slate-700">Suburb / area<input value={suburb} onChange={(e) => setSuburb(e.target.value)} className={cn(input, "mt-1")} /></label>
-            </div>
-            <div>
-              <p className="m-0 mb-1.5 text-sm font-medium text-slate-700">Timing</p>
-              <div className="flex flex-wrap gap-2">
-                {TIMING.map((t) => (
-                  <button key={t.value} type="button" onClick={() => setTiming(t.value)}
-                    className={cn("rounded-lg border px-3.5 py-2 text-sm font-medium", timing === t.value ? "border-brand-600 bg-brand-600 text-white" : "border-slate-200 text-slate-700 hover:bg-slate-50")}>{t.label}</button>
-                ))}
-              </div>
+              <label className="block text-sm font-medium text-slate-700">Timing
+                <select value={timing} onChange={(e) => setTiming(e.target.value)} className={cn(input, "mt-1 bg-white")}>
+                  {TIMING.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </label>
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={alerts} onChange={(e) => setAlerts(e.target.checked)} className="h-4 w-4" />Enable matching alerts</label>
             {error && <p className="m-0 text-sm text-red-600">{error}</p>}
@@ -76,6 +73,7 @@ export default function ProviderSavedSearchesPage() {
                         <p className="m-0 mt-0.5 text-xs text-slate-500">{[s.filters.suburb, TIMING.find((t) => t.value === s.filters.urgency)?.label].filter(Boolean).join(" · ") || "All requests"} · Alerts {s.isActive ? "on" : "off"}</p>
                       </div>
                       <span className="flex gap-2">
+                        <Link href={`/jobs?${new URLSearchParams({ ...(s.filters.suburb ? { q: String(s.filters.suburb) } : {}), ...(s.filters.urgency ? { urgency: String(s.filters.urgency) } : {}) }).toString()}`}><Button size="sm">Run</Button></Link>
                         <Button size="sm" variant="outline" onClick={() => updateSavedSearch(s.id, { isActive: !s.isActive }).then(load)}>{s.isActive ? "Turn alerts off" : "Turn alerts on"}</Button>
                         <Button size="sm" variant="outline" onClick={() => deleteSavedSearch(s.id).then(load)}>Delete</Button>
                       </span>

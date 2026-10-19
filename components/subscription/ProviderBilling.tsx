@@ -202,7 +202,7 @@ export function ProviderBilling() {
           <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter your salesperson's code"
             className="mt-1 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm" />
           <Button variant="outline" className="mt-3" onClick={() => { setError(null); setNotice(null); code.trim() ? setError("Sales codes are not active yet.") : setError("Enter a sales code first."); }}>Apply code</Button>
-          <p className="m-0 mt-3 text-xs text-slate-500">Get 10% off your first monthly subscription payment with an eligible sales code. Annual plans, Shift Passes and Pay-as-you-go are excluded.</p>
+          <p className="m-0 mt-3 text-xs text-slate-500">Get 50% off your first monthly subscription payment with an eligible sales code. One code per checkout; it cannot be combined with a referral offer. Annual plans, Shift Passes and Pay-as-you-go are excluded.</p>
         </div>
       </section>
 

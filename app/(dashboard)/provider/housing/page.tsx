@@ -5,6 +5,7 @@ import { VACANCY_LABEL } from "@/components/provider/housingOptions";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RefreshCw, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
@@ -64,6 +65,7 @@ export default function ProviderHousingPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("ALL");
+  const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: string; label: string; run: () => void } | null>(null);
   const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" } | null>(null);
@@ -82,8 +84,10 @@ export default function ProviderHousingPage() {
   const workspaceBranch = useBranchWorkspace((s) => s.branchId);
   const visible = useMemo(() => {
     const inBranch = workspaceBranch ? listings.filter((l) => l.branchId === workspaceBranch) : listings;
-    return filter === "ALL" ? inBranch : inBranch.filter((l) => l.status === filter);
-  }, [listings, filter, workspaceBranch]);
+    const byStatus = filter === "ALL" ? inBranch : inBranch.filter((l) => l.status === filter);
+    const needle = search.trim().toLowerCase();
+    return needle ? byStatus.filter((l) => `${l.title} ${l.suburb} ${l.description}`.toLowerCase().includes(needle)) : byStatus;
+  }, [listings, filter, workspaceBranch, search]);
 
   async function run(id: string, action: () => Promise<unknown>, done?: string) {
     setBusyId(id);
@@ -152,18 +156,21 @@ export default function ProviderHousingPage() {
         </ModalShell>
       )}
       <PageHeader
+        crumb="Provider / Housing Vacancies"
         title="Housing Vacancies"
         description="Manage SIL, SDA, respite and supported-housing vacancies and their enquiries."
         actions={<Link href="/provider/sil-vacancy"><Button>List a vacancy</Button></Link>}
       />
       <div className="container-page space-y-6 py-8">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {FILTERS.map((f) => (
-            <button key={f.key} type="button" onClick={() => setFilter(f.key)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${filter === f.key ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
-              {f.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search vacancies" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <select className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm" value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All statuses" : f.label}</option>)}
+          </select>
+          <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
         </div>
 
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -190,36 +197,26 @@ export default function ProviderHousingPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">{(l.vacancyCategory && VACANCY_LABEL[l.vacancyCategory]) || "Housing"}</span>
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
-                      {l.isFeatured
-                        ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Featured · position {l.featuredQueuePosition}</span>
-                        : l.status === "ACTIVE" && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Standard</span>}
+                      {l.isFeatured && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Featured · position {l.featuredQueuePosition}</span>}
                       {expired && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Expired</span>}
                     </div>
                     <div>
                       <p className="m-0 text-base font-semibold text-slate-900">{l.title}</p>
                       <p className="m-0 mt-0.5 text-sm text-slate-500">{l.suburb}{l.state ? `, ${l.state}` : ""}{l.propertyType ? ` · ${l.propertyType}` : ""}</p>
                     </div>
-                    <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                      <dt className="text-slate-400">Vacancies</dt><dd className="m-0 font-semibold text-slate-900">{l.vacancyCount ?? "—"}</dd>
-                      <dt className="text-slate-400">Expiry</dt><dd className="m-0 text-slate-700">{fmtDate(l.listingExpiresAt)}</dd>
-                      <dt className="text-slate-400">Enquiries</dt><dd className="m-0 text-slate-700">{enq.length}</dd>
-                    </dl>
+                    <p className="m-0 text-sm text-slate-600"><strong className="text-slate-900">{l.vacancyCount != null ? `${l.vacancyCount} vacanc${l.vacancyCount === 1 ? "y" : "ies"}` : "Vacancies not set"}</strong> · Expires {fmtDate(l.listingExpiresAt)}</p>
                     {features.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {features.slice(0, 4).map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{f}</span>)}
                       </div>
                     )}
+                    {l.description && <p className="m-0 line-clamp-2 text-sm text-slate-600">{l.description}</p>}
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Button size="sm" variant="outline" onClick={() => toggle(l.id, "view")}>View vacancy</Button>
                       {l.status !== "CLOSED" && l.status !== "FILLED" && <Link href={`/provider/sil-vacancy?edit=${l.id}`}><Button size="sm" variant="outline">Edit</Button></Link>}
-                      {live && <Button size="sm" variant="outline" disabled={busy} onClick={() => renew(l)}>Renew</Button>}
                       {live && <Button size="sm" variant="outline" disabled={busy} onClick={() => markFilled(l)}>Mark filled</Button>}
-                      {l.status === "DRAFT" && <Button size="sm" variant="outline" disabled={busy} onClick={() => changeStatus(l.id, "ACTIVE", "Draft published.")}>Publish draft</Button>}
-                      {l.status === "ACTIVE" && <Button size="sm" variant="outline" disabled={busy} onClick={() => changeStatus(l.id, "PAUSED")}>Pause</Button>}
-                      {l.status === "PAUSED" && <Button size="sm" variant="outline" disabled={busy} onClick={() => changeStatus(l.id, "ACTIVE")}>Resume</Button>}
-                      {l.status === "ACTIVE" && !l.isFeatured && <Button size="sm" variant="outline" disabled={busy} onClick={() => feature(l)}>Feature — ${FEATURED_PRICE}.00</Button>}
-                      <Button size="sm" variant="outline" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</Button>
+                      {live && <Button size="sm" className="ml-auto" disabled={busy} onClick={() => renew(l)}>Renew</Button>}
                     </div>
 
                     {panel === "view" && (
@@ -230,6 +227,13 @@ export default function ProviderHousingPage() {
                         <p className="m-0"><span className="text-slate-400">Suitable for: </span>{l.suitableFor?.join(", ") || "—"}</p>
                         <p className="m-0"><span className="text-slate-400">Funding routes: </span>{l.fundingRoutes?.join(", ") || "—"}</p>
                         {l.housingDetails?.compatibility && <p className="m-0"><span className="text-slate-400">Suitability and intake: </span>{l.housingDetails.compatibility}</p>}
+                        <p className="m-0 flex flex-wrap gap-4 pt-1">
+                          <button type="button" className="font-semibold text-brand-700 hover:underline" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</button>
+                          {l.status === "DRAFT" && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => changeStatus(l.id, "ACTIVE", "Draft published.")}>Publish draft</button>}
+                          {l.status === "ACTIVE" && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => changeStatus(l.id, "PAUSED")}>Pause</button>}
+                          {l.status === "PAUSED" && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => changeStatus(l.id, "ACTIVE")}>Resume</button>}
+                          {l.status === "ACTIVE" && !l.isFeatured && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => feature(l)}>Feature — ${FEATURED_PRICE}.00</button>}
+                        </p>
                         <p className="m-0 text-xs text-slate-500">A promoted listing does not imply SDA enrolment, NDIS registration, funding eligibility or suitability. Exact address and resident details stay private.</p>
                       </div>
                     )}

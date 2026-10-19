@@ -52,6 +52,7 @@ export default function ProviderOffersAssignmentsPage() {
   return (
     <>
       <PageHeader
+        crumb="Provider / Offers & Assignments"
         title="Offers and Assignments"
         description="An availability response or application is not a confirmed assignment."
         actions={<Button onClick={() => setSending(true)}><Plus className="mr-1.5 h-4 w-4" /> Send offer</Button>}

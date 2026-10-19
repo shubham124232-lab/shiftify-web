@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { InternalOfferDetailDialog, OFFER_STATUS, type InternalOffer } from "@/components/provider/InternalOfferDialogs";
 
 interface Member { key: string; name: string; kind: "MANAGED" | "ROSTER" }
-interface Reply { id: string; memberName: string; status: "PENDING" | "AVAILABLE" | "UNAVAILABLE" }
+interface Reply { id: string; memberName: string; status: "PENDING" | "AVAILABLE" | "CONDITIONS" | "UNAVAILABLE"; conditionsNote?: string | null }
 interface Req { id: string; title: string; startsAt: string | null; replies: Reply[] }
 interface Assignment { id: string; title: string; suburb: string; scheduledStartAt: string; workerName: string }
 
@@ -24,6 +24,8 @@ export default function ProviderWorkerPortalPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [who, setWho] = useState("");
   const [viewing, setViewing] = useState<string | null>(null);
+  const [condFor, setCondFor] = useState<string | null>(null);
+  const [condNote, setCondNote] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => Promise.all([
@@ -35,9 +37,9 @@ export default function ProviderWorkerPortalPage() {
   }).catch((e) => { setError(e instanceof Error ? e.message : "Could not load the portal"); setMembers([]); }), []);
   useEffect(() => { load(); }, [load]);
 
-  async function answer(replyId: string, status: "AVAILABLE" | "UNAVAILABLE") {
+  async function answer(replyId: string, status: "AVAILABLE" | "CONDITIONS" | "UNAVAILABLE", conditionsNote?: string) {
     setError(null);
-    try { await api.patch(`/provider-workspace/team-availability/replies/${replyId}`, { status }); await load(); }
+    try { await api.patch(`/provider-workspace/team-availability/replies/${replyId}`, { status, ...(conditionsNote ? { conditionsNote } : {}) }); setCondFor(null); setCondNote(""); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Could not record the answer"); }
   }
 
@@ -48,7 +50,7 @@ export default function ProviderWorkerPortalPage() {
 
   return (
     <>
-      <PageHeader title="Internal worker portal" description="Personal access preview · funded by the Provider organisation." />
+      <PageHeader crumb="Provider / Internal worker portal" title="Internal worker portal" description="Personal access preview · funded by the Provider organisation." />
       <div className="container-page space-y-5 py-8">
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {members === null ? <div className="h-32 animate-pulse rounded-2xl bg-slate-100" /> : members.length === 0 ? (
@@ -82,11 +84,19 @@ export default function ProviderWorkerPortalPage() {
                     <div key={r.id} className="rounded-xl border border-slate-200 p-4">
                       <p className="m-0 text-base font-bold text-slate-900">{r.title}</p>
                       <p className="m-0 mt-1 text-sm text-slate-500">{r.startsAt ? fmt(r.startsAt) : "Time to be confirmed"}</p>
-                      <span className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{reply!.status === "PENDING" ? "Pending" : reply!.status === "AVAILABLE" ? "Available" : "Unavailable"}</span>
+                      <span className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{reply!.status === "PENDING" ? "Pending" : reply!.status === "AVAILABLE" ? "Available" : reply!.status === "CONDITIONS" ? "Available with conditions" : "Unavailable"}</span>
+                      {reply!.status === "CONDITIONS" && reply!.conditionsNote && <p className="m-0 mt-2 text-sm text-slate-600">Conditions: {reply!.conditionsNote}</p>}
                       {reply!.status === "PENDING" && (
                         <div className="mt-3 flex gap-2">
                           <Button size="sm" onClick={() => answer(reply!.id, "AVAILABLE")}>Available</Button>
+                          <Button size="sm" variant="outline" onClick={() => { setCondFor(reply!.id); setCondNote(""); }}>Available with conditions</Button>
                           <Button size="sm" variant="outline" onClick={() => answer(reply!.id, "UNAVAILABLE")}>Unavailable</Button>
+                        </div>
+                      )}
+                      {condFor === reply!.id && (
+                        <div className="mt-3 space-y-2">
+                          <input value={condNote} onChange={(e) => setCondNote(e.target.value)} maxLength={500} placeholder="e.g. Can start after 10am" className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm" />
+                          <div className="flex gap-2"><Button size="sm" disabled={!condNote.trim()} onClick={() => answer(reply!.id, "CONDITIONS", condNote.trim())}>Send</Button><Button size="sm" variant="outline" onClick={() => setCondFor(null)}>Cancel</Button></div>
                         </div>
                       )}
                     </div>

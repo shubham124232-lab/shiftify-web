@@ -213,6 +213,8 @@ function RegisterPageInner() {
   const [savedRequest, setSavedRequest] = useState<GuestJobDraft | null>(null);
   useEffect(() => {
     const fromQuery = searchParams.get('role');
+    const refFromLink = searchParams.get('ref');
+    if (refFromLink) setReferralCode(refFromLink.toUpperCase());
     const d = peekGuestDraft();
     const fresh = d && d.savedAt && Date.now() - d.savedAt < RESUME_WINDOW_MS ? d : null;
     setSavedRequest(fresh);
@@ -249,6 +251,7 @@ function RegisterPageInner() {
   const [phone,      setPhone]      = useState('');
   const [password,   setPassword]   = useState('');
   const [confirm,    setConfirm]    = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [showPw,     setShowPw]     = useState(false);
   const [showCf,     setShowCf]     = useState(false);
   const [username,       setUsername]       = useState('');
@@ -391,7 +394,7 @@ function RegisterPageInner() {
 
     setSubmitting(true);
     try {
-      const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: cleanPhone, username: username.trim() });
+      const res = await registerUser({ role: role!, name: `${firstName.trim()} ${lastName.trim()}`, password, email: email||undefined, phone: cleanPhone, username: username.trim(), ...(referralCode.trim() ? { referralCode: referralCode.trim() } : {}) });
       if (res._dev_code) {
         setDevCode(res._dev_code);
         sessionStorage.setItem('shiftify_dev_otp', res._dev_code);
@@ -907,6 +910,10 @@ function RegisterPageInner() {
                   </button>
                 </div>
                 {fieldErrors.confirm && <p style={err}>{fieldErrors.confirm}</p>}
+              </div>
+              <div>
+                <label style={lbl}>Referral code (optional)</label>
+                <input type="text" value={referralCode} onChange={e=>setReferralCode(e.target.value.toUpperCase())} placeholder="e.g. SHF-AB12CD" style={inp} autoComplete="off" />
               </div>
             </div>
 

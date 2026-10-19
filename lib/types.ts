@@ -123,6 +123,7 @@ export interface RegisterPayload {
   phone?:    string;
   username?: string;
   password:  string;
+  referralCode?: string;   // optional peer code (Provider Refer & Earn)
 }
 
 export interface RegisterResponse {

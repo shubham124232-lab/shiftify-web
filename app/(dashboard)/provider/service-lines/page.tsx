@@ -59,6 +59,7 @@ export default function ProviderServiceLinesPage() {
                   <Briefcase className="h-5 w-5 text-slate-500" />
                   <h3 className="m-0 mt-5 text-xl font-bold text-slate-900">{label(l.cat)}</h3>
                   <p className="m-0 mt-4 text-base text-slate-500">{l.areas.join(", ")}</p>
+                  <p className="m-0 mt-2 text-sm font-medium text-emerald-700">Scope review recorded</p>
                   <Link href={`/provider/post-service?edit=${l.listingId}`} className="mt-5 block"><Button variant="outline" className="w-full">Edit capability</Button></Link>
                 </div>
               ))}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { RefreshCw, Search } from "lucide-react";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
 import { api } from "@/lib/api";
 import { ServiceOrCapacityDialog } from "@/components/provider/DashboardDialogs";
@@ -57,6 +58,7 @@ export default function ProviderServicesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("ALL");
+  const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" | "capacity" } | null>(null);
   const [chooser, setChooser] = useState(false);
@@ -78,8 +80,10 @@ export default function ProviderServicesPage() {
   const workspaceBranch = useBranchWorkspace((s) => s.branchId);
   const visible = useMemo(() => {
     const inBranch = workspaceBranch ? listings.filter((l) => l.branchId === workspaceBranch) : listings;
-    return filter === "ALL" ? inBranch : inBranch.filter((l) => l.status === filter);
-  }, [listings, filter, workspaceBranch]);
+    const byStatus = filter === "ALL" ? inBranch : inBranch.filter((l) => l.status === filter);
+    const needle = search.trim().toLowerCase();
+    return needle ? byStatus.filter((l) => `${l.title} ${l.suburb} ${(l.serviceCategories ?? []).map(catLabel).join(" ")} ${l.description}`.toLowerCase().includes(needle)) : byStatus;
+  }, [listings, filter, workspaceBranch, search]);
 
   async function patch(id: string, body: Record<string, unknown>) {
     setBusyId(id);
@@ -112,19 +116,22 @@ export default function ProviderServicesPage() {
   return (
     <>
       <PageHeader
+        crumb="Provider / Services & Capacity"
         title="Services & Capacity"
         description="Advertise what you can deliver and the exact capacity available."
         actions={<Button onClick={() => setChooser(true)}>Post service or capacity</Button>}
       />
       {chooser && <ServiceOrCapacityDialog onClose={() => setChooser(false)} />}
       <div className="container-page space-y-6 py-8">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {FILTERS.map((f) => (
-            <button key={f.key} type="button" onClick={() => setFilter(f.key)}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${filter === f.key ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"}`}>
-              {f.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="relative min-w-[220px] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search services" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <select className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm" value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All statuses" : f.label}</option>)}
+          </select>
+          <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
         </div>
 
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
@@ -147,28 +154,26 @@ export default function ProviderServicesPage() {
                 <Card key={l.id}>
                   <CardContent className="space-y-3 py-5">
                     <div className="flex flex-wrap items-center gap-2">
+                      {(cats.length ? cats : ["Service"]).map((c) => <span key={c} className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">{c}</span>)}
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
-                      {l.acceptingStatus && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{ACCEPTING_LABEL[l.acceptingStatus]}</span>}
                     </div>
                     <div>
-                      <p className="m-0 text-base font-semibold text-slate-900">{cats.join(", ") || "Service"}</p>
-                      <p className="m-0 mt-0.5 text-sm text-slate-500">{l.suburb}{l.state ? `, ${l.state}` : ""}</p>
+                      <p className="m-0 text-base font-semibold text-slate-900">{l.suburb}{l.state ? `, ${l.state}` : ""}</p>
+                      <p className="m-0 mt-0.5 text-sm text-slate-500">{days.length ? days.map((d) => d.charAt(0) + d.slice(1).toLowerCase()).join(", ") : "Days not set"}</p>
                     </div>
-                    <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                      <dt className="text-slate-400">Days</dt><dd className="m-0 text-slate-700">{days.length ? days.map((d) => d.charAt(0) + d.slice(1).toLowerCase()).join(", ") : "—"}</dd>
-                      <dt className="text-slate-400">Open places</dt><dd className="m-0 font-semibold text-slate-900">{l.openSlots ?? "Not set"}</dd>
-                      <dt className="text-slate-400">Enquiries</dt><dd className="m-0 text-slate-700">{enq.length}</dd>
-                    </dl>
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{l.openSlots != null ? `${l.openSlots} open place${l.openSlots === 1 ? "" : "s"}` : "Places not set"}</span>
+                      {l.acceptingStatus && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{ACCEPTING_LABEL[l.acceptingStatus]}</span>}
+                      {l.responseExpectation && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">Responds {RESPONSE_LABEL[l.responseExpectation]?.toLowerCase()}</span>}
+                    </div>
                     {!isAutoText(l.description) && <p className="m-0 text-sm text-slate-600">{l.description}</p>}
 
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Button size="sm" variant="outline" onClick={() => toggle(l.id, "view")}>View listing</Button>
-                      <Link href={`/provider/post-service?duplicate=${l.id}`}><Button size="sm" variant="outline">Duplicate listing</Button></Link>
                       {l.status !== "CLOSED" && <Link href={`/provider/post-service?edit=${l.id}`}><Button size="sm" variant="outline">Edit</Button></Link>}
                       {l.status === "ACTIVE" && <Button size="sm" variant="outline" disabled={busy} onClick={() => patch(l.id, { status: "PAUSED" })}>Pause</Button>}
                       {l.status === "PAUSED" && <Button size="sm" variant="outline" disabled={busy} onClick={() => patch(l.id, { status: "ACTIVE" })}>Resume</Button>}
-                      {(l.status === "ACTIVE" || l.status === "PAUSED") && <Button size="sm" variant="outline" onClick={() => toggle(l.id, "capacity", l)}>Update capacity</Button>}
-                      <Button size="sm" variant="outline" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</Button>
+                      {(l.status === "ACTIVE" || l.status === "PAUSED") && <Button size="sm" className="ml-auto" onClick={() => toggle(l.id, "capacity", l)}>Update capacity</Button>}
                     </div>
 
                     {panel === "view" && (
@@ -176,6 +181,10 @@ export default function ProviderServicesPage() {
                         <p className="m-0"><span className="text-slate-400">Funding: </span>{l.fundingTypes?.join(", ") || "—"}</p>
                         <p className="m-0"><span className="text-slate-400">Responds: </span>{l.responseExpectation ? RESPONSE_LABEL[l.responseExpectation] : "—"}</p>
                         <p className="m-0"><span className="text-slate-400">Posted: </span>{new Date(l.createdAt).toLocaleDateString("en-AU")}</p>
+                        <p className="m-0 flex flex-wrap gap-4 pt-1">
+                          <button type="button" className="font-semibold text-brand-700 hover:underline" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</button>
+                          <Link href={`/provider/post-service?duplicate=${l.id}`} className="font-semibold text-brand-700 hover:underline">Duplicate listing</Link>
+                        </p>
                       </div>
                     )}
                     {panel === "capacity" && (
@@ -209,6 +218,7 @@ export default function ProviderServicesPage() {
             })}
           </div>
         )}
+        <p className="m-0 text-sm text-slate-500">Capacity updates are free and never use an action.</p>
       </div>
     </>
   );

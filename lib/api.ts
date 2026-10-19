@@ -249,25 +249,46 @@ http.interceptors.response.use(
 
 type Envelope<T> = { data: T };
 
+// Identical GETs that are in flight at the same moment share one network call (e.g. the header, a banner and the page all
+// asking for /provider-org/branches, or React Strict Mode running an effect twice). Each caller still gets its own copy of the
+// data. Any write clears the table so a refetch after a change is never answered by a request that started before it.
+const inFlightGets = new Map<string, Promise<unknown>>();
+
 export const api = {
-  get<T>(url: string, config?: AxiosRequestConfig) {
-    return http.get<Envelope<T>>(url, config).then((r) => r.data.data);
+  get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    // Only plain GETs (optional params) are shared; anything with a signal, headers or other options goes straight through.
+    const plain = !config || Object.keys(config).every((k) => k === "params");
+    if (!plain) return http.get<Envelope<T>>(url, config).then((r) => r.data.data);
+    const key = `${getApiToken() ?? ""}|${url}|${config?.params ? JSON.stringify(config.params) : ""}`;
+    let shared = inFlightGets.get(key) as Promise<T> | undefined;
+    if (!shared) {
+      shared = http.get<Envelope<T>>(url, config).then((r) => r.data.data);
+      inFlightGets.set(key, shared);
+      const clear = () => { if (inFlightGets.get(key) === shared) inFlightGets.delete(key); };
+      shared.then(clear, clear);
+    }
+    return shared.then((d) => (d !== null && typeof d === "object" ? structuredClone(d) : d));
   },
   post<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    inFlightGets.clear();
     return http.post<Envelope<T>>(url, body, config).then((r) => r.data.data);
   },
   patch<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    inFlightGets.clear();
     return http.patch<Envelope<T>>(url, body, config).then((r) => r.data.data);
   },
   delete<T>(url: string, config?: AxiosRequestConfig) {
+    inFlightGets.clear();
     return http.delete<Envelope<T>>(url, config).then((r) => r.data.data);
   },
   /** alias — some agent-written pages use api.del */
   del<T>(url: string, config?: AxiosRequestConfig) {
+    inFlightGets.clear();
     return http.delete<Envelope<T>>(url, config).then((r) => r.data.data);
   },
   /** alias — some agent-written pages use api.put */
   put<T>(url: string, body?: unknown, config?: AxiosRequestConfig) {
+    inFlightGets.clear();
     return http.put<Envelope<T>>(url, body, config).then((r) => r.data.data);
   },
 };

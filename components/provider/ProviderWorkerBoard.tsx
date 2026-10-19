@@ -8,7 +8,7 @@ import { ModalShell } from "@/components/jobs/post/shared";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 
 // Provider "Find External Workers" and "Saved Workers" (approved demo): worker cards, View profile popup, Save, and Direct Connect
-// (choose an active shift, send the invitation: included in paid plans, no fee).
+// (choose an active shift, review the conditional $9.99 charge, send the invitation).
 export type WorkerBoardMode = "find" | "saved";
 
 interface WorkerCardData {
@@ -127,7 +127,7 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
       <p className="m-0 text-xs text-slate-400">{mode === "find" ? "Provider / External" : "Provider / Saved workers"}</p>
       <div>
         <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
-        <p className="m-0 mt-1.5 text-[15px] text-slate-500">{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift. Direct Connect is included in your plan." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
+        <p className="m-0 mt-1.5 text-[15px] text-slate-500">{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="relative min-w-[220px] flex-1">
@@ -253,10 +253,11 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
   );
 }
 
-// Doc P37-P39: Direct Connect starts only from a valid active external staffing request. Included in paid plans: no fee, no checkout.
+// Doc P37-P39: Direct Connect starts only from a valid active external staffing request; the $9.99 is charged only if the worker accepts.
 function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData; onClose: () => void; onSent: (msg: string) => void }) {
   const [shifts, setShifts] = useState<ShiftOpt[] | null>(null);
   const [shift, setShift] = useState<ShiftOpt | null>(null);
+  const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -270,7 +271,7 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
     setBusy(true); setError(null);
     try {
       await api.post(`/job-invites/${shift.id}`, { invitedUserId: worker.userId });
-      onSent(`Direct Connect invitation sent to ${worker.name} for ${shift.title}.`);
+      onSent(`Direct Connect invitation sent to ${worker.name} for ${shift.title}. You are charged $9.99 only if the worker accepts.`);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send the invitation"); }
     finally { setBusy(false); }
   }
@@ -301,14 +302,15 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
   return (
     <ModalShell title="Direct Connect invitation" subtitle={`${worker.name} · ${shift.title}`} onClose={onClose}>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
-        <p className="m-0 text-lg font-bold text-slate-900">Included in your plan</p>
-        <p className="m-0 text-sm text-slate-600">Direct Connect has no connection fee and no checkout. A connection does not guarantee that the worker will accept, perform or complete the shift.</p>
-        <p className="m-0 text-sm text-slate-600">For a one-worker shift, only the first accepted invitation opens and remaining invitations close.</p>
+        <p className="m-0 text-lg font-bold text-slate-900">$9.99 per accepted connection</p>
+        <p className="m-0 text-sm text-slate-600">You will not be charged for sending this invitation. If the worker accepts and the private connection opens, $9.99 will be charged. A connection does not guarantee that the worker will accept, perform or complete the shift.</p>
+        <p className="m-0 text-sm text-slate-600">If declined or expired: $0. For a one-worker shift, only the first accepted invitation opens and remaining invitations close. Subscriptions do not include Direct Connect credits.</p>
+        <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" className="mt-1" checked={ack} onChange={(e) => setAck(e.target.checked)} />I authorise the conditional charge for this successful connection.</label>
         {error && <p className="m-0 text-sm text-red-700">{error}</p>}
       </div>
       <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
         <Button variant="outline" onClick={() => setShift(null)}>Back</Button>
-        <Button disabled={busy} onClick={() => void send()}>{busy ? "Sending…" : "Send invitation"}</Button>
+        <Button disabled={!ack || busy} onClick={() => void send()}>{busy ? "Sending…" : "Send invitation"}</Button>
       </div>
     </ModalShell>
   );

@@ -94,7 +94,7 @@ export default function ProviderOffersAssignmentsPage() {
                             <p className="m-0 text-sm font-semibold text-slate-900">{o.job.title}</p>
                             <p className="m-0 mt-0.5 text-xs text-slate-500">
                               {o.kind === "INVITE" ? "Invitation to" : "Offered to"} {o.to} · {o.job.suburb} · {fmt(o.job.scheduledStartAt)}
-                              {o.amountAud != null ? " · Direct Connect" : ""}
+                              {o.amountAud != null ? ` · Direct Connect $${o.amountAud.toFixed(2)} if accepted` : ""}
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">

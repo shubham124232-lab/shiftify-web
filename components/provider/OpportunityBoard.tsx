@@ -41,6 +41,9 @@ interface Detail {
   workerPreferences?: Record<string, unknown> | null;
 }
 
+// Hidden: the demo and the Final handoff show one search, one dropdown and Clear filters only. The extra filters stay in the code; set true to bring them back.
+const SHOW_EXTRA_FILTERS = false;
+
 export function OpportunityBoard({ mode, crumb, title, description, headerExtra }: { mode: BoardMode; crumb: string; title: string; description: string; headerExtra?: React.ReactNode }) {
   const params = useSearchParams();
   const [rows, setRows] = useState<ProviderRequestRow[] | null>(null);
@@ -133,8 +136,8 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
           <option value="">All urgency</option><option value="RAPID">Rapid</option><option value="URGENT">Urgent</option><option value="LAST_MINUTE">Last Minute</option><option value="ROUTINE">Routine</option>
         </select>
         <Button variant="outline" size="sm" className="ml-auto" onClick={clear}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
-        <button type="button" onClick={() => setMoreFilters((v) => !v)} className="text-sm font-semibold text-slate-600 hover:text-slate-900">{moreFilters ? "Fewer filters" : "More filters"}</button>
-        {moreFilters && <div className="flex w-full flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
+        {SHOW_EXTRA_FILTERS && <button type="button" onClick={() => setMoreFilters((v) => !v)} className="text-sm font-semibold text-slate-600 hover:text-slate-900">{moreFilters ? "Fewer filters" : "More filters"}</button>}
+        {SHOW_EXTRA_FILTERS && moreFilters && <div className="flex w-full flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
           <select className={field} value={poster} onChange={(e) => setPoster(e.target.value)} aria-label="Posted by">
             <option value="">All posters</option><option value="Participant">Participant</option><option value="Support Coordinator">Support Coordinator</option>
         </select>

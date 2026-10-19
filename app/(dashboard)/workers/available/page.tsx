@@ -93,7 +93,7 @@ function WorkerCard({
           )}
           {forJobId && (isCoordinator || isProvider || isParticipant) && jobInviteState === "NONE" && (
             <Button size="sm" variant="outline" onClick={() => onInvite(worker.userId)}>
-              {isProvider ? "Direct Connect for this shift" : "Invite to this request"}
+              {isProvider ? "Direct Connect for this shift — $9.99" : "Invite to this request"}
             </Button>
           )}
           {forJobId && jobInviteState === "SENDING" && (
@@ -203,7 +203,7 @@ function BrowseWorkersPage() {
 
   function sendJobInvite(workerUserId: string) {
     if (!forJobId) return;
-    if (isProvider && !window.confirm("Direct Connect is included in your plan, with no connection fee. A connection does not guarantee that the worker will accept, perform or complete the shift. Send the Direct Connect invitation?")) return;
+    if (isProvider && !window.confirm("You will not be charged for sending this invitation. If the worker accepts and the private connection opens, $9.99 will be charged. A connection does not guarantee that the worker will accept, perform or complete the shift. Send the Direct Connect invitation?")) return;
     setJobInviteStates(s => ({ ...s, [workerUserId]: "SENDING" }));
     api.post(`/job-invites/${forJobId}`, { invitedUserId: workerUserId })
       .then(() => setJobInviteStates(s => ({ ...s, [workerUserId]: "PENDING" })))

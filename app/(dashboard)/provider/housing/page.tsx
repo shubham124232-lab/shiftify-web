@@ -204,7 +204,7 @@ export default function ProviderHousingPage() {
                       <p className="m-0 text-base font-semibold text-slate-900">{l.title}</p>
                       <p className="m-0 mt-0.5 text-sm text-slate-500">{l.suburb}{l.state ? `, ${l.state}` : ""}{l.propertyType ? ` · ${l.propertyType}` : ""}</p>
                     </div>
-                    <p className="m-0 text-sm text-slate-600"><strong className="text-slate-900">{l.vacancyCount ?? "—"} vacanc{l.vacancyCount === 1 ? "y" : "ies"}</strong> · Expires {fmtDate(l.listingExpiresAt)}</p>
+                    <p className="m-0 text-sm text-slate-600"><strong className="text-slate-900">{l.vacancyCount != null ? `${l.vacancyCount} vacanc${l.vacancyCount === 1 ? "y" : "ies"}` : "Vacancies not set"}</strong> · Expires {fmtDate(l.listingExpiresAt)}</p>
                     {features.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {features.slice(0, 4).map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{f}</span>)}

@@ -139,7 +139,7 @@ export function ProviderBilling() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="m-0 text-xl font-bold text-slate-900">Choose the right organisation capacity</h2>
-          <p className="m-0 mt-1 text-sm text-slate-500">Unlimited genuine Provider posts and responses in every paid plan, plus Direct Connect.</p>
+          <p className="m-0 mt-1 text-sm text-slate-500">Unlimited genuine Provider posts and responses in every paid plan.</p>
         </div>
         <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
           <button type="button" onClick={() => setAnnual(false)} className={`px-4 py-2 ${!annual ? "bg-slate-900 text-white" : "text-slate-500"}`}>Monthly</button>

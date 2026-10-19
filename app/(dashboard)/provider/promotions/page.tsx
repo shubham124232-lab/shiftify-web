@@ -44,7 +44,7 @@ export default function ProviderPromotionsPage() {
         {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
         {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
           <Card>
             <CardContent className="flex h-full flex-col space-y-4 py-6">
               <Star className="h-5 w-5 text-slate-700" />
@@ -59,6 +59,17 @@ export default function ProviderPromotionsPage() {
                 ))}
               </ul>
               <Button className="w-full" onClick={() => setFlow("featured")}>Choose active shift</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex h-full flex-col space-y-4 py-6">
+              <Link2 className="h-5 w-5 text-slate-700" />
+              <h2 className="m-0 text-xl font-bold text-slate-900">Direct Connect</h2>
+              <p className="m-0 text-4xl font-bold text-slate-900">$9.99</p>
+              <p className="m-0 text-sm text-slate-600">Charged only when an eligible external worker accepts and the private connection opens. No charge for decline or expiry.</p>
+              <p className="m-0 text-sm text-slate-600">One-worker shift: up to three invitations, first accepted connection only.</p>
+              <Link href="/workers/available" className="mt-auto"><Button className="w-full">Find a worker</Button></Link>
             </CardContent>
           </Card>
 
@@ -108,7 +119,7 @@ export default function ProviderPromotionsPage() {
           <CardContent className="py-2">
             {!data ? (
               <div className="h-16 animate-pulse rounded-xl bg-slate-100" />
-            ) : data.featuredShifts.length + data.platinumCampaigns.length === 0 ? (
+            ) : data.featuredShifts.length + data.directConnect.length + data.platinumCampaigns.length === 0 ? (
               <p className="py-8 text-center text-base font-semibold text-slate-900">No promotions purchased yet</p>
             ) : (
               <ul className="m-0 list-none divide-y divide-slate-100 p-0 text-sm">
@@ -122,6 +133,12 @@ export default function ProviderPromotionsPage() {
                   <li key={`f-${f.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
                     <span><strong className="text-slate-900">Featured Shift</strong> · {f.job.title}</span>
                     <span className="text-xs text-slate-500">{fmtDate(f.purchasedAt)} – {fmtDate(f.expiresAt)} · ${f.priceAud.toFixed(2)}</span>
+                  </li>
+                ))}
+                {data.directConnect.map((d) => (
+                  <li key={`d-${d.id}`} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <span><strong className="text-slate-900">Direct Connect</strong> · {d.invitedUser.name} · {d.job.title}</span>
+                    <span className="text-xs text-slate-500">{fmtDate(d.createdAt)} · {INVITE_LABEL[d.status] ?? d.status}{d.amountAud != null ? ` · $${d.amountAud.toFixed(2)}` : ""}</span>
                   </li>
                 ))}
               </ul>

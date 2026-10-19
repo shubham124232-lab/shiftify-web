@@ -24,6 +24,9 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("en-AU", { hour: 
 const dm = (d: Date) => d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 const sameDay = (iso: string, d: Date) => new Date(iso).toDateString() === d.toDateString();
 
+// Hidden: the Final handoff specifies only a Monday to Sunday week with Previous / This / Next week. Day, Month and List stay in the code; set true to bring them back.
+const SHOW_VIEW_TOGGLE = false;
+
 // Provider Calendar (doc P67): day, week, month and list views over live and confirmed support, with a Branch filter.
 export default function ProviderCalendarPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
@@ -80,11 +83,11 @@ export default function ProviderCalendarPage() {
         </>} />
       <div className="container-page space-y-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
+          {SHOW_VIEW_TOGGLE ? <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
             {(["day", "week", "month", "list"] as View[]).map((v) => (
               <button key={v} type="button" onClick={() => setView(v)} className={cn("px-4 py-2 capitalize", view === v ? "bg-slate-900 text-white" : "text-slate-500")}>{v}</button>
             ))}
-          </div>
+          </div> : <span />}
           {branches.length > 0 && (
             <select value={branch} onChange={(e) => setBranch(e.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm">
               <option value="">All Branches</option>

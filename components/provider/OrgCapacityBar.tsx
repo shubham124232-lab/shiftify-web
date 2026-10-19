@@ -12,13 +12,17 @@ interface Capacity {
 
 const LABEL = { branches: "Branches", administrators: "Administrators", teamMembers: "Team Members" } as const;
 
+// Hidden: neither the Provider spec nor the Final handoff shows usage bars (the handoff only says a limit blocks the extra addition and links to upgrade).
+// Limits are still enforced by the API. Flip to true if the client asks for the bars back.
+const SHOW_PLAN_LIMIT_BARS = false;
+
 // Plan-limit bar for one organisation resource (Pricing V2 §5: limits are organisation-wide).
 export function OrgCapacityBar({ kind, refreshKey }: { kind: keyof typeof LABEL; refreshKey?: number }) {
   const [cap, setCap] = useState<Capacity | null>(null);
   useEffect(() => {
     api.get<{ capacity: Capacity | null }>("/provider-org/capacity").then((r) => setCap(r.capacity)).catch(() => setCap(null));
   }, [refreshKey]);
-  if (!cap) return null;
+  if (!SHOW_PLAN_LIMIT_BARS || !cap) return null;
   const { used, max } = cap[kind];
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">

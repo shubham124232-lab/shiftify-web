@@ -225,6 +225,9 @@ export function WizardSidePanel({ tierLabel }: { tierLabel: string }) {
 
 // Popup frame used when a wizard opens over the dashboard (Provider "Post a Shift").
 export function ModalShell({ title, subtitle, onClose, children, wide }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  // Provider workspace: the approved demo's modal frame (880px, 12px radius, 20/24 header). Other roles keep the original frame.
+  const { activeRole } = useAuth();
+  const pd = activeRole === "PROVIDER";
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -232,9 +235,9 @@ export function ModalShell({ title, subtitle, onClose, children, wide }: { title
   }, [onClose]);
   return (
     <Portal>
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl max-w-[80vw]`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-5">
+    <div className={pd ? "pd-modal-backdrop" : "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4"} onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={pd ? "pd-modal" : `flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl max-w-[80vw]`} onClick={(e) => e.stopPropagation()}>
+        <div className={pd ? "pd-modal-head" : "flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-5"}>
           <div>
             <h2 className="m-0 text-xl font-bold text-slate-900">{title}</h2>
             {subtitle ? <p className="m-0 mt-1 text-xs text-slate-500">{subtitle}</p> : null}

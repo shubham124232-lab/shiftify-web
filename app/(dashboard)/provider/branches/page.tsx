@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -150,19 +150,19 @@ export default function ProviderBranchesPage() {
   const label = "block text-sm font-semibold text-slate-900";
 
   return (
-    <>
-      <div className="space-y-5 px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">Provider / Branches</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Branches</div>
+        <div className="pd-page-head">
           <div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Branch workspaces</h1>
-            <p className="m-0 mt-1.5 text-[15px] text-slate-500">An operational office, hub or team — not every shift address.</p>
+            <h1>Branch workspaces</h1>
+            <p>An operational office, hub or team — not every shift address.</p>
           </div>
-          <Button onClick={() => startEdit(null)}>+ Add Branch</Button>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => startEdit(null)}><Plus />Add Branch</button>
+          </div>
         </div>
-      </div>
-      <div className="space-y-5 px-8 py-6">
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
         {limitMessage && <UpgradePrompt message={limitMessage} />}
         <OrgCapacityBar kind="branches" refreshKey={refresh} />
 
@@ -268,51 +268,53 @@ export default function ProviderBranchesPage() {
         )}
 
         {loading ? (
-          <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="pd-quiet-empty">Loading…</div>
         ) : branches.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
-            No branches yet. Add your first Branch to organise your team and administrators.
+          <div className="pd-grid2">
+            <div className="pd-empty">
+              <Building2 />
+              <h3>No branches yet</h3>
+              <p>Add your first Branch to organise your team and administrators.</p>
+            </div>
           </div>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="pd-grid2">
             {branches.map((b) => (
-              <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-6">
-                <div className="flex items-center gap-3">
-                  <Building2 className="h-5 w-5 text-slate-500" />
-                  <h3 className="m-0 text-xl font-bold text-slate-900">{b.name}</h3>
-                  <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${b.isActive ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
-                    {b.isActive ? "Active" : "Inactive"}
-                  </span>
+              <article key={b.id} className="pd-record-card">
+                <div className="pd-card-header">
+                  <Building2 className="pd-icon-plain" />
+                  <h2>{b.name}</h2>
+                  <span className={`pd-badge ${b.isActive ? "pd-badge-green" : ""}`}>{b.isActive ? "Active" : "Inactive"}</span>
                 </div>
-                <div className="mt-4 space-y-1 text-base text-slate-500">
-                  <p className="m-0">{b.region || "No coverage area set"}{b.serviceRadiusKm ? ` · ${b.serviceRadiusKm} km radius` : ""}</p>
-                  <p className="m-0">{b.timezone ?? "Australia/Sydney"}</p>
-                  <p className="m-0">Manager: {b.managerName ?? "Not set"}</p>
-                  {b.address && <p className="m-0">Base: {b.address}</p>}
-                  {b.contact && <p className="m-0">Contact: {b.contact}</p>}
-                  {b.escalationContact && <p className="m-0">Escalation: {b.escalationContact}</p>}
-                  <p className="m-0">Administrators: {admins.filter((a) => a.branches?.some((x) => x.id === b.id)).map((a) => a.user.name).join(", ") || "None assigned"}</p>
-                  <p className="m-0 text-sm">{b._count.teamMembers} team members · {b._count.administrators} administrators</p>
-                </div>
+                <p className="pd-card-body">
+                  {b.region || "No coverage area set"}{b.serviceRadiusKm ? ` · ${b.serviceRadiusKm} km radius` : ""}<br />
+                  {b.timezone ?? "Australia/Sydney"}<br />
+                  Manager: {b.managerName ?? "Not set"}
+                  {b.address && <><br />Base: {b.address}</>}
+                  {b.contact && <><br />Contact: {b.contact}</>}
+                  {b.escalationContact && <><br />Escalation: {b.escalationContact}</>}
+                  <br />Administrators: {admins.filter((a) => a.branches?.some((x) => x.id === b.id)).map((a) => a.user.name).join(", ") || "None assigned"}
+                  <br /><span className="pd-small">{b._count.teamMembers} team members · {b._count.administrators} administrators</span>
+                </p>
                 {b.serviceLines.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {b.serviceLines.map((s) => <span key={s} className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{s}</span>)}
+                  <div className="pd-tags">
+                    {b.serviceLines.map((s) => <span key={s} className="pd-badge">{s}</span>)}
                   </div>
                 )}
-                <div className="mt-5 flex flex-wrap items-center gap-2">
-                  <Button variant="outline" onClick={() => startEdit(b)}>Edit Branch</Button>
-                  <Button variant="outline" disabled={busyId === b.id} onClick={() => (b.isActive ? setConfirmOff(b) : void setActive(b, true))}>
+                <div className="pd-buttons">
+                  <button type="button" className="pd-btn pd-btn-sm" onClick={() => startEdit(b)}>Edit Branch</button>
+                  <button type="button" className="pd-btn pd-btn-sm" onClick={() => startAssign(b)}>Assign Team</button>
+                  <Link href={`/provider/calendar?branch=${b.id}`} className="pd-btn pd-btn-sm">View Calendar</Link>
+                  <button type="button" className="pd-btn pd-btn-sm" disabled={busyId === b.id} onClick={() => (b.isActive ? setConfirmOff(b) : void setActive(b, true))}>
                     {b.isActive ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button variant="outline" onClick={() => startAssign(b)}>Assign Team</Button>
-                  <Link href={`/provider/calendar?branch=${b.id}`}><Button variant="outline">View Calendar</Button></Link>
-                  <Link href={`/provider/branches/${b.id}`} className="ml-auto"><Button>Open workspace</Button></Link>
+                  </button>
+                  <Link href={`/provider/branches/${b.id}`} className="pd-btn pd-btn-sm pd-btn-primary">Open workspace</Link>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

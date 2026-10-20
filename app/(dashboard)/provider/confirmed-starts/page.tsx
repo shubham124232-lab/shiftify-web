@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { LayoutGrid } from "lucide-react";
 import { URGENCY_BADGE } from "@/components/provider/RequestCard";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
@@ -29,47 +28,40 @@ interface Data { awaitingAcceptance: StartRow[]; awaitingIntake: StartRow[]; sta
 
 function Section({ title, hint, rows, action }: { title: string; hint: string; rows: StartRow[]; action: (r: StartRow) => React.ReactNode }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>{title}</CardTitle>
-          <span className="text-sm font-semibold text-slate-500">{rows.length}</span>
+    <section className="pd-panel">
+      <div className="pd-panel-head">
+        <h2>{title}</h2>
+        <span className="pd-small pd-muted">{rows.length}</span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="pd-quiet-empty">{hint}</div>
+      ) : (
+        <div style={{ paddingTop: 16 }}>
+          {rows.map((r) => {
+            const u = URGENCY_BADGE[r.urgency] ?? URGENCY_BADGE.ROUTINE;
+            return (
+              <article key={r.id} className="pd-request-row">
+                <div>
+                  <div className="pd-row-title"><strong>{r.title}</strong><span className={`pd-badge ${u.cls}`}>{u.label}</span></div>
+                  <div className="pd-small pd-muted">
+                    {r.suburb} · {r.categoryLabel} · {r.posterKind} · {new Date(r.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
+                    {r.workerName ? ` · Worker: ${r.workerName}` : ""}
+                  </div>
+                  {r.intake && (
+                    <div className="pd-small pd-muted">
+                      {r.intake.isDraft ? "Intake draft" : "Intake recorded"}
+                      {r.intake.agreedStartAt ? ` · Agreed start ${new Date(r.intake.agreedStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : ""}
+                      {` · Service agreement ${r.intake.serviceAgreement === "AGREED" ? "recorded" : "pending"} · Participant / SC agreement ${r.intake.participantAgreement === "CONFIRMED" ? "confirmed" : "pending"}`}
+                    </div>
+                  )}
+                </div>
+                <div className="pd-buttons">{action(r)}</div>
+              </article>
+            );
+          })}
         </div>
-      </CardHeader>
-      <CardContent className="py-2">
-        {rows.length === 0 ? (
-          <p className="py-4 text-sm text-slate-500">{hint}</p>
-        ) : (
-          <ul className="m-0 list-none divide-y divide-slate-100 p-0">
-            {rows.map((r) => {
-              const u = URGENCY_BADGE[r.urgency] ?? URGENCY_BADGE.ROUTINE;
-              return (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="m-0 text-sm font-semibold text-slate-900">{r.title}</p>
-                    <p className="m-0 mt-0.5 text-xs text-slate-500">
-                      {r.suburb} · {r.categoryLabel} · {r.posterKind} · {new Date(r.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
-                      {r.workerName ? ` · Worker: ${r.workerName}` : ""}
-                    </p>
-                    {r.intake && (
-                      <p className="m-0 mt-0.5 text-xs text-slate-500">
-                        {r.intake.isDraft ? "Intake draft" : "Intake recorded"}
-                        {r.intake.agreedStartAt ? ` · Agreed start ${new Date(r.intake.agreedStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}` : ""}
-                        {` · Service agreement ${r.intake.serviceAgreement === "AGREED" ? "recorded" : "pending"} · Participant / SC agreement ${r.intake.participantAgreement === "CONFIRMED" ? "confirmed" : "pending"}`}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.label}</span>
-                    {action(r)}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+      )}
+    </section>
   );
 }
 
@@ -119,8 +111,8 @@ function ManageIntakeDialog({ row, members, onClose, onSaved }: { row: StartRow;
         {error && <p className="m-0 text-sm text-red-700">{error}</p>}
       </div>
       <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
-        <Button variant="outline" disabled={busy} onClick={() => void save(true)}>Save draft</Button>
-        <div className="flex items-center gap-3"><span className="text-xs text-slate-500">1 of 1</span><Button disabled={busy} onClick={() => void save(false)}>{busy ? "Saving…" : "Save and continue"}</Button></div>
+        <button type="button" className="pd-btn" disabled={busy} onClick={() => void save(true)}>Save draft</button>
+        <div className="flex items-center gap-3"><span className="text-xs text-slate-500">1 of 1</span><button type="button" className="pd-btn pd-btn-primary" disabled={busy} onClick={() => void save(false)}>{busy ? "Saving…" : "Save and continue"}</button></div>
       </div>
     </ModalShell>
   );
@@ -145,42 +137,47 @@ export default function ProviderConfirmedStartsPage() {
   // Provider doc P66 actions on a confirmed start: Update the intake record, Message, Calendar. (Cancel/Close needs a closing status the backend does not have yet.)
   const startActions = (r: StartRow) => (
     <>
-      <Button size="sm" variant="outline" onClick={() => setViewId(r.id)}>View</Button>
-      <Button size="sm" variant="outline" onClick={() => setManage(r)}>Update</Button>
-      <Link href="/messages"><Button size="sm" variant="outline" type="button">Message</Button></Link>
-      <Link href="/provider/calendar"><Button size="sm" variant="outline" type="button">Calendar</Button></Link>
+      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewId(r.id)}>View</button>
+      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setManage(r)}>Update</button>
+      <Link href="/messages" className="pd-btn pd-btn-sm">Message</Link>
+      <Link href="/provider/calendar" className="pd-btn pd-btn-sm">Calendar</Link>
     </>
   );
-  const view = (label: string) => (r: StartRow) => <Button size="sm" variant="outline" onClick={() => setViewId(r.id)}>{label}</Button>;
+  const view = (label: string) => (r: StartRow) => <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewId(r.id)}>{label}</button>;
   const intakeActions = (r: StartRow) => (
     <>
-      <Button size="sm" variant="outline" onClick={() => setViewId(r.id)}>View request</Button>
-      <Button size="sm" onClick={() => setManage(r)}>Manage intake and start</Button>
+      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewId(r.id)}>View request</button>
+      <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setManage(r)}>Manage intake and start</button>
     </>
   );
 
+  const total = data ? data.awaitingAcceptance.length + data.awaitingIntake.length + data.startConfirmed.length : 0;
   return (
-    <>
-      <div className="space-y-5 px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">Provider / Starts</p>
-        <div>
-          <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Confirmed service starts</h1>
-          <p className="m-0 mt-1.5 text-[15px] text-slate-500">Keep referral acceptance, onboarding and delivered support separate.</p>
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Starts</div>
+        <div className="pd-page-head">
+          <div>
+            <h1>Confirmed service starts</h1>
+            <p>Keep referral acceptance, onboarding and delivered support separate.</p>
+          </div>
+          <div className="pd-buttons" />
         </div>
-      </div>
-      <div className="space-y-5 px-8 py-6">
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {notice && <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</div>}
         {viewId && <RequestDetailDialog jobId={viewId} own={false} onClose={() => setViewId(null)} />}
         {manage && <ManageIntakeDialog row={manage} members={members} onClose={() => setManage(null)} onSaved={(m) => { setManage(null); setNotice(m); void load(); }} />}
-        {!data && !error && <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />}
-        {data && data.awaitingAcceptance.length + data.awaitingIntake.length + data.startConfirmed.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
-            <p className="m-0 text-base font-bold text-slate-900">No accepted referrals yet</p>
-            <p className="m-0 mt-1 text-sm text-slate-500">An accepted Provider proposal appears here for intake and worker allocation.</p>
+        {!data && !error && <div className="pd-quiet-empty">Loading…</div>}
+        {data && total === 0 && (
+          <div className="pd-grid2">
+            <div className="pd-empty">
+              <LayoutGrid />
+              <h3>No accepted referrals yet</h3>
+              <p>An accepted Provider proposal appears here for intake and worker allocation.</p>
+            </div>
           </div>
         )}
-        {data && data.awaitingAcceptance.length + data.awaitingIntake.length + data.startConfirmed.length > 0 && (
+        {data && total > 0 && (
           <>
             <Section title="Awaiting acceptance" hint="No proposals are waiting for a reply. Proposals you send on Matched Requests appear here until the poster decides." rows={data.awaitingAcceptance} action={view("View request")} />
             <Section title="Awaiting intake" hint="No accepted referrals yet. An accepted Provider proposal appears here for intake and worker allocation." rows={data.awaitingIntake} action={intakeActions} />
@@ -188,6 +185,6 @@ export default function ProviderConfirmedStartsPage() {
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

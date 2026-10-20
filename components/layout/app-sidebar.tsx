@@ -10,6 +10,7 @@ import {
   CreditCard, Building2, Home, Star, ShieldCheck, Inbox,
   Radio, CalendarDays, Handshake, Bookmark, Target, CheckCircle2, GitBranch,
   Layers, Settings, Megaphone, BarChart3, UserCog, FolderOpen, Zap, Plus, Clock, Heart, LifeBuoy, Gift,
+  LayoutGrid, MessageCircle, MapPin, Check, Sun,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,7 +21,7 @@ import type { UserRole } from "@/lib/types";
 
 type NavBadge = "openRequests" | "newEnquiries";
 
-interface NavItem { href: string; label: string; icon: LucideIcon; badge?: NavBadge; }
+interface NavItem { href: string; label: string; icon: LucideIcon; badge?: NavBadge; glyph?: string; }
 
 interface NavGroup { title: string; items: NavItem[]; }
 
@@ -98,14 +99,14 @@ function navForRole(role: string, managed = false): RoleNav {
       // Approved Provider demo (2026-10-09): 6 groups.
       const groups: NavGroup[] = [
         { title: "Workspace", items: [
-          { ...dash, label: "My Dashboard" },
+          { ...dash, label: "My Dashboard", icon: LayoutGrid },
           { href: "/live-dashboard", label: "Live Shiftboard", icon: Zap },
         ] },
         { title: "Staffing", items: [
           { href: "/jobs/post",                    label: "Post a Shift",           icon: Plus },
-          { href: "/jobs/my",                      label: "Staffing Requests",      icon: ClipboardList, badge: "openRequests" },
+          { href: "/jobs/my",                      label: "Staffing Requests",      icon: Briefcase, badge: "openRequests" },
           { href: "/provider/team-availability",       label: "Team Availability",      icon: Clock },
-          { href: "/provider/offers-assignments",  label: "Offers and Assignments", icon: CalendarDays },
+          { href: "/provider/offers-assignments",  label: "Offers and Assignments", icon: Calendar },
           { href: "/workers/available",            label: "Find External Workers",  icon: Search },
           { href: "/saved-professionals",          label: "Saved Workers",          icon: Heart },
         ] },
@@ -114,34 +115,34 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/provider/matched-requests",         label: "Matched Requests",         icon: Zap },
           { href: "/provider/saved-requests",           label: "Saved Requests",           icon: Heart },
           { href: "/provider/my-responses",             label: "My Responses",             icon: FileText },
-          { href: "/provider/confirmed-starts", label: "Confirmed Service Starts", icon: CheckCircle2 },
+          { href: "/provider/confirmed-starts", label: "Confirmed Service Starts", icon: Check },
         ] },
         { title: "Business", items: [
           { href: "/provider/services",                 label: "Services & Capacity",      icon: Briefcase },
           { href: "/provider/housing",                  label: "Housing Vacancies",        icon: Home },
-          { href: "/provider/enquiries",   label: "Enquiries & Applications", icon: Inbox, badge: "newEnquiries" },
-          { href: "/messages",                          label: "Messages",                 icon: MessageSquare },
+          { href: "/provider/enquiries",   label: "Enquiries & Applications", icon: MessageCircle, badge: "newEnquiries" },
+          { href: "/messages",                          label: "Messages",                 icon: MessageCircle },
           { href: "/provider/calendar",                  label: "Calendar",                 icon: Calendar },
         ] },
         { title: "Organisation", items: [
           { href: "/provider/organisation", label: "Organisation Profile",   icon: Building2 },
-          { href: "/provider/branches",     label: "Branches",               icon: GitBranch },
-          { href: "/provider/service-lines",    label: "Service Lines",          icon: Layers },
-          { href: "/provider/administrators", label: "Administrators",       icon: UserCog },
+          { href: "/provider/branches",     label: "Branches",               icon: MapPin },
+          { href: "/provider/service-lines",    label: "Service Lines",          icon: LayoutGrid },
+          { href: "/provider/administrators", label: "Administrators",       icon: ShieldCheck },
           { href: "/provider/workforce",    label: "Internal Team",          icon: Users },
-          { href: "/documents",             label: "Documents & Compliance", icon: FolderOpen },
+          { href: "/documents",             label: "Documents & Compliance", icon: FileText },
           { href: "/provider/reports",          label: "Reports",                icon: BarChart3 },
         ] },
         { title: "Account", items: [
           { href: "/subscription",          label: "Subscription & Billing", icon: CreditCard },
-          { href: "/provider/promotions",       label: "Promotions",             icon: Megaphone },
+          { href: "/provider/promotions",       label: "Promotions",             icon: Star },
           NOTIFICATIONS,
-          { href: "/provider/settings", label: "Settings & Help",       icon: Settings },
+          { href: "/provider/settings", label: "Settings & Help",       icon: Sun },
         ] },
         { title: "Help", items: [
-          { href: "/provider/help", label: "Help & Tickets", icon: LifeBuoy },
-          { href: "/provider/saved-searches", label: "Saved searches & alerts", icon: Star },
-          { href: "/provider/refer-and-earn", label: "Refer & Earn", icon: Gift },
+          { href: "/provider/help", label: "Help & Tickets", icon: LifeBuoy, glyph: "⊕" },
+          { href: "/provider/saved-searches", label: "Saved searches & alerts", icon: Star, glyph: "☆" },
+          { href: "/provider/refer-and-earn", label: "Refer & Earn", icon: Gift, glyph: "↗" },
         ] },
       ];
       return { main: groups.flatMap((g) => g.items), account: [], groups };
@@ -192,15 +193,15 @@ export function AppSidebar() {
   const { user } = useAuth();
   const pathname = usePathname();
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
+  const [collapsedPref, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(SIDEBAR_KEY) === "true";
   });
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(SIDEBAR_KEY, String(collapsed));
-  }, [collapsed]);
+    localStorage.setItem(SIDEBAR_KEY, String(collapsedPref));
+  }, [collapsedPref]);
 
   // Close drawer on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -216,6 +217,8 @@ export function AppSidebar() {
   // Count badges on the Provider menu (open requests, new enquiries) come from the dashboard summary.
   const [badges, setBadges] = useState<Partial<Record<NavBadge, number>>>({});
   const isProvider = user?.activeRole === "PROVIDER";
+  // The Provider menu is always expanded (demo shell has no collapse control).
+  const collapsed = isProvider ? false : collapsedPref;
   useEffect(() => {
     if (!isProvider) return;
     let cancelled = false;
@@ -249,23 +252,31 @@ export function AppSidebar() {
           title={collapsed ? item.label : undefined}
           onClick={onClick}
           className={cn(
-            "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
+            "group relative flex items-center px-3 py-2.5 text-sm transition-all duration-150",
+            isProvider ? "min-h-[44px] gap-[11px] rounded-lg" : "gap-3 rounded-xl font-medium",
             isActive
               ? isProvider
-                ? "bg-brand-50 text-brand-700"
+                ? "bg-[#fff0f5] font-bold text-[#c91355]"
                 : "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/25"
-              : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900",
+              : isProvider
+                ? "font-medium text-[#555a68] hover:bg-slate-50 hover:text-slate-900"
+                : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900",
           )}
         >
+          {item.glyph ? (
+            <span className="grid h-[18px] w-[18px] shrink-0 place-items-center text-base leading-none">{item.glyph}</span>
+          ) : (
           <Icon className={cn(
             "h-[18px] w-[18px] shrink-0 transition-colors",
-            isActive ? (isProvider ? "text-brand-700" : "text-white") : "text-slate-400 group-hover:text-brand-600",
+            isActive ? (isProvider ? "text-[#c91355]" : "text-white") : isProvider ? "text-[#555a68]" : "text-slate-400 group-hover:text-brand-600",
           )} />
+          )}
           {!collapsed && <span className={cn("tracking-tight", isProvider ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
           {!collapsed && !!item.badge && !!badges[item.badge] && (
             <span className={cn(
-              "ml-auto rounded-full px-1.5 text-[10px] font-bold leading-4",
-              isActive ? (isProvider ? "bg-white text-brand-700" : "bg-white/25 text-white") : "bg-brand-50 text-brand-700",
+              "ml-auto px-1.5 font-bold",
+              isProvider ? "rounded-[5px] bg-[#edf0f4] text-xs font-medium leading-5 text-[#555a68]" : "rounded-full text-[10px] leading-4",
+              !isProvider && (isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"),
             )}>{badges[item.badge]}</span>
           )}
         </Link>
@@ -276,7 +287,7 @@ export function AppSidebar() {
   function SidebarContents({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+        {(!isProvider || mobile) && <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {(!collapsed || mobile)
@@ -297,18 +308,18 @@ export function AppSidebar() {
               {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
             </button>
           )}
-        </div>
-        <nav className="flex flex-1 flex-col justify-between overflow-y-auto p-3">
+        </div>}
+        <nav className={cn("flex flex-1 flex-col justify-between overflow-y-auto", isProvider ? "px-3 pb-4 pt-6" : "p-3")}>
           {nav.groups ? (
-            <div className="space-y-3">
+            <div className={isProvider ? "space-y-6" : "space-y-3"}>
               {nav.groups.map((g) => (
                 <div key={g.title}>
                   {(!collapsed || mobile) ? (
-                    <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{g.title}</p>
+                    <p className={cn("px-3 uppercase", isProvider ? "m-0 mb-2 text-xs font-extrabold tracking-[1px] text-[#8a8d98]" : "pb-1 pt-1 text-[10px] font-semibold tracking-wider text-slate-400")}>{g.title}</p>
                   ) : (
                     <div className="mx-3 mb-1 border-t border-slate-100" />
                   )}
-                  <ul className="space-y-1">
+                  <ul className={isProvider ? "m-0 list-none space-y-0.5 p-0" : "space-y-1"}>
                     {g.items.map((item) => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
                   </ul>
                 </div>
@@ -368,8 +379,10 @@ export function AppSidebar() {
       </aside>
 
       <aside className={cn(
-        "hidden md:flex flex-col shrink-0 border-r border-slate-200 bg-white shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)] transition-[width] duration-200 overflow-hidden",
-        collapsed ? "w-16" : isProvider ? "w-64" : "w-56",
+        "hidden md:flex flex-col shrink-0 bg-white transition-[width] duration-200 overflow-hidden",
+        isProvider
+          ? "relative z-10 w-64 shadow-[15px_0_40px_rgba(0,0,0,0.067)]"
+          : cn("border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)]", collapsed ? "w-16" : "w-56"),
       )}>
         <SidebarContents />
       </aside>

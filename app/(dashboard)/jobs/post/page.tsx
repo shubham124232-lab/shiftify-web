@@ -19,7 +19,7 @@ import { TIER_META, type PostingTier } from "@/lib/types/posting";
 import { WizardSidePanel } from "@/components/jobs/post/shared";
 import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
-import { Zap, Clock, CalendarDays, Timer, LayoutGrid } from "lucide-react";
+import { Zap, Clock, CalendarDays, Timer, LayoutGrid, ShieldCheck } from "lucide-react";
 import { saveGuestRole, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
 
 const TIER_ORDER: PostingTier[] = ["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
@@ -78,43 +78,43 @@ function ProviderPostExtras({ children, onContinue }: { children?: React.ReactNo
   return (
     <>
       {allowance?.applies && (
-        <p className="m-0 rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm text-brand-700">
-          <strong className="text-brand-700">{allowance.remaining} of {allowance.limit} free actions remaining.</strong> A successful external post uses 1 action. Internal checks and drafts are free.
+        <p className="pd-info-banner" style={{ background: "#fff5f9", borderColor: "#f4d5e2", color: "#9d2250" }}>
+          <strong>{allowance.remaining} of {allowance.limit} free actions remaining.</strong>&nbsp;A successful external post uses 1 action. Internal checks and drafts are free.
         </p>
       )}
       {children}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-        <p className="m-0 border-b border-slate-100 px-6 py-5 text-lg font-bold text-slate-900">Saved drafts</p>
+      <section className="pd-panel">
+        <div className="pd-panel-head"><h2>Saved drafts</h2></div>
         {drafts === null ? (
-          <div className="m-6 h-10 animate-pulse rounded-lg bg-slate-100" />
+          <div className="pd-quiet-empty">Loading…</div>
         ) : drafts.length === 0 ? (
-          <div className="flex flex-col items-center px-6 py-12 text-center">
-            <LayoutGrid className="h-9 w-9 text-slate-300" />
-            <p className="m-0 mt-3 text-lg font-bold text-slate-900">No saved drafts</p>
-            <p className="m-0 mt-1 max-w-md text-base text-slate-500">You can save a request at any step and continue later.</p>
+          <div className="pd-empty">
+            <LayoutGrid />
+            <h3>No saved drafts</h3>
+            <p>You can save a request at any step and continue later.</p>
           </div>
         ) : (
-          <ul className="m-0 list-none divide-y divide-slate-100 px-6 py-2">
+          <div>
             {drafts.map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <span className="min-w-0 truncate font-medium text-slate-800">{d.title}<span className="ml-2 text-xs font-normal text-slate-400">{d.suburb}</span></span>
+              <div key={d.id} className="pd-task-row">
+                <div><strong>{d.title}</strong><p>{d.suburb}</p></div>
                 {onContinue
-                  ? <Button size="sm" variant="outline" className="shrink-0" onClick={() => onContinue(d)}>Continue</Button>
-                  : <Link href={`/jobs/${d.id}`} className="shrink-0"><Button size="sm" variant="outline">Continue</Button></Link>}
-              </li>
+                  ? <button type="button" className="pd-btn pd-btn-sm" onClick={() => onContinue(d)}>Continue</button>
+                  : <Link href={`/jobs/${d.id}`} className="pd-btn pd-btn-sm">Continue</Link>}
+              </div>
             ))}
-          </ul>
+          </div>
         )}
-      </div>
+      </section>
     </>
   );
 }
 
 const PROVIDER_LANES: Record<PostingTier, { title: string; timing: string; badge: string; cls: string; icon: React.ReactNode }> = {
-  RAPID:       { title: "Rapid staffing",       timing: "Now–60 minutes",           badge: "Rapid",       cls: "bg-red-50 text-red-700",       icon: <Zap className="h-5 w-5" /> },
-  URGENT:      { title: "Urgent staffing",      timing: "Over 60 minutes–4 hours",  badge: "Urgent",      cls: "bg-amber-50 text-amber-700",   icon: <Clock className="h-5 w-5" /> },
-  LAST_MINUTE: { title: "Last Minute staffing", timing: "Over 4–48 hours",          badge: "Last Minute", cls: "bg-emerald-50 text-emerald-700", icon: <Timer className="h-5 w-5" /> },
-  ROUTINE:     { title: "Routine staffing",     timing: "Beyond 48 hours or recurring", badge: "Routine", cls: "bg-blue-50 text-blue-700",     icon: <CalendarDays className="h-5 w-5" /> },
+  RAPID:       { title: "Rapid staffing",       timing: "Now–60 minutes",           badge: "Rapid",       cls: "pd-badge-rapid",       icon: <Zap /> },
+  URGENT:      { title: "Urgent staffing",      timing: "Over 60 minutes–4 hours",  badge: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
+  LAST_MINUTE: { title: "Last Minute staffing", timing: "Over 4–48 hours",          badge: "Last Minute", cls: "pd-badge-last-minute", icon: <Timer /> },
+  ROUTINE:     { title: "Routine staffing",     timing: "Beyond 48 hours or recurring", badge: "Routine", cls: "pd-badge-routine",     icon: <CalendarDays /> },
 };
 
 // Provider "Post a Shift": four lane cards; each opens the staffing wizard as a popup over this page.
@@ -126,29 +126,37 @@ function ProviderPostShift() {
   const [reload, setReload] = useState(0);
   return (
     <>
-      <PageHeader crumb="Provider / Post a Shift" title="Post a Shift" description="Start with timing, then choose internal or external distribution." />
-      <div className="mx-auto w-full max-w-[1400px] space-y-4 px-5 py-6">
+      <div className="pd-workspace">
+        <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Post</div>
+        <div className="pd-page-head">
+          <div>
+            <h1>Post a Shift</h1>
+            <p>Start with timing, then choose internal or external distribution.</p>
+          </div>
+          <div className="pd-buttons" />
+        </div>
         <ProviderPostExtras key={reload} onContinue={setResume}>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="pd-grid4">
             {TIER_ORDER.map((t) => {
               const l = PROVIDER_LANES[t];
               return (
-                <div key={t} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-                  <span className={cn("inline-flex items-center gap-1.5 self-start rounded-lg px-3 py-1.5 text-sm font-semibold [&>svg]:h-4 [&>svg]:w-4", l.cls)}>{l.icon}{l.badge}</span>
-                  <p className="m-0 mt-5 text-2xl font-bold text-slate-900">{l.title}</p>
-                  <p className="m-0 mt-4 text-base text-slate-500">{l.timing}</p>
-                  <Button className="mt-6 w-full" onClick={() => setTier(t)}>Start {TIER_META[t].label.replace(/ Support$/, "")} request</Button>
+                <div key={t} className="pd-record-card">
+                  <span className={cn("pd-badge", l.cls)}>{l.icon}{l.badge}</span>
+                  <span className="pd-icon-plain">{l.icon}</span>
+                  <h2>{l.title}</h2>
+                  <p className="pd-card-body">{l.timing}</p>
+                  <button type="button" className="pd-btn pd-btn-primary" onClick={() => setTier(t)}>Start {TIER_META[t].label.replace(/ Support$/, "")} request</button>
                 </div>
               );
             })}
           </div>
-          <p className="m-0 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            Ordinary matching, internal availability and urgent external distribution are core features. Payment does not change urgency or verification.
-          </p>
+          <div className="pd-info-banner"><ShieldCheck width={18} height={18} className="shrink-0" />Ordinary matching, internal availability and urgent external distribution are core features. Payment does not change urgency or verification.</div>
         </ProviderPostExtras>
-        <p className="text-xs text-slate-400">
+        <p className="m-0 text-xs text-slate-400">
           If you are in immediate danger or need emergency medical help, call Triple Zero (000). Shiftify is not an emergency service.
         </p>
+        </div>
       </div>
       {tier && <ProviderStaffingWizard tier={tier} onClose={() => { setTier(null); setReload((n) => n + 1); }} onViewRequest={(id) => { setTier(null); setViewId(id); }} />}
       {resume && <ProviderStaffingWizard tier={resume.urgency as PostingTier} editJobId={resume.id}

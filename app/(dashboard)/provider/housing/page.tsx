@@ -4,10 +4,7 @@ import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
 import { VACANCY_LABEL } from "@/components/provider/housingOptions";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { RefreshCw, Search } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { RefreshCw, Plus, LayoutGrid } from "lucide-react";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
 import { api } from "@/lib/api";
 import { ModalShell } from "@/components/jobs/post/shared";
@@ -35,11 +32,11 @@ interface HousingListing {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  ACTIVE: "bg-emerald-100 text-emerald-700",
-  PAUSED: "bg-slate-100 text-slate-500",
-  FILLED: "bg-sky-100 text-sky-700",
-  CLOSED: "bg-slate-100 text-slate-400",
-  DRAFT: "bg-amber-100 text-amber-700",
+  ACTIVE: "pd-badge-green",
+  PAUSED: "",
+  FILLED: "pd-badge-blue",
+  CLOSED: "",
+  DRAFT: "pd-badge-orange",
 };
 const STATUS_LABEL: Record<string, string> = { ACTIVE: "Live", PAUSED: "Paused", FILLED: "Filled", CLOSED: "Closed", DRAFT: "Draft — not published" };
 const URGENCY_LABEL: Record<string, string> = { AVAILABLE_NOW: "Available now", AVAILABLE_SOON: "Available soon", FUTURE: "Future vacancy", EXPRESSION_OF_INTEREST: "Expression of interest" };
@@ -150,40 +147,46 @@ export default function ProviderHousingPage() {
         <ModalShell title={confirm.title} onClose={() => setConfirm(null)}>
           <div className="px-6 py-5"><p className="m-0 text-sm text-slate-600">{confirm.body}</p></div>
           <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
-            <Button variant="outline" onClick={() => setConfirm(null)}>Back</Button>
-            <Button onClick={() => { const go = confirm.run; setConfirm(null); go(); }}>{confirm.label}</Button>
+            <button type="button" className="pd-btn" onClick={() => setConfirm(null)}>Back</button>
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => { const go = confirm.run; setConfirm(null); go(); }}>{confirm.label}</button>
           </div>
         </ModalShell>
       )}
-      <PageHeader
-        crumb="Provider / Housing Vacancies"
-        title="Housing Vacancies"
-        description="Manage SIL, SDA, respite and supported-housing vacancies and their enquiries."
-        actions={<Link href="/provider/sil-vacancy"><Button>List a vacancy</Button></Link>}
-      />
-      <div className="container-page space-y-6 py-8">
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search vacancies" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Housing</div>
+        <div className="pd-page-head">
+          <div>
+            <h1>Housing Vacancies</h1>
+            <p>Manage SIL, SDA, respite and supported-housing enquiries.</p>
           </div>
-          <select className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm" value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
+          <div className="pd-buttons">
+            <Link href="/provider/sil-vacancy" className="pd-btn pd-btn-primary"><Plus />List a vacancy</Link>
+          </div>
+        </div>
+        <div className="pd-toolbar">
+          <input placeholder="Search vacancies" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search vacancies" />
+          <select value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
             {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All statuses" : f.label}</option>)}
           </select>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+          <button type="button" className="pd-btn" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw />Clear filters</button>
         </div>
 
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {notice && <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{notice}</div>}
 
         {loading ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <div className="pd-quiet-empty">Loading…</div>
         ) : visible.length === 0 ? (
-          <Card><CardContent className="py-10 text-center text-sm text-slate-500">
-            No housing vacancies yet. List a SIL, SDA or respite vacancy to start receiving enquiries.
-          </CardContent></Card>
+          <div className="pd-grid2">
+            <div className="pd-empty">
+              <LayoutGrid />
+              <h3>No housing vacancies yet</h3>
+              <p>List a SIL, SDA or respite vacancy to start receiving enquiries.</p>
+            </div>
+          </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="pd-grid2">
             {visible.map((l) => {
               const enq = inquiries.filter((q) => q.listingId === l.id);
               const busy = busyId === l.id;
@@ -192,60 +195,57 @@ export default function ProviderHousingPage() {
               const features = l.housingDetails?.accessibilityFeatures ?? [];
               const expired = !!l.listingExpiresAt && new Date(l.listingExpiresAt) < new Date();
               return (
-                <Card key={l.id}>
-                  <CardContent className="space-y-3 py-5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-semibold text-purple-700">{(l.vacancyCategory && VACANCY_LABEL[l.vacancyCategory]) || "Housing"}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
-                      {l.isFeatured && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Featured · position {l.featuredQueuePosition}</span>}
-                      {expired && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Expired</span>}
+                <article key={l.id} className="pd-record-card">
+                  <div className="pd-tags">
+                    <span className="pd-badge pd-badge-purple">{(l.vacancyCategory && VACANCY_LABEL[l.vacancyCategory]) || "Housing"}</span>
+                    <span className={`pd-badge ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
+                    {l.isFeatured && <span className="pd-badge pd-badge-orange">Featured · position {l.featuredQueuePosition}</span>}
+                    {expired && <span className="pd-badge pd-badge-red">Expired</span>}
+                  </div>
+                  <h2>{l.title}</h2>
+                  <div className="pd-card-body">{l.suburb}{l.state ? `, ${l.state}` : ""}{l.propertyType ? ` · ${l.propertyType}` : ""}</div>
+                  <div className="pd-card-body"><strong>{l.vacancyCount != null ? `${l.vacancyCount} vacanc${l.vacancyCount === 1 ? "y" : "ies"}` : "Vacancies not set"}</strong> · Expires {fmtDate(l.listingExpiresAt)}</div>
+                  {features.length > 0 && (
+                    <div className="pd-tags">
+                      {features.slice(0, 4).map((f) => <span key={f} className="pd-pill">{f}</span>)}
                     </div>
-                    <div>
-                      <p className="m-0 text-base font-semibold text-slate-900">{l.title}</p>
-                      <p className="m-0 mt-0.5 text-sm text-slate-500">{l.suburb}{l.state ? `, ${l.state}` : ""}{l.propertyType ? ` · ${l.propertyType}` : ""}</p>
-                    </div>
-                    <p className="m-0 text-sm text-slate-600"><strong className="text-slate-900">{l.vacancyCount != null ? `${l.vacancyCount} vacanc${l.vacancyCount === 1 ? "y" : "ies"}` : "Vacancies not set"}</strong> · Expires {fmtDate(l.listingExpiresAt)}</p>
-                    {features.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {features.slice(0, 4).map((f) => <span key={f} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{f}</span>)}
-                      </div>
-                    )}
-                    {l.description && <p className="m-0 line-clamp-2 text-sm text-slate-600">{l.description}</p>}
+                  )}
+                  {l.description && <div className="pd-card-body line-clamp-2">{l.description}</div>}
 
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      <Button size="sm" variant="outline" onClick={() => toggle(l.id, "view")}>View vacancy</Button>
-                      {l.status !== "CLOSED" && l.status !== "FILLED" && <Link href={`/provider/sil-vacancy?edit=${l.id}`}><Button size="sm" variant="outline">Edit</Button></Link>}
-                      {live && <Button size="sm" variant="outline" disabled={busy} onClick={() => markFilled(l)}>Mark filled</Button>}
-                      {live && <Button size="sm" className="ml-auto" disabled={busy} onClick={() => renew(l)}>Renew</Button>}
-                    </div>
+                  <div className="pd-buttons">
+                    <button type="button" className="pd-btn pd-btn-sm" onClick={() => toggle(l.id, "view")}>View vacancy</button>
+                    {l.status !== "CLOSED" && l.status !== "FILLED" && <Link href={`/provider/sil-vacancy?edit=${l.id}`} className="pd-btn pd-btn-sm">Edit</Link>}
+                    {live && <button type="button" className="pd-btn pd-btn-sm" disabled={busy} onClick={() => renew(l)}>Renew</button>}
+                    {live && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" disabled={busy} onClick={() => markFilled(l)}>Mark filled</button>}
+                  </div>
 
-                    {panel === "view" && (
-                      <div className="space-y-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                        <p className="m-0">{l.description}</p>
-                        <p className="m-0"><span className="text-slate-400">Availability: </span>{l.urgency ? URGENCY_LABEL[l.urgency] ?? l.urgency : "—"}{l.housingDetails?.vacancyDate ? ` · ${l.housingDetails.vacancyDate}` : ""}</p>
-                        <p className="m-0"><span className="text-slate-400">Support arrangement: </span>{l.supportModel || l.housingDetails?.rosterArrangement || "—"}</p>
-                        <p className="m-0"><span className="text-slate-400">Suitable for: </span>{l.suitableFor?.join(", ") || "—"}</p>
-                        <p className="m-0"><span className="text-slate-400">Funding routes: </span>{l.fundingRoutes?.join(", ") || "—"}</p>
-                        {l.housingDetails?.compatibility && <p className="m-0"><span className="text-slate-400">Suitability and intake: </span>{l.housingDetails.compatibility}</p>}
-                        <p className="m-0 flex flex-wrap gap-4 pt-1">
-                          <button type="button" className="font-semibold text-brand-700 hover:underline" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</button>
-                          {l.status === "DRAFT" && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => changeStatus(l.id, "ACTIVE", "Draft published.")}>Publish draft</button>}
-                          {l.status === "ACTIVE" && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => changeStatus(l.id, "PAUSED")}>Pause</button>}
-                          {l.status === "PAUSED" && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => changeStatus(l.id, "ACTIVE")}>Resume</button>}
-                          {l.status === "ACTIVE" && !l.isFeatured && <button type="button" disabled={busy} className="font-semibold text-brand-700 hover:underline" onClick={() => feature(l)}>Feature — ${FEATURED_PRICE}.00</button>}
-                        </p>
-                        <p className="m-0 text-xs text-slate-500">A promoted listing does not imply SDA enrolment, NDIS registration, funding eligibility or suitability. Exact address and resident details stay private.</p>
-                      </div>
-                    )}
-                    {panel === "enquiries" && (
-                      <div className="rounded-lg bg-slate-50 p-3"><ListingEnquiries inquiries={enq} /></div>
-                    )}
-                  </CardContent>
-                </Card>
+                  {panel === "view" && (
+                    <div className="space-y-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                      <p className="m-0">{l.description}</p>
+                      <p className="m-0"><span className="text-slate-400">Availability: </span>{l.urgency ? URGENCY_LABEL[l.urgency] ?? l.urgency : "—"}{l.housingDetails?.vacancyDate ? ` · ${l.housingDetails.vacancyDate}` : ""}</p>
+                      <p className="m-0"><span className="text-slate-400">Support arrangement: </span>{l.supportModel || l.housingDetails?.rosterArrangement || "—"}</p>
+                      <p className="m-0"><span className="text-slate-400">Suitable for: </span>{l.suitableFor?.join(", ") || "—"}</p>
+                      <p className="m-0"><span className="text-slate-400">Funding routes: </span>{l.fundingRoutes?.join(", ") || "—"}</p>
+                      {l.housingDetails?.compatibility && <p className="m-0"><span className="text-slate-400">Suitability and intake: </span>{l.housingDetails.compatibility}</p>}
+                      <p className="m-0 flex flex-wrap gap-4 pt-1">
+                        <button type="button" className="pd-textbtn" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</button>
+                        {l.status === "DRAFT" && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => changeStatus(l.id, "ACTIVE", "Draft published.")}>Publish draft</button>}
+                        {l.status === "ACTIVE" && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => changeStatus(l.id, "PAUSED")}>Pause</button>}
+                        {l.status === "PAUSED" && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => changeStatus(l.id, "ACTIVE")}>Resume</button>}
+                        {l.status === "ACTIVE" && !l.isFeatured && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => feature(l)}>Feature — ${FEATURED_PRICE}.00</button>}
+                      </p>
+                      <p className="m-0 text-xs text-slate-500">A promoted listing does not imply SDA enrolment, NDIS registration, funding eligibility or suitability. Exact address and resident details stay private.</p>
+                    </div>
+                  )}
+                  {panel === "enquiries" && (
+                    <div className="rounded-lg bg-slate-50 p-3"><ListingEnquiries inquiries={enq} /></div>
+                  )}
+                </article>
               );
             })}
           </div>
         )}
+      </div>
       </div>
     </>
   );

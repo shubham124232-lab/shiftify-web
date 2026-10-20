@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { MapPin, Search, Zap, Clock, CalendarDays, ShieldCheck, RefreshCw, Check, Inbox } from "lucide-react";
+import { MapPin, Zap, Clock, CalendarDays, Timer, ShieldCheck, RefreshCw, Check, LayoutGrid } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
@@ -23,10 +23,10 @@ const EMPTY: Record<BoardMode, { title: string; body: string }> = {
   saved: { title: "No requests found", body: "Save opportunities from Browse Requests or Matched Requests to keep them here." },
 };
 const URGENCY: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  RAPID:       { label: "Rapid",       cls: "bg-red-50 text-red-700",       icon: <Zap className="h-3 w-3" /> },
-  URGENT:      { label: "Urgent",      cls: "bg-amber-50 text-amber-700",   icon: <Clock className="h-3 w-3" /> },
-  LAST_MINUTE: { label: "Last Minute", cls: "bg-orange-50 text-orange-700", icon: <Clock className="h-3 w-3" /> },
-  ROUTINE:     { label: "Routine",     cls: "bg-blue-50 text-blue-700",     icon: <CalendarDays className="h-3 w-3" /> },
+  RAPID:       { label: "Rapid",       cls: "pd-badge-rapid",       icon: <Zap /> },
+  URGENT:      { label: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
+  LAST_MINUTE: { label: "Last Minute", cls: "pd-badge-last-minute", icon: <Timer /> },
+  ROUTINE:     { label: "Routine",     cls: "pd-badge-routine",     icon: <CalendarDays /> },
 };
 const FUNDING: Record<string, string> = { SELF_MANAGED: "Self-managed", PLAN_MANAGED: "Plan-managed", NDIA_MANAGED: "NDIA-managed", PRIVATE: "Private", MIXED: "Mixed", DISCUSS: "To discuss" };
 const RESPONSE: Record<string, string> = { INTERESTED: "Responded", SHORTLISTED: "Shortlisted", SELECTED: "Accepted", DECLINED: "Unsuccessful", WITHDRAWN: "Withdrawn", REQUEST_FILLED: "Closed" };
@@ -115,27 +115,25 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
   const field = "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900";
 
   return (
-    <div className="space-y-5 px-8 py-6">
-      <p className="m-0 text-xs text-slate-400">{crumb}</p>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pd-workspace">
+      <div className="pd-content">
+      <div className="pd-breadcrumb">{crumb}</div>
+      <div className="pd-page-head">
         <div>
-          <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">{title}</h1>
-          <p className="m-0 mt-1.5 text-[15px] text-slate-500">{description}</p>
+          <h1>{title}</h1>
+          <p>{description}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setMapOpen(true)}><MapPin className="mr-1.5 h-4 w-4" />Map view</Button>
+        <div className="pd-buttons">
+          <button type="button" className="pd-btn" onClick={() => setMapOpen(true)}><MapPin />Map view</button>
           {headerExtra}
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input className={`${field} w-full pl-9`} placeholder="Search by title, suburb or service" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        <select className={field} value={urgency} onChange={(e) => setUrgency(e.target.value)} aria-label="Urgency">
+      <div className="pd-toolbar" style={SHOW_EXTRA_FILTERS && moreFilters ? { marginBottom: 12 } : undefined}>
+        <input placeholder="Search service, suburb or request" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search requests" />
+        <select value={urgency} onChange={(e) => setUrgency(e.target.value)} aria-label="Urgency">
           <option value="">All urgency</option><option value="RAPID">Rapid</option><option value="URGENT">Urgent</option><option value="LAST_MINUTE">Last Minute</option><option value="ROUTINE">Routine</option>
         </select>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={clear}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+        <button type="button" className="pd-btn" onClick={clear}><RefreshCw />Clear filters</button>
         {SHOW_EXTRA_FILTERS && <button type="button" onClick={() => setMoreFilters((v) => !v)} className="text-sm font-semibold text-slate-600 hover:text-slate-900">{moreFilters ? "Fewer filters" : "More filters"}</button>}
         {SHOW_EXTRA_FILTERS && moreFilters && <div className="flex w-full flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
           <select className={field} value={poster} onChange={(e) => setPoster(e.target.value)} aria-label="Posted by">
@@ -149,7 +147,7 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
             <option value="">Any funding</option>{Object.entries(FUNDING).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
           <select className={field} value={region} onChange={(e) => setRegion(e.target.value)} aria-label="Region">
-            <option value="">All regions</option>{["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"].map((s) => <option key={s} value={s}>{s}</option>)}
+            <option value="">All regions</option>{["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"].map((st) => <option key={st} value={st}>{st}</option>)}
           </select>
           <select className={field} value={schedule} onChange={(e) => setSchedule(e.target.value)} aria-label="One-off or recurring">
             <option value="">One-off or recurring</option><option value="ONE_OFF">One-off</option><option value="RECURRING">Recurring</option>
@@ -169,61 +167,63 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
         </div>}
       </div>
 
-      <p className="m-0 flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm text-slate-500">
-        <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
+      <div className="pd-info-banner">
+        <ShieldCheck width={18} height={18} className="shrink-0" />
         Participant identifiers, exact addresses and sensitive details are protected. Payment cannot unlock private information.
-      </p>
+      </div>
       {mode !== "saved" && hidden.length > 0 && (
-        <button type="button" onClick={() => setShowHidden((v) => !v)} className="self-start text-sm font-semibold text-brand-600 hover:underline">
+        <button type="button" onClick={() => setShowHidden((v) => !v)} className="pd-textbtn mb-4">
           {showHidden ? "Hide" : "Show"} {hidden.length} hidden request{hidden.length === 1 ? "" : "s"}
         </button>
       )}
-      {notice && <p className="m-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
-      {error && <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {notice && <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
+      {error && <p className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
 
       {rows === null ? (
-        <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+        <div className="pd-quiet-empty">Loading…</div>
       ) : list.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
-          <Inbox className="mb-3 h-9 w-9 text-slate-300" />
-          <p className="m-0 text-base font-bold text-slate-900">{filtered ? "No requests found" : EMPTY[mode].title}</p>
-          <p className="m-0 mt-1 text-sm text-slate-500">{filtered ? "Change your filters to see more requests." : EMPTY[mode].body}</p>
-          {mode === "matched" && !filtered && <Link href="/provider/services" className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline">Post your services</Link>}
-        </div>
+        <section className="pd-panel">
+          <div className="pd-empty">
+            <LayoutGrid />
+            <h3>{filtered ? "No requests found" : EMPTY[mode].title}</h3>
+            <p>{filtered ? "Change your filters to see more requests." : EMPTY[mode].body}</p>
+            {mode === "matched" && !filtered && <Link href="/provider/services" className="pd-btn pd-btn-primary">Post your services</Link>}
+          </div>
+        </section>
       ) : (
-        <ul className="m-0 grid list-none gap-4 p-0 md:grid-cols-2 xl:grid-cols-3">
+        <div className="pd-grid3">
           {list.map((r) => {
             const u = URGENCY[r.urgency] ?? URGENCY.ROUTINE;
             const isOpen = r.open !== false;
             const saved = mode === "saved" || r.saved !== false;
             return (
-              <li key={r.id} className="rounded-2xl border border-slate-200 bg-white p-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>
-                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{r.posterKind}</span>
-                  {!isOpen && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">No longer open</span>}
-                  {r.responseStatus && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{RESPONSE[r.responseStatus] ?? r.responseStatus}</span>}
+              <article key={r.id} className="pd-record-card">
+                <div className="pd-tags">
+                  <span className={`pd-badge ${u.cls}`}>{u.icon}{u.label}</span>
+                  <span className="pd-badge pd-badge-blue">{r.posterKind}</span>
+                  {!isOpen && <span className="pd-badge">No longer open</span>}
+                  {r.responseStatus && <span className="pd-badge pd-badge-green">{RESPONSE[r.responseStatus] ?? r.responseStatus}</span>}
                 </div>
-                <h3 className="m-0 mt-3 text-lg font-bold text-slate-900">{r.title}</h3>
-                <p className="m-0 mt-1.5 flex items-center gap-2 text-xs text-slate-500">
-                  <MapPin className="h-3.5 w-3.5" />{r.suburb}{r.state ? "" : ""}{r.fundingType ? <span className="ml-1">{FUNDING[r.fundingType] ?? r.fundingType}</span> : null}
-                </p>
-                <p className="m-0 mt-2 text-base text-slate-600">{when(r.scheduledStartAt)}{r.totalHours ? ` · ${r.totalHours} hours` : ""}</p>
-                <p className="m-0 mt-2 flex items-center gap-1.5 text-sm text-emerald-700"><Check className="h-4 w-4 shrink-0" />{r.reasons?.[0] ?? "Review service area, capacity and eligibility"}</p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setWhy(r)}>Why this match</Button>
-                  <Button variant="outline" size="sm" onClick={() => setViewId(r.id)}>View request</Button>
-                  {mode !== "saved" && <Button variant="ghost" size="sm" onClick={() => hide(r.id, !hidden.includes(r.id))}>{hidden.includes(r.id) ? "Unhide" : mode === "matched" ? "Not suitable" : "Hide"}</Button>}
-                  {mode === "saved" && <Button variant="ghost" size="sm" disabled={busyId === r.id} onClick={() => void toggleSave(r)}>{saved ? "Unsave" : "Save"}</Button>}
+                <h3>{r.title}</h3>
+                <div className="pd-row-meta">
+                  <span><MapPin />{r.suburb}</span>
+                  {r.fundingType ? <span>{FUNDING[r.fundingType] ?? r.fundingType}</span> : null}
                 </div>
-                {isOpen && !r.responseStatus && (
-                  <div className="mt-2 flex justify-end"><Button size="sm" onClick={() => setRespondId(r.id)}>Respond as Provider</Button></div>
-                )}
-              </li>
+                <div className="pd-card-body">{when(r.scheduledStartAt)}{r.totalHours ? ` · ${r.totalHours} hours` : ""}</div>
+                <div className="pd-small" style={{ color: "var(--pd-green)", display: "flex", gap: 6, alignItems: "flex-start" }}><Check width={18} height={18} className="shrink-0" />{r.reasons?.[0] ?? "Review service area, capacity and eligibility"}</div>
+                <div className="pd-buttons">
+                  <button type="button" className="pd-btn pd-btn-sm" onClick={() => setWhy(r)}>Why this match</button>
+                  <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewId(r.id)}>View request</button>
+                  {mode !== "saved" && <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" onClick={() => hide(r.id, !hidden.includes(r.id))}>{hidden.includes(r.id) ? "Unhide" : mode === "matched" ? "Not suitable" : "Hide"}</button>}
+                  {mode === "saved" && <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" disabled={busyId === r.id} onClick={() => void toggleSave(r)}>{saved ? "Unsave" : "Save"}</button>}
+                  {isOpen && !r.responseStatus && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setRespondId(r.id)}>Respond as Provider</button>}
+                </div>
+              </article>
             );
           })}
-        </ul>
+        </div>
       )}
+      </div>
 
       {mapOpen && (
         <NearbyRequestsDialog
@@ -321,7 +321,7 @@ function OpportunityDetail({ id, row, reasons, saved, onToggleSave, onClose, onR
         {error && !job ? <p className="m-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : !job ? <div className="h-24 animate-pulse rounded-xl bg-slate-100" /> : (
           <>
             <div className="flex flex-wrap gap-2">
-              {u && <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>}
+              {u && <span className={`pd-badge ${u.cls}`}>{u.icon}{u.label}</span>}
               <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{job.postedByRoleLabel ?? row?.posterKind ?? "Poster"}</span>
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{job.status === "OPEN" ? "Open" : job.status}</span>
             </div>

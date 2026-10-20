@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Search, Heart, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { Heart, RefreshCw, ShieldCheck, LayoutGrid } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
@@ -121,98 +121,111 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
     finally { setBusyId(null); }
   }
 
-  const field = "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900";
   return (
-    <div className="space-y-5 px-8 py-6">
-      <p className="m-0 text-xs text-slate-400">{mode === "find" ? "Provider / External" : "Provider / Saved workers"}</p>
-      <div>
-        <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
-        <p className="m-0 mt-1.5 text-[15px] text-slate-500">{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
-      </div>
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input className={`${field} w-full pl-9`} placeholder={mode === "find" ? "Search people, skills or suburb" : "Search people, skills or suburb"} value={q} onChange={(e) => setQ(e.target.value)} />
+    <div className="pd-workspace">
+      <div className="pd-content">
+      <div className="pd-breadcrumb">{mode === "find" ? "Provider / External" : "Provider / Saved workers"}</div>
+      <div className="pd-page-head">
+        <div>
+          <h1>{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
+          <p>{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
         </div>
-        <select className={field} value={availableNow ? "NOW" : ""} onChange={(e) => { setAvailableNow(e.target.value === "NOW"); setPage(1); }} aria-label={mode === "find" ? "Availability" : "Status"}>
+        <div className="pd-buttons" />
+      </div>
+      <div className="pd-toolbar">
+        <input placeholder="Search people, skills or suburb" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workers" />
+        <select value={availableNow ? "NOW" : ""} onChange={(e) => { setAvailableNow(e.target.value === "NOW"); setPage(1); }} aria-label={mode === "find" ? "Availability" : "Status"}>
           <option value="">{mode === "find" ? "All workers" : "All statuses"}</option><option value="NOW">Available Now</option>
         </select>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setQ(""); setApplied(""); setAvailableNow(false); setPage(1); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+        <button type="button" className="pd-btn" onClick={() => { setQ(""); setApplied(""); setAvailableNow(false); setPage(1); }}><RefreshCw />Clear filters</button>
       </div>
       {upgrade && <UpgradePrompt message={upgrade} />}
-      {notice && <p className="m-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
-      {error && <p className="m-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {notice && <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
+      {error && <p className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
 
       {list === null ? (
-        <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+        <div className="pd-quiet-empty">Loading…</div>
       ) : list.length === 0 ? (
-        <div className="flex flex-col items-center rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
-          <Users className="mb-3 h-9 w-9 text-slate-300" />
-          <p className="m-0 text-base font-bold text-slate-900">No workers found</p>
-          <p className="m-0 mt-1 text-sm text-slate-500">{mode === "saved" ? "Adjust your filters or save a worker from Find External Workers." : "Adjust your filters or check back later."}</p>
-        </div>
+        <section className="pd-panel">
+          <div className="pd-empty">
+            <LayoutGrid />
+            <h3>No workers found</h3>
+            <p>{mode === "saved" ? "Adjust your filters or save a worker from Find External Workers." : "Adjust your filters or check back later."}</p>
+          </div>
+        </section>
       ) : (
-        <ul className="m-0 grid list-none gap-5 p-0 md:grid-cols-2 xl:grid-cols-3">
+        <div className="pd-grid3">
           {list.map((w) => (
-            <li key={w.userId} className="rounded-2xl border border-slate-200 bg-white p-5">
-              <div className="flex items-start gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">{initials(w.name)}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="m-0 text-base font-bold text-slate-900">{w.name}</p>
-                  <p className="m-0 text-sm text-slate-500">{w.experienceLevel ?? "Support worker"}{w.suburb ? ` · ${w.suburb}${w.state ? `, ${w.state}` : ""}` : ""}</p>
+            <article key={w.userId} className="pd-record-card">
+              <div className="pd-card-header">
+                <span className="pd-avatar pd-avatar-lg">{initials(w.name)}</span>
+                <div>
+                  <h3>{w.name}</h3>
+                  <span className="pd-small pd-muted">{w.experienceLevel ?? "Support worker"}{w.suburb ? ` · ${w.suburb}${w.state ? `, ${w.state}` : ""}` : ""}</span>
                 </div>
-                {w.availableNow && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">Available Now</span>}
               </div>
-              {w.headline && <p className="m-0 mt-2 text-sm text-slate-700">{w.headline}</p>}
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {w.services.slice(0, 5).map((s) => <span key={s} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{s}</span>)}
-                {w.shortNotice && <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Short-notice shifts</span>}
-                {w.sleepover && <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">Sleepover</span>}
-                {w.overnight && <span className="rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700">Overnight</span>}
-                {w.credentialCurrent && <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Checks current</span>}
-              </div>
-              {(w.languages?.length || w.yearsBucket || w.radiusKm) ? (
-                <p className="m-0 mt-2 text-xs text-slate-500">
-                  {[w.languages?.length ? w.languages.join(", ") : null, w.yearsBucket ? `${w.yearsBucket} yrs experience` : null, w.radiusKm ? `Travels up to ${w.radiusKm} km` : null].filter(Boolean).join(" · ")}
-                </p>
-              ) : null}
-              <p className="m-0 mt-3 text-sm text-slate-600">
+              {(w.availableNow || w.credentialCurrent) && (
+                <div className="pd-tags">
+                  {w.availableNow && <span className="pd-badge pd-badge-green">Available Now</span>}
+                  {w.credentialCurrent && <span className="pd-badge pd-badge-blue">Checks current</span>}
+                </div>
+              )}
+              {(w.services.length > 0 || w.shortNotice || w.sleepover || w.overnight) && (
+                <div className="pd-tags">
+                  {w.services.slice(0, 5).map((sv) => <span key={sv} className="pd-badge">{sv}</span>)}
+                  {w.shortNotice && <span className="pd-badge pd-badge-orange">Short-notice shifts</span>}
+                  {w.sleepover && <span className="pd-badge pd-badge-purple">Sleepover</span>}
+                  {w.overnight && <span className="pd-badge pd-badge-purple">Overnight</span>}
+                </div>
+              )}
+              <div className="pd-card-body">
+                {w.headline && <>{w.headline}<br /></>}
+                {(w.languages?.length || w.yearsBucket || w.radiusKm) ? (
+                  <>{[w.languages?.length ? w.languages.join(", ") : null, w.yearsBucket ? `${w.yearsBucket} yrs experience` : null, w.radiusKm ? `Travels up to ${w.radiusKm} km` : null].filter(Boolean).join(" · ")}<br /></>
+                ) : null}
                 {w.totalReviews > 0 ? `★ ${w.rating.toFixed(1)} (${w.totalReviews})` : "No reviews yet"}{w.hourlyRate != null ? ` · $${Number(w.hourlyRate).toFixed(2)}/hr` : ""}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => setProfile(w)}>View profile</Button>
-                <Button variant="outline" size="sm" disabled={busyId === w.userId} onClick={() => void toggleSave(w)}><Heart className="mr-1.5 h-4 w-4" />{saved.has(w.userId) ? "Saved" : "Save"}</Button>
-                <Button size="sm" className="ml-auto" onClick={() => setConnect(w)}>Direct Connect</Button>
               </div>
-            </li>
+              <div className="pd-buttons">
+                <button type="button" className="pd-btn pd-btn-sm" onClick={() => setProfile(w)}>View profile</button>
+                <button type="button" className="pd-btn pd-btn-sm" disabled={busyId === w.userId} onClick={() => void toggleSave(w)}><Heart />{saved.has(w.userId) ? "Saved" : "Save"}</button>
+                <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setConnect(w)}>Direct Connect</button>
+              </div>
+            </article>
           ))}
-        </ul>
+        </div>
       )}
       {mode === "find" && invites && (
-        <section className="rounded-2xl border border-slate-200 bg-white">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-6 py-4">
-            <h2 className="m-0 text-lg font-bold text-slate-900">Direct Connect invitations</h2>
-            <span className="text-sm text-slate-500">{invites.length} sent · {invites.filter((i) => i.status === "ACCEPTED").length} accepted</span>
+        <section className="pd-panel">
+          <div className="pd-panel-head">
+            <h2>Direct Connect invitations</h2>
+            {invites.length > 0 && <span className="pd-small pd-muted">{invites.length} sent · {invites.filter((i) => i.status === "ACCEPTED").length} accepted</span>}
           </div>
-          {invites.length === 0 ? <p className="m-0 px-6 py-8 text-sm text-slate-500">No Direct Connect invitations yet. Choose Direct Connect on a worker to invite them to an active shift.</p> : (
-            <ul className="m-0 list-none divide-y divide-slate-100 p-0">
+          {invites.length === 0 ? (
+            <div className="pd-empty">
+              <LayoutGrid />
+              <h3>No invitations yet</h3>
+              <p>Choose an eligible worker and an active request to send an invitation.</p>
+            </div>
+          ) : (
+            <div>
               {invites.map((i) => (
-                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-6 py-3 text-sm">
-                  <span><strong className="text-slate-900">{i.invitedUser.name}</strong> · {i.job.title}</span>
-                  <span className="text-xs text-slate-500">{new Date(i.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} · {i.status === "ACCEPTED" ? "Accepted" : i.status === "DECLINED" ? "Declined" : i.status === "PENDING" ? "Sent" : pretty(i.status)}</span>
-                </li>
+                <div key={i.id} className="pd-task-row">
+                  <div><strong>{i.invitedUser.name}</strong><p>{i.job.title}</p></div>
+                  <span className="pd-small pd-muted">{new Date(i.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} · {i.status === "ACCEPTED" ? "Accepted" : i.status === "DECLINED" ? "Declined" : i.status === "PENDING" ? "Sent" : pretty(i.status)}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </section>
       )}
       {mode === "find" && total > PAGE_SIZE && (
-        <div className="flex justify-center gap-3">
-          <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-          <span className="flex items-center text-sm text-slate-500">Page {page} of {Math.ceil(total / PAGE_SIZE)}</span>
-          <Button variant="ghost" size="sm" disabled={page >= Math.ceil(total / PAGE_SIZE)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+        <div className="pd-buttons" style={{ justifyContent: "center" }}>
+          <button type="button" className="pd-btn pd-btn-ghost" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+          <span className="pd-small pd-muted">Page {page} of {Math.ceil(total / PAGE_SIZE)}</span>
+          <button type="button" className="pd-btn pd-btn-ghost" disabled={page >= Math.ceil(total / PAGE_SIZE)} onClick={() => setPage((p) => p + 1)}>Next</button>
         </div>
       )}
+      </div>
 
       {profile && (
         <ModalShell title="Worker profile" onClose={() => setProfile(null)}>

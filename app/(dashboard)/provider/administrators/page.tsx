@@ -2,7 +2,7 @@
 
 import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
 import { useCallback, useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Plus } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,8 @@ const PRESETS: { value: Preset; label: string }[] = [
 ];
 const STATUS_LABEL: Record<string, string> = { PENDING: "Pending", ACTIVE: "Active", INACTIVE: "Inactive", EXPIRED: "Expired" };
 const STATUS_STYLE: Record<string, string> = {
-  PENDING: "bg-amber-50 text-amber-700", ACTIVE: "bg-emerald-50 text-emerald-700",
-  INACTIVE: "bg-slate-100 text-slate-500", EXPIRED: "bg-red-50 text-red-700",
+  PENDING: "pd-badge-orange", ACTIVE: "pd-badge-green",
+  INACTIVE: "", EXPIRED: "pd-badge-red",
 };
 const presetLabel = (p: string) => PRESETS.find((x) => x.value === p)?.label ?? p;
 const label = "block text-sm font-semibold text-slate-900";
@@ -133,22 +133,21 @@ export default function ProviderAdministratorsPage() {
   }
 
   const ownerInfo = owner ?? (viewerIsOwner ? user : null);
-  const th = "px-6 py-4 text-sm font-semibold text-slate-500";
 
   return (
-    <>
-      <div className="space-y-5 px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">Provider / Admins</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Admins</div>
+        <div className="pd-page-head">
           <div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Administrators and permissions</h1>
-            <p className="m-0 mt-1.5 text-[15px] text-slate-500">Named users with Branch-scoped access. Each person counts once.</p>
+            <h1>Administrators and permissions</h1>
+            <p>Named users with Branch-scoped access. Each person counts once.</p>
           </div>
-          <Button onClick={() => openPopup(null)}>+ Invite Administrator</Button>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => openPopup(null)}><Plus />Invite Administrator</button>
+          </div>
         </div>
-      </div>
-      <div className="space-y-5 px-8 py-6">
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
         {limitMessage && <UpgradePrompt message={limitMessage} />}
         <OrgCapacityBar kind="administrators" refreshKey={refresh} />
 
@@ -205,63 +204,59 @@ export default function ProviderAdministratorsPage() {
           </ModalShell>
         )}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          {loading ? (
-            <div className="m-5 h-24 animate-pulse rounded-xl bg-slate-100" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className={th}>Administrator</th><th className={th}>Role</th><th className={th}>Branch access</th><th className={th}>Status</th><th className={th}>Actions</th>
+        {loading ? (
+          <div className="pd-quiet-empty">Loading…</div>
+        ) : (
+          <div className="pd-table-wrap">
+            <table>
+              <thead>
+                <tr><th>Administrator</th><th>Role</th><th>Branch access</th><th>Status</th><th>Actions</th></tr>
+              </thead>
+              <tbody>
+                {ownerInfo && (
+                  <tr>
+                    <td><strong>{ownerInfo.name}</strong><br /><span className="pd-small pd-muted">{ownerInfo.email}</span></td>
+                    <td>Owner</td>
+                    <td>All Branches</td>
+                    <td><span className="pd-badge pd-badge-green">Active</span></td>
+                    <td />
                   </tr>
-                </thead>
-                <tbody>
-                  {ownerInfo && (
-                    <tr className="border-b border-slate-100">
-                      <td className="px-6 py-4"><p className="m-0 text-base font-bold text-slate-900">{ownerInfo.name}</p><p className="m-0 text-sm text-slate-500">{ownerInfo.email}</p></td>
-                      <td className="px-6 py-4 text-slate-700">Owner</td>
-                      <td className="px-6 py-4 text-slate-700">All Branches</td>
-                      <td className="px-6 py-4"><span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span></td>
-                      <td className="px-6 py-4" />
-                    </tr>
-                  )}
-                  {admins.filter((a) => !workspaceBranch || a.branches.length === 0 || a.branches.some((b) => b.id === workspaceBranch)).map((a) => (
-                    <tr key={a.id} className="border-b border-slate-100 align-middle last:border-0">
-                      <td className="px-6 py-4"><p className="m-0 text-base font-bold text-slate-900">{a.user.name}</p><p className="m-0 text-sm text-slate-500">{a.user.email}</p></td>
-                      <td className="px-6 py-4 text-slate-700">{presetLabel(a.rolePreset)}</td>
-                      <td className="px-6 py-4 text-slate-700">{a.branches.length ? a.branches.map((b) => b.name).join(", ") : "All Branches"}</td>
-                      <td className="px-6 py-4">
-                        <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${STATUS_STYLE[a.status] ?? "bg-slate-100 text-slate-500"}`}>{STATUS_LABEL[a.status] ?? a.status}</span>
-                        {a.status === "PENDING" && a.inviteExpiresAt && (
-                          <p className="m-0 mt-1 text-xs text-slate-400">Expires {new Date(a.inviteExpiresAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {a.status === "PENDING" || a.status === "EXPIRED" ? (
-                          <span className="inline-flex gap-2">
-                            <Button size="sm" variant="outline" disabled={busyId === a.id} onClick={() => inviteAction(a, "resend")}>Resend</Button>
-                            <Button size="sm" variant="ghost" disabled={busyId === a.id} onClick={() => inviteAction(a, "revoke")}>Revoke</Button>
-                          </span>
-                        ) : (
-                          <span className="inline-flex gap-2">
-                            <Button size="sm" variant="outline" onClick={() => openPopup(a)}>Edit permissions</Button>
-                            <Button size="sm" variant="ghost" disabled={busyId === a.id} onClick={() => remove(a)}>Remove</Button>
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
-          <ShieldCheck className="h-4 w-4 shrink-0 text-slate-500" />
-          <span>Owner, Administrator, Branch Manager, Intake, Workforce and Read-only are proposed permission presets; every administration user still counts toward plan capacity.</span>
+                )}
+                {admins.filter((a) => !workspaceBranch || a.branches.length === 0 || a.branches.some((b) => b.id === workspaceBranch)).map((a) => (
+                  <tr key={a.id}>
+                    <td><strong>{a.user.name}</strong><br /><span className="pd-small pd-muted">{a.user.email}</span></td>
+                    <td>{presetLabel(a.rolePreset)}</td>
+                    <td>{a.branches.length ? a.branches.map((b) => b.name).join(", ") : "All Branches"}</td>
+                    <td>
+                      <span className={`pd-badge ${STATUS_STYLE[a.status] ?? ""}`}>{STATUS_LABEL[a.status] ?? a.status}</span>
+                      {a.status === "PENDING" && a.inviteExpiresAt && (
+                        <><br /><span className="pd-small pd-muted">Expires {new Date(a.inviteExpiresAt).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</span></>
+                      )}
+                    </td>
+                    <td>
+                      {a.status === "PENDING" || a.status === "EXPIRED" ? (
+                        <>
+                          <button type="button" className="pd-btn pd-btn-sm" disabled={busyId === a.id} onClick={() => inviteAction(a, "resend")}>Resend</button>
+                          <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" disabled={busyId === a.id} onClick={() => inviteAction(a, "revoke")}>Revoke</button>
+                        </>
+                      ) : (
+                        <>
+                          <button type="button" className="pd-btn pd-btn-sm" onClick={() => openPopup(a)}>Edit permissions</button>
+                          <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" disabled={busyId === a.id} onClick={() => remove(a)}>Remove</button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="pd-info-banner" style={{ marginTop: 18 }}>
+          <ShieldCheck width={18} height={18} className="shrink-0" />
+          Owner, Administrator, Branch Manager, Intake, Workforce and Read-only are proposed permission presets; every administration user still counts toward plan capacity.
         </div>
       </div>
-    </>
+    </div>
   );
 }

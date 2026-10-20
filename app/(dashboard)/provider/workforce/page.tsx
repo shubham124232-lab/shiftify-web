@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { RefreshCw, ShieldCheck, Users, Search } from "lucide-react";
+import { RefreshCw, ShieldCheck, Users, Plus, LayoutGrid } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
@@ -22,14 +22,13 @@ interface Member {
 }
 
 const STATUS: Record<Member["status"], { label: string; cls: string }> = {
-  AVAILABLE: { label: "Available", cls: "bg-emerald-50 text-emerald-700" },
-  ON_SHIFT: { label: "On shift", cls: "bg-sky-50 text-sky-700" },
-  INVITED: { label: "Invited", cls: "bg-amber-50 text-amber-700" },
-  NOT_SET: { label: "No availability set", cls: "bg-slate-100 text-slate-500" },
-  VERIFIED: { label: "Verified", cls: "bg-emerald-50 text-emerald-700" },
+  AVAILABLE: { label: "Available", cls: "pd-badge-green" },
+  ON_SHIFT: { label: "On shift", cls: "pd-badge-blue" },
+  INVITED: { label: "Invited", cls: "pd-badge-orange" },
+  NOT_SET: { label: "No availability set", cls: "" },
+  VERIFIED: { label: "Verified", cls: "pd-badge-green" },
 };
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
-const field = "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900";
 
 export default function InternalTeamPage() {
   const [members, setMembers] = useState<Member[]>([]);
@@ -77,76 +76,78 @@ export default function InternalTeamPage() {
   }
 
   return (
-    <>
-      <div className="space-y-5 px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">Provider / Team</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Team</div>
+        <div className="pd-page-head">
           <div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Internal Team</h1>
-            <p className="m-0 mt-1.5 text-[15px] text-slate-500">Your internal team, Branches, compliance and personal access.</p>
+            <h1>Internal Team</h1>
+            <p>Your internal team, Branches, compliance and personal access.</p>
           </div>
-          <Button onClick={() => { setAdding(true); setNotice(null); }}>+ Add Team Member</Button>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => { setAdding(true); setNotice(null); }}><Plus />Add Team Member</button>
+          </div>
         </div>
-      </div>
-      <div className="space-y-5 px-8 py-6">
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
         {limitMessage && <UpgradePrompt message={`${limitMessage} Need more capacity? Contact Shiftify.`} />}
-        {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
+        {notice && <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{notice}</div>}
         <OrgCapacityBar kind="teamMembers" refreshKey={refresh} />
 
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="relative min-w-[220px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input className={`${field} w-full pl-9`} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people, skills or Branch" />
-          </div>
-          <select className={`${field} w-[220px]`} value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
+        <div className="pd-toolbar">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people, skills or language" aria-label="Search people, skills or Branch" />
+          <select value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
             <option value="">All</option>
             {(Object.keys(STATUS) as Member["status"][]).map((k) => <option key={k} value={k}>{STATUS[k].label}</option>)}
           </select>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+          <button type="button" className="pd-btn" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw />Clear filters</button>
         </div>
 
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600">
-          <Users className="h-4 w-4 shrink-0 text-slate-500" />
+        <div className="pd-info-banner">
+          <Users width={18} height={18} className="shrink-0" />
           <span>Internal workers see their own offers, assignments, calendar and messages. No independent marketplace action is used for internal work.</span>
-          <Link href="/team/new" className="ml-auto shrink-0 text-sm font-semibold text-brand-600 hover:underline">Add worker with login</Link>
+          <Link href="/team/new" className="pd-textbtn" style={{ marginLeft: "auto", flexShrink: 0 }}>Add worker with login</Link>
         </div>
 
         {loading ? (
-          <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="pd-quiet-empty">Loading…</div>
         ) : list.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-12 text-center">
-            <p className="m-0 text-base font-bold text-slate-900">{members.length === 0 ? "No Team Members yet" : "No people match these filters"}</p>
-            <p className="m-0 mt-1 text-sm text-slate-500">{members.length === 0 ? "Add your first Team Member to offer shifts and check availability." : "Adjust your filters."}</p>
+          <div className="pd-grid3">
+            <div className="pd-empty">
+              <LayoutGrid />
+              <h3>{members.length === 0 ? "No Team Members yet" : "No people match these filters"}</h3>
+              <p>{members.length === 0 ? "Add your first Team Member to offer shifts and check availability." : "Adjust your filters."}</p>
+            </div>
           </div>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="pd-grid3">
             {list.map((m) => {
               const st = STATUS[m.status];
               return (
-                <div key={m.key} className="rounded-2xl border border-slate-200 bg-white p-5">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">{initials(m.name)}</span>
-                    <div className="min-w-0">
-                      <p className="m-0 text-base font-bold text-slate-900">{m.name}</p>
-                      <p className="m-0 text-sm text-slate-500">{m.branch ?? "Worker with login"}</p>
+                <article key={m.key} className="pd-record-card">
+                  <div className="pd-card-header">
+                    <span className="pd-avatar pd-avatar-lg">{initials(m.name)}</span>
+                    <div>
+                      <h3>{m.name}</h3>
+                      <span className="pd-small pd-muted">{m.branch ?? "Worker with login"}</span>
                     </div>
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${st.cls}`}>{st.label}</span>
-                    {m.credentialStatus === "CURRENT" && <span className="rounded-md bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700">Checks current</span>}
-                    {m.upcomingAssignments > 0 && <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{m.upcomingAssignments} upcoming</span>}
+                  <div className="pd-tags">
+                    <span className={`pd-badge ${st.cls}`}>{st.label}</span>
+                    {m.credentialStatus === "CURRENT" && <span className="pd-badge pd-badge-blue">Checks current</span>}
+                    {m.upcomingAssignments > 0 && <span className="pd-badge">{m.upcomingAssignments} upcoming</span>}
                   </div>
                   {m.skills && m.skills.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">{m.skills.slice(0, 5).map((k) => <span key={k} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{k}</span>)}</div>
+                    <div className="pd-tags">{m.skills.slice(0, 5).map((k) => <span key={k} className="pd-badge">{k}</span>)}</div>
                   )}
-                  {m.languages && m.languages.length > 0 && <p className="m-0 mt-3 text-base text-slate-600">{m.languages.join(", ")}</p>}
-                  <p className="m-0 mt-1 text-base text-slate-600">{[m.relationship, m.access].filter(Boolean).join(" · ")}</p>
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setProfile(m)}>View profile</Button>
-                    <Button size="sm" onClick={() => { setProfile(m); setOffering(true); }}>Offer shift</Button>
+                  <div className="pd-card-body">
+                    {m.languages && m.languages.length > 0 && <>{m.languages.join(", ")}<br /></>}
+                    {[m.relationship, m.access].filter(Boolean).join(" · ")}
                   </div>
-                </div>
+                  <div className="pd-buttons">
+                    <button type="button" className="pd-btn pd-btn-sm" onClick={() => setProfile(m)}>View profile</button>
+                    <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => { setProfile(m); setOffering(true); }}>Offer shift</button>
+                  </div>
+                </article>
               );
             })}
           </div>
@@ -164,7 +165,7 @@ export default function InternalTeamPage() {
                 <div>
                   <p className="m-0 text-xl font-bold text-slate-900">{profile.name}</p>
                   <p className="m-0 text-sm text-slate-500">Internal worker</p>
-                  <span className={`mt-2 inline-block rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS[profile.status].cls}`}>{STATUS[profile.status].label}</span>
+                  <span className={`pd-badge mt-2 ${STATUS[profile.status].cls}`}>{STATUS[profile.status].label}</span>
                 </div>
               </div>
               {profile.skills && profile.skills.length > 0 && (
@@ -201,6 +202,6 @@ export default function InternalTeamPage() {
           </ModalShell>
         )}
       </div>
-    </>
+    </div>
   );
 }

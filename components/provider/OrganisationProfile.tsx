@@ -62,14 +62,18 @@ export function OrganisationProfile() {
   useEffect(() => { void load(); }, [load]);
 
   if (!me && failed) return (
-    <div className="mx-auto max-w-[1200px] px-5 py-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <p className="m-0 text-base font-semibold text-slate-900">Could not load your Organisation profile.</p>
-        <Button className="mt-4" onClick={() => void load()}>Try again</Button>
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <section className="pd-panel">
+          <div className="pd-empty">
+            <h3>Could not load your Organisation profile.</h3>
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => void load()}>Try again</button>
+          </div>
+        </section>
       </div>
     </div>
   );
-  if (!me) return <div className="mx-auto max-w-[1200px] px-5 py-6"><div className="h-64 animate-pulse rounded-2xl bg-slate-100" /></div>;
+  if (!me) return <div className="pd-workspace"><div className="pd-content"><div className="pd-quiet-empty">Loading…</div></div></div>;
   const p = me.user.providerProfile ?? {};
   const name = p.businessName || "Your organisation";
   const now = Date.now();
@@ -85,54 +89,58 @@ export function OrganisationProfile() {
   const badge = registered && verified ? "NDIS Registration Verified" : verified ? "Business Verified" : null;
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-5 px-5 py-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="pd-workspace">
+      <div className="pd-content">
+      <div className="pd-breadcrumb">Provider / Profile</div>
+      <div className="pd-page-head">
         <div>
-          <h1 className="m-0 text-3xl font-bold text-slate-900">Organisation profile</h1>
-          <p className="m-0 mt-1 text-sm text-slate-500">Control your public profile, services and private verification evidence.</p>
+          <h1>Organisation profile</h1>
+          <p>Control your public profile, services and private verification evidence.</p>
         </div>
-        <Button onClick={() => setDialog("edit")}>Edit profile</Button>
+        <div className="pd-buttons">
+          <button type="button" className="pd-btn pd-btn-primary" onClick={() => setDialog("edit")}>Edit profile</button>
+        </div>
       </div>
-      {notice && <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{notice}</p>}
+      {notice && <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <div className="flex items-center gap-4">
+      <div className="pd-grid2">
+        <section className="pd-panel pd-panel-pad">
+          <div className="pd-card-header">
             {p.logoUrl
               ? <img src={p.logoUrl} alt="" className="h-14 max-w-[140px] rounded-lg object-contain" />
-              : <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-base font-bold text-brand-600">{initials(name)}</span>}
+              : <span className="pd-avatar pd-avatar-lg">{initials(name)}</span>}
             <div>
-              <h2 className="m-0 text-xl font-bold text-slate-900">{name}</h2>
-              {badge && <span className="mt-1 inline-block rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">{badge}</span>}
+              <h2>{name}</h2>
+              {badge && <span className="pd-badge pd-badge-green">{badge}</span>}
             </div>
           </div>
-          <p className="m-0 mt-4 text-sm text-slate-600">{p.businessDescription || "Add a short public introduction in Edit profile."}</p>
-          <Block title="Services">
-            <div className="flex flex-wrap gap-2">{(p.coreServices ?? []).length ? p.coreServices!.map((s) => <span key={s} className="rounded bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">{svcLabel(s)}</span>) : <span className="text-sm text-slate-400">None selected</span>}</div>
-          </Block>
-          <Block title="Coverage"><p className="m-0 text-sm text-slate-600">{(p.serviceAreas ?? []).join(" · ") || "Not set"}</p></Block>
-          <Block title="Languages and communication"><p className="m-0 text-sm text-slate-600">{(p.languages ?? []).join(", ") || "Not set"}</p></Block>
-          <Block title="Funding accepted" last><p className="m-0 text-sm text-slate-600">{(p.fundingAccepted ?? []).join(", ") || "Not set"}</p></Block>
-          <Button className="mt-4" onClick={() => setDialog("public")}>Preview public profile</Button>
+          <p className="pd-card-body" style={{ margin: "18px 0" }}>{p.businessDescription || "Add a short public introduction in Edit profile."}</p>
+          <div className="pd-detail-block">
+            <h3>Services</h3>
+            <div className="pd-tags">{(p.coreServices ?? []).length ? p.coreServices!.map((s) => <span key={s} className="pd-badge pd-badge-pink">{svcLabel(s)}</span>) : <p>None selected</p>}</div>
+          </div>
+          <div className="pd-detail-block"><h3>Coverage</h3><p>{(p.serviceAreas ?? []).join(" · ") || "Not set"}</p></div>
+          <div className="pd-detail-block"><h3>Languages and communication</h3><p>{(p.languages ?? []).join(", ") || "Not set"}</p></div>
+          <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 800 }}>Funding accepted</h3>
+          <p className="pd-card-body" style={{ margin: "0 0 24px" }}>{(p.fundingAccepted ?? []).join(", ") || "Not set"}</p>
+          <button type="button" className="pd-btn pd-btn-primary" onClick={() => setDialog("public")}>Preview public profile</button>
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="m-0 text-xl font-bold text-slate-900">Private organisation details</h2>
-          <dl className="m-0 mt-3 text-sm">
-            {[["Legal name", p.legalEntityName || "Not set"], ["ABN", p.abn || "Not set"], ["Business contact", p.primaryContactEmail || "Not set"]].map(([k, v]) => (
-              <div key={k} className="flex gap-6 border-b border-slate-100 py-3"><dt className="w-36 shrink-0 text-slate-500">{k}</dt><dd className="m-0 font-semibold text-slate-900">{v}</dd></div>
-            ))}
-            <div className="flex gap-6 border-b border-slate-100 py-3"><dt className="w-36 shrink-0 text-slate-500">Verification</dt>
-              <dd className="m-0 flex-1"><span className={cn("block rounded px-3 py-1 text-xs font-semibold", /Verified/.test(statusLabel) ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800")}>{statusLabel}</span></dd></div>
-          </dl>
-          <p className="m-0 mt-4 flex gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />Subscription access and business verification are separate. Badges only describe the checks completed.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setDialog("verify")}><ShieldCheck className="mr-1.5 h-4 w-4" />Open verification centre</Button>
-            <Link href="/documents"><Button variant="outline">Manage documents</Button></Link>
+        <section className="pd-panel pd-panel-pad">
+          <h2>Private organisation details</h2>
+          {[["Legal name", p.legalEntityName || "Not set"], ["ABN", p.abn || "Not set"], ["Business contact", p.primaryContactEmail || "Not set"]].map(([k, v]) => (
+            <div key={k} className="pd-review-row"><span>{k}</span><strong>{v}</strong></div>
+          ))}
+          <div className="pd-review-row"><span>Verification</span><span className={`pd-badge ${/Verified/.test(statusLabel) ? "pd-badge-green" : "pd-badge-orange"}`} style={{ justifySelf: "start" }}>{statusLabel}</span></div>
+          <div className="pd-info-banner" style={{ marginTop: 18 }}>
+            <ShieldCheck width={18} height={18} className="shrink-0" />Subscription access and business verification are separate. Badges only describe the checks completed.
+          </div>
+          <div className="pd-buttons" style={{ marginTop: 16 }}>
+            <button type="button" className="pd-btn" onClick={() => setDialog("verify")}><ShieldCheck />Open verification centre</button>
+            <Link href="/documents" className="pd-btn">Manage documents</Link>
           </div>
         </section>
+      </div>
       </div>
 
       {dialog === "edit" && <EditProfile p={p} onClose={() => setDialog(null)} onSaved={async (msg) => { setDialog(null); setNotice(msg); await load(); }} />}
@@ -140,10 +148,6 @@ export function OrganisationProfile() {
       {dialog === "public" && <PublicPreview p={p} name={name} badge={badge} onClose={() => setDialog(null)} />}
     </div>
   );
-}
-
-function Block({ title, children, last }: { title: string; children: React.ReactNode; last?: boolean }) {
-  return <div className={cn("mt-4 pt-4", !last && "border-b border-slate-100 pb-4")} style={{ borderTop: "1px solid rgb(241 245 249)" }}><h3 className="m-0 mb-2 text-base font-bold text-slate-900">{title}</h3>{children}</div>;
 }
 
 // ── 3-step editor ────────────────────────────────────────────────────────────────────────────────

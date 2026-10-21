@@ -5,9 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { SetupBanner } from "@/components/dashboard/setup-banner";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { DashboardListRow } from "@/components/dashboard/list-row";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Portal } from "@/components/ui/portal";
 import { CreateDialog, PostShiftDialog } from "@/components/provider/DashboardDialogs";
@@ -19,11 +16,9 @@ import { api } from "@/lib/api";
 import { getDashboard, type ProviderDashboard, type JobSummary } from "@/lib/api/dashboard";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import {
-  Briefcase, CalendarDays, Users, Search, Plus, Clock, MapPin, Repeat, HelpCircle,
-  MessageCircle, CheckCircle2, ChevronDown, Zap, ArrowRight, X,
+  Briefcase, Calendar, Users, Search, Plus, Clock, MapPin, RefreshCw, HelpCircle,
+  MessageCircle, Check, Zap, X,
 } from "lucide-react";
-
-const SOON = (slug: string) => `/provider/coming-soon/${slug}`;
 
 // Time until a request starts, e.g. "Starts in 42 min".
 function startsIn(iso: string): string {
@@ -42,10 +37,10 @@ function ago(iso: string): string {
 }
 
 const URGENCY_BADGE: Record<string, { label: string; cls: string }> = {
-  RAPID:       { label: "Rapid",       cls: "bg-red-100 text-red-700" },
-  URGENT:      { label: "Urgent",      cls: "bg-amber-100 text-amber-700" },
-  LAST_MINUTE: { label: "Last-Minute", cls: "bg-orange-100 text-orange-700" },
-  ROUTINE:     { label: "Routine",     cls: "bg-slate-100 text-slate-600" },
+  RAPID:       { label: "Rapid",       cls: "pd-badge-rapid" },
+  URGENT:      { label: "Urgent",      cls: "pd-badge-urgent" },
+  LAST_MINUTE: { label: "Last-Minute", cls: "pd-badge-last-minute" },
+  ROUTINE:     { label: "Routine",     cls: "pd-badge-routine" },
 };
 
 function categoryLabel(value: string): string {
@@ -54,51 +49,41 @@ function categoryLabel(value: string): string {
 
 function StatTile({ label, value, hint, href, icon }: { label: string; value: number; hint: string; href: string; icon: React.ReactNode }) {
   return (
-    <Link href={href} className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-card transition-colors hover:border-brand-200">
-      <div className="flex items-start justify-between gap-2">
-        <div className="text-sm font-medium text-slate-600">{label}</div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">{icon}</span>
-      </div>
-      <div className="mt-2 text-3xl font-semibold text-slate-900">{value}</div>
-      <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-        <span>{hint}</span>
-        <ArrowRight className="h-4 w-4 text-brand-600" />
-      </div>
+    <Link href={href} className="pd-stat">
+      <div className="pd-stat-top">{label}{icon}</div>
+      <div className="pd-stat-num">{value}</div>
+      <div className="pd-stat-foot">{hint}<span aria-hidden="true">→</span></div>
     </Link>
   );
 }
 
 const URGENCY_ICON: Record<string, React.ReactNode> = {
-  RAPID: <Zap className="h-3 w-3" />,
-  URGENT: <Clock className="h-3 w-3" />,
-  LAST_MINUTE: <Clock className="h-3 w-3" />,
-  ROUTINE: <CalendarDays className="h-3 w-3" />,
+  RAPID: <Zap />,
+  URGENT: <Clock />,
+  LAST_MINUTE: <Clock />,
+  ROUTINE: <Calendar />,
 };
 
 const ACTIVITY_ICON: Record<string, React.ReactNode> = {
-  APPLICATION: <Users className="h-4 w-4" />,
-  ENQUIRY: <MessageCircle className="h-4 w-4" />,
-  CONFIRMATION: <CheckCircle2 className="h-4 w-4" />,
+  APPLICATION: <Users />,
+  ENQUIRY: <MessageCircle />,
+  CONFIRMATION: <Check />,
 };
 
 // "Match details & feedback" — why a request surfaced, with a lightweight useful / not-relevant response.
 function MatchDetails({ why }: { why: string }) {
   const [vote, setVote] = useState<"USEFUL" | "NOT_RELEVANT" | null>(null);
+  const [showWhy, setShowWhy] = useState(false);
   return (
-    <details className="mt-1.5 text-xs text-slate-500">
-      <summary className="cursor-pointer select-none">Match details &amp; feedback</summary>
-      <div className="mt-2 space-y-2 rounded-lg bg-slate-50 px-3 py-2">
-        <p className="m-0 font-semibold text-slate-700">Why this match</p>
-        <p className="m-0">{why}</p>
-        {vote ? (
-          <p className="m-0 font-medium text-slate-600">Thanks — noted as {vote === "USEFUL" ? "useful" : "not relevant"}.</p>
-        ) : (
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setVote("USEFUL")} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50">Useful</button>
-            <button type="button" onClick={() => setVote("NOT_RELEVANT")} className="rounded-md border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50">Not relevant</button>
-          </div>
-        )}
+    <details className="pd-match-options">
+      <summary>Match details &amp; feedback</summary>
+      <div className="pd-buttons">
+        <button type="button" className="pd-btn pd-btn-ghost" onClick={() => setShowWhy((v) => !v)}>Why this match</button>
+        <button type="button" className="pd-btn pd-btn-ghost" onClick={() => setVote("USEFUL")}>Useful</button>
+        <button type="button" className="pd-btn pd-btn-ghost" onClick={() => setVote("NOT_RELEVANT")}>Not relevant</button>
       </div>
+      {showWhy && <p className="m-0 mt-1.5 text-xs text-slate-500">{why}</p>}
+      {vote && <p className="m-0 mt-1.5 text-xs font-medium text-slate-600">Thanks — noted as {vote === "USEFUL" ? "useful" : "not relevant"}.</p>}
     </details>
   );
 }
@@ -193,20 +178,20 @@ export default function ProviderDashboardPage() {
   const activity = data?.recentActivity ?? [];
 
   return (
-    <div className="container-page space-y-6 py-8">
-      <DashboardHeader
-        name={(user.name || (user as any).username || "there").split(" ")[0]}
-        title="My Dashboard"
-        breadcrumb="Provider / My Dashboard"
-        description="Your staffing and service activity at a glance."
-        actions={
-          <>
-            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>Create</Button>
-            <Link href="/jobs"><Button variant="outline" size="sm"><Search className="mr-1 h-4 w-4" /> Browse Requests</Button></Link>
-            <Button size="sm" onClick={() => setPostOpen(true)}><Plus className="mr-1 h-4 w-4" /> Post a Shift</Button>
-          </>
-        }
-      />
+    <div className="pd-workspace pd-dash">
+      <div className="pd-content">
+      <div className="pd-breadcrumb">Provider / My Dashboard</div>
+      <div className="pd-page-head">
+        <div>
+          <h1>My Dashboard</h1>
+          <p>Your staffing and service activity at a glance.</p>
+        </div>
+        <div className="pd-buttons">
+          <button type="button" className="pd-btn" onClick={() => setCreateOpen(true)}>Create</button>
+          <Link href="/jobs" className="pd-btn"><Search />Browse Requests</Link>
+          <button type="button" className="pd-btn pd-btn-primary" onClick={() => setPostOpen(true)}><Plus />Post a Shift</button>
+        </div>
+      </div>
 
       {howOpen && (
         <Portal><div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={() => setHowOpen(false)}>
@@ -237,7 +222,7 @@ export default function ProviderDashboardPage() {
       <SetupBanner />
 
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="mb-5 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
       {/* Free actions / plan bar: one slim strip, seven cases from the Provider handoff. */}
@@ -245,16 +230,16 @@ export default function ProviderDashboardPage() {
         const dateText = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "");
         const periodOver = !!baseSub?.currentPeriodEnd && new Date(baseSub.currentPeriodEnd) < new Date();
         let text: React.ReactNode;
-        let action: React.ReactNode = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">View plans</Link>;
+        let action: React.ReactNode = <Link href="/subscription" className="pd-btn pd-btn-ghost">View plans</Link>;
         if (baseSub && (baseSub.status === "EXPIRED" || periodOver) && !baseSub.cancelledAt) {
           text = <><strong>Payment issue or expired subscription</strong> <span className="text-slate-400">· New chargeable activity may be restricted. Existing records stay available.</span></>;
-          action = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">Resolve billing</Link>;
+          action = <Link href="/subscription" className="pd-btn pd-btn-ghost">Resolve billing</Link>;
         } else if (baseSub && baseSub.cancelledAt) {
           text = <><strong>{plan ? `Provider ${plan} plan` : "Current plan"}</strong> <span className="text-slate-400">· Current plan active until {dateText(baseSub.currentPeriodEnd)} · Renewal cancelled</span></>;
-          action = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">Manage plan</Link>;
+          action = <Link href="/subscription" className="pd-btn pd-btn-ghost">Manage plan</Link>;
         } else if (baseSub && plan) {
           text = <><strong>{plan}</strong> <span className="text-slate-400">· Unlimited genuine Provider actions</span></>;
-          action = <Link href="/subscription" className="font-semibold text-brand-600 hover:underline">Manage plan</Link>;
+          action = <Link href="/subscription" className="pd-btn pd-btn-ghost">Manage plan</Link>;
         } else if (allowance?.applies && allowance.remaining <= 0) {
           text = <><strong>0 / {allowance.limit}</strong> free actions remaining <span className="text-slate-400">· Subscribe or pay $19.99 for a Shift Pass at your next chargeable action. Browsing and existing work stay available.</span></>;
         } else if (allowance?.applies) {
@@ -263,11 +248,11 @@ export default function ProviderDashboardPage() {
           text = <><strong>{plan ? `Provider ${plan} plan` : "No paid plan"}</strong>{plan && <span className="text-slate-400"> · Unlimited genuine Provider actions</span>}</>;
         }
         return (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-            <span className="text-slate-700">{text}</span>
-            <span className="flex gap-4">
+          <div className="pd-access-strip">
+            <span>{text}</span>
+            <span className="flex gap-2">
               {allowance?.applies && !baseSub && (
-                <button type="button" onClick={() => setHowOpen(true)} className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:underline"><HelpCircle className="h-4 w-4" /> How it works</button>
+                <button type="button" onClick={() => setHowOpen(true)} className="pd-btn pd-btn-ghost"><HelpCircle /> How it works</button>
               )}
               {action}
             </span>
@@ -276,192 +261,184 @@ export default function ProviderDashboardPage() {
       })()}
 
       {/* Number tiles */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Open staffing requests" value={stats?.openRequests ?? 0} hint={`${stats?.openRequests ?? 0} unfilled worker slot${(stats?.openRequests ?? 0) === 1 ? "" : "s"}`} href="/jobs/my?filter=open" icon={<Briefcase className="h-4 w-4" />} />
-        <StatTile label="Applications to review" value={stats?.newEnquiries ?? 0} hint="For your open requests" href="/jobs/my?filter=applications" icon={<Users className="h-4 w-4" />} />
-        <StatTile label="Upcoming assignments" value={upcoming.length} hint="View confirmed work" href="/provider/offers-assignments?filter=upcoming" icon={<CalendarDays className="h-4 w-4" />} />
-        <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} icon={<MessageCircle className="h-4 w-4" />} />
+      <div className="pd-stats">
+        <StatTile label="Open staffing requests" value={stats?.openRequests ?? 0} hint={`${stats?.openRequests ?? 0} unfilled worker slot${(stats?.openRequests ?? 0) === 1 ? "" : "s"}`} href="/jobs/my?filter=open" icon={<Briefcase />} />
+        <StatTile label="Applications to review" value={stats?.newEnquiries ?? 0} hint="For your open requests" href="/jobs/my?filter=applications" icon={<Users />} />
+        <StatTile label="Upcoming assignments" value={upcoming.length} hint="View confirmed work" href="/provider/offers-assignments?filter=upcoming" icon={<Calendar />} />
+        <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} icon={<MessageCircle />} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <div className="pd-home-grid">
+        <div>
           {/* Needs your attention */}
-          <Card>
-            <CardHeader><CardTitle>Needs your attention</CardTitle></CardHeader>
-            <CardContent className="py-2">
-              {loading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
-              ) : attention.length === 0 && expiring.length === 0 ? (
-                <p className="py-4 text-sm text-slate-500">Nothing needs attention right now.</p>
-              ) : (
-                <>
-                  {attention.map((j) => (
-                    <DashboardListRow key={j.id} icon={<Clock className="h-5 w-5" />} title={j.title}
-                      subtitle={`${startsIn(j.scheduledStartAt)} · 1 unfilled slot`} onClick={() => setReviewJob(j)} rightLabel="Review applications" rightAsButton />
-                  ))}
-                  {expiring.length > 0 && (
-                    <DashboardListRow icon={<Briefcase className="h-5 w-5" />} title="Documents expiring soon"
-                      subtitle={expiring.map((e) => `${e.label} (${new Date(e.date).toLocaleDateString("en-AU")})`).join(" · ")}
-                      href="/documents" rightLabel="Review documents" rightAsButton />
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+          <section className="pd-panel">
+            <div className="pd-panel-head"><h2>Needs your attention</h2></div>
+            {loading ? (
+              <p className="pd-quiet-empty m-0">Loading…</p>
+            ) : attention.length === 0 && expiring.length === 0 ? (
+              <p className="pd-quiet-empty m-0">Nothing needs attention right now.</p>
+            ) : (
+              <>
+                {attention.map((j) => (
+                  <div key={j.id} className="pd-task-row pd-attention-row">
+                    <span className="pd-icon-tile pd-icon-tile-alert"><Clock /></span>
+                    <div>
+                      <strong>{j.title}</strong>
+                      <p>{`${startsIn(j.scheduledStartAt)} · 1 unfilled slots`}</p>
+                    </div>
+                    <button type="button" className="pd-btn" onClick={() => setReviewJob(j)}>Review applications</button>
+                  </div>
+                ))}
+                {expiring.length > 0 && (
+                  <div className="pd-task-row pd-attention-row">
+                    <span className="pd-icon-tile"><Briefcase /></span>
+                    <div>
+                      <strong>Documents expiring soon</strong>
+                      <p>{expiring.map((e) => `${e.label} (${new Date(e.date).toLocaleDateString("en-AU")})`).join(" · ")}</p>
+                    </div>
+                    <Link href="/documents" className="pd-btn">Review documents</Link>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
 
           {/* Relevant opportunities */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Relevant opportunities</CardTitle>
-                <Link href="/jobs" className="text-sm font-semibold text-brand-600 hover:underline">View matches</Link>
-                <Button variant="outline" size="sm" onClick={() => setNearbyOpen(true)}><MapPin className="mr-1 h-4 w-4" /> View nearby requests</Button>
-              </div>
-            </CardHeader>
-            <CardContent className="py-2">
-              {loading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
-              ) : opportunities.length === 0 ? (
-                <p className="py-4 text-sm text-slate-500">
-                  No matching requests right now. Matches are based on your live service listings.{" "}
-                  <Link href="/provider/services" className="font-semibold text-brand-600 hover:underline">Manage services</Link>
-                </p>
-              ) : (
-                opportunities.map((j) => {
-                  const u = URGENCY_BADGE[j.urgency] ?? URGENCY_BADGE.ROUTINE;
-                  return (
-                    <div key={j.id} className="-mx-6 flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-3 last:border-0">
-                      <div className="min-w-0 flex-1">
-                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{URGENCY_ICON[j.urgency] ?? URGENCY_ICON.ROUTINE}{u.label}</span>
-                        <p className="m-0 mt-1.5 truncate text-sm font-semibold text-slate-900">{j.title}</p>
-                        <p className="m-0 mt-0.5 truncate text-xs text-slate-500">{`${j.suburb} · Matches your ${categoryLabel(j.category)} service`}</p>
-                        <MatchDetails why={`This request is in ${j.suburb} and matches the ${categoryLabel(j.category)} service on your live listings.`} />
-                      </div>
-                      <Button variant="outline" size="sm" className="shrink-0" onClick={() => setDetail({ id: j.id, own: false })}>View request</Button>
+          <section className="pd-panel">
+            <div className="pd-panel-head">
+              <h2>Relevant opportunities</h2>
+              <Link href="/jobs" className="pd-textbtn">View matches</Link>
+              <button type="button" className="pd-btn" onClick={() => setNearbyOpen(true)}><MapPin />View nearby requests</button>
+            </div>
+            {loading ? (
+              <p className="pd-quiet-empty m-0">Loading…</p>
+            ) : opportunities.length === 0 ? (
+              <p className="pd-quiet-empty m-0">
+                No matching requests right now. Matches are based on your live service listings.{" "}
+                <Link href="/provider/services" className="pd-textbtn">Manage services</Link>
+              </p>
+            ) : (
+              opportunities.map((j) => {
+                const u = URGENCY_BADGE[j.urgency] ?? URGENCY_BADGE.ROUTINE;
+                return (
+                  <div key={j.id} className="pd-task-row">
+                    <div>
+                      <div className="pd-tags"><span className={`pd-badge ${u.cls}`}>{URGENCY_ICON[j.urgency] ?? URGENCY_ICON.ROUTINE}{u.label}</span></div>
+                      <strong>{j.title}</strong>
+                      <p>{`${j.suburb} · Matches your ${categoryLabel(j.category)} service`}</p>
+                      <MatchDetails why={`This request is in ${j.suburb} and matches the ${categoryLabel(j.category)} service on your live listings.`} />
                     </div>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
+                    <button type="button" className="pd-btn" onClick={() => setDetail({ id: j.id, own: false })}>View request</button>
+                  </div>
+                );
+              })
+            )}
+          </section>
         </div>
 
         {/* Right rail */}
-        <div className="space-y-6">
+        <aside>
           {/* Upcoming work */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Upcoming work</CardTitle>
-                <Link href={SOON("calendar")} className="text-sm font-semibold text-brand-600 hover:underline">Calendar</Link>
-              </div>
-            </CardHeader>
-            <CardContent className="py-2">
-              {loading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
-              ) : upcoming.length === 0 ? (
-                <p className="py-4 text-sm text-slate-500">No upcoming assignments.</p>
-              ) : (
-                upcoming.map((s) => (
-                  <div key={s.id} className="-mx-6 flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 last:border-0">
-                    <div className="min-w-0">
-                      <p className="m-0 truncate text-base font-semibold text-slate-900">{s.title}</p>
-                      <p className="m-0 mt-1 text-sm text-slate-500">{new Date(s.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>
-                      <p className="m-0 text-sm text-slate-500">{[s.selectedApplicant?.name, s.suburb].filter(Boolean).join(" · ")}</p>
-                    </div>
-                    <Button variant="outline" size="sm" className="shrink-0" onClick={() => setDetail({ id: s.id, own: true })}>View</Button>
+          <section className="pd-panel">
+            <div className="pd-panel-head">
+              <h2>Upcoming work</h2>
+              <Link href="/provider/calendar" className="pd-textbtn">Calendar</Link>
+            </div>
+            {loading ? (
+              <p className="pd-quiet-empty m-0">Loading…</p>
+            ) : upcoming.length === 0 ? (
+              <p className="pd-quiet-empty m-0">No upcoming assignments.</p>
+            ) : (
+              upcoming.map((s) => (
+                <div key={s.id} className="pd-task-row">
+                  <div>
+                    <strong>{s.title}</strong>
+                    <p>{new Date(s.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}<br />{[s.selectedApplicant?.name, s.suburb].filter(Boolean).join(" · ")}</p>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                  <button type="button" className="pd-btn" onClick={() => setDetail({ id: s.id, own: true })}>View</button>
+                </div>
+              ))
+            )}
+          </section>
 
-          <Card>
-            <CardHeader><CardTitle>Service pipeline</CardTitle></CardHeader>
-            <CardContent className="divide-y divide-slate-100 py-0">
+          <section className="pd-panel">
+            <div className="pd-panel-head"><h2>Service pipeline</h2></div>
+            <div className="pd-pipeline">
               {([
                 ["Awaiting acceptance", pipeline?.awaitingAcceptance ?? 0, "/provider/my-responses"],
                 ["Awaiting intake",     pipeline?.awaitingIntake ?? 0,     "/provider/confirmed-starts"],
                 ["Start confirmed",     pipeline?.startConfirmed ?? 0,     "/provider/confirmed-starts"],
               ] as const).map(([label, n, href]) => (
-                <Link key={label} href={href} className="flex items-center justify-between px-1 py-4 hover:bg-slate-50">
-                  <span className="flex items-center gap-3 text-sm text-slate-600">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-base font-semibold text-slate-900">{n}</span>{label}
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-brand-600" />
+                <Link key={label} href={href} className="pd-pipeline-step">
+                  <span className="pd-pipeline-number">{n}</span>
+                  <span>{label}</span>
+                  <span className="pd-pipeline-arrow" aria-hidden="true">→</span>
                 </Link>
               ))}
-            </CardContent>
-          </Card>
-
-          <details className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
-            <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Users className="h-5 w-5" /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-slate-900">Team availability</span>
-                <span className="block text-xs text-slate-500">Check replies for a specific shift</span>
-              </span>
-              <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
-            </summary>
-            <div className="border-t border-slate-100">
-              {attention.length === 0 ? (
-                <p className="m-0 px-5 py-4 text-sm text-slate-500">No open shifts to check.</p>
-              ) : attention.slice(0, 3).map((j) => {
-                const t = teamReplies[j.id] ?? { available: 0, awaiting: 0 };
-                return (
-                  <div key={j.id} className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                    <div className="min-w-0">
-                      <p className="m-0 truncate text-base font-semibold text-slate-900">{j.title}</p>
-                      <p className="m-0 mt-1 truncate text-sm text-slate-500">{`${new Date(j.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · ${j.suburb}`}</p>
-                      <p className="m-0 mt-0.5 text-sm text-slate-500">{t.available} available · {t.awaiting} awaiting response</p>
-                    </div>
-                    <Link href={`/provider/team-availability?jobId=${j.id}`} className="shrink-0"><Button variant="outline" size="sm">Check</Button></Link>
-                  </div>
-                );
-              })}
-              <Link href="/provider/team-availability" className="block px-5 py-4 text-sm font-semibold text-slate-500 hover:text-brand-600">View team availability</Link>
             </div>
+          </section>
+
+          <details className="pd-panel pd-disclosure">
+            <summary>
+              <span className="pd-icon-tile"><Users /></span>
+              <span>
+                <strong>Team availability</strong>
+                <small>Check replies for a specific shift</small>
+              </span>
+              <span className="pd-disclosure-chevron">⌄</span>
+            </summary>
+            {attention.length === 0 ? (
+              <p className="pd-quiet-empty m-0">No open shifts to check.</p>
+            ) : attention.slice(0, 3).map((j) => {
+              const t = teamReplies[j.id] ?? { available: 0, awaiting: 0 };
+              return (
+                <div key={j.id} className="pd-task-row">
+                  <div>
+                    <strong>{j.title}</strong>
+                    <p>{`${new Date(j.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · ${j.suburb}`}<br />{t.available} available · {t.awaiting} awaiting response</p>
+                  </div>
+                  <Link href={`/provider/team-availability?jobId=${j.id}`} className="pd-btn">Check</Link>
+                </div>
+              );
+            })}
+            <div className="pd-disclosure-footer"><Link href="/provider/team-availability" className="pd-btn pd-btn-ghost">View team availability</Link></div>
           </details>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-card">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Repeat className="h-5 w-5" /></span>
-            <div className="min-w-0 flex-1">
-              <p className="m-0 text-sm font-semibold text-slate-900">Post again</p>
-              <p className="m-0 text-xs text-slate-500">Reuse a previous shift as a new draft</p>
+          <div className="pd-shortcut">
+            <span className="pd-icon-tile"><RefreshCw /></span>
+            <div>
+              <strong>Post again</strong>
+              <small>Reuse a previous shift as a new draft</small>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { setRepostError(null); setRepostOpen(true); }}>Choose post</Button>
+            <button type="button" className="pd-btn" onClick={() => { setRepostError(null); setRepostOpen(true); }}>Choose post</button>
           </div>
           {repostOpen && (
             <ReusePostDialog posts={past} busyId={reposting} error={repostError} onPick={postAgain} onClose={() => setRepostOpen(false)} />
           )}
 
-          <Card>
-            <CardHeader><CardTitle>Recent activity</CardTitle></CardHeader>
-            <CardContent className="py-2">
+          <section className="pd-panel">
+            <div className="pd-panel-head"><h2>Recent activity</h2></div>
+            <div className="pd-panel-pad">
               {loading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
+                <p className="m-0 text-sm text-slate-400">Loading…</p>
               ) : activity.length === 0 ? (
-                <p className="py-4 text-sm text-slate-500">No recent activity yet.</p>
+                <p className="m-0 text-sm text-slate-500">No recent activity yet.</p>
               ) : (
-                <ul className="m-0 list-none divide-y divide-slate-100 p-0">
-                  {activity.map((a) => (
-                    <li key={a.id} className="flex items-start gap-3 py-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">{ACTIVITY_ICON[a.type] ?? ACTIVITY_ICON.APPLICATION}</span>
-                      <div className="min-w-0">
-                        <p className="m-0 text-sm text-slate-800">{a.text}</p>
-                        <p className="m-0 mt-0.5 text-xs text-slate-400">{ago(a.at)}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                activity.map((a) => (
+                  <div key={a.id} className="pd-activity">
+                    <span className="pd-activity-symbol">{ACTIVITY_ICON[a.type] ?? ACTIVITY_ICON.APPLICATION}</span>
+                    <div>{a.text}<br /><small>{ago(a.at)}</small></div>
+                  </div>
+                ))
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </section>
+        </aside>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-4">
-        <p className="m-0 text-sm text-slate-500">{referral ? (referral.rewardUnlocked ? "Next month free unlocked" : `${referral.qualified} / ${referral.target} qualifying referrals · ${referral.target - referral.qualified} more to unlock your next month free`) : "Invite a Provider · Referral rewards are available exclusively to active subscribers."}</p>
-        <Link href="/provider/refer-and-earn"><Button variant="outline" size="sm">Refer &amp; Earn</Button></Link>
+      <div className="pd-peer-shortcut">
+        <span>{referral ? (referral.rewardUnlocked ? <strong>Next month free unlocked</strong> : <><strong>{referral.qualified} / {referral.target} qualifying referrals</strong> · Unlock your next month free</>) : "Invite a Provider · Referral rewards are available exclusively to active subscribers."}</span>
+        <Link href="/provider/refer-and-earn" className="pd-btn">Refer &amp; Earn</Link>
+      </div>
       </div>
     </div>
   );

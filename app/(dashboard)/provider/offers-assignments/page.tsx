@@ -50,94 +50,92 @@ export default function ProviderOffersAssignmentsPage() {
   const shownAssignments = dashFilter === "upcoming" ? assignments.filter((a) => new Date(a.scheduledStartAt).getTime() > Date.now()) : assignments;
 
   return (
-    <>
-      <PageHeader
-        crumb="Provider / Offers & Assignments"
-        title="Offers and Assignments"
-        description="An availability response or application is not a confirmed assignment."
-        actions={<Button onClick={() => setSending(true)}><Plus className="mr-1.5 h-4 w-4" /> Send offer</Button>}
-      />
-      <div className="container-page space-y-5 py-8">
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Assignments</div>
+        <div className="pd-page-head">
+          <div>
+            <h1>Offers and assignments</h1>
+            <p>An availability response or application is not a confirmed assignment.</p>
+          </div>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => setSending(true)}><Plus />Send offer</button>
+          </div>
+        </div>
         {dashFilter === "upcoming" && <DashboardFilterBanner text="upcoming confirmed assignments" onClear={clearDashFilter} />}
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {!offers && !error && <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {!offers && !error && <div className="pd-quiet-empty">Loading…</div>}
         {offers && (
           <>
-            <Card>
-              <CardHeader><div className="flex items-center justify-between"><CardTitle>Pending offers</CardTitle><span className="text-sm font-semibold text-slate-500">{pendingCount}</span></div></CardHeader>
-              <CardContent className="py-2">
-                {pendingCount === 0 ? (
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <LayoutGrid className="h-9 w-9 text-slate-300" />
-                    <p className="m-0 mt-3 text-lg font-bold text-slate-900">No offers pending</p>
-                    <p className="m-0 mt-1 text-base text-slate-500">Send an offer from a staffing request or an application.</p>
-                  </div>
-                ) : (
-                  <ul className="m-0 list-none divide-y divide-slate-100 p-0">
-                    {shownInternal.map((o) => (
-                      <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <div className="min-w-0">
-                          <p className="m-0 text-sm font-semibold text-slate-900">{o.memberName}</p>
-                          <p className="m-0 mt-0.5 text-xs text-slate-500">{o.job.title} · {fmtDay(o.job.scheduledStartAt)}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${OFFER_STATUS[o.status].cls}`}>{OFFER_STATUS[o.status].label}</span>
-                          <Button size="sm" variant="outline" onClick={() => setViewing(o.id)}>View offer</Button>
-                        </div>
-                      </li>
-                    ))}
-                    {shownOffers.map((o) => {
-                      const u = URGENCY_BADGE[o.job.urgency] ?? URGENCY_BADGE.ROUTINE;
-                      return (
-                        <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                          <div className="min-w-0">
-                            <p className="m-0 text-sm font-semibold text-slate-900">{o.job.title}</p>
-                            <p className="m-0 mt-0.5 text-xs text-slate-500">
-                              {o.kind === "INVITE" ? "Invitation to" : "Offered to"} {o.to} · {o.job.suburb} · {fmt(o.job.scheduledStartAt)}
-                              {o.amountAud != null ? ` · Direct Connect $${o.amountAud.toFixed(2)} if accepted` : ""}
-                            </p>
+            <section className="pd-panel">
+              <div className="pd-panel-head"><h2>Pending offers</h2></div>
+              {pendingCount === 0 ? (
+                <div className="pd-empty">
+                  <LayoutGrid />
+                  <h3>No offers pending</h3>
+                  <p>Send an offer from a staffing request or an application.</p>
+                </div>
+              ) : (
+                <div style={{ paddingTop: 16 }}>
+                  {shownInternal.map((o) => (
+                    <div key={o.id} className="pd-request-row">
+                      <div>
+                        <strong>{o.memberName}</strong>
+                        <div className="pd-small pd-muted">{o.job.title} · {fmtDay(o.job.scheduledStartAt)}</div>
+                      </div>
+                      <div className="pd-buttons">
+                        <span className={`pd-badge ${OFFER_STATUS[o.status].cls}`}>{OFFER_STATUS[o.status].label}</span>
+                        <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewing(o.id)}>View offer</button>
+                      </div>
+                    </div>
+                  ))}
+                  {shownOffers.map((o) => {
+                    const u = URGENCY_BADGE[o.job.urgency] ?? URGENCY_BADGE.ROUTINE;
+                    return (
+                      <div key={o.id} className="pd-request-row">
+                        <div>
+                          <strong>{o.job.title}</strong>
+                          <div className="pd-small pd-muted">
+                            {o.kind === "INVITE" ? "Invitation to" : "Offered to"} {o.to} · {o.job.suburb} · {fmt(o.job.scheduledStartAt)}
+                            {o.amountAud != null ? ` · Direct Connect $${o.amountAud.toFixed(2)} if accepted` : ""}
                           </div>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.label}</span>
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Awaiting reply</span>
-                            <Button size="sm" variant="outline" onClick={() => setAssignment(o.job.id)}>View request</Button>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+                        </div>
+                        <div className="pd-buttons">
+                          <span className={`pd-badge ${u.cls}`}>{u.label}</span>
+                          <span className="pd-badge pd-badge-orange">Awaiting reply</span>
+                          <button type="button" className="pd-btn pd-btn-sm" onClick={() => setAssignment(o.job.id)}>View request</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
 
-            <Card>
-              <CardHeader><div className="flex items-center justify-between"><CardTitle>Confirmed assignments</CardTitle><span className="text-sm font-semibold text-slate-500">{shownAssignments.length}</span></div></CardHeader>
-              <CardContent className="py-2">
-                {shownAssignments.length === 0 ? (
-                  <p className="py-4 text-sm text-slate-500">No confirmed assignments yet. Confirmed shifts show who is working on each one.</p>
-                ) : (
-                  <ul className="m-0 list-none divide-y divide-slate-100 p-0">
-                    {shownAssignments.map((a) => (
-                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                        <div className="min-w-0">
-                          <p className="m-0 text-sm font-semibold text-slate-900">{a.title}</p>
-                          <p className="m-0 mt-0.5 text-xs text-slate-500">{a.workerName} · {a.suburb} · {fmtDay(a.scheduledStartAt)}</p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => setAssignment(a.id)}>View assignment</Button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
+            <section className="pd-panel">
+              <div className="pd-panel-head"><h2>Confirmed assignments</h2></div>
+              {shownAssignments.length === 0 ? (
+                <div className="pd-quiet-empty">No confirmed assignments yet. Confirmed shifts show who is working on each one.</div>
+              ) : (
+                <div style={{ paddingTop: 16 }}>
+                  {shownAssignments.map((a) => (
+                    <div key={a.id} className="pd-request-row">
+                      <div>
+                        <strong>{a.title}</strong>
+                        <div className="pd-small pd-muted">{a.workerName} · {a.suburb} · {fmtDay(a.scheduledStartAt)}</div>
+                      </div>
+                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setAssignment(a.id)}>View assignment</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </>
         )}
       </div>
       {assignment && <RequestDetailDialog jobId={assignment} own onClose={() => setAssignment(null)} />}
       {sending && <SendInternalOfferFlow onClose={() => setSending(false)} onSent={(id) => { setSending(false); load().then(() => setViewing(id)); }} />}
       {viewingOffer && <InternalOfferDetailDialog offer={viewingOffer} onClose={() => setViewing(null)} onChanged={() => { setViewing(null); load(); }} />}
-    </>
+    </div>
   );
 }

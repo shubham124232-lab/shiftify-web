@@ -32,11 +32,11 @@ const initials = (name: string) => name.split(/\s+/).map((p) => p[0]).slice(0, 2
 const skillsOf = (j: { workerPreferences?: Record<string, unknown> | null }) => requirementLabels(j.workerPreferences);
 
 export const OFFER_STATUS: Record<InternalOffer["status"], { label: string; cls: string }> = {
-  PENDING:  { label: "Pending",  cls: "bg-brand-50 text-brand-700" },
-  ACCEPTED: { label: "Accepted", cls: "bg-emerald-50 text-emerald-700" },
-  DECLINED: { label: "Declined", cls: "bg-slate-100 text-slate-600" },
-  EXPIRED:  { label: "Expired",  cls: "bg-amber-50 text-amber-700" },
-  CONFIRMED: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-800" },
+  PENDING:  { label: "Pending",  cls: "pd-badge-pink" },
+  ACCEPTED: { label: "Accepted", cls: "pd-badge-green" },
+  DECLINED: { label: "Declined", cls: "" },
+  EXPIRED:  { label: "Expired",  cls: "pd-badge-orange" },
+  CONFIRMED: { label: "Confirmed", cls: "pd-badge-green" },
 };
 
 const footer = "border-t border-slate-100 bg-slate-50/60 px-6 py-4";

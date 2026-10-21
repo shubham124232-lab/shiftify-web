@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, MessageCircle, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
@@ -71,11 +71,93 @@ export function AppTopbar() {
     role === UserRole.PROVIDER ? "Acting as your Provider organisation — requests and responses show your organisation."
     : `Acting as ${ROLE_LABELS[role]}.`;
 
+  const isProviderUser = user.activeRole === UserRole.PROVIDER;
+
+  const profileMenuItems = (
+    <MenuItems
+      transition
+      className="absolute right-0 z-30 mt-1 w-72 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg focus:outline-none transition ease-out duration-100 data-[closed]:scale-95 data-[closed]:opacity-0 data-[closed]:transform"
+    >
+      <div className="border-b border-slate-100 px-4 py-3">
+        <p className="m-0 truncate text-sm font-semibold text-slate-900">{displayName}</p>
+        <p className="m-0 truncate text-xs text-slate-500">Provider account</p>
+      </div>
+      <MenuItem>
+        {({ focus }: { focus: boolean }) => (
+          <Link href="/profile" className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
+            <User className="h-4 w-4 text-slate-400" />
+            My profile
+          </Link>
+        )}
+      </MenuItem>
+      {PROVIDER_MENU.map((m) => (
+        <MenuItem key={m.href}>
+          {({ focus }: { focus: boolean }) => (
+            <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
+              <m.icon className="h-4 w-4 text-slate-400" />
+              {m.label}
+            </Link>
+          )}
+        </MenuItem>
+      ))}
+      <MenuItem>
+        {({ focus }: { focus: boolean }) => (
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className={cn("flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}
+          >
+            <LogOut className="h-4 w-4 text-slate-400" />
+            Sign out
+          </button>
+        )}
+      </MenuItem>
+    </MenuItems>
+  );
+
+  // Provider demo header: full-width, 88px, logo + organisation on the left, branch / bell / messages / profile on the right.
+  if (isProviderUser) {
+    return (
+      <header className="z-20 flex h-[88px] shrink-0 items-center gap-6 border-b border-[#e4e6ed] bg-white px-8 py-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo.png" alt="Shiftify" className="h-16 w-32 shrink-0 object-contain" />
+        <ProviderIdentity />
+        <div className="flex-1" />
+        <div className="flex items-center gap-3">
+          <BranchWorkspaceSelect />
+          <button
+            type="button"
+            onClick={() => router.push("/notifications")}
+            className="relative grid h-11 w-8 place-items-center rounded-lg border border-[#e4e6ed] bg-white text-[#525766] hover:bg-slate-50"
+            aria-label="Notifications"
+          >
+            <Bell className="h-[18px] w-[18px]" />
+            {hasUnread && <span className="absolute right-[7px] top-[5px] h-1.5 w-1.5 rounded-full bg-[#c91355]" />}
+          </button>
+          <Link
+            href="/messages"
+            className="grid h-11 w-8 place-items-center rounded-lg border border-[#e4e6ed] bg-white text-[#525766] hover:bg-slate-50"
+            aria-label="Messages"
+          >
+            <MessageCircle className="h-[18px] w-[18px]" />
+          </Link>
+          <Menu as="div" className="relative">
+            <MenuButton className="flex items-center gap-[7px] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Profile menu">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#fde8f0] text-sm font-bold text-[#c91355]">{initials(displayName)}</span>
+              <span className="text-base leading-none text-slate-700">⌄</span>
+            </MenuButton>
+            {profileMenuItems}
+          </Menu>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
       {/* Left: active role + status */}
       <div className="flex items-center gap-2">
-        {user.activeRole === UserRole.PROVIDER ? <ProviderIdentity /> : (
+        {isProviderUser ? <ProviderIdentity /> : (
           <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", ROLE_COLORS[user.activeRole])}>
             {ROLE_LABELS[user.activeRole]}
           </span>
@@ -89,7 +171,7 @@ export function AppTopbar() {
 
       {/* Right: bell + messages + account menu */}
       <div className="flex items-center gap-2">
-        {user.activeRole === UserRole.PROVIDER && <BranchWorkspaceSelect />}
+        {isProviderUser && <BranchWorkspaceSelect />}
         <button
           type="button"
           onClick={() => router.push("/notifications")}
@@ -107,7 +189,7 @@ export function AppTopbar() {
           className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 sm:flex"
         >
           <MessageSquare className="h-[18px] w-[18px]" />
-          {user.activeRole === UserRole.PROVIDER ? <span className="sr-only">Messages</span> : "Messages"}
+          {isProviderUser ? <span className="sr-only">Messages</span> : "Messages"}
         </Link>
 
         <Menu as="div" className="relative">
@@ -115,7 +197,7 @@ export function AppTopbar() {
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
               {initials(displayName)}
             </span>
-            <span className={cn("max-w-[120px] truncate font-medium", user.activeRole === UserRole.PROVIDER && "hidden")}>{displayName}</span>
+            <span className={cn("max-w-[120px] truncate font-medium", isProviderUser && "hidden")}>{displayName}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           </MenuButton>
 
@@ -156,7 +238,7 @@ export function AppTopbar() {
               </MenuItem>
 
               {/* Provider handoff: profile menu also opens Documents, billing, Settings and Help & Tickets. */}
-              {user.activeRole === "PROVIDER" && PROVIDER_MENU.map((m) => (
+              {isProviderUser && PROVIDER_MENU.map((m) => (
                 <MenuItem key={m.href}>
                   {({ focus }: { focus: boolean }) => (
                     <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>

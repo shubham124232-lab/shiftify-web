@@ -28,10 +28,10 @@ export interface ProviderRequestRow {
 }
 
 export const URGENCY_BADGE: Record<string, { label: string; cls: string }> = {
-  RAPID:       { label: "Rapid",       cls: "bg-red-100 text-red-700" },
-  URGENT:      { label: "Urgent",      cls: "bg-amber-100 text-amber-700" },
-  LAST_MINUTE: { label: "Last-Minute", cls: "bg-orange-100 text-orange-700" },
-  ROUTINE:     { label: "Routine",     cls: "bg-slate-100 text-slate-600" },
+  RAPID:       { label: "Rapid",       cls: "pd-badge-rapid" },
+  URGENT:      { label: "Urgent",      cls: "pd-badge-urgent" },
+  LAST_MINUTE: { label: "Last-Minute", cls: "pd-badge-last-minute" },
+  ROUTINE:     { label: "Routine",     cls: "pd-badge-routine" },
 };
 
 const FUNDING: Record<string, string> = { SELF_MANAGED: "Self-managed", PLAN_MANAGED: "Plan-managed", NDIA_MANAGED: "NDIA-managed", PRIVATE: "Private" };

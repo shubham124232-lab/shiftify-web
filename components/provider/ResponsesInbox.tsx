@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { useAuth } from "@/hooks/useAuth";
 import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 import { Button } from "@/components/ui/button";
-import { MapPin, Search, RefreshCw, ShieldCheck } from "lucide-react";
+import { RefreshCw, Users, LayoutGrid } from "lucide-react";
 
 interface Inquiry {
   id: string; body: string; createdAt: string; readAt: string | null;
@@ -280,48 +280,56 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   const [openConv, setOpenConv] = useState<string | null>(null);
   const interest = threads.filter((t) => !q.trim() || `${t.other} ${t.listingTitle ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
   const interestList = (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search enquiries" value={q} onChange={(e) => setQ(e.target.value)} />
-        </div>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={() => setQ("")}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+    <>
+      <div className="pd-toolbar">
+        <input placeholder="Search enquiries" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search enquiries" />
+        <button type="button" className="pd-btn" onClick={() => setQ("")}><RefreshCw />Clear filters</button>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-white">
-        <h2 className="m-0 border-b border-slate-100 px-6 py-4 text-lg font-bold text-slate-900">Incoming interest</h2>
-        {interest.length === 0 ? <div className="px-6 py-10 text-center text-sm text-slate-500">No incoming interest yet. Answering an enquiry is free and never uses a Provider Action.</div> : (
-          <ul className="m-0 list-none divide-y divide-slate-100 p-0">
+      <section className="pd-panel">
+        <div className="pd-panel-head"><h2>Incoming interest</h2></div>
+        {interest.length === 0 ? <div className="pd-quiet-empty">No incoming interest yet. Answering an enquiry is free and never uses a Provider Action.</div> : (
+          <div style={{ paddingTop: 16 }}>
             {interest.map((t) => {
               const label = t.unread || t.status === "NEW" ? "New" : t.status === "FOLLOW_UP" ? "Follow-up" : (STATUS_LABELS[t.status] ?? t.status);
               const canOpen = t.messages.some((m) => m.recipientUserId === me && m.id === t.rootId);
               return (
-                <li key={t.rootId} className="px-6 py-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-base font-bold text-slate-900">{t.other}</span>
-                        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${label === "New" ? "bg-brand-50 text-brand-700" : label === "Follow-up" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{label}</span>
+                <div key={t.rootId}>
+                  <article className="pd-request-row">
+                    <div>
+                      <div className="pd-row-title">
+                        <strong>{t.other}</strong>
+                        <span className={`pd-badge ${label === "New" ? "pd-badge-pink" : label === "Follow-up" ? "pd-badge-orange" : ""}`}>{label}</span>
                       </div>
-                      <p className="m-0 mt-1 text-sm text-slate-500">{t.listingTitle ? `About: ${t.listingTitle} · ` : ""}Owner: {t.intake?.ownerName ?? "Unassigned"}</p>
+                      <div className="pd-small pd-muted">{t.listingTitle ? `About: ${t.listingTitle}` : "Direct enquiry"}</div>
+                      <div className="pd-small pd-muted">Owner: {t.intake?.ownerName ?? "Unassigned"}</div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</Button>
-                      {canOpen && <Button size="sm" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</Button>}
+                    <div className="pd-buttons">
+                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</button>
+                      {canOpen && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</button>}
                     </div>
-                  </div>
-                  {openConv === t.rootId && <div className="mt-3">{threadList([t], "")}</div>}
-                </li>
+                  </article>
+                  {openConv === t.rootId && <div style={{ margin: "0 24px 16px" }}>{threadList([t], "")}</div>}
+                </div>
               );
             })}
-          </ul>
+          </div>
         )}
-      </div>
-    </div>
+      </section>
+    </>
   );
 
   const intakeThread = intakeFor ? threads.find((t) => t.rootId === intakeFor) ?? null : null;
-  const empty = (title: string, hint: string) => (
+  const pdView = view !== "all";
+  const empty = (title: string, hint: string, action?: React.ReactNode) => pdView ? (
+    <div className="pd-grid2">
+      <div className="pd-empty">
+        <LayoutGrid />
+        <h3>{title}</h3>
+        <p>{hint}</p>
+        {action}
+      </div>
+    </div>
+  ) : (
     <div className="text-center py-12">
       <p className="text-base font-semibold text-slate-700">{title}</p>
       <p className="text-sm text-slate-400 mt-1">{hint}</p>
@@ -383,43 +391,49 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   const oppStatuses = Array.from(new Set(opps.map(opportunityLabel)));
 
   return (
-    <>
+    <div className={pdView ? "pd-workspace" : "contents"}>
+      <div className={pdView ? "pd-content" : "contents"}>
       {view === "responses" ? (
-        <div className="px-8 pt-6">
-          <p className="m-0 text-xs text-slate-400">Provider / Responses</p>
-          <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
+        <>
+          <div className="pd-breadcrumb">Provider / Responses</div>
+          <div className="pd-page-head">
             <div>
-              <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">My Provider responses</h1>
-              <p className="m-0 mt-1.5 text-[15px] text-slate-500">Track proposals, discussions and agreed service starts.</p>
+              <h1>My Provider responses</h1>
+              <p>Track proposals, discussions and agreed service starts.</p>
             </div>
+            <div className="pd-buttons" />
           </div>
-          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="relative min-w-[220px] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm" placeholder="Search responses" value={q} onChange={(e) => setQ(e.target.value)} />
-            </div>
-            <select className="h-10 rounded-lg border border-slate-200 px-3 text-sm" value={statusF} onChange={(e) => setStatusF(e.target.value)}>
+          <div className="pd-toolbar">
+            <input placeholder="Search records" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search responses" />
+            <select value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
               <option value="">All statuses</option>
               {oppStatuses.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
-            <Button variant="outline" size="sm" className="ml-auto" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+            <button type="button" className="pd-btn" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw />Clear filters</button>
           </div>
-        </div>
+        </>
+      ) : view === "enquiries" ? (
+        <>
+          <div className="pd-breadcrumb">Provider / Enquiries</div>
+          <div className="pd-page-head">
+            <div>
+              <h1>Enquiries and applications</h1>
+              <p>Respond, allocate an intake owner and track the next step on applications and enquiries about your posts and listings.</p>
+            </div>
+            <div className="pd-buttons">
+              <button type="button" className="pd-btn" onClick={() => setTab(tab === "workers" ? "enquiries" : "workers")}><Users />{tab === "workers" ? "Incoming interest" : `Worker applications${newWorkers > 0 ? ` (${newWorkers})` : ""}`}</button>
+            </div>
+          </div>
+        </>
       ) : (
       <PageHeader
-        crumb={view === "enquiries" ? "Provider / Enquiries" : undefined}
-        title={view === "enquiries" ? "Enquiries & Applications" : "Responses & Enquiries"}
-        description={view === "enquiries"
-          ? "Respond, allocate an intake owner and track the next step on applications and enquiries about your posts and listings."
-          : "One inbox for worker responses, replies to your proposals, enquiries, Home and Living enquiries and system messages."}
-        actions={view === "enquiries"
-          ? <Button variant="outline" onClick={() => setTab(tab === "workers" ? "enquiries" : "workers")}>{tab === "workers" ? "Incoming interest" : `Worker applications${newWorkers > 0 ? ` (${newWorkers})` : ""}`}</Button>
-          : undefined}
+        title="Responses & Enquiries"
+        description="One inbox for worker responses, replies to your proposals, enquiries, Home and Living enquiries and system messages."
       />
       )}
       {mapOpen && <NearbyRequestsDialog mode="opportunity" requests={filteredOpps.map((o) => ({ id: o.job.id, title: o.job.title, urgency: o.job.urgency as never, suburb: o.job.suburb ?? "", scheduledStartAt: o.job.scheduledStartAt ?? "", status: o.job.status as never, state: null }))}
         onClose={() => setMapOpen(false)} onOpen={(id) => { setMapOpen(false); setViewJob({ id, own: false }); }} />}
-      <div className={view === "responses" ? "px-8 py-6" : "max-w-3xl mx-auto px-5 py-6"}>
+      <div className={pdView ? "" : "max-w-3xl mx-auto px-5 py-6"}>
         {view === "all" && <div className="flex gap-2 flex-wrap mb-5">
           {tabs.length > 1 && tabs.map((t) => (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
@@ -431,7 +445,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
           <Link href="/messages" className="h-8 px-4 rounded-full border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 no-underline inline-flex items-center">Messages</Link>
         </div>}
 
-        {error && <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 text-sm text-red-700 mb-4">{error}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
         {viewJob && <RequestDetailDialog jobId={viewJob.id} own={viewJob.own} onClose={() => setViewJob(null)} />}
         {intakeThread && (
@@ -439,9 +453,25 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
             onSaved={() => { setIntakeFor(null); void load(); }} />
         )}
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <p className={pdView ? "pd-quiet-empty" : "text-sm text-slate-400"}>Loading...</p>
         ) : tab === "workers" ? (
-          workers.length === 0 ? empty(view === "enquiries" ? "No applications yet" : "No worker responses yet", "Applications to your staffing requests will show up here.") : (
+          workers.length === 0 ? empty(view === "enquiries" ? "No applications yet" : "No worker responses yet", "Applications to your staffing requests will show up here.") : pdView ? (
+            <section className="pd-panel">
+              <div className="pd-panel-head"><h2>Worker applications</h2></div>
+              <div style={{ paddingTop: 16 }}>
+                {workers.map((w) => (
+                  <article key={w.id} className="pd-request-row">
+                    <div>
+                      <div className="pd-row-title"><strong>{w.applicantName ?? "Worker"}</strong><span className="pd-badge pd-badge-pink">{staffingLabel(w)}</span></div>
+                      <div className="pd-small pd-muted">{w.job.title}{w.job.suburb ? ` · ${w.job.suburb}` : ""}</div>
+                      <div className="pd-small pd-muted">{[w.availabilityType ? AVAILABILITY[w.availabilityType] : null, w.rateResponse ? RATE[w.rateResponse] : null].filter(Boolean).join(" · ") || "Open the request to compare and confirm."}</div>
+                    </div>
+                    <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setViewJob({ id: w.job.id, own: true })}>View request</button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : (
             <div className="flex flex-col gap-2.5">
               {workers.map((w) => (
                 <button key={w.id} type="button" onClick={() => setViewJob({ id: w.job.id, own: true })} className="w-full text-left bg-white border border-slate-200 rounded-xl px-4 py-3.5 block hover:border-slate-300">
@@ -458,19 +488,20 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
             </div>
           )
         ) : tab === "opportunities" ? (
-          filteredOpps.length === 0 ? empty("No responses yet", "Opportunities you respond to as a Provider, and what the Participant or Coordinator did with them, are tracked here.") : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          filteredOpps.length === 0 ? (pdView
+            ? empty("No proposals yet", "Browse Participant and Coordinator requests and respond as your organisation.", <Link href="/jobs" className="pd-btn pd-btn-primary">Browse requests</Link>)
+            : empty("No responses yet", "Opportunities you respond to as a Provider, and what the Participant or Coordinator did with them, are tracked here.")) : (
+            <div className="pd-grid2">
               {filteredOpps.map((o) => (
-                <div key={o.id} className="rounded-2xl border border-slate-200 bg-white p-5">
-                  <StatusPill label={opportunityLabel(o)} />
-                  <h3 className="m-0 mt-3 text-lg font-bold text-slate-900">{o.job.title}</h3>
-                  <p className="m-0 mt-1.5 text-sm text-slate-500">Submitted as Provider{o.job.suburb ? ` · ${o.job.suburb}` : ""}</p>
-                  <p className="m-0 mt-1 text-xs text-slate-400">Updated {new Date(o.updatedAt).toLocaleDateString("en-AU")}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setViewJob({ id: o.job.id, own: false })}>View response</Button>
-                    <Link href="/messages"><Button variant="outline" size="sm" type="button">Open conversation</Button></Link>
+                <article key={o.id} className="pd-record-card">
+                  <div className="pd-tags"><span className="pd-badge pd-badge-pink">{opportunityLabel(o)}</span></div>
+                  <h2>{o.job.title}</h2>
+                  <div className="pd-card-body">Submitted as Provider{o.job.suburb ? ` · ${o.job.suburb}` : ""}<br />Updated {new Date(o.updatedAt).toLocaleDateString("en-AU")}</div>
+                  <div className="pd-buttons">
+                    <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewJob({ id: o.job.id, own: false })}>View response</button>
+                    <Link href="/messages" className="pd-btn pd-btn-sm pd-btn-primary">Message</Link>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )
@@ -491,6 +522,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
           </div>
         )}
       </div>
-    </>
+      </div>
+    </div>
   );
 }

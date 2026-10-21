@@ -1,5 +1,7 @@
 "use client";
 
+import "@/app/provider-demo.css";
+
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -147,15 +149,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="td-theme flex h-screen flex-col" data-active-role={user?.activeRole}>
       {user?.activeRole === "PROVIDER" && (
-        <div className="flex h-8 shrink-0 items-center justify-between bg-slate-950 px-6 text-[11px] font-semibold uppercase tracking-wider text-white">
+        <div className="flex h-7 shrink-0 items-center justify-between bg-slate-950 px-8 text-[11px] font-semibold uppercase tracking-wider text-white">
           <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />24/7 LIVE</span>
           <span>0% Platform commission</span>
         </div>
       )}
+      {/* Provider demo shell: the header spans the full width above the menu and the page. */}
+      {user?.activeRole === "PROVIDER" && <AppTopbar />}
       <div className="flex min-h-0 flex-1">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          <AppTopbar />
+          {user?.activeRole !== "PROVIDER" && <AppTopbar />}
           <StatusBanner />
           <ResumeDraftBanner />
           <AdminInviteBanner />

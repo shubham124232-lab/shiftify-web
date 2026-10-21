@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { Plus, ShieldCheck } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, ShieldCheck, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { SendInternalOfferFlow } from "@/components/provider/InternalOfferDialogs";
@@ -25,11 +24,11 @@ interface ShiftOption { id: string; title: string; status: string; scheduledStar
 const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
 
 const STATUS: Record<Member["status"], { label: string; cls: string }> = {
-  AVAILABLE: { label: "Available", cls: "bg-emerald-100 text-emerald-700" },
-  ON_SHIFT:  { label: "On shift",  cls: "bg-sky-100 text-sky-700" },
-  INVITED:   { label: "Invited",   cls: "bg-amber-100 text-amber-700" },
-  NOT_SET:   { label: "No availability set", cls: "bg-slate-100 text-slate-500" },
-  VERIFIED:  { label: "Verified",  cls: "bg-slate-100 text-slate-600" },
+  AVAILABLE: { label: "Available", cls: "pd-badge-green" },
+  ON_SHIFT:  { label: "On shift",  cls: "pd-badge-blue" },
+  INVITED:   { label: "Invited",   cls: "pd-badge-orange" },
+  NOT_SET:   { label: "No availability set", cls: "" },
+  VERIFIED:  { label: "Verified",  cls: "" },
 };
 const REPLY: Record<Reply["status"], { label: string; cls: string }> = {
   PENDING:     { label: "Waiting", cls: "bg-slate-100 text-slate-500" },
@@ -100,18 +99,18 @@ export default function ProviderTeamAvailabilityPage() {
   }
 
   return (
-    <>
-      <div className="space-y-5 px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">Provider / Availability</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Availability</div>
+        <div className="pd-page-head">
           <div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Internal team availability</h1>
-            <p className="m-0 mt-1.5 text-[15px] text-slate-500">Check eligible team members before filling or broadcasting a gap.</p>
+            <h1>Internal team availability</h1>
+            <p>Check eligible team members before filling or broadcasting a gap.</p>
           </div>
-          <Button onClick={() => { setChoosing(true); setNotice(null); }}><Plus className="mr-1.5 h-4 w-4" />Request availability</Button>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => { setChoosing(true); setNotice(null); }}><Plus />Request availability</button>
+          </div>
         </div>
-      </div>
-      <div className="space-y-5 px-8 py-6">
         {choosing && (
           <ModalShell title="Choose an active shift" onClose={() => setChoosing(false)}>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
@@ -131,13 +130,13 @@ export default function ProviderTeamAvailabilityPage() {
             <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4"><Button variant="outline" onClick={() => setChoosing(false)}>Close</Button></div>
           </ModalShell>
         )}
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {notice && <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">{notice}</div>}
 
         {composing && (
-          <Card>
-            <CardContent className="space-y-3 px-5 py-4">
-              <p className="m-0 text-sm font-semibold text-slate-900">Request availability</p>
+          <section className="pd-panel">
+            <div className="pd-panel-head"><h2>Request availability</h2></div>
+            <div className="pd-panel-pad space-y-3">
               <label className="block text-xs font-semibold text-slate-700">Shift
                 <select value={jobId} onChange={(e) => setJobId(e.target.value)} className="mt-1 block h-9 w-full rounded-lg border border-slate-200 px-2 text-sm font-normal">
                   <option value="">{shifts.length ? "Choose a shift" : "No upcoming shifts — post one first"}</option>
@@ -152,49 +151,41 @@ export default function ProviderTeamAvailabilityPage() {
                 {selectedCount === 0 ? "Tick the team members to ask below." : `${selectedCount} team member${selectedCount === 1 ? "" : "s"} selected.`}
                 {" "}Availability checks never use a Provider Action.
               </p>
-              <div className="flex gap-2">
-                <Button size="sm" disabled={!canSend || sending} onClick={send}>{sending ? "Sending…" : "Send request"}</Button>
-                <Button size="sm" variant="outline" onClick={() => { setComposing(false); setSelected(new Set()); }}>Cancel</Button>
+              <div className="pd-buttons">
+                <button type="button" className="pd-btn pd-btn-primary" disabled={!canSend || sending} onClick={send}>{sending ? "Sending…" : "Send request"}</button>
+                <button type="button" className="pd-btn" onClick={() => { setComposing(false); setSelected(new Set()); }}>Cancel</button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         )}
 
         {loading ? (
-          <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="pd-quiet-empty">Loading…</div>
         ) : members.length === 0 ? (
-          <Card><CardContent className="py-10 text-center text-sm text-slate-500">
-            No team members yet. <Link href="/provider/workforce" className="font-semibold text-brand-600 hover:underline">Add people to your Internal Team</Link> to check their availability.
-          </CardContent></Card>
+          <section className="pd-panel"><div className="pd-quiet-empty text-center">
+            No team members yet. <Link href="/provider/workforce" className="pd-textbtn">Add people to your Internal Team</Link> to check their availability.
+          </div></section>
         ) : (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="pd-grid3">
             {members.map((m) => {
               const st = STATUS[m.status];
               return (
-                <Card key={m.key}>
-                  <CardContent className="space-y-3 py-5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700">
-                          {m.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
-                        </span>
-                        <div>
-                          <p className="m-0 text-sm font-semibold text-slate-900">{m.name}</p>
-                          <p className="m-0 text-xs text-slate-500">{m.branch ?? "Worker with login"}{m.upcomingAssignments ? ` · ${m.upcomingAssignments} upcoming` : ""}</p>
-                        </div>
-                      </div>
-                      {composing && (
-                        <input type="checkbox" checked={selected.has(m.key)} onChange={() => toggle(m.key)} className="mt-1 h-4 w-4" aria-label={`Ask ${m.name}`} />
-                      )}
+                <article key={m.key} className="pd-record-card">
+                  <div className="pd-card-header">
+                    <span className="pd-avatar">{m.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}</span>
+                    <div>
+                      <h3>{m.name}</h3>
+                      <span className="pd-small pd-muted">{m.branch ?? "Worker with login"}{m.upcomingAssignments ? ` · ${m.upcomingAssignments} upcoming` : ""}</span>
                     </div>
-                    <span className={`block rounded-md px-2.5 py-1 text-xs font-semibold ${st.cls}`}>{st.label}</span>
-                    {m.status === "INVITED" && <p className="m-0 text-sm text-slate-500">Complete credentials before confirmation.</p>}
-                    <div className="space-y-2.5">
-                      <Button className="w-full" variant="outline" onClick={() => setProfile(m)}>View worker</Button>
-                      <Button className="w-full" onClick={() => ask(m.key)}>Send availability request</Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    {composing && (
+                      <input type="checkbox" checked={selected.has(m.key)} onChange={() => toggle(m.key)} className="h-4 w-4" aria-label={`Ask ${m.name}`} />
+                    )}
+                  </div>
+                  <span className={`pd-badge ${st.cls}`}>{st.label}</span>
+                  {m.status === "INVITED" && <div className="pd-small pd-muted">Complete credentials before confirmation.</div>}
+                  <button type="button" className="pd-btn pd-btn-sm" onClick={() => setProfile(m)}>View worker</button>
+                  <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => ask(m.key)}>Send availability request</button>
+                </article>
               );
             })}
           </div>
@@ -240,16 +231,17 @@ export default function ProviderTeamAvailabilityPage() {
         {editRosterId && <TeamMemberDialog memberId={editRosterId} onClose={() => setEditRosterId(null)} onSaved={(m) => { setEditRosterId(null); setNotice(m); void load(); }} />}
         {offering && <SendInternalOfferFlow onClose={() => { setOffering(false); setProfile(null); }} onSent={() => { setOffering(false); setProfile(null); setNotice("Offer sent. A response is not a confirmed assignment."); }} />}
 
-        <Card className="rounded-2xl">
-          <CardHeader><CardTitle>Availability requests</CardTitle></CardHeader>
-          <CardContent className="py-2">
+        <section className="pd-panel">
+          <div className="pd-panel-head"><h2>Availability requests</h2></div>
+          <div>
             {requests.length === 0 ? (
-              <div className="py-4 text-sm text-slate-500">
-                <p className="m-0 font-semibold text-slate-700">No internal requests sent</p>
-                <p className="m-0 mt-1">Choose a shift and ask your team about availability.</p>
+              <div className="pd-empty">
+                <LayoutGrid />
+                <h3>No internal requests sent</h3>
+                <p>Choose a shift and ask your team about availability.</p>
               </div>
             ) : (
-              <ul className="m-0 list-none divide-y divide-slate-100 p-0">
+              <ul className="m-0 list-none divide-y divide-slate-100 px-6 py-2">
                 {requests.map((r) => (
                   <li key={r.id} className="space-y-2 py-3">
                     <div>
@@ -275,9 +267,9 @@ export default function ProviderTeamAvailabilityPage() {
                 ))}
               </ul>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
-    </>
+    </div>
   );
 }

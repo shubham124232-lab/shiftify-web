@@ -75,49 +75,51 @@ export function ProviderBilling() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-5 px-5 py-6">
-      <div>
-        <p className="m-0 text-xs text-slate-500">Provider / Billing</p>
-        <h1 className="m-0 mt-2 text-3xl font-bold text-slate-900">Subscription and billing</h1>
-        <p className="m-0 mt-1 text-sm text-slate-500">Organisation-wide access. Matching and internal assignments are included.</p>
+    <div className="pd-workspace">
+      <div className="pd-content">
+      <div className="pd-breadcrumb">Provider / Billing</div>
+      <div className="pd-page-head">
+        <div>
+          <h1>Subscription and billing</h1>
+          <p>Organisation-wide access. Matching and internal assignments are included.</p>
+        </div>
+        <div className="pd-buttons" />
       </div>
 
-      {error && <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>}
-      {notice && <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{notice}</p>}
+      {error && <p className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {notice && <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
 
       {base ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-900 px-6 py-5 text-white">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <div>
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-300">Current access</p>
-              <p className="m-0 mt-1 text-xl font-bold">{shortName(base.plan.name)} · {isAnnual(base.plan.key) ? "annual" : "monthly"}</p>
-              <p className="m-0 mt-0.5 text-xs text-slate-300">{cancelled ? `Paid through ${day(base.currentPeriodEnd)} · will not renew` : `Paid through ${day(base.currentPeriodEnd)}`}</p>
-            </div>
-            <div>
-              <p className="m-0 text-lg font-bold">{money(base.plan.amountAud)}</p>
-              <p className="m-0 text-xs text-slate-300">per {isAnnual(base.plan.key) ? "year" : "month"}</p>
-            </div>
+        <div className="pd-billing-summary">
+          <div>
+            <div className="pd-eyebrow">Current access</div>
+            <h2 style={{ margin: "5px 0 0", fontSize: 20, fontWeight: 800 }}>{shortName(base.plan.name)} · {isAnnual(base.plan.key) ? "annual" : "monthly"}</h2>
+            <div className="pd-small pd-muted">{cancelled ? `Paid through ${day(base.currentPeriodEnd)} · will not renew` : `Paid through ${day(base.currentPeriodEnd)}`}</div>
           </div>
-          {!cancelled && <Button variant="outline" className="bg-white text-slate-900" disabled={busy === "cancel"} onClick={cancelRenewal}>Cancel future renewal</Button>}
+          <div>
+            <strong style={{ fontSize: 20 }}>{money(base.plan.amountAud)}</strong>
+            <div className="pd-small pd-muted">per {isAnnual(base.plan.key) ? "year" : "month"}</div>
+          </div>
+          {!cancelled && <button type="button" className="pd-btn" disabled={busy === "cancel"} onClick={cancelRenewal}>Cancel future renewal</button>}
         </div>
       ) : (
-        <div className="rounded-xl bg-slate-900 px-6 py-5 text-white">
-          <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-300">Current access</p>
-          <p className="m-0 mt-1 text-xl font-bold">No active plan</p>
-          <p className="m-0 mt-0.5 text-xs text-slate-300">Choose a plan below. Existing applications, messages and confirmed work stay accessible.</p>
+        <div className="pd-billing-summary">
+          <div>
+            <div className="pd-eyebrow">Current access</div>
+            <h2 style={{ margin: "5px 0 0", fontSize: 20, fontWeight: 800 }}>No active plan</h2>
+            <div className="pd-small pd-muted">Choose a plan below. Existing applications, messages and confirmed work stay accessible.</div>
+          </div>
         </div>
       )}
 
       {cap && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="pd-capacity">
           {([["Administrators", cap.administrators], ["Internal Team Members", cap.teamMembers], ["Branches", cap.branches]] as const).map(([label, v]) => (
-            <div key={label} className="rounded-xl border border-slate-200 bg-white px-5 py-4">
-              <p className="m-0 text-sm text-slate-500">{label}</p>
-              <p className="m-0 mt-1 text-xl font-bold text-slate-900">{v.used} / {v.max ?? "∞"}</p>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-brand-600" style={{ width: `${v.max ? Math.min(100, (v.used / v.max) * 100) : 0}%` }} />
-              </div>
-              <p className="m-0 mt-3 text-xs text-slate-500">Unique people count once Provider-wide.</p>
+            <div key={label} className="pd-meter">
+              <div className="pd-small pd-muted">{label}</div>
+              <strong>{v.used} <span className="pd-muted">/ {v.max ?? "∞"}</span></strong>
+              <div className="pd-progress"><span style={{ width: `${v.max ? Math.min(100, (v.used / v.max) * 100) : 0}%` }} /></div>
+              <small className="pd-muted">Unique people count once Provider-wide.</small>
             </div>
           ))}
         </div>
@@ -126,85 +128,91 @@ export function ProviderBilling() {
       {cap && ([["Administrators", cap.administrators], ["Internal Team Members", cap.teamMembers], ["Branches", cap.branches]] as const)
         .filter(([, v]) => v.max != null && v.used > v.max)
         .map(([label, v]) => (
-          <p key={label} className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          <p key={label} className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             {label} are over your plan limit ({v.used} of {v.max}). Choose a larger plan, or contact Shiftify for more capacity.
           </p>
         ))}
       {!base && allowance?.applies && allowance.limit != null && (
-        <p className="m-0 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600">
+        <div className="pd-info-banner">
           {allowance.used ?? 0} of {allowance.limit} once-only introductory Provider actions used. They never reset or expire.
-        </p>
+        </div>
       )}
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="pd-page-head" id="plans">
         <div>
-          <h2 className="m-0 text-xl font-bold text-slate-900">Choose the right organisation capacity</h2>
-          <p className="m-0 mt-1 text-sm text-slate-500">Unlimited genuine Provider posts and responses in every paid plan.</p>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Choose the right organisation capacity</h2>
+          <p>Unlimited genuine Provider posts and responses in every paid plan.</p>
         </div>
-        <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
-          <button type="button" onClick={() => setAnnual(false)} className={`px-4 py-2 ${!annual ? "bg-slate-900 text-white" : "text-slate-500"}`}>Monthly</button>
-          <button type="button" onClick={() => setAnnual(true)} className={`px-4 py-2 ${annual ? "bg-slate-900 text-white" : "text-slate-500"}`}>Annual · save 35%</button>
+        <div className="pd-toggle">
+          <button type="button" onClick={() => setAnnual(false)} className={!annual ? "active" : ""}>Monthly</button>
+          <button type="button" onClick={() => setAnnual(true)} className={annual ? "active" : ""}>Annual · save 35%</button>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="pd-plans">
         {orgPlans.map((p) => {
           const current = base?.plan.key === p.key && !cancelled;
           const recommended = stem(p.key).endsWith("_TEAM");
           const lines = (p.features ?? []).filter((f) => !/^Billed annually/.test(f)).concat(BULLETS);
           return (
-            <div key={p.id} className={`relative flex flex-col rounded-xl border bg-white p-5 ${current || recommended ? "border-2 border-brand-600" : "border-slate-200"}`}>
-              {recommended && <span className="absolute -top-3 left-4 rounded bg-brand-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Growing teams</span>}
-              <h3 className="m-0 text-lg font-bold text-slate-900">{shortName(p.name)}</h3>
-              <p className="m-0 mt-3 text-3xl font-bold text-slate-900">{money(p.amountAud)}<span className="text-sm font-normal text-slate-500">/{annual ? "year" : "month"}</span></p>
-              <p className="m-0 mt-1 text-xs text-slate-500">{annual ? "Billed annually · 35% off" : "Billed monthly"}</p>
-              <ul className="m-0 mt-4 flex-1 list-none space-y-2 p-0">
-                {lines.map((f) => <li key={f} className="flex items-start gap-2 text-sm text-slate-600"><Check className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />{f}</li>)}
+            <article key={p.id} className={`pd-plan${current || recommended ? " recommended" : ""}`}>
+              {recommended && <span className="pd-plan-ribbon">GROWING TEAMS</span>}
+              <h2>{shortName(p.name)}</h2>
+              <div className="pd-price">{money(p.amountAud)}<small>/{annual ? "year" : "month"}</small></div>
+              <div className="pd-small pd-muted">{annual ? "Billed annually · 35% off" : "Billed monthly"}</div>
+              <ul>
+                {lines.map((f) => <li key={f}><Check />{f}</li>)}
               </ul>
-              <Button className="mt-5 w-full" disabled={!!busy} onClick={() => (current ? setDialog("settings") : setCheckout(p))}>
+              <button type="button" className="pd-btn pd-btn-primary" disabled={!!busy} onClick={() => (current ? setDialog("settings") : setCheckout(p))}>
                 {current ? `Manage ${shortName(p.name)}` : `Choose ${shortName(p.name)}`}
-              </Button>
-            </div>
+              </button>
+            </article>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm text-slate-500">
+      <div className="pd-info-banner">
         More capacity?
-        <a href="mailto:support@shiftify.com.au" className="rounded-lg border border-slate-200 px-3 py-1.5 font-semibold text-slate-800 no-underline hover:bg-slate-50">Contact Shiftify</a>
+        <a href="mailto:support@shiftify.com.au" className="pd-btn pd-btn-sm">Contact Shiftify</a>
         No public Enterprise plan or separate capacity add-ons.
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <h3 className="m-0 border-b border-slate-100 px-5 py-4 text-base font-bold text-slate-900">Pay as you go</h3>
-          <div className="px-5 py-5">
-            <p className="m-0 text-3xl font-bold text-slate-900">{money(passPrice)} <span className="text-sm font-normal text-slate-500">/ action</span></p>
-            <p className="m-0 mt-3 text-sm text-slate-500">Publish one external staffing request or submit one Provider-initiated response. Resulting applications, messages and confirmed work remain accessible.</p>
-            <Button className="mt-4" disabled={!!busy} onClick={() => run("pass", async () => { await api.post("/subscriptions/shift-pass", {}); }, "Shift Pass purchased. It is applied to your next chargeable action.")}>
+      <div className="pd-grid2">
+        <section className="pd-panel">
+          <div className="pd-panel-head"><h2>Pay as you go</h2></div>
+          <div className="pd-panel-pad">
+            <div className="pd-money">{money(passPrice)} <small className="pd-muted" style={{ fontSize: 14, fontWeight: 400 }}>/ action</small></div>
+            <p className="pd-card-body">Publish one external staffing request or submit one Provider-initiated response. Resulting applications, messages and confirmed work remain accessible.</p>
+            <button type="button" className="pd-btn pd-btn-primary" disabled={!!busy} onClick={() => run("pass", async () => { await api.post("/subscriptions/shift-pass", {}); }, "Shift Pass purchased. It is applied to your next chargeable action.")}>
               {busy === "pass" ? "Purchasing…" : "Post using a Shift Pass"}
-            </Button>
+            </button>
           </div>
         </section>
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <h3 className="m-0 border-b border-slate-100 px-5 py-4 text-base font-bold text-slate-900">Payment method and receipts</h3>
-          <div className="flex flex-wrap gap-2 px-5 py-5">
-            <Button variant="outline" onClick={() => setDialog("settings")}>Payment settings</Button>
-            <Button variant="outline" onClick={() => setDialog("receipts")}>View receipts</Button>
+        <section className="pd-panel">
+          <div className="pd-panel-head"><h2>Payment method and receipts</h2></div>
+          <div className="pd-panel-pad">
+            <div className="pd-buttons" style={{ margin: "12px 0" }}>
+              <button type="button" className="pd-btn pd-btn-sm" onClick={() => setDialog("settings")}>Payment settings</button>
+              <button type="button" className="pd-btn pd-btn-sm" onClick={() => setDialog("receipts")}>View receipts</button>
+            </div>
           </div>
         </section>
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white">
-        <h3 className="m-0 border-b border-slate-100 px-5 py-4 text-base font-bold text-slate-900">Have a sales code?</h3>
-        <div className="px-5 py-5">
-          <label className="text-xs font-semibold text-slate-700">Sales code</label>
-          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter your salesperson's code"
-            className="mt-1 h-11 w-full rounded-lg border border-slate-200 px-3 text-sm" />
-          <Button variant="outline" className="mt-3" onClick={() => { setError(null); setNotice(null); code.trim() ? setError("Sales codes are not active yet.") : setError("Enter a sales code first."); }}>Apply code</Button>
-          <p className="m-0 mt-3 text-xs text-slate-500">Get 50% off your first monthly subscription payment with an eligible sales code. One code per checkout; it cannot be combined with a referral offer. Annual plans, Shift Passes and Pay-as-you-go are excluded.</p>
+      <section className="pd-panel">
+        <div className="pd-panel-head"><h2>Referral or sales code</h2></div>
+        <div className="pd-panel-body">
+          <label className="pd-field">Sales code (optional)
+            <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter your salesperson's code"
+              style={{ height: 44, border: "1px solid var(--pd-line)", borderRadius: 8, padding: "0 12px", fontWeight: 400 }} />
+          </label>
+          <div className="pd-buttons" style={{ marginTop: 12 }}>
+            <button type="button" className="pd-btn" onClick={() => { setError(null); setNotice(null); code.trim() ? setError("Sales codes are not active yet.") : setError("Enter a sales code first."); }}>Apply code</button>
+          </div>
+          <p className="pd-small pd-muted" style={{ margin: "12px 0 0" }}>Get 50% off your first monthly subscription payment with an eligible sales code. One code per checkout; it cannot be combined with a referral offer. Annual plans, Shift Passes and Pay-as-you-go are excluded.</p>
         </div>
       </section>
+      </div>
 
       {checkout && (
         <CheckoutDialog plan={checkout} contact={userName} org={org} onClose={() => setCheckout(null)}

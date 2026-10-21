@@ -1,11 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 
@@ -74,43 +71,64 @@ export default function ProviderCalendarPage() {
   };
 
   return (
-    <>
-      <PageHeader crumb="Provider / Calendar" title="Calendar" description={`${label} · ${view === "list" ? "List view" : `${view[0].toUpperCase()}${view.slice(1)} view`}`}
-        actions={view === "list" ? undefined : <>
-          <Button variant="outline" size="sm" onClick={() => step(-1)}><ChevronLeft className="mr-1 h-4 w-4" />Previous {unit}</Button>
-          <Button variant="outline" size="sm" onClick={() => setAnchor(startOfDay(new Date()))}>{view === "day" ? "Today" : view === "month" ? "This month" : "This week"}</Button>
-          <Button variant="outline" size="sm" onClick={() => step(1)}>Next {unit}<ChevronRight className="ml-1 h-4 w-4" /></Button>
-        </>} />
-      <div className="container-page space-y-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          {SHOW_VIEW_TOGGLE ? <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
-            {(["day", "week", "month", "list"] as View[]).map((v) => (
-              <button key={v} type="button" onClick={() => setView(v)} className={cn("px-4 py-2 capitalize", view === v ? "bg-slate-900 text-white" : "text-slate-500")}>{v}</button>
-            ))}
-          </div> : <span />}
-          {branches.length > 0 && (
-            <select value={branch} onChange={(e) => setBranch(e.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-sm">
-              <option value="">All Branches</option>
-              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          )}
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-page-head">
+          <div>
+            <h1>Calendar</h1>
+            <p>{`${label} · ${view === "list" ? "List view" : `${view[0].toUpperCase()}${view.slice(1)} view`}`}</p>
+          </div>
+          <div className="pd-buttons">
+            {view !== "list" && <>
+              <button type="button" className="pd-btn" onClick={() => step(-1)}>‹ Previous {unit}</button>
+              <button type="button" className="pd-btn" onClick={() => setAnchor(startOfDay(new Date()))}>{view === "day" ? "Today" : view === "month" ? "This month" : "This week"}</button>
+              <button type="button" className="pd-btn" onClick={() => step(1)}>Next {unit} ›</button>
+            </>}
+          </div>
         </div>
+        {(SHOW_VIEW_TOGGLE || branches.length > 0) && (
+          <div className="pd-toolbar">
+            {SHOW_VIEW_TOGGLE ? <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
+              {(["day", "week", "month", "list"] as View[]).map((v) => (
+                <button key={v} type="button" onClick={() => setView(v)} className={cn("px-4 py-2 capitalize", view === v ? "bg-slate-900 text-white" : "text-slate-500")}>{v}</button>
+              ))}
+            </div> : null}
+            {branches.length > 0 && (
+              <select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label="Branch">
+                <option value="">All Branches</option>
+                {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            )}
+          </div>
+        )}
 
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {rows === null ? <div className="h-64 animate-pulse rounded-2xl bg-slate-100" /> : (
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {rows === null ? <div className="pd-quiet-empty">Loading…</div> : (
           <>
             {view === "week" && (
-              <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200">
-                {weekDays.map((d) => <p key={`h-${d.toISOString()}`} className="m-0 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">{d.toLocaleDateString("en-AU", { weekday: "short" })} <span className="text-slate-900">{d.getDate()}</span></p>)}
-                {weekDays.map((d) => {
-                  const todays = forDay(d);
-                  return (
-                    <div key={d.toISOString()} className="min-h-[220px] space-y-2 bg-white p-2">
-                      {todays.length === 0 ? <p className="m-0 text-xs text-slate-400">No scheduled support</p> : todays.map((j) => chip(j))}
-                    </div>
-                  );
-                })}
-              </div>
+              <section className="pd-panel">
+                <div className="pd-weekly-scroll">
+                  <div className="pd-weekly-grid">
+                    {weekDays.map((d) => {
+                      const todays = forDay(d);
+                      return (
+                        <article key={d.toISOString()} className="pd-weekly-day">
+                          <header><span>{d.toLocaleDateString("en-AU", { weekday: "short" })}</span><strong>{d.getDate()}</strong></header>
+                          <div className="pd-week-events">
+                            {todays.length === 0 ? <p className="pd-week-empty">No scheduled support</p> : todays.map((j) => (
+                              <button key={j.id} type="button" className="pd-weekly-event" onClick={() => setOpenId(j.id)}>
+                                <strong>{time(j.scheduledStartAt)}{j.scheduledEndAt ? `–${time(j.scheduledEndAt)}` : ""}</strong>
+                                <span>{j.title}</span>
+                                <small>{CONFIRMED.includes(j.status) ? "Confirmed" : "Live"} · {j.suburb}</small>
+                              </button>
+                            ))}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
             )}
 
             {view === "day" && (
@@ -148,9 +166,9 @@ export default function ProviderCalendarPage() {
             )}
           </>
         )}
-        <p className="m-0 text-sm text-slate-500">Open an event to see the support or assignment record. Provider branch scope is retained.</p>
+        <div className="pd-notice">Open an event to see the support or assignment record. Provider branch scope is retained.</div>
       </div>
       {openId && <RequestDetailDialog jobId={openId} own onClose={() => setOpenId(null)} />}
-    </>
+    </div>
   );
 }

@@ -110,22 +110,23 @@ export default function NotificationsPage() {
   if (activeRole === "PROVIDER") {
     const open = (n: Notif) => { if (!n.read) void markRead(n.id); router.push(providerTarget(n)); };
     return (
-      <div className="mx-auto max-w-[1200px] px-5 py-6">
-        <p className="m-0 text-xs text-slate-500">Provider / Notifications</p>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+      <div className="pd-workspace">
+        <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Notifications</div>
+        <div className="pd-page-head">
           <div>
-            <h1 className="m-0 text-3xl font-bold text-slate-900">Notifications</h1>
-            <p className="m-0 mt-1 text-sm text-slate-500">Updates from your requests, team and organisation.</p>
+            <h1>Notifications</h1>
+            <p>Updates from your requests, team and organisation.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowPrefs(v => !v)}>{showPrefs ? "Hide preferences" : "Notification preferences"}</Button>
-            <Button variant="outline" size="sm" onClick={markAllRead} disabled={unreadCount === 0}>Mark all read</Button>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn" onClick={() => setShowPrefs(v => !v)}>{showPrefs ? "Hide preferences" : "Notification preferences"}</button>
+            <button type="button" className="pd-btn" onClick={markAllRead} disabled={unreadCount === 0}>Mark all read</button>
           </div>
         </div>
-        {error && <p className="m-0 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>}
+        {error && <p className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
         {showPrefs && pref && (
-          <div className="mt-5 space-y-4 rounded-xl border border-slate-200 bg-white p-5">
-            <div className="flex flex-wrap gap-5">
+          <section className="pd-panel pd-panel-pad">
+            <div className="pd-buttons" style={{ marginBottom: 16 }}>
               {CHANNEL_FIELDS.map(f => (
                 <label key={f.key} className="flex items-center gap-2 text-sm text-slate-700">
                   <input type="checkbox" checked={pref[f.key]} disabled={savingPref} onChange={() => togglePref(f.key)} />{f.label}
@@ -133,24 +134,25 @@ export default function NotificationsPage() {
               ))}
             </div>
             <ProviderNotificationControls initial={pref.providerPrefs ?? null} />
-            <p className="m-0 text-xs text-slate-500">Safety alerts and incident notifications always send, regardless of these settings.</p>
-          </div>
+            <p className="pd-small pd-muted" style={{ margin: "16px 0 0" }}>Safety alerts and incident notifications always send, regardless of these settings.</p>
+          </section>
         )}
-        <section className="mt-6 rounded-xl border border-slate-200 bg-white">
-          <h2 className="m-0 border-b border-slate-100 px-6 py-5 text-lg font-bold text-slate-900">Inbox</h2>
-          {loading ? <p className="m-0 px-6 py-6 text-sm text-slate-500">Loading…</p>
-            : notifs.length === 0 ? <p className="m-0 px-6 py-10 text-center text-base font-semibold text-slate-900">No notifications yet</p>
+        <section className="pd-panel">
+          <div className="pd-panel-head"><h2>Inbox</h2></div>
+          {loading ? <div className="pd-quiet-empty">Loading…</div>
+            : notifs.length === 0 ? <div className="pd-quiet-empty">No notifications yet</div>
             : notifs.map((n) => (
-              <div key={n.id} className="flex items-center gap-4 border-b border-slate-100 px-6 py-4 last:border-0">
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.read ? "bg-slate-100 text-slate-400" : "bg-brand-50 text-brand-600"}`}><Check className="h-4 w-4" /></span>
-                <div className="min-w-0 flex-1">
-                  <p className={`m-0 text-sm text-slate-900 ${n.read ? "font-medium" : "font-bold"}`}>{n.title}</p>
-                  <p className="m-0 mt-0.5 text-xs text-slate-500">{n.body}</p>
+              <div key={n.id} className="pd-notification-row">
+                <span className="pd-avatar"><Check width={18} height={18} /></span>
+                <div style={{ flex: 1 }}>
+                  <p><strong>{n.title}</strong> {!n.read && <span className="pd-badge pd-badge-pink">New</span>}</p>
+                  <small>{n.body}</small>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => open(n)}>Open</Button>
+                <button type="button" className="pd-btn pd-btn-sm" onClick={() => open(n)}>Open</button>
               </div>
             ))}
         </section>
+        </div>
       </div>
     );
   }

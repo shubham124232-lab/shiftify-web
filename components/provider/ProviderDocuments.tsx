@@ -49,7 +49,7 @@ function stateOf(d: Doc): State {
   }
   return "Current";
 }
-const TONE: Record<State, string> = { Current: "bg-emerald-50 text-emerald-700", Expiring: "bg-amber-50 text-amber-700", Expired: "bg-red-50 text-red-700", "Action required": "bg-red-50 text-red-700" };
+const TONE: Record<State, string> = { Current: "pd-badge-green", Expiring: "pd-badge-orange", Expired: "pd-badge-red", "Action required": "pd-badge-red" };
 const nameOf = (d: Doc) => d.title || typeLabel(d.docType);
 
 export function ProviderDocuments() {
@@ -82,60 +82,64 @@ export function ProviderDocuments() {
   const clear = () => { setQ(""); setFilter("ALL"); };
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-5 px-5 py-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="pd-workspace">
+      <div className="pd-content">
+      <div className="pd-breadcrumb">Provider / Documents</div>
+      <div className="pd-page-head">
         <div>
-          <p className="m-0 text-xs text-slate-500">Provider / Documents</p>
-          <h1 className="m-0 mt-2 text-3xl font-bold text-slate-900">Documents and compliance</h1>
-          <p className="m-0 mt-1 text-sm text-slate-500">Track evidence, expiry and the users permitted to see it.</p>
+          <h1>Documents and compliance</h1>
+          <p>Track evidence, expiry and the users permitted to see it.</p>
         </div>
-        <Button onClick={() => setForm({ renew: null })}><Plus className="mr-1.5 h-4 w-4" />Add document</Button>
+        <div className="pd-buttons">
+          <button type="button" className="pd-btn pd-btn-primary" onClick={() => setForm({ renew: null })}><Plus />Add document</button>
+        </div>
       </div>
-      {error && <p className="m-0 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">{error}</p>}
-      {notice && <p className="m-0 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">{notice}</p>}
+      {error && <p className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
+      {notice && <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
 
       {!loading && missingRequired.length > 0 && (
-        <p className="m-0 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+        <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           Needed before you can publish: {missingRequired.map(typeLabel).join(", ")}. Add or renew them with Add document.
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search evidence or worker" className="h-11 w-full max-w-sm rounded-lg border border-slate-200 px-3 text-sm" />
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-11 w-full max-w-[220px] rounded-lg border border-slate-200 bg-white px-3 text-sm">
+      <div className="pd-toolbar">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search evidence or worker" aria-label="Search evidence or worker" />
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filter status">
           <option value="ALL">All</option><option value="Current">Current</option><option value="Expiring">Expiring</option><option value="Expired">Expired</option><option value="Action required">Action required</option>
         </select>
-        <Button variant="outline" className="ml-auto" onClick={clear}><RotateCcw className="mr-1.5 h-4 w-4" />Clear filters</Button>
+        <button type="button" className="pd-btn" onClick={clear}><RotateCcw />Clear filters</button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[820px] border-collapse text-sm">
-          <thead><tr className="border-b border-slate-100 text-left text-xs font-semibold text-slate-600">
-            {["Document", "Owner", "Status", "Expiry", "Visibility", "Action"].map((h) => <th key={h} className="px-5 py-4">{h}</th>)}
+      <div className="pd-table-wrap">
+        <table>
+          <thead><tr>
+            {["Document", "Owner", "Status", "Expiry", "Visibility", "Action"].map((h) => <th key={h}>{h}</th>)}
           </tr></thead>
           <tbody>
-            {loading ? <tr><td colSpan={6} className="px-5 py-8 text-slate-500">Loading…</td></tr>
-              : rows.length === 0 ? <tr><td colSpan={6} className="px-5 py-10 text-center font-semibold text-slate-900">{current.length === 0 ? "No documents yet. Add your registration, insurance and worker evidence." : "No documents match these filters"}</td></tr>
+            {loading ? <tr><td colSpan={6} className="pd-muted">Loading…</td></tr>
+              : rows.length === 0 ? <tr><td colSpan={6} style={{ textAlign: "center", fontWeight: 700 }}>{current.length === 0 ? "No documents yet. Add your registration, insurance and worker evidence." : "No documents match these filters"}</td></tr>
               : rows.map((d) => {
                 const st = stateOf(d);
                 return (
-                  <tr key={d.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-5 py-4"><span className="flex items-center gap-2 text-slate-900"><FileText className="h-4 w-4 text-slate-500" />{nameOf(d)}</span></td>
-                    <td className="px-5 py-4 text-slate-700">{d.ownerName}</td>
-                    <td className="px-5 py-4"><span className={cn("rounded px-2 py-0.5 text-xs font-semibold", TONE[st])}>{st}</span></td>
-                    <td className="px-5 py-4 text-slate-700">{short(d.expiryDate)}</td>
-                    <td className="px-5 py-4 text-slate-700">{visLabel(d.visibility)}</td>
-                    <td className="px-5 py-4"><span className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setView(d)}>View</Button>
-                      <Button variant="outline" size="sm" onClick={() => setForm({ renew: d })}>Renew</Button>
-                    </span></td>
+                  <tr key={d.id}>
+                    <td><FileText width={18} height={18} style={{ display: "inline", verticalAlign: "middle", marginRight: 8 }} />{nameOf(d)}</td>
+                    <td>{d.ownerName}</td>
+                    <td><span className={`pd-badge ${TONE[st]}`}>{st}</span></td>
+                    <td>{short(d.expiryDate)}</td>
+                    <td>{visLabel(d.visibility)}</td>
+                    <td>
+                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setView(d)}>View</button>
+                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setForm({ renew: d })}>Renew</button>
+                    </td>
                   </tr>
                 );
               })}
           </tbody>
         </table>
       </div>
-      <p className="m-0 text-xs text-slate-500">Sensitive evidence is only visible to the users shown under Visibility. Public profile badges never show the documents themselves.</p>
+      <p className="pd-small pd-muted" style={{ margin: 0 }}>Sensitive evidence is only visible to the users shown under Visibility. Public profile badges never show the documents themselves.</p>
+      </div>
 
       {form && <DocumentForm renew={form.renew} workers={workers} onClose={() => setForm(null)}
         onSaved={async (msg) => { setForm(null); setView(null); setNotice(msg); await load(); }} />}
@@ -217,7 +221,7 @@ function DocumentView({ doc, history, onClose, onRenew }: { doc: Doc; history: D
         <h3 className="m-0 mb-2 text-xl font-bold text-slate-900">{nameOf(doc)}</h3>
         <dl className="m-0">
           {row("Owner", <b>{doc.ownerName}</b>)}
-          {row("Review status", <span className={cn("block rounded px-3 py-1 text-xs font-semibold", TONE[st])}>{st}</span>)}
+          {row("Review status", <span className={`pd-badge ${TONE[st]}`}>{st}</span>)}
           {row("Expiry", short(doc.expiryDate))}
           {row("Visibility", visLabel(doc.visibility))}
           {row("Type", typeLabel(doc.docType))}

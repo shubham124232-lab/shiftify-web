@@ -11,13 +11,13 @@ export function PageHeader({ title, description, actions, crumb }: PageHeaderPro
   if (crumb) {
     return (
       <div className="px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">{crumb}</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">{title}</h1>
-            {description ? <p className="m-0 mt-1.5 text-[15px] text-slate-500">{description}</p> : null}
+        <p className="m-0 mb-4 text-xs text-[#9095a0]">{crumb}</p>
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-6">
+          <div className="min-w-0">
+            <h1 className="m-0 text-[28px] font-extrabold leading-tight tracking-[-0.5px] text-slate-900">{title}</h1>
+            {description ? <p className="m-0 mt-2 max-w-[760px] text-sm text-[#69707e]">{description}</p> : null}
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+          {actions ? <div className="flex flex-wrap items-center justify-end gap-2 pt-0.5">{actions}</div> : null}
         </div>
       </div>
     );

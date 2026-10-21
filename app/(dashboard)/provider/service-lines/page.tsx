@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { Briefcase, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LayoutGrid, Plus } from "lucide-react";
 
 interface Listing { id: string; status: string; suburb: string; state: string | null; serviceCategory: string | null; serviceCategories: string[] | null }
 
@@ -37,35 +36,42 @@ export default function ProviderServiceLinesPage() {
   }, [listings]);
 
   return (
-    <>
-      <div className="space-y-5 px-8 pt-6">
-        <p className="m-0 text-xs text-slate-400">Provider / Service lines</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Service lines</div>
+        <div className="pd-page-head">
           <div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-tight text-slate-900">Service lines</h1>
-            <p className="m-0 mt-1.5 text-[15px] text-slate-500">Reuse organisation capability in matching and listing forms.</p>
+            <h1>Service lines</h1>
+            <p>Reuse organisation capability in matching and listing forms.</p>
           </div>
-          <Link href="/provider/post-service"><Button><Plus className="mr-1.5 h-4 w-4" />Add service line</Button></Link>
+          <div className="pd-buttons">
+            <Link href="/provider/post-service" className="pd-btn pd-btn-primary"><Plus />Add service line</Link>
+          </div>
         </div>
-      </div>
-      <div className="space-y-5 px-8 py-6">
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {listings === null ? <div className="h-32 animate-pulse rounded-2xl bg-slate-100" />
-          : lines.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">No service lines yet. Add one to reuse it in matching and listings.</div>
-          : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {listings === null ? <div className="pd-quiet-empty">Loading…</div>
+          : lines.length === 0 ? (
+            <div className="pd-grid3">
+              <div className="pd-empty">
+                <LayoutGrid />
+                <h3>No service lines yet</h3>
+                <p>Add one to reuse it in matching and listings.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="pd-grid3">
               {lines.map((l) => (
-                <div key={l.cat} className="rounded-2xl border border-slate-200 bg-white p-6">
-                  <Briefcase className="h-5 w-5 text-slate-500" />
-                  <h3 className="m-0 mt-5 text-xl font-bold text-slate-900">{label(l.cat)}</h3>
-                  <p className="m-0 mt-4 text-base text-slate-500">{l.areas.join(", ")}</p>
-                  <p className="m-0 mt-2 text-sm font-medium text-emerald-700">Scope review recorded</p>
-                  <Link href={`/provider/post-service?edit=${l.listingId}`} className="mt-5 block"><Button variant="outline" className="w-full">Edit capability</Button></Link>
-                </div>
+                <article key={l.cat} className="pd-record-card">
+                  <LayoutGrid className="pd-icon-plain" />
+                  <h2>{label(l.cat)}</h2>
+                  <p className="pd-card-body" style={{ margin: 0 }}>{l.areas.join(", ")}</p>
+                  <div><span className="pd-badge pd-badge-green">Scope review recorded</span></div>
+                  <Link href={`/provider/post-service?edit=${l.listingId}`} className="pd-btn pd-btn-sm" style={{ alignSelf: "flex-start" }}>Edit capability</Link>
+                </article>
               ))}
             </div>
           )}
       </div>
-    </>
+    </div>
   );
 }

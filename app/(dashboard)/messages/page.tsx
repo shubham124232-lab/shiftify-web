@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Send, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -54,7 +55,125 @@ const STATUS_FILTERS = [
 
 type View = "threads" | "inquiries";
 
+const initialsOf = (t: string) => t.split(/[\s·]+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase() || "··";
+const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+
+// Provider workspace: the approved demo's two-pane layout (thread list + inline conversation) over the same job-thread endpoints.
+function ProviderMessages() {
+  const { user } = useAuth();
+  const [threads, setThreads] = useState<Thread[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [chat, setChat] = useState<Message[]>([]);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  function loadThreads() {
+    return api.get<{ threads: Thread[] }>(`/jobs/messages/threads?includeArchived=${showArchived}`)
+      .then(({ threads: list }) => {
+        const sorted = [...list].filter((t) => showArchived || !t.archived).sort((a, b) => (b.lastMessage?.createdAt ?? "").localeCompare(a.lastMessage?.createdAt ?? ""));
+        setThreads(sorted);
+        setSelected((cur) => (cur && sorted.some((t) => t.id === cur) ? cur : sorted[0]?.id ?? null));
+      })
+      .catch((e) => { setError(e instanceof Error ? e.message : "Could not load messages"); setThreads([]); });
+  }
+  useEffect(() => { void loadThreads(); }, [showArchived]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function loadChat(id: string) {
+    return api.get<{ messages: Message[] }>(`/jobs/${id}/messages`).then((r) => setChat(r.messages ?? [])).catch(() => setChat([]));
+  }
+  useEffect(() => {
+    if (!selected) { setChat([]); return; }
+    void loadChat(selected);
+    api.patch(`/jobs/${selected}/messages/read`, {}).catch(() => undefined);
+  }, [selected]);
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [chat]);
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected || !draft.trim() || sending) return;
+    setSending(true);
+    try {
+      await api.post(`/jobs/${selected}/messages`, { body: draft.trim() });
+      setDraft("");
+      await loadChat(selected);
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not send the message"); }
+    finally { setSending(false); }
+  }
+
+  const current = threads?.find((t) => t.id === selected) ?? null;
+  const sub = (t: Thread) => [t.counterpartRoleLabels?.[0] ?? t.postedByRoleLabel, t.status ? t.status.replace("_", " ").toLowerCase() : null].filter(Boolean).join(" · ");
+
+  return (
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Messages</div>
+        <div className="pd-page-head">
+          <div>
+            <h1>Messages</h1>
+            <p>Conversations stay linked to their request, listing or assignment.</p>
+          </div>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn" onClick={() => setShowArchived((v) => !v)}>{showArchived ? "Inbox" : "Archived"}</button>
+          </div>
+        </div>
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+        {threads === null ? <div className="pd-quiet-empty">Loading…</div> : threads.length === 0 ? (
+          <section className="pd-panel">
+            <div className="pd-empty">
+              <LayoutGrid />
+              <h3>{showArchived ? "No archived conversations" : "No active conversations"}</h3>
+              <p>{showArchived ? "Conversations you archive show up here." : "Each request gets its own thread once someone applies or accepts."}</p>
+            </div>
+          </section>
+        ) : (
+          <section className="pd-panel pd-message-layout">
+            <div className="pd-thread-list">
+              {threads.map((t) => (
+                <button key={t.id} type="button" className={`pd-thread${t.id === selected ? " active" : ""}`} onClick={() => setSelected(t.id)}>
+                  <span className="pd-avatar">{initialsOf(t.title)}</span>
+                  <span>
+                    <strong>{t.title}</strong>{t.unreadCount > 0 ? ` (${t.unreadCount > 99 ? "99+" : t.unreadCount})` : ""}<br />
+                    <small>{sub(t) || "Request"}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="pd-chat">
+              <div className="pd-chat-head">
+                <strong>{current?.title}</strong>
+                <div className="pd-small pd-muted">{current ? sub(current) : ""}</div>
+              </div>
+              <div className="pd-chat-messages">
+                {chat.length === 0 ? <p className="pd-small pd-muted" style={{ margin: 0 }}>No messages yet</p> : chat.map((m) => (
+                  <div key={m.id} className={`pd-bubble${m.senderId === user?.id ? " mine" : ""}`}>
+                    {m.body}
+                    <small>{m.senderId === user?.id ? "You" : m.senderName} · {clock(m.createdAt)}</small>
+                  </div>
+                ))}
+                <div ref={endRef} />
+              </div>
+              <form className="pd-chat-compose" onSubmit={send}>
+                <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Write an assignment or enquiry message…" aria-label="Message" maxLength={2000} />
+                <button type="submit" className="pd-btn pd-btn-primary" disabled={sending || !draft.trim()}><Send />Send</button>
+              </form>
+            </div>
+          </section>
+        )}
+        <div className="pd-notice">Please do not send unnecessary sensitive information in messages — share only what is needed to arrange the support.</div>
+      </div>
+    </div>
+  );
+}
+
 export default function MessagesPage() {
+  const { activeRole } = useAuth();
+  return activeRole === "PROVIDER" ? <ProviderMessages /> : <GeneralMessages />;
+}
+
+function GeneralMessages() {
   const { activeRole } = useAuth();
   const [view, setView] = useState<View>("threads");
 

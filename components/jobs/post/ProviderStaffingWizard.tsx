@@ -579,7 +579,7 @@ export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes
     <WizardScreen
       tierLabel={`${name} staffing request`} screenTitle={SECTION_TITLES[key]} step={step} total={SECTIONS.length}
       error={error} onBack={back} onNext={next} nextLabel={nextLabel} saving={saving}
-      hidePanel backAtStart={!onClose}
+      backAtStart={!onClose}
       modal={onClose ? { onClose, title: editId && !draftEdit ? "Edit staffing request" : "Post a staffing request", subtitle: editId && !draftEdit ? "Edit existing record" : `${name} · ${TIER_META[tier].timing}`, tabs: TAB_NAMES, firstBack: onBackToLanes } : undefined}
       belowError={shiftPassBlocked ? <ShiftPassPrompt onPurchased={() => { setShiftPassBlocked(false); void submit(false); }} onDismiss={() => setShiftPassBlocked(false)} /> : undefined}
     >

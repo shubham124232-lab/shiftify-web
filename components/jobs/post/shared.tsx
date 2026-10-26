@@ -252,10 +252,8 @@ export function ModalShell({ title, subtitle, onClose, children, wide }: { title
 }
 
 export function WizardScreen({
-  tierLabel, screenTitle, step, total, error, belowError, children, onBack, onNext, nextLabel, nextDisabled, saving, modal, hidePanel, backAtStart,
+  tierLabel, screenTitle, step, total, error, belowError, children, onBack, onNext, nextLabel, nextDisabled, saving, modal, backAtStart,
 }: {
-  /** Single centred column (no branded side panel) — Provider flow. */
-  hidePanel?: boolean;
   /** Keep Back enabled on the first step (the parent decides where it goes). */
   backAtStart?: boolean;
   /** Render as a popup: header, step tabs, scrolling body and a Back / Continue footer. */
@@ -306,10 +304,10 @@ export function WizardScreen({
   return (
     <>
       <PageHeader title={tierLabel} description={screenTitle} />
-      <div className={cn("mx-auto px-5 py-6", hidePanel ? "max-w-3xl" : "grid max-w-6xl gap-6 lg:grid-cols-2 lg:items-stretch lg:gap-10")}>
-        {hidePanel ? null : <WizardSidePanel tierLabel={tierLabel} />}
-        <div className={cn("mx-auto w-full", hidePanel ? "" : "max-w-2xl")}>
+      <div className="mx-auto max-w-3xl px-5 py-6">
+        <div className="mx-auto w-full">
           <WizardProgress step={step} total={total} accent={accent} />
+          <p className="mb-4 text-xs text-slate-500">{PANEL_POINTS[1]}.</p>
           {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
           {belowError && <div className="mb-4">{belowError}</div>}
           <Card><CardContent className="py-6">{children}</CardContent></Card>

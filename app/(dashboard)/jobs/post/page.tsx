@@ -16,7 +16,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { TIER_META, type PostingTier } from "@/lib/types/posting";
-import { WizardSidePanel } from "@/components/jobs/post/shared";
 import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 import { Zap, Clock, CalendarDays, Timer, LayoutGrid, ShieldCheck } from "lucide-react";
@@ -32,19 +31,12 @@ const TIER_ACCENT: Record<PostingTier, string> = {
   ROUTINE: "#547FC4",
 };
 
-// Half-and-half shell shared by the picker screens: branded panel + choices.
-function PickerShell({ title, description, children, plain }: { title: string; description: string; children: React.ReactNode; plain?: boolean }) {
+// Single centred column shared by the picker screens.
+function PickerShell({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return (
     <>
       <PageHeader title={title} description={description} />
-      {plain ? (
-        <div className="mx-auto w-full max-w-3xl space-y-3 px-5 py-6">{children}</div>
-      ) : (
-        <div className="mx-auto grid max-w-6xl gap-6 px-5 py-6 lg:grid-cols-2 lg:items-stretch lg:gap-10">
-          <WizardSidePanel tierLabel="Post a request" />
-          <div className="mx-auto w-full max-w-2xl space-y-3">{children}</div>
-        </div>
-      )}
+      <div className="mx-auto w-full max-w-3xl space-y-3 px-5 py-6">{children}</div>
     </>
   );
 }
@@ -215,7 +207,6 @@ export default function PostRequestTierPicker() {
     <PickerShell
       title={isProvider ? "Post a Staffing Request" : "Post a Support Request"}
       description={isProvider ? "How soon do you need a worker?" : "How quickly do you need support?"}
-      plain={isProvider}
     >
         {isProvider && <ProviderPostExtras />}
         {TIER_ORDER.map((tier) => {

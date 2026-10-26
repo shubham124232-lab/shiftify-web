@@ -297,6 +297,26 @@
 }
 .sf-home .sf-nav-board:hover { color: var(--sf-pink); }
 .sf-nav-board i { color: var(--sf-pink); font-size: 17px; }
+/* "How it works" is hidden from the header for now (desktop links row and mobile menu entry). */
+.sf-home .sf-nav-links,
+.sf-home .sf-nav-mobile a[href="/#how-it-works"] { display: none; }
+.sf-home .sf-nav-actions { margin-left: auto; }
+/* Outlined nav buttons beside the filled Log in button. */
+.sf-home .sf-nav-board.sf-nav-pillbtn {
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 14.5px;
+  border: 1.5px solid #dfe2ea;
+  border-radius: 999px;
+  background: #fff;
+  transition: border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.sf-home .sf-nav-board.sf-nav-pillbtn:hover { border-color: var(--sf-pink); color: var(--sf-pink); box-shadow: 0 6px 16px rgba(183, 37, 88, .14); transform: translateY(-1px); }
+.sf-home .sf-nav-board.sf-nav-pillbtn--post { border-color: var(--sf-pink); color: var(--sf-pink); }
+.sf-home .sf-nav-board.sf-nav-pillbtn--post i { font-size: 15px; }
+.sf-nav-livedot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, .55); animation: sf-nav-livepulse 1.8s infinite; }
+@keyframes sf-nav-livepulse { 70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+@media (prefers-reduced-motion: reduce) { .sf-nav-livedot { animation: none; } }
 .sf-nav-toggle {
   display: none;
   background: none;

@@ -3,15 +3,9 @@
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-// Role links follow the footer's Users order. Anchors are rooted at "/" so
-// they still reach the home page sections from /shiftboard.
+// Anchors are rooted at "/" so they still reach the home page sections from /shiftboard.
 const links = [
-  { label: 'How it works',         href: '/#how-it-works' },
-  { label: 'Providers',            href: '/register?role=PROVIDER' },
-  { label: 'Support Workers',      href: '/register?role=SUPPORT_WORKER' },
-  { label: 'Support Coordinators', href: '/register?role=COORDINATOR' },
-  { label: 'Participants',         href: '/register?role=PARTICIPANT' },
-  { label: 'Plan Managers',        href: '/register?role=PLAN_MANAGER' },
+  { label: 'How it works', href: '/#how-it-works' },
 ] as const;
 
 /* `hideBoardLink` drops the Live shiftboard shortcut on the board page itself. */
@@ -74,15 +68,18 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
 
           <div className="sf-nav-actions">
             {!hideBoardLink && (
-              <a href="/shiftboard" className="sf-nav-board">
-                <i className="bi bi-broadcast-pin" aria-hidden="true" />
+              <a href="/shiftboard" className="sf-nav-board sf-nav-pillbtn sf-nav-pillbtn--live">
+                <span className="sf-nav-livedot" aria-hidden="true" />
                 Live shiftboard
               </a>
             )}
-            <a href="/jobs/post" className="sf-nav-board">Post a request</a>
-            <a href="/register" className="sf-btn sf-btn-pink sf-btn-sm">
-              <i className="bi bi-person-plus-fill" aria-hidden="true" />
-              Join Shiftify
+            <a href="/jobs/post" className="sf-nav-board sf-nav-pillbtn sf-nav-pillbtn--post">
+              <i className="bi bi-megaphone-fill" aria-hidden="true" />
+              Post a request
+            </a>
+            <a href="/login" className="sf-btn sf-btn-pink sf-btn-sm">
+              <i className="bi bi-box-arrow-in-right" aria-hidden="true" />
+              Log in
             </a>
             <button
               type="button"
@@ -102,7 +99,7 @@ export default function HomeNav({ hideBoardLink = false }: { hideBoardLink?: boo
           ))}
           {!hideBoardLink && <a href="/shiftboard" onClick={() => setOpen(false)}>Live shiftboard</a>}
           <a href="/jobs/post" onClick={() => setOpen(false)}>Post a request</a>
-          <a href="/register" className="sf-btn sf-btn-pink">Join Shiftify</a>
+          <a href="/login" className="sf-btn sf-btn-pink">Log in</a>
         </div>
       </div>
     </div>

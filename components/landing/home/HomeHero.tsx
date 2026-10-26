@@ -128,24 +128,6 @@ export default function HomeHero() {
               weekly support. Four timing lanes, one verified network, direct connection.
             </p>
 
-            <div className="sf-hero-cta">
-              <a href="/jobs/post" className="sf-btn sf-btn-pink">
-                <i className="bi bi-megaphone-fill" aria-hidden="true" />
-                Post a request
-              </a>
-              <a href="/register?role=PARTICIPANT" className="sf-btn sf-btn-ghost-dark">
-                <i className="bi bi-send-fill" aria-hidden="true" />
-                Find Support
-              </a>
-              <a href="/register?role=SUPPORT_WORKER" className="sf-btn sf-btn-ghost-dark">
-                <i className="bi bi-person-fill" aria-hidden="true" />
-                Find a Shift
-              </a>
-              <a href="/register?role=PROVIDER" className="sf-btn sf-btn-ghost-dark">
-                <i className="bi bi-building-fill-check" aria-hidden="true" />
-                Fill a Staffing Gap
-              </a>
-            </div>
             <p className="sf-hero-sub" style={{ marginTop: 14, fontSize: 14 }}>
               <strong>Roster gap right now?</strong> <a href="/register?role=PROVIDER">Find a worker fast.</a>
             </p>

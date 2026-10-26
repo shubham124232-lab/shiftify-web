@@ -1,6 +1,6 @@
 // Shared types for the registration wizard step system.
 
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 export interface StepConfig {
   /** Zero-based index */
@@ -12,7 +12,7 @@ export interface StepConfig {
   /** Icon class (bootstrap-icons) */
   icon:        string;
   /** Zod schema for this step's fields — only these fields are validated on Next */
-  schema:      ZodSchema;
+  schema:      ZodType<Record<string, unknown>, Record<string, unknown>>;
   /** If true: final step → submits and redirects to /dashboard */
   isFinal?:    boolean;
   /** Fields required for marketplace access (completion blocker check) */

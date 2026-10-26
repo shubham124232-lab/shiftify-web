@@ -269,7 +269,7 @@ export default function ProviderDashboardPage() {
       </div>
 
       <div className="pd-home-grid">
-        <div>
+        <div className="pd-home-main">
           {/* Needs your attention */}
           <section className="pd-panel">
             <div className="pd-panel-head"><h2>Needs your attention</h2></div>

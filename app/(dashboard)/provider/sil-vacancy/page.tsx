@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 const schema = z.object({
   vacancyCategory: z.enum([
     "SIL", "SDA", "SIL_SDA", "RESPITE", "MEDIUM_TERM", "SHORT_TERM", "SUPPORTED_HOUSING", "OTHER",
-  ], { required_error: "Select a vacancy type" }),
+  ], { message: "Select a vacancy type" }),
   title: z.string().min(5, "Title is required"),
   branchId: z.string().optional(),
   ownerUserId: z.string().optional(),
@@ -43,7 +43,8 @@ const schema = z.object({
   }).optional(),
   acknowledgement: z.boolean().refine(v => v === true, { message: "You must confirm the vacancy details are accurate" }),
 });
-type FormData = z.infer<typeof schema>;
+type FormData = z.output<typeof schema>;
+type FormInput = z.input<typeof schema>;
 
 const VACANCY_TYPES = [
   { value: "SIL",               label: "SIL vacancy",                          desc: "Supported Independent Living placement (registration required)" },
@@ -94,7 +95,7 @@ export default function SilVacancyPage() {
       .catch(() => setRegistered(null));
   }, []);
 
-  const form = useForm<FormData>({
+  const form = useForm<FormInput, unknown, FormData>({
     resolver: zodResolver(schema),
     defaultValues: { suitableFor: [], fundingRoutes: [] },
   });

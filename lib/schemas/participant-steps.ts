@@ -1,6 +1,7 @@
 // Per-step Zod schemas for Participant profile wizard (5 steps).
 
 import { z } from 'zod';
+import '../zod-config';
 
 export const participantStep1Schema = z.object({
   preferredName:   z.string().optional(),
@@ -15,7 +16,7 @@ export const participantStep1Schema = z.object({
 
 export const participantStep2Schema = z.object({
   ndisNumber:                 z.string().optional(),
-  fundingManagementType:      z.enum(['SELF', 'PLAN', 'NDIA'], { required_error: 'Funding type is required' }),
+  fundingManagementType:      z.enum(['SELF', 'PLAN', 'NDIA'], { message: 'Funding type is required' }),
   supportCoordinationFunding: z.string().optional(),
   ndisStartDate:              z.string().optional(),
   ndisEndDate:                z.string().optional(),

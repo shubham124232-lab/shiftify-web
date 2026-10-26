@@ -14,13 +14,13 @@ import { JOB_CATEGORIES } from "@/lib/constants/categories";
 
 // ── Schema (Provider doc PR-CP01 — general service capacity) ────────────────────
 const schema = z.object({
-  acceptingStatus: z.enum(["YES", "LIMITED", "NO"], { required_error: "Tell participants whether you are accepting new referrals", invalid_type_error: "Tell participants whether you are accepting new referrals" }),
+  acceptingStatus: z.enum(["YES", "LIMITED", "NO"], { message: "Tell participants whether you are accepting new referrals" }),
   serviceCategories: z.array(z.string()).min(1, "Select at least one service with current capacity"),
   suburb: z.string().min(2, "Add the main location you cover"),
   daysAvailable: z.array(z.enum(["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"])).min(1, "Select at least one day"),
-  listingType: z.enum(["IMMEDIATE_INTAKE", "SHORT_TERM", "WAITLIST_OPENING"], { required_error: "Select when you can start", invalid_type_error: "Select when you can start" }),
+  listingType: z.enum(["IMMEDIATE_INTAKE", "SHORT_TERM", "WAITLIST_OPENING"], { message: "Select when you can start" }),
   fundingTypes: z.array(z.string()).min(1, "Select at least one funding type"),
-  responseExpectation: z.enum(["SAME_DAY", "WITHIN_48_HOURS", "WITHIN_A_WEEK"], { required_error: "Set how quickly you respond to enquiries", invalid_type_error: "Set how quickly you respond to enquiries" }),
+  responseExpectation: z.enum(["SAME_DAY", "WITHIN_48_HOURS", "WITHIN_A_WEEK"], { message: "Set how quickly you respond to enquiries" }),
   serviceMode: z.enum(["IN_PERSON", "REMOTE", "BOTH"]).optional(),
   openSlots: z.number().int().min(0).max(999).optional(),
   branchId: z.string().optional(),

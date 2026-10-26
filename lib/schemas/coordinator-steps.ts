@@ -1,10 +1,11 @@
 // Per-step Zod schemas for Support Coordinator profile wizard (9 steps).
 
 import { z } from 'zod';
+import '../zod-config';
 
 // Step 1 — Professional Identity
 export const coordStep1Schema = z.object({
-  roleType:               z.enum(['INDEPENDENT', 'SC_ORGANISATION', 'NDIS_PROVIDER', 'OTHER_ORGANISATION'], { required_error: 'Role type is required' }),
+  roleType:               z.enum(['INDEPENDENT', 'SC_ORGANISATION', 'NDIS_PROVIDER', 'OTHER_ORGANISATION'], { message: 'Role type is required' }),
   organisationName:       z.string().optional(),
   organisationRole:       z.string().optional(),
   preferredContactMethod: z.enum(['EMAIL', 'PHONE', 'SMS', 'PLATFORM_MESSAGE']).optional(),
@@ -45,14 +46,14 @@ export const coordStep3Schema = z.object({
 export const coordStep4Schema = z.object({
   serviceAreas:  z.array(z.string()).min(1, 'Add at least one service area'),
   serviceRadius: z.number().int().min(0).max(500).optional(),
-  serviceMode:   z.enum(['IN_PERSON', 'TELEHEALTH', 'HYBRID'], { required_error: 'Service mode is required' }),
+  serviceMode:   z.enum(['IN_PERSON', 'TELEHEALTH', 'HYBRID'], { message: 'Service mode is required' }),
 });
 
 // Step 5 — Availability & Capacity
 export const coordStep5Schema = z.object({
   currentCapacityStatus: z.string().optional(),
   maxParticipantLoad:    z.number().int().min(0).max(200).optional(),
-  availabilityType:      z.string({ required_error: 'Availability for new participants is required' }).min(1, 'Availability for new participants is required'),
+  availabilityType:      z.string({ message: 'Availability for new participants is required' }).min(1, 'Availability for new participants is required'),
   isPubliclyListed:      z.boolean().optional(),
 });
 

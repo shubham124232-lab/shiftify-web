@@ -1,6 +1,7 @@
 // Per-step Zod schemas for Support Worker profile wizard.
 
 import { z } from 'zod';
+import '../zod-config';
 
 export const workerStep1Schema = z.object({
   suburb:   z.string().min(2, 'Suburb is required'),
@@ -11,7 +12,7 @@ export const workerStep1Schema = z.object({
 });
 
 export const workerStep2Schema = z.object({
-  rightToWork: z.enum(['CITIZEN', 'PR', 'VISA_HOLDER'], { required_error: 'Right to work is required' }),
+  rightToWork: z.enum(['CITIZEN', 'PR', 'VISA_HOLDER'], { message: 'Right to work is required' }),
   visaType:    z.string().optional(),
   visaExpiry:  z.string().optional(),
 }).superRefine((val, ctx) => {
@@ -22,7 +23,7 @@ export const workerStep2Schema = z.object({
 });
 
 export const workerStep3Schema = z.object({
-  workType:                  z.enum(['CONTRACTOR', 'AGENCY'], { required_error: 'Employment type is required' }),
+  workType:                  z.enum(['CONTRACTOR', 'AGENCY'], { message: 'Employment type is required' }),
   abn:                       z.string().optional(),
   gstRegistered:             z.boolean().optional(),
   publicLiabilityInsurance:  z.boolean().optional(),
@@ -37,16 +38,12 @@ export const workerStep4Schema = z.object({
   servicesOffered:      z.array(z.string()).min(1, 'Select at least one service'),
   subServices:          z.array(z.string()).optional(),
   highIntensitySkills:  z.array(z.string()).optional(),
-  experienceLevel:      z.enum(['BEGINNER', 'INTERMEDIATE', 'EXPERIENCED', 'EXPERT'], {
-    required_error: 'Experience level is required',
-  }),
+  experienceLevel:      z.enum(['BEGINNER', 'INTERMEDIATE', 'EXPERIENCED', 'EXPERT'], { message: 'Experience level is required' }),
   disabilityExperience: z.array(z.string()).optional(),
 });
 
 export const workerStep5Schema = z.object({
-  availabilityType:      z.enum(['CASUAL', 'PART_TIME', 'FULL_TIME', 'ON_DEMAND'], {
-    required_error: 'Availability type is required',
-  }),
+  availabilityType:      z.enum(['CASUAL', 'PART_TIME', 'FULL_TIME', 'ON_DEMAND'], { message: 'Availability type is required' }),
   emergencyAvailability: z.boolean().optional(),
   acceptsSleepoverShifts: z.boolean().optional(),
   acceptsActiveOvernightShifts: z.boolean().optional(),
@@ -80,7 +77,7 @@ export const workerStep6Schema = z.object({
 });
 
 export const workerStep7Schema = z.object({
-  hourlyRate:              z.number({ required_error: 'Hourly rate is required' }).min(1).max(9999),
+  hourlyRate:              z.number({ message: 'Hourly rate is required' }).min(1).max(9999),
   hourlyRateType:          z.string().optional(),
   weekendNightRates:       z.object({
     weekendRate:      z.number().optional(),

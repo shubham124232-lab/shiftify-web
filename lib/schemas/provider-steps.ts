@@ -1,6 +1,7 @@
 // Per-step Zod schemas for Provider profile wizard — 12 spec-aligned steps.
 
 import { z } from 'zod';
+import '../zod-config';
 
 // Step 1 — Business Identity (merged: name + ABN + structure + NDIS + GST + years)
 export const providerStep1Schema = z.object({
@@ -60,7 +61,7 @@ export const providerStep4Schema = z.object({
 export const providerStep5Schema = z.object({
   serviceAreas:      z.array(z.string()).min(1, 'Add at least one service area'),
   stateCoverage:     z.array(z.string()).optional(),
-  serviceMode:       z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { required_error: 'Service mode is required' }),
+  serviceMode:       z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { message: 'Service mode is required' }),
   multipleLocations: z.array(z.string()).optional(),
 });
 

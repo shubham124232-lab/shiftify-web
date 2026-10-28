@@ -115,12 +115,12 @@ export function AppTopbar() {
   // Provider / Coordinator workspace header: full-width, 88px, logo + identity on the left, bell / messages / profile on the right.
   if (isProviderUser || isCoordinatorUser) {
     return (
-      <header className="z-20 flex h-[88px] shrink-0 items-center gap-6 border-b border-[#e4e6ed] bg-white px-8 py-3">
+      <header className="z-20 flex h-[88px] shrink-0 items-center gap-2 border-b border-[#e4e6ed] bg-white px-3 py-3 sm:gap-6 sm:px-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logo.png" alt="Shiftify" className="h-16 w-32 shrink-0 object-contain" />
-        {isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}
+        <img src="/images/logo.png" alt="Shiftify" className="h-16 w-24 shrink-0 object-contain sm:w-32" />
+        <span className="hidden sm:contents">{isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}</span>
         <div className="flex-1" />
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {isProviderUser && <BranchWorkspaceSelect />}
           <button
             type="button"

@@ -735,15 +735,15 @@
 .sc-workspace .shadow-card > .border-b { border-color: #e4e6ed; padding-top: 20px; padding-bottom: 20px; }
 .sc-workspace .shadow-card h3 { font-weight: 800; }
 
-/* Coordinator and Provider type scale: DM Sans body, Manrope 800 headings (matches the SC and Provider workspace references). */
-[data-active-role="COORDINATOR"], [data-active-role="PROVIDER"] {
+/* Coordinator type scale: DM Sans body, Manrope 800 headings (matches the SC workspace reference). */
+[data-active-role="COORDINATOR"] {
   --font-body: 'DM Sans', Arial, sans-serif;
   --font-display: 'Manrope', Arial, sans-serif;
   font-family: var(--font-body);
   font-size: 15px;
   color: #17181d;
 }
-[data-active-role="COORDINATOR"] :is(h1, h2, h3, h4), [data-active-role="PROVIDER"] :is(h1, h2, h3, h4) { font-family: var(--font-display); font-weight: 800; }
+[data-active-role="COORDINATOR"] :is(h1, h2, h3, h4) { font-family: var(--font-display); font-weight: 800; }
 [data-active-role="COORDINATOR"] h1 { letter-spacing: -0.7px; }
 
 /* Participant view switcher */

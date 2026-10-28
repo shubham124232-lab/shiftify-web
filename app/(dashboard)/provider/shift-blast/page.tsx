@@ -181,7 +181,7 @@ export default function ProviderShiftBlastPage() {
           <div className="pd-modal-foot">
             <button type="button" className="pd-btn" onClick={() => (step === 2 ? close() : setStep(step - 1))}>{step === 2 ? "Cancel" : "Back"}</button>
             <div className="pd-buttons">
-              <span className="text-xs text-[#69707e]">{step - 1} of 3</span>
+              <span className="pd-muted text-xs">{step - 1} of 3</span>
               {step < 4
                 ? <button type="button" className="pd-btn pd-btn-primary" onClick={() => setStep(step + 1)}>Continue</button>
                 : <button type="button" className="pd-btn pd-btn-primary" onClick={record}>Record preview</button>}

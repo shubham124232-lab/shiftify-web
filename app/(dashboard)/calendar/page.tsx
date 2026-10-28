@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import {
-  WorkspacePage, Panel, OutlineButton, ErrorNote, BORDER, useCoordinatorParticipants, shortName,
+  WorkspacePage, Panel, OutlineButton, ErrorNote, BORDER, useCoordinatorParticipants, useParticipantScope, shortName,
 } from "@/components/coordinator/workspace-ui";
 
 interface Job {
@@ -28,7 +28,7 @@ const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: TZ });
 
 export default function CalendarPage() {
   const participants = useCoordinatorParticipants();
-  const [participant, setParticipant] = useState("ALL");
+  const [participant, setParticipant] = useParticipantScope();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));

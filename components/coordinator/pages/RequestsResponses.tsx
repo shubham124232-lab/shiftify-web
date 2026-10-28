@@ -9,7 +9,7 @@ import { getDashboard, type CoordinatorDashboard, type CoordinatorRecentResponse
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import {
   WorkspacePage, Panel, SubTabs, TierTabs, FilterBar, fieldClass, RequestRow, Chip, Avatar, Empty, ErrorNote,
-  OutlineButton, PrimaryButton, useCoordinatorParticipants, TIER_LABEL, tierStyle, when, shortName, BORDER,
+  OutlineButton, PrimaryButton, useCoordinatorParticipants, useParticipantScope, TIER_LABEL, tierStyle, when, shortName, BORDER,
 } from "@/components/coordinator/workspace-ui";
 
 interface Job {
@@ -45,7 +45,7 @@ function statusChip(j: Job) {
 export function CoordinatorRequestsResponses() {
   const participants = useCoordinatorParticipants();
   const nameById = useMemo(() => new Map(participants.map((p) => [p.id, p.name])), [participants]);
-  const [participant, setParticipant] = useState("ALL");
+  const [participant, setParticipant] = useParticipantScope();
   const [tab, setTab] = useState<"REQUESTS" | "RESPONSES">("REQUESTS");
   const [jobs, setJobs] = useState<Job[]>([]);
   const [responses, setResponses] = useState<CoordinatorRecentResponse[]>([]);

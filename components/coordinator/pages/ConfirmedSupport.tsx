@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import {
   WorkspacePage, Panel, SubTabs, Chip, Empty, ErrorNote, OutlineButton, PrimaryButton,
-  useCoordinatorParticipants, when, shortName,
+  useCoordinatorParticipants, useParticipantScope, when, shortName,
 } from "@/components/coordinator/workspace-ui";
 
 interface Job {
@@ -23,7 +23,7 @@ const TABS: { key: Tab; label: string; chip: string; tone: "green" | "blue" | "s
 
 export function CoordinatorConfirmedSupport() {
   const participants = useCoordinatorParticipants();
-  const [participant, setParticipant] = useState("ALL");
+  const [participant, setParticipant] = useParticipantScope();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

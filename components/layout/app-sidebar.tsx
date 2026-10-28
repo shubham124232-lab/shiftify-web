@@ -152,7 +152,7 @@ function navForRole(role: string, managed = false): RoleNav {
       return {
         main: [
           dash,
-          { href: "/live-dashboard",       label: "Live Shiftboard",           icon: Radio },
+          { href: "/live-dashboard",       label: "Live Shiftboard ↗",         icon: Radio },
           { href: "/participants",         label: "Participants",              icon: Users },
           { href: "/jobs/my",              label: "Requests & Responses",      icon: ClipboardList },
           { href: "/find",                 label: "Find Support",              icon: Search },
@@ -161,14 +161,20 @@ function navForRole(role: string, managed = false): RoleNav {
           { href: "/messages",             label: "Messages",                  icon: MessageSquare },
           { href: "/refer-and-earn",       label: "Refer & Earn",              icon: Gift },
         ],
+        // "Account & tools" — a collapsible text-only group. Saved Workers & Providers lives under Find Support's tabs.
         account: [
-          { href: "/profile",              label: "My Profile",                icon: User },
-          { href: "/saved-professionals",  label: "Saved Workers & Providers", icon: Star },
+          { href: "/profile",              label: "Profile & enquiries",       icon: User },
+          { href: "/organisation-team",    label: "Organisation & team",       icon: Building2 },
           // Required documents are a submission gate for Coordinators, so Documents stays reachable.
           { href: "/documents",            label: "Documents",                 icon: FileText },
-          { href: "/subscription",         label: "Subscription & Billing",    icon: CreditCard },
+          { href: "/reports",              label: "Reports",                   icon: BarChart3 },
+          { href: "/subscription",         label: "Subscription & billing",    icon: CreditCard },
+          { href: "/add-ons",              label: "Add-ons",                   icon: Layers },
+          { href: "/shift-blast",          label: "Shift Blast SMS",           icon: Megaphone },
+          { href: "/action-history",       label: "Free action history",       icon: Clock },
           NOTIFICATIONS,
-          { href: "/help-safety",          label: "Help & Tickets",            icon: LifeBuoy },
+          { href: "/help-safety",          label: "Help & tickets",            icon: LifeBuoy },
+          { href: "/settings",             label: "Settings",                  icon: Settings },
         ],
       };
     case "PLAN_MANAGER":
@@ -244,7 +250,25 @@ export function AppSidebar() {
   const nav = navForRole(user.activeRole as string, user.accountType === "MANAGED");
   const items = nav.main;
 
-  function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
+  // `compact`: the coordinator "Account & tools" rows — 12px text, no icon, indented.
+  function NavLink({ item, onClick, compact = false }: { item: NavItem; onClick?: () => void; compact?: boolean }) {
+    if (compact) {
+      const active = pathname === item.href || !!pathname?.startsWith(item.href + "/");
+      return (
+        <li>
+          <Link
+            href={item.href}
+            onClick={onClick}
+            className={cn(
+              "my-0.5 flex min-h-[35px] items-center rounded-lg py-2.5 pl-[25px] pr-3 text-xs",
+              active ? "bg-[#fff0f5] font-bold text-[#c91355]" : "font-medium text-[#555a68] hover:bg-[#f8f8fa]",
+            )}
+          >
+            {item.label}
+          </Link>
+        </li>
+      );
+    }
     const Icon = item.icon;
     // Only the most specific matching item is highlighted, so /jobs/my does not also light up /jobs.
     const jobId = pathname?.match(/^\/jobs\/([0-9a-f-]{36})$/i)?.[1];
@@ -352,20 +376,30 @@ export function AppSidebar() {
             </ul>
           </div>
           )}
-          {nav.account.length > 0 && (
-          <div className={cn("border-t pt-3", isCoordinator ? "mt-4 border-[#e4e6ed]" : "border-slate-100")}>
+          {isCoordinator ? (
+            <details className="sc-account-tools" open>
+              <summary><Sun className="h-[18px] w-[18px]" strokeWidth={1.7} /> Account &amp; tools</summary>
+              <ul className="m-0 list-none p-0">
+                {nav.account.map(item => <NavLink key={item.href} item={item} compact onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
+              </ul>
+            </details>
+          ) : nav.account.length > 0 && (
+          <div className="border-t border-slate-100 pt-3">
             {(!collapsed || mobile) && (
-              <p className={cn("px-3 uppercase", isCoordinator ? "m-0 mb-2 text-xs font-extrabold tracking-[1px] text-[#8a8d98]" : "pb-1.5 text-[10px] font-semibold tracking-wider text-slate-400")}>Account</p>
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
             )}
-            <ul className={isCoordinator ? "m-0 list-none space-y-0.5 p-0" : "space-y-1"}>
+            <ul className="space-y-1">
               {nav.account.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
           )}
           {isCoordinator && (
-            <p className="m-0 mt-5 border-t border-[#e4e6ed] px-3 pt-4 text-[11px] leading-relaxed text-slate-500">
-              Shiftify connects people and services. Service agreements and payments are arranged directly.
-            </p>
+            <>
+              <Link href="/help-safety" className="mx-3 my-5 block text-[11px] text-[#9a1746]">Understand each feature ↗</Link>
+              <p className="m-0 border-t border-[#e4e6ed] px-3 pt-4 text-[11px] leading-relaxed text-slate-500">
+                Shiftify connects people and services. Service agreements and payments are arranged directly.
+              </p>
+            </>
           )}
         </nav>
       </>

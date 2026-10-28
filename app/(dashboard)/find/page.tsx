@@ -10,7 +10,7 @@ import { api, ApiError } from "@/lib/api";
 import dynamic from "next/dynamic";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import {
-  WorkspacePage, Panel, SubTabs, fieldClass, Chip, Avatar, Empty, ErrorNote, OutlineButton, PrimaryButton, HeaderLink,
+  WorkspacePage, Panel, SubTabs, useParticipantScope, fieldClass, Chip, Avatar, Empty, ErrorNote, OutlineButton, PrimaryButton, HeaderLink,
 } from "@/components/coordinator/workspace-ui";
 import { FIND_TABS } from "@/components/coordinator/pages/find-tabs";
 
@@ -91,7 +91,9 @@ type MessageMode = null | { result: SearchResult };
 export default function FindDirectlyPage() {
   const [searchType, setSearchType] = useState<SearchType>("BOTH");
   const [participants, setParticipants] = useState<Connection[]>([]);
-  const [participantId, setParticipantId] = useState<string>("");
+  const [scope, setScope] = useParticipantScope();
+  const participantId = scope === "ALL" ? "" : scope;
+  const setParticipantId = (v: string) => setScope(v || "ALL");
 
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);

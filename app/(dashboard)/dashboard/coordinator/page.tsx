@@ -10,7 +10,7 @@ import { listSavedSearches, type SavedSearch } from "@/lib/api/saved-searches";
 import { api } from "@/lib/api";
 import { URGENCY_STYLE } from "@/lib/constants/job-filters";
 import {
-  Panel, HeaderLink, OutlineButton, PrimaryButton, Chip, Empty, Avatar, ParticipantViewSelect, TierTabs, TIER_LABEL, shortName, when,
+  Panel, HeaderLink, OutlineButton, PrimaryButton, Chip, Empty, Avatar, ParticipantViewSelect, useParticipantScope, TierTabs, TIER_LABEL, shortName, when,
 } from "@/components/coordinator/workspace-ui";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { Users, FileText, MessageSquare, CalendarDays } from "lucide-react";
@@ -53,7 +53,7 @@ export default function CoordinatorDashboard() {
   const [loading,      setLoading]      = useState(true);
   const [jobsLoading,  setJobsLoading]  = useState(true);
   const [error,        setError]        = useState<string | null>(null);
-  const [participant,  setParticipant]  = useState<string>("ALL");
+  const [participant,  setParticipant]  = useParticipantScope();
   const [tier,         setTier]         = useState<string>("ALL");
   // SC-A02 — the first thing the coordinator chose at sign-up, offered once until dismissed.
   const [goal, setGoal] = useState<{ title: string; href: string } | null>(null);

@@ -4,8 +4,8 @@
 // headings). Every coordinator sidebar page is laid out with these so the pages match.
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { ArrowRight, ChevronDown, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { URGENCY_STYLE } from "@/lib/constants/job-filters";
 
@@ -13,43 +13,91 @@ export const BORDER = "border-[#e4e6ed]";
 
 // ── Participant view ─────────────────────────────────────────────────────────
 
-export interface WorkspaceParticipant { id: string; name: string }
+/** `meta` is the second line in the participant switcher, e.g. "Parramatta · Connected". */
+export interface WorkspaceParticipant { id: string; name: string; meta?: string }
 
-// Everyone this coordinator manages or is connected to (accepted), de-duplicated.
+interface ManagedRow { id: string; name: string; suburb?: string | null }
+interface ConnectionRow { status: string; participant: { id: string; name: string; defaultSuburb?: string | null } }
+
+// Everyone this coordinator manages or is connected to (accepted or pending), de-duplicated.
 export function useCoordinatorParticipants() {
-  const [managed, setManaged] = useState<WorkspaceParticipant[]>([]);
-  const [connected, setConnected] = useState<WorkspaceParticipant[]>([]);
+  const [managed, setManaged] = useState<ManagedRow[]>([]);
+  const [connections, setConnections] = useState<ConnectionRow[]>([]);
   useEffect(() => {
-    api.get<{ users: WorkspaceParticipant[] }>("/linking/participants").then((r) => setManaged(r.users ?? [])).catch(() => {});
-    api.get<{ connections: { status: string; participant: WorkspaceParticipant }[] }>("/coordinator-connections")
-      .then((r) => setConnected((r.connections ?? []).filter((c) => c.status === "ACCEPTED").map((c) => c.participant)))
+    api.get<{ users: ManagedRow[] }>("/linking/participants").then((r) => setManaged(r.users ?? [])).catch(() => {});
+    api.get<{ connections: ConnectionRow[] }>("/coordinator-connections")
+      .then((r) => setConnections((r.connections ?? []).filter((c) => c.status === "ACCEPTED" || c.status === "PENDING")))
       .catch(() => {});
   }, []);
   return useMemo(() => {
-    const map = new Map<string, string>();
-    [...managed, ...connected].forEach((p) => map.set(p.id, p.name));
-    return [...map].map(([id, name]) => ({ id, name }));
-  }, [managed, connected]);
+    const map = new Map<string, WorkspaceParticipant>();
+    const meta = (suburb: string | null | undefined, label: string) => [suburb, label].filter(Boolean).join(" · ");
+    managed.forEach((p) => map.set(p.id, { id: p.id, name: p.name, meta: meta(p.suburb, "Managed") }));
+    connections.forEach((c) => {
+      if (map.has(c.participant.id)) return;
+      map.set(c.participant.id, { id: c.participant.id, name: c.participant.name, meta: meta(c.participant.defaultSuburb, c.status === "ACCEPTED" ? "Connected" : "Pending") });
+    });
+    return [...map.values()];
+  }, [managed, connections]);
 }
 
+// The selected participant view is shared by every coordinator page, so it survives navigation.
+let scope = "ALL";
+const scopeListeners = new Set<() => void>();
+function setScope(v: string) { scope = v; scopeListeners.forEach((l) => l()); }
+function subscribeScope(l: () => void) { scopeListeners.add(l); return () => { scopeListeners.delete(l); }; }
+
+/** "ALL" or a participant id; same value on every coordinator page. */
+export function useParticipantScope(): [string, (v: string) => void] {
+  return [useSyncExternalStore(subscribeScope, () => scope, () => "ALL"), setScope];
+}
+
+/** "Participant view" switcher; opens a menu of participants like the reference workspace. */
 export function ParticipantViewSelect({ value, onChange, participants }: { value: string; onChange: (v: string) => void; participants: WorkspaceParticipant[] }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current?.open && !ref.current.contains(e.target as Node)) ref.current.open = false; };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  const current = participants.find((p) => p.id === value);
+  const pick = (id: string) => { onChange(id); if (ref.current) ref.current.open = false; };
+  const portfolio = `${participants.length} participant${participants.length === 1 ? "" : "s"} · Whole portfolio`;
   return (
-    <label className={`relative flex items-center gap-3 rounded-xl border ${BORDER} bg-white py-2 pl-3 pr-9`}>
-      <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-50 text-brand-600"><Users className="h-4 w-4" /></span>
-      <span className="flex flex-col">
-        <span className="text-[10px] text-slate-500">Participant view</span>
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="cursor-pointer appearance-none bg-transparent text-sm font-semibold text-slate-900 outline-none"
-        >
-          <option value="ALL">All participants</option>
-          {participants.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-      </span>
-      <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-slate-500" />
-    </label>
+    <details ref={ref} className="sc-switcher">
+      <summary aria-label={`Participant view: ${current?.name ?? "All participants"}`}>
+        <span className="sc-switcher-symbol"><Users /></span>
+        <span className="sc-switcher-copy"><small>Participant view</small><strong>{current ? shortName(current.name) : "All participants"}</strong></span>
+        <ChevronDown className="sc-switcher-chevron" />
+      </summary>
+      <div className="sc-switcher-menu">
+        <div className="sc-switcher-heading">Switch participant view</div>
+        <button type="button" className={`sc-choice ${value === "ALL" ? "selected" : ""}`} aria-pressed={value === "ALL"} onClick={() => pick("ALL")}>
+          <span className="sc-choice-avatar portfolio"><Users /></span>
+          <span><strong>All participants</strong><small>{portfolio}</small></span>
+          <span className="sc-choice-check" aria-hidden="true">{value === "ALL" ? "✓" : ""}</span>
+        </button>
+        {participants.length > 0 && <div className="sc-choice-divider" />}
+        {participants.map((p) => (
+          <button key={p.id} type="button" className={`sc-choice ${value === p.id ? "selected" : ""}`} aria-pressed={value === p.id} onClick={() => pick(p.id)}>
+            <span className="sc-choice-avatar">{p.name.trim()[0]?.toUpperCase() ?? "?"}</span>
+            <span><strong>{shortName(p.name)}</strong>{p.meta && <small>{p.meta}</small>}</span>
+            <span className="sc-choice-check" aria-hidden="true">{value === p.id ? "✓" : ""}</span>
+          </button>
+        ))}
+        <Link href="/participants" className="sc-manage-link" onClick={() => { if (ref.current) ref.current.open = false; }}>
+          Manage participants <ArrowRight />
+        </Link>
+      </div>
+    </details>
   );
+}
+
+// Pages that don't filter by participant still show the switcher, bound to the shared view.
+function SharedParticipantView() {
+  const participants = useCoordinatorParticipants();
+  const [value, onChange] = useParticipantScope();
+  return <ParticipantViewSelect value={value} onChange={onChange} participants={participants} />;
 }
 
 // ── Page frame ───────────────────────────────────────────────────────────────
@@ -65,10 +113,10 @@ export function WorkspacePage({ title, description, actions, participantView, ch
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-extrabold leading-tight text-slate-900">{title}</h1>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-1 text-[13px] text-[#69707e]">{description}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {participantView && <ParticipantViewSelect {...participantView} />}
+          {participantView ? <ParticipantViewSelect {...participantView} /> : <SharedParticipantView />}
           {actions}
           <Link href="/help-safety" aria-label="Help" className="px-2 text-sm font-semibold text-slate-500 hover:text-slate-900">?</Link>
         </div>
@@ -82,7 +130,7 @@ export function Panel({ title, action, children, bodyClassName = "p-5" }: { titl
   return (
     <section className={`rounded-xl border ${BORDER} bg-white`}>
       {title && (
-        <header className={`flex min-h-[70px] items-center justify-between gap-3 border-b ${BORDER} px-5 py-3`}>
+        <header className={`flex min-h-[64px] items-center justify-between gap-3 border-b ${BORDER} px-5 py-4`}>
           <h2 className="text-base font-extrabold text-slate-900">{title}</h2>
           {action}
         </header>
@@ -105,8 +153,8 @@ export function HeaderLink({ href, children }: { href: string; children: ReactNo
   return <Link href={href} className="px-2 text-sm font-semibold text-slate-500 hover:text-slate-900">{children}</Link>;
 }
 
-const outline = `inline-flex items-center justify-center rounded-lg border ${BORDER} bg-white px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50`;
-const primary = "inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-50";
+const outline = `inline-flex min-h-[38px] items-center justify-center gap-[7px] rounded-lg border ${BORDER} bg-white px-[14px] py-[9px] text-[13px] font-semibold text-[#17181d] hover:border-[#bfc3ce] hover:bg-[#f5f6f9] disabled:opacity-50`;
+const primary = "inline-flex min-h-[38px] items-center justify-center gap-[7px] rounded-lg border border-[#c91355] bg-[#c91355] px-[14px] py-[9px] text-[13px] font-semibold text-white hover:bg-[#a10e43] disabled:opacity-50";
 
 export function OutlineButton({ href, onClick, children, className = "", disabled }: { href?: string; onClick?: () => void; children: ReactNode; className?: string; disabled?: boolean }) {
   if (href) return <Link href={href} className={`${outline} ${className}`}>{children}</Link>;
@@ -123,7 +171,7 @@ export function SubTabs({ items }: { items: { label: string; href?: string; onCl
   return (
     <div className="flex flex-wrap gap-2">
       {items.map((t) => {
-        const cls = `rounded-lg border px-3 py-2 text-sm font-semibold ${t.active ? "border-brand-100 bg-brand-50 text-brand-600" : `${BORDER} bg-white text-slate-900 hover:bg-slate-50`}`;
+        const cls = `rounded-lg border px-3 py-2 text-[13px] font-semibold ${t.active ? "border-brand-100 bg-brand-50 text-brand-600" : `${BORDER} bg-white text-slate-900 hover:bg-slate-50`}`;
         return t.href
           ? <Link key={t.label} href={t.href} className={cls}>{t.label}</Link>
           : <button key={t.label} type="button" onClick={t.onClick} className={cls}>{t.label}</button>;
@@ -142,6 +190,51 @@ export function Chip({ tone, children }: { tone: ChipTone; children: ReactNode }
     : "";
   const style = typeof tone === "string" ? undefined : { background: tone.bg, color: tone.color };
   return <span className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${cls}`} style={style}>{children}</span>;
+}
+
+/** Number card: small muted label above a large figure. */
+export function StatCard({ label, value, href }: { label: string; value: ReactNode; href?: string }) {
+  const body = (
+    <>
+      <p className="text-xs text-[#69707e]">{label}</p>
+      <p className="mt-2 font-display text-[30px] font-extrabold leading-none text-[#17181d]">{value}</p>
+    </>
+  );
+  const cls = `block rounded-xl border ${BORDER} bg-white p-6`;
+  return href ? <Link href={href} className={`${cls} hover:border-[#dca3ba]`}>{body}</Link> : <div className={cls}>{body}</div>;
+}
+
+/** Bordered table with small uppercase-free muted headings, as used in Reports and Team access. */
+export function DataTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
+  return (
+    <div className={`overflow-x-auto rounded-lg border ${BORDER}`}>
+      <table className="w-full border-collapse text-left text-xs text-[#17181d]">
+        <thead className="bg-[#f8f9fb]">
+          <tr>{head.map((h) => <th key={h} className="p-[14px] text-[11px] font-bold text-[#69707e]">{h}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className={`border-t ${BORDER}`}>{r.map((c, j) => <td key={j} className="p-[14px] align-middle">{c}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Muted note box inside a panel. */
+export function Note({ children }: { children: ReactNode }) {
+  return <div className="rounded-lg bg-[#f5f6f9] px-4 py-3 text-xs leading-relaxed text-[#69707e]">{children}</div>;
+}
+
+/** Label / value line ("Organisation   Harbour Support Coordination"). */
+export function InfoRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={`grid grid-cols-[160px_minmax(0,1fr)] gap-4 border-b ${BORDER} py-3 text-[13px] last:border-b-0`}>
+      <span className="text-[#69707e]">{label}</span>
+      <span className="font-semibold text-[#17181d]">{children}</span>
+    </div>
+  );
 }
 
 export function Empty({ children }: { children: ReactNode }) {

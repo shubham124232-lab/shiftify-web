@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { WorkerAlertControls } from "@/components/notifications/WorkerAlertControls";
 import { ProviderNotificationControls } from "@/components/notifications/ProviderNotificationControls";
+import { WorkspacePage, Panel, Chip, Empty, ErrorNote, OutlineButton } from "@/components/coordinator/workspace-ui";
 
 interface Notif {
   id: string; type: string; title: string; body: string;
@@ -154,6 +155,35 @@ export default function NotificationsPage() {
         </section>
         </div>
       </div>
+    );
+  }
+
+  if (activeRole === "COORDINATOR") {
+    const open = (n: Notif) => { if (!n.read) void markRead(n.id); router.push(n.data?.jobId ? `/jobs/${n.data.jobId}` : n.type === "NEW_MESSAGE" ? "/messages" : "/dashboard/coordinator"); };
+    return (
+      <WorkspacePage
+        title="Notifications"
+        description="Requests, participant connections, messages and account activity."
+        actions={<OutlineButton onClick={markAllRead} disabled={unreadCount === 0}>Mark all read</OutlineButton>}
+      >
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <Panel title="Your notifications" bodyClassName="px-5" action={<OutlineButton href="/settings">Preferences</OutlineButton>}>
+          {loading ? <Empty>Loading…</Empty> : notifs.length === 0 ? <Empty>No notifications yet</Empty> : (
+            <div className="divide-y divide-[#e4e6ed]">
+              {notifs.map((n) => (
+                <div key={n.id} className="flex items-center justify-between gap-4 py-4">
+                  <div className="min-w-0">
+                    {!n.read && <Chip tone={{ bg: "#fff0f5", color: "#c91355" }}>New</Chip>}
+                    <p className={`mt-1.5 text-[13px] ${n.read ? "text-[#525766]" : "font-semibold text-[#17181d]"}`}>{n.title}</p>
+                    {n.body && <p className="mt-0.5 text-xs text-[#69707e]">{n.body}</p>}
+                  </div>
+                  <OutlineButton onClick={() => open(n)}>Open</OutlineButton>
+                </div>
+              ))}
+            </div>
+          )}
+        </Panel>
+      </WorkspacePage>
     );
   }
 

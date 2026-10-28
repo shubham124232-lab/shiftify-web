@@ -36,6 +36,12 @@ const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/participants",            roles: ["COORDINATOR"] },
   { prefix: "/calendar",                roles: ["COORDINATOR"] },
   { prefix: "/refer-and-earn",          roles: ["COORDINATOR"] },
+  { prefix: "/organisation-team",       roles: ["COORDINATOR"] },
+  { prefix: "/reports",                 roles: ["COORDINATOR"] },
+  { prefix: "/add-ons",                 roles: ["COORDINATOR"] },
+  { prefix: "/shift-blast",             roles: ["COORDINATOR"] },
+  { prefix: "/action-history",          roles: ["COORDINATOR"] },
+  { prefix: "/settings",                roles: ["COORDINATOR"] },
   { prefix: "/team",                    roles: ["PROVIDER"] },
   { prefix: "/provider/help",           roles: ["PROVIDER", "COORDINATOR"] }, // ticket detail is shared with Coordinator Help & Tickets
   { prefix: "/provider",                roles: ["PROVIDER"] },

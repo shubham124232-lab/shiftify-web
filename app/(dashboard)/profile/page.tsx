@@ -368,7 +368,7 @@ export default function ProfilePage() {
 
   if (pageLoading && activeRole === UserRole.COORDINATOR) {
     return (
-      <WorkspacePage title="My Profile" description="Your Support Coordination profile and professional details.">
+      <WorkspacePage title="Profile & enquiries" description="Your Support Coordination profile and professional details.">
         <Panel><p className="py-10 text-center text-sm text-slate-500">Loading…</p></Panel>
       </WorkspacePage>
     );
@@ -749,7 +749,7 @@ export default function ProfilePage() {
   if (activeRole === UserRole.COORDINATOR) {
     return (
       <WorkspacePage
-        title="My Profile"
+        title="Profile & enquiries"
         description="Your Support Coordination profile and professional details."
         actions={username ? <OutlineButton href={`/profile/${user.id}`}>Preview public profile</OutlineButton> : undefined}
       >

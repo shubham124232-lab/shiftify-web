@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, MessageCircle, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,13 +31,40 @@ const PROVIDER_MENU = [
 ];
 
 const COORDINATOR_MENU = [
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/subscription", label: "Subscription and billing", icon: CreditCard },
-  { href: "/help-safety", label: "Help and Tickets", icon: LifeBuoy },
+  { href: "/profile", label: "My profile" },
+  { href: "/documents", label: "Documents" },
+  { href: "/subscription", label: "Membership and billing" },
+  { href: "/settings", label: "Settings" },
+  { href: "/help-safety", label: "Help and Tickets" },
 ];
 
 function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+}
+
+// Support Coordinator profile menu: avatar opens a plain card of links, as in the SC workspace.
+function CoordinatorProfileMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
+  useEffect(() => { if (ref.current) ref.current.open = false; }, [pathname]);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current?.open && !ref.current.contains(e.target as Node)) ref.current.open = false; };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return (
+    <details ref={ref} className="sc-profile">
+      <summary aria-label="Open profile menu">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#fde8f0] text-[13px] font-bold text-[#c91355]">{initials(name)}</span>
+      </summary>
+      <div className="sc-profile-menu">
+        <strong>{name}</strong>
+        <small>Support Coordinator</small>
+        {COORDINATOR_MENU.map((m) => <Link key={m.href} href={m.href}>{m.label}</Link>)}
+        <button type="button" onClick={onSignOut}>Sign out</button>
+      </div>
+    </details>
+  );
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -81,7 +108,7 @@ export function AppTopbar() {
   const isProviderUser = user.activeRole === UserRole.PROVIDER;
   const isCoordinatorUser = user.activeRole === UserRole.COORDINATOR;
   // Provider and Support Coordinator workspaces share the full-width header.
-  const workspaceMenu = isCoordinatorUser ? COORDINATOR_MENU : PROVIDER_MENU;
+  const workspaceMenu = PROVIDER_MENU;
 
   const profileMenuItems = (
     <MenuItems
@@ -151,6 +178,9 @@ export function AppTopbar() {
           >
             <MessageCircle className="h-[18px] w-[18px]" />
           </Link>
+          {isCoordinatorUser ? (
+            <CoordinatorProfileMenu name={displayName} onSignOut={handleLogout} />
+          ) : (
           <Menu as="div" className="relative">
             <MenuButton className="flex items-center gap-[7px] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Profile menu">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-[#fde8f0] text-sm font-bold text-[#c91355]">{initials(displayName)}</span>
@@ -158,6 +188,7 @@ export function AppTopbar() {
             </MenuButton>
             {profileMenuItems}
           </Menu>
+          )}
         </div>
       </header>
     );

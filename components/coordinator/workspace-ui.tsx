@@ -257,9 +257,9 @@ export function Avatar({ name, tone = "pink" }: { name: string; tone?: "pink" | 
 // ── Request timing ───────────────────────────────────────────────────────────
 
 export const TIERS: { key: string; label: string; range: string }[] = [
-  { key: "RAPID",       label: "Rapid",       range: "Within 60 minutes" },
-  { key: "URGENT",      label: "Urgent",      range: "Within 4 hours" },
-  { key: "LAST_MINUTE", label: "Last-Minute", range: "4–48 hours" },
+  { key: "RAPID",       label: "Rapid",       range: "Within 2 hours" },
+  { key: "URGENT",      label: "Urgent",      range: "Within 6 hours" },
+  { key: "LAST_MINUTE", label: "Last-Minute", range: "6–48 hours" },
   { key: "ROUTINE",     label: "Routine",     range: "Over 48 hours" },
 ];
 export const TIER_LABEL: Record<string, string> = Object.fromEntries(TIERS.map((t) => [t.key, t.label]));

@@ -107,9 +107,9 @@ function ProviderPostExtras({ children, onContinue }: { children?: React.ReactNo
 }
 
 const PROVIDER_LANES: Record<PostingTier, { title: string; timing: string; badge: string; cls: string; icon: React.ReactNode }> = {
-  RAPID:       { title: "Rapid staffing",       timing: "Now–60 minutes",           badge: "Rapid",       cls: "pd-badge-rapid",       icon: <Zap /> },
-  URGENT:      { title: "Urgent staffing",      timing: "Over 60 minutes–4 hours",  badge: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
-  LAST_MINUTE: { title: "Last Minute staffing", timing: "Over 4–48 hours",          badge: "Last Minute", cls: "pd-badge-last-minute", icon: <Timer /> },
+  RAPID:       { title: "Rapid staffing",       timing: "Now–2 hours",           badge: "Rapid",       cls: "pd-badge-rapid",       icon: <Zap /> },
+  URGENT:      { title: "Urgent staffing",      timing: "Over 2–6 hours",  badge: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
+  LAST_MINUTE: { title: "Last Minute staffing", timing: "Over 6–48 hours",          badge: "Last Minute", cls: "pd-badge-last-minute", icon: <Timer /> },
   ROUTINE:     { title: "Routine staffing",     timing: "Beyond 48 hours or recurring", badge: "Routine", cls: "pd-badge-routine",     icon: <CalendarDays /> },
 };
 

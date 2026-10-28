@@ -1,6 +1,6 @@
 "use client";
 
-// Last-Minute Support journey — support needed over 4 hours and up to 48 hours. Authoritative
+// Last-Minute Support journey — support needed over 6 hours and up to 48 hours. Authoritative
 // documents per role:
 //   Participant → Participant Posting Journeys L-01..L-12
 //   Coordinator → SC Journey SC-P00..P02 (participant + authority first) then SC-L01..L12
@@ -163,7 +163,7 @@ function LastMinuteJourneyBase() {
       const m = (new Date(startDateTime).getTime() - Date.now()) / 60000;
       if (!startDateTime) return "Date, start time and duration are required.";
       if (m < -1) return "Choose a start time from now onwards.";
-      if (m <= 240) return "Last-Minute Support starts more than 4 hours from now. For sooner support, post an Urgent or Rapid request.";
+      if (m <= 360) return "Last-Minute Support starts more than 6 hours from now. For sooner support, post an Urgent or Rapid request.";
       if (m > 48 * 60) return "Last-Minute Support must start within 48 hours. For a later start, post a Routine request.";
     }
     if (key === "schedule" && !(isCoordinator && endTime) && !(parseFloat(durationHours) > 0)) return isCoordinator ? "Enter an end time or a duration." : "Date, start time and duration are required.";
@@ -205,7 +205,7 @@ function LastMinuteJourneyBase() {
     if (step === TOTAL_STEPS - 1) {
       // A request saved before signing up may have waited past the time it asked for.
       const m = (new Date(startDateTime).getTime() - Date.now()) / 60000;
-      if (!startDateTime || m <= 240 || m > 48 * 60) { goTo("when"); setError("Your start time no longer fits a Last-Minute request (more than 4 hours and within 48 hours from now). Choose a new start time."); return; }
+      if (!startDateTime || m <= 360 || m > 48 * 60) { goTo("when"); setError("Your start time no longer fits a Last-Minute request (more than 6 hours and within 48 hours from now). Choose a new start time."); return; }
       void submitCommon(false); return;
     }
     const nextStep = step + 1;
@@ -300,7 +300,7 @@ function LastMinuteJourneyBase() {
     : "Continue";
   const updateMethodList = isCoordinator ? COORDINATOR_UPDATE_METHODS : PARTICIPANT_UPDATE_METHODS;
   const timingOptions: { v: TimingOption; l: string }[] = isCoordinator
-    ? [{ v: "TODAY", l: "Today — more than 4 hours away" }, { v: "TOMORROW", l: "Tomorrow" }, { v: "WITHIN_48H", l: "Within the next 48 hours" }, { v: "CHOOSE", l: "Select date and start time" }]
+    ? [{ v: "TODAY", l: "Today — more than 6 hours away" }, { v: "TOMORROW", l: "Tomorrow" }, { v: "WITHIN_48H", l: "Within the next 48 hours" }, { v: "CHOOSE", l: "Select date and start time" }]
     : [{ v: "TODAY", l: "Today" }, { v: "TOMORROW", l: "Tomorrow" }, { v: "CHOOSE", l: "Choose date/time within the next 48 hours" }];
   const fixedDate = timingOption === "TODAY" || timingOption === "TOMORROW";
   const scheduleSummary = startDateTime

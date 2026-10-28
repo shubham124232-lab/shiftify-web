@@ -105,8 +105,8 @@ const SCREENING_CHECKS = ["NDIS Worker Screening Check", "Working With Children 
 const INTRO_STEPS = ["Phone introduction", "Meet and greet", "Interview", "Trial shift"];
 
 const ARRIVAL_WINDOWS: Record<"RAPID" | "URGENT", { v: string; l: string }[]> = {
-  RAPID: [{ v: "15", l: "Within 15 minutes of start" }, { v: "30", l: "Within 30 minutes of start" }, { v: "60", l: "Within 60 minutes of start" }],
-  URGENT: [{ v: "30", l: "Within 30 minutes of start" }, { v: "60", l: "Within 1 hour of start" }, { v: "120", l: "Within 2 hours of start" }, { v: "240", l: "Anytime within the 4-hour window" }],
+  RAPID: [{ v: "15", l: "Within 15 minutes of start" }, { v: "30", l: "Within 30 minutes of start" }, { v: "60", l: "Within 60 minutes of start" }, { v: "120", l: "Anytime within the 2-hour window" }],
+  URGENT: [{ v: "30", l: "Within 30 minutes of start" }, { v: "60", l: "Within 1 hour of start" }, { v: "120", l: "Within 2 hours of start" }, { v: "360", l: "Anytime within the 6-hour window" }],
 };
 
 const COVER_REASONS = [
@@ -118,9 +118,9 @@ const TIER_NAME: Record<PostingTier, string> = { RAPID: "Rapid", URGENT: "Urgent
 
 // Minutes from now → [min, max] the start must fall in for each tier (PR-P01).
 const START_WINDOW: Record<PostingTier, { min: number; max: number; msg: string }> = {
-  RAPID: { min: -1, max: 60, msg: "Rapid must start within 60 minutes. For a later start choose Urgent, Last-Minute or Routine." },
-  URGENT: { min: 60, max: 240, msg: "Urgent starts after 60 minutes and within 4 hours. Choose Rapid for sooner or Last-Minute for later." },
-  LAST_MINUTE: { min: 240, max: 48 * 60, msg: "Last-Minute starts after 4 hours and within 48 hours. Choose Urgent for sooner or Routine for later." },
+  RAPID: { min: -1, max: 120, msg: "Rapid must start within 2 hours. For a later start choose Urgent, Last-Minute or Routine." },
+  URGENT: { min: 120, max: 360, msg: "Urgent starts after 2 hours and within 6 hours. Choose Rapid for sooner or Last-Minute for later." },
+  LAST_MINUTE: { min: 360, max: 48 * 60, msg: "Last-Minute starts after 6 hours and within 48 hours. Choose Urgent for sooner or Routine for later." },
   ROUTINE: { min: 48 * 60, max: Number.POSITIVE_INFINITY, msg: "Routine starts more than 48 hours from now. Choose Last-Minute for sooner." },
 };
 
@@ -620,16 +620,16 @@ export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes
       {key === "when" && (
         <div className="space-y-5">
           <p className="text-xs text-slate-500 m-0">
-            {tier === "RAPID" && "Rapid: within 60 minutes. Live countdown and immediate matching start when you post."}
-            {tier === "URGENT" && "Urgent: after 60 minutes and within 4 hours. A four-hour response deadline applies. Speed is never required to publish."}
-            {tier === "LAST_MINUTE" && "Last-Minute: after 4 hours and within 48 hours. Recurring needs belong in a Routine request."}
+            {tier === "RAPID" && "Rapid: within 2 hours. Live countdown and immediate matching start when you post."}
+            {tier === "URGENT" && "Urgent: after 2 hours and within 6 hours. A four-hour response deadline applies. Speed is never required to publish."}
+            {tier === "LAST_MINUTE" && "Last-Minute: after 6 hours and within 48 hours. Recurring needs belong in a Routine request."}
             {tier === "ROUTINE" && "Routine: more than 48 hours away, or ongoing."}
           </p>
 
           {tier === "RAPID" && (
             <div>
               <label className={lbl}>Start time</label>
-              <RadioCards value={timing} onChange={setTiming} options={[{ v: "ASAP", l: "As soon as possible" }, { v: "CHOOSE", l: "Choose a time within the next 60 minutes" }]} />
+              <RadioCards value={timing} onChange={setTiming} options={[{ v: "ASAP", l: "As soon as possible" }, { v: "CHOOSE", l: "Choose a time within the next 2 hours" }]} />
               {timing === "CHOOSE" && <input type="datetime-local" className={`${inp} mt-3`} value={startAt} onChange={(e) => setStartAt(e.target.value)} />}
             </div>
           )}

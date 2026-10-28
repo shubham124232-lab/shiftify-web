@@ -3,12 +3,12 @@
 import { Zap, Clock, Timer, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Provider timing categories (approved demo names). The stored tiers and their windows are unchanged:
-// RAPID 0–60 min → "Last Min", URGENT 1–4 h, LAST_MINUTE 4–48 h → "Short Notice", ROUTINE 48 h+.
+// Provider timing categories (approved demo names and windows; stored tiers keep their keys):
+// RAPID 0–2 h → "Last Min", URGENT 2–6 h, LAST_MINUTE 6–48 h → "Short Notice", ROUTINE 48 h+.
 export const PROVIDER_TIERS = [
-  { key: "RAPID",       label: "Last Min",     hint: "Now–60 min",      icon: Zap,          badge: "pd-badge-rapid" },
-  { key: "URGENT",      label: "Urgent",       hint: "Over 1–4 hours",  icon: Clock,        badge: "pd-badge-urgent" },
-  { key: "LAST_MINUTE", label: "Short Notice", hint: "Over 4–48 hours", icon: Timer,        badge: "pd-badge-last-minute" },
+  { key: "RAPID",       label: "Last Min",     hint: "Now–2 hours",     icon: Zap,          badge: "pd-badge-rapid" },
+  { key: "URGENT",      label: "Urgent",       hint: "Over 2–6 hours",  icon: Clock,        badge: "pd-badge-urgent" },
+  { key: "LAST_MINUTE", label: "Short Notice", hint: "Over 6–48 hours", icon: Timer,        badge: "pd-badge-last-minute" },
   { key: "ROUTINE",     label: "Routine",      hint: "Over 48 hours",   icon: CalendarDays, badge: "pd-badge-routine" },
 ] as const;
 

@@ -184,8 +184,8 @@ export function WizardProgress({ step, total, accent }: { step: number; total: n
 
 // Left-hand panel copy per timing lane. Colours match the homepage lane tokens.
 const LANE_PANELS: { match: string; accent: string; headline: string; sub: string }[] = [
-  { match: "rapid",       accent: "#FF2340", headline: "Support in the next 60 minutes.",       sub: "Tell us what you need. We’ll show it to matched workers straight away." },
-  { match: "urgent",      accent: "#FF8500", headline: "Support in 1 to 4 hours.",              sub: "Tell us what you need. We’ll show it to matched workers while there’s still time." },
+  { match: "rapid",       accent: "#FF2340", headline: "Support in the next 2 hours.",       sub: "Tell us what you need. We’ll show it to matched workers straight away." },
+  { match: "urgent",      accent: "#FF8500", headline: "Support in 2 to 6 hours.",              sub: "Tell us what you need. We’ll show it to matched workers while there’s still time." },
   { match: "last-minute", accent: "#00A06A", headline: "Support in 4 to 48 hours.",             sub: "Tell us what you need. We’ll show it to matched workers on the live board." },
   { match: "routine",     accent: "#547FC4", headline: "One-time or recurring support.",        sub: "Tell us what you need and when. We’ll show it to matched workers on the live board." },
 ];

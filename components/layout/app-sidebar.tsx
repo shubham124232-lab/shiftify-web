@@ -148,23 +148,28 @@ function navForRole(role: string, managed = false): RoleNav {
       return { main: groups.flatMap((g) => g.items), account: [], groups };
     }
     case "COORDINATOR":
+      // Support Coordinator workspace (approved SC demo): flat menu, then account pages.
       return {
         main: [
           dash,
-          { href: "/participants",         label: "Participants",              icon: UserCheck },
-          { href: "/jobs/post",            label: "Post Support Request",      icon: FilePlus },
-          { href: "/find",                 label: "Find Support",              icon: Search },
+          { href: "/live-dashboard",       label: "Live Shiftboard",           icon: Radio },
+          { href: "/participants",         label: "Participants",              icon: Users },
           { href: "/jobs/my",              label: "Requests & Responses",      icon: ClipboardList },
-          { href: "/upcoming-support",     label: "Upcoming Support",          icon: Calendar },
+          { href: "/find",                 label: "Find Support",              icon: Search },
+          { href: "/upcoming-support",     label: "Confirmed Support",         icon: ShieldCheck },
+          { href: "/calendar",             label: "Calendar",                  icon: Calendar },
           { href: "/messages",             label: "Messages",                  icon: MessageSquare },
-          { href: "/saved-professionals",  label: "Saved Workers & Providers", icon: Star },
+          { href: "/refer-and-earn",       label: "Refer & Earn",              icon: Gift },
+        ],
+        account: [
           { href: "/profile",              label: "My Profile",                icon: User },
-          { href: "/subscription",         label: "Subscription",              icon: CreditCard },
-          { href: "/help-safety",          label: "Help",                      icon: ShieldCheck },
+          { href: "/saved-professionals",  label: "Saved Workers & Providers", icon: Star },
           // Required documents are a submission gate for Coordinators, so Documents stays reachable.
           { href: "/documents",            label: "Documents",                 icon: FileText },
+          { href: "/subscription",         label: "Subscription & Billing",    icon: CreditCard },
+          NOTIFICATIONS,
+          { href: "/help-safety",          label: "Help & Tickets",            icon: LifeBuoy },
         ],
-        account: [NOTIFICATIONS],
       };
     case "PLAN_MANAGER":
       return {
@@ -217,8 +222,11 @@ export function AppSidebar() {
   // Count badges on the Provider menu (open requests, new enquiries) come from the dashboard summary.
   const [badges, setBadges] = useState<Partial<Record<NavBadge, number>>>({});
   const isProvider = user?.activeRole === "PROVIDER";
-  // The Provider menu is always expanded (demo shell has no collapse control).
-  const collapsed = isProvider ? false : collapsedPref;
+  const isCoordinator = user?.activeRole === "COORDINATOR";
+  // Provider and Coordinator workspaces share the flat demo menu style.
+  const isWorkspace = isProvider || isCoordinator;
+  // The workspace menus are always expanded (demo shell has no collapse control).
+  const collapsed = isWorkspace ? false : collapsedPref;
   useEffect(() => {
     if (!isProvider) return;
     let cancelled = false;
@@ -253,12 +261,12 @@ export function AppSidebar() {
           onClick={onClick}
           className={cn(
             "group relative flex items-center px-3 py-2.5 text-sm transition-all duration-150",
-            isProvider ? "min-h-[44px] gap-[11px] rounded-lg" : "gap-3 rounded-xl font-medium",
+            isWorkspace ? "min-h-[44px] gap-[11px] rounded-lg" : "gap-3 rounded-xl font-medium",
             isActive
-              ? isProvider
+              ? isWorkspace
                 ? "bg-[#fff0f5] font-bold text-[#c91355]"
                 : "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/25"
-              : isProvider
+              : isWorkspace
                 ? "font-medium text-[#555a68] hover:bg-slate-50 hover:text-slate-900"
                 : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900",
           )}
@@ -268,15 +276,15 @@ export function AppSidebar() {
           ) : (
           <Icon className={cn(
             "h-[18px] w-[18px] shrink-0 transition-colors",
-            isActive ? (isProvider ? "text-[#c91355]" : "text-white") : isProvider ? "text-[#555a68]" : "text-slate-400 group-hover:text-brand-600",
+            isActive ? (isWorkspace ? "text-[#c91355]" : "text-white") : isWorkspace ? "text-[#555a68]" : "text-slate-400 group-hover:text-brand-600",
           )} />
           )}
-          {!collapsed && <span className={cn("tracking-tight", isProvider ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
+          {!collapsed && <span className={cn("tracking-tight", isWorkspace ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
           {!collapsed && !!item.badge && !!badges[item.badge] && (
             <span className={cn(
               "ml-auto px-1.5 font-bold",
-              isProvider ? "rounded-[5px] bg-[#edf0f4] text-xs font-medium leading-5 text-[#555a68]" : "rounded-full text-[10px] leading-4",
-              !isProvider && (isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"),
+              isWorkspace ? "rounded-[5px] bg-[#edf0f4] text-xs font-medium leading-5 text-[#555a68]" : "rounded-full text-[10px] leading-4",
+              !isWorkspace && (isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"),
             )}>{badges[item.badge]}</span>
           )}
         </Link>
@@ -287,7 +295,7 @@ export function AppSidebar() {
   function SidebarContents({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
-        {(!isProvider || mobile) && <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+        {(!isWorkspace || mobile) && <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {(!collapsed || mobile)
@@ -309,7 +317,16 @@ export function AppSidebar() {
             </button>
           )}
         </div>}
-        <nav className={cn("flex flex-1 flex-col justify-between overflow-y-auto", isProvider ? "px-3 pb-4 pt-6" : "p-3")}>
+        <nav className={cn("flex flex-1 flex-col justify-between overflow-y-auto", isWorkspace ? "px-3 pb-4 pt-6" : "p-3")}>
+          {isCoordinator && (
+            <Link
+              href="/jobs/post"
+              onClick={mobile ? () => setMobileOpen(false) : undefined}
+              className="mb-5 flex min-h-[44px] items-center justify-center rounded-lg bg-[#c91355] px-3 text-sm font-bold text-white hover:bg-[#a90f47]"
+            >
+              Post Support Request
+            </Link>
+          )}
           {nav.groups ? (
             <div className={isProvider ? "space-y-6" : "space-y-3"}>
               {nav.groups.map((g) => (
@@ -327,23 +344,28 @@ export function AppSidebar() {
             </div>
           ) : (
           <div>
-            {(!collapsed || mobile) && (
+            {(!collapsed || mobile) && !isCoordinator && (
               <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Menu</p>
             )}
-            <ul className="space-y-1">
+            <ul className={isCoordinator ? "m-0 list-none space-y-0.5 p-0" : "space-y-1"}>
               {items.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
           )}
           {nav.account.length > 0 && (
-          <div className="border-t border-slate-100 pt-3">
+          <div className={cn("border-t pt-3", isCoordinator ? "mt-4 border-[#e4e6ed]" : "border-slate-100")}>
             {(!collapsed || mobile) && (
-              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
+              <p className={cn("px-3 uppercase", isCoordinator ? "m-0 mb-2 text-xs font-extrabold tracking-[1px] text-[#8a8d98]" : "pb-1.5 text-[10px] font-semibold tracking-wider text-slate-400")}>Account</p>
             )}
-            <ul className="space-y-1">
+            <ul className={isCoordinator ? "m-0 list-none space-y-0.5 p-0" : "space-y-1"}>
               {nav.account.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
+          )}
+          {isCoordinator && (
+            <p className="m-0 mt-5 border-t border-[#e4e6ed] px-3 pt-4 text-[11px] leading-relaxed text-slate-500">
+              Shiftify connects people and services. Service agreements and payments are arranged directly.
+            </p>
           )}
         </nav>
       </>
@@ -382,6 +404,8 @@ export function AppSidebar() {
         "hidden md:flex flex-col shrink-0 bg-white transition-[width] duration-200 overflow-hidden",
         isProvider
           ? "relative z-10 w-64 shadow-[15px_0_40px_rgba(0,0,0,0.067)]"
+          : isCoordinator
+          ? "w-64 border-r border-[#e4e6ed]"
           : cn("border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)]", collapsed ? "w-16" : "w-56"),
       )}>
         <SidebarContents />

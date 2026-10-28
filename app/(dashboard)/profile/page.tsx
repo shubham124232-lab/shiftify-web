@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { WorkspacePage, Panel, OutlineButton } from "@/components/coordinator/workspace-ui";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/lib/types";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
@@ -365,6 +366,13 @@ export default function ProfilePage() {
 
   const initials = (name || user.name || "User").split(" ").filter(Boolean).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
 
+  if (pageLoading && activeRole === UserRole.COORDINATOR) {
+    return (
+      <WorkspacePage title="My Profile" description="Your Support Coordination profile and professional details.">
+        <Panel><p className="py-10 text-center text-sm text-slate-500">Loading…</p></Panel>
+      </WorkspacePage>
+    );
+  }
   if (pageLoading) {
     return (
       <>
@@ -386,10 +394,7 @@ export default function ProfilePage() {
     );
   }
 
-  return (
-    <>
-      <PageHeader title="My Profile" description="Update your contact details and role information." />
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px" }}>
+  const form = (
         <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
           {/* Profile completion bar */}
@@ -738,7 +743,36 @@ export default function ProfilePage() {
               )}
             </div>
           </form>
+  );
+
+  // Support Coordinator workspace frame: the same form, with participant enquiries alongside.
+  if (activeRole === UserRole.COORDINATOR) {
+    return (
+      <WorkspacePage
+        title="My Profile"
+        description="Your Support Coordination profile and professional details."
+        actions={username ? <OutlineButton href={`/profile/${user.id}`}>Preview public profile</OutlineButton> : undefined}
+      >
+        <div className="sc-workspace grid grid-cols-1 items-start gap-[22px] lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+          {form}
+          <Panel title="Participant enquiries">
+            <p className="text-sm leading-relaxed text-slate-600">
+              Participants may enquire through your public Support Coordination profile. A conversation does not establish
+              authority to act. Connect the participant and obtain the required permissions first.
+            </p>
+            <OutlineButton href="/coordinator-connections" className="mt-4">View enquiry</OutlineButton>
+          </Panel>
         </div>
-      </>
+      </WorkspacePage>
+    );
+  }
+
+  return (
+    <>
+      <PageHeader title="My Profile" description="Update your contact details and role information." />
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px" }}>
+        {form}
+      </div>
+    </>
   );
 }

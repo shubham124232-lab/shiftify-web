@@ -14,6 +14,7 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { UserRole } from "@/lib/types";
 import { BranchWorkspaceSelect } from "@/components/provider/BranchWorkspaceSelect";
 import { ProviderIdentity } from "@/components/provider/ProviderIdentity";
+import { CoordinatorIdentity } from "@/components/coordinator/CoordinatorIdentity";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
@@ -27,6 +28,12 @@ const PROVIDER_MENU = [
   { href: "/subscription", label: "Membership and billing", icon: CreditCard },
   { href: "/provider/settings", label: "Settings", icon: Settings },
   { href: "/provider/help", label: "Help and Tickets", icon: LifeBuoy },
+];
+
+const COORDINATOR_MENU = [
+  { href: "/documents", label: "Documents", icon: FileText },
+  { href: "/subscription", label: "Subscription and billing", icon: CreditCard },
+  { href: "/help-safety", label: "Help and Tickets", icon: LifeBuoy },
 ];
 
 function initials(name: string): string {
@@ -72,6 +79,9 @@ export function AppTopbar() {
     : `Acting as ${ROLE_LABELS[role]}.`;
 
   const isProviderUser = user.activeRole === UserRole.PROVIDER;
+  const isCoordinatorUser = user.activeRole === UserRole.COORDINATOR;
+  // Provider and Support Coordinator workspaces share the full-width header.
+  const workspaceMenu = isCoordinatorUser ? COORDINATOR_MENU : PROVIDER_MENU;
 
   const profileMenuItems = (
     <MenuItems
@@ -80,7 +90,7 @@ export function AppTopbar() {
     >
       <div className="border-b border-slate-100 px-4 py-3">
         <p className="m-0 truncate text-sm font-semibold text-slate-900">{displayName}</p>
-        <p className="m-0 truncate text-xs text-slate-500">Provider account</p>
+        <p className="m-0 truncate text-xs text-slate-500">{isCoordinatorUser ? "Support Coordinator account" : "Provider account"}</p>
       </div>
       <MenuItem>
         {({ focus }: { focus: boolean }) => (
@@ -90,7 +100,7 @@ export function AppTopbar() {
           </Link>
         )}
       </MenuItem>
-      {PROVIDER_MENU.map((m) => (
+      {workspaceMenu.map((m) => (
         <MenuItem key={m.href}>
           {({ focus }: { focus: boolean }) => (
             <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
@@ -115,16 +125,16 @@ export function AppTopbar() {
     </MenuItems>
   );
 
-  // Provider demo header: full-width, 88px, logo + organisation on the left, branch / bell / messages / profile on the right.
-  if (isProviderUser) {
+  // Provider / Coordinator workspace header: full-width, 88px, logo + identity on the left, bell / messages / profile on the right.
+  if (isProviderUser || isCoordinatorUser) {
     return (
       <header className="z-20 flex h-[88px] shrink-0 items-center gap-6 border-b border-[#e4e6ed] bg-white px-8 py-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo.png" alt="Shiftify" className="h-16 w-32 shrink-0 object-contain" />
-        <ProviderIdentity />
+        {isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}
         <div className="flex-1" />
         <div className="flex items-center gap-3">
-          <BranchWorkspaceSelect />
+          {isProviderUser && <BranchWorkspaceSelect />}
           <button
             type="button"
             onClick={() => router.push("/notifications")}

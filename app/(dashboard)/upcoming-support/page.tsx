@@ -7,6 +7,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { CoordinatorConfirmedSupport } from "@/components/coordinator/pages/ConfirmedSupport";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Job {
   id: string; title: string; suburb: string; state: string;
@@ -21,7 +23,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "COMPLETED",   label: "Completed" },
 ];
 
-export default function UpcomingSupportPage() {
+function UpcomingSupportPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,4 +89,10 @@ export default function UpcomingSupportPage() {
       </div>
     </>
   );
+}
+
+// Support Coordinators get the coordinator workspace layout; other roles keep this page.
+export default function Page() {
+  const { activeRole } = useAuth();
+  return activeRole === "COORDINATOR" ? <CoordinatorConfirmedSupport /> : <UpcomingSupportPage />;
 }

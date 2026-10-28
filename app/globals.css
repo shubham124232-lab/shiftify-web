@@ -728,6 +728,13 @@
   .shadow-lift { box-shadow: 0 2px 6px color-mix(in srgb, var(--td-black) 5%, transparent), 0 18px 42px -18px color-mix(in srgb, var(--td-black) 18%, transparent); }
 }
 
+/* ---- Support Coordinator workspace ----
+   Shared form pages (profile, post request) keep their <Card> markup; inside a
+   coordinator frame those cards take the workspace look: flat, 12px, #e4e6ed. */
+.sc-workspace .shadow-card { box-shadow: none; border-radius: 12px; border-color: #e4e6ed; }
+.sc-workspace .shadow-card > .border-b { border-color: #e4e6ed; padding-top: 20px; padding-bottom: 20px; }
+.sc-workspace .shadow-card h3 { font-weight: 800; }
+
 /* ------------------------------------------------------------
    HOME PAGE PALETTE LOCK
    The landing page runs on the 8 TD brand colors only. The legacy

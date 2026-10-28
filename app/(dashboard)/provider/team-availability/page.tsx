@@ -22,7 +22,7 @@ interface Member {
 interface Reply { id: string; memberType: "MANAGED" | "ROSTER"; memberName: string; status: "PENDING" | "AVAILABLE" | "CONDITIONS" | "UNAVAILABLE"; conditionsNote?: string | null }
 interface AvailabilityRequest { id: string; title: string; startsAt: string | null; message: string | null; createdAt: string; replies: Reply[] }
 interface ShiftOption { id: string; title: string; status: string; scheduledStartAt: string; suburb?: string | null; urgency?: string | null }
-const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const URGENCY_LABEL: Record<string, string> = { RAPID: "Last Min", URGENT: "Urgent", LAST_MINUTE: "Short Notice", ROUTINE: "Routine" };
 
 const STATUS: Record<Member["status"], { label: string; cls: string }> = {
   AVAILABLE: { label: "Available", cls: "pd-badge-green" },

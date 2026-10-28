@@ -187,7 +187,9 @@ function DocumentForm({ renew, workers, onClose, onSaved }: { renew: Doc | null;
 
   return (
     <ModalShell title="Document evidence" subtitle={renew ? "Renew existing record" : undefined} onClose={onClose}>
-      <div className="grid gap-4 overflow-y-auto px-6 py-5 sm:grid-cols-2">
+      <ol className="pd-steps"><li className="pd-step active">1. Evidence and access</li></ol>
+      <div className="pd-modal-body grid gap-4 sm:grid-cols-2">
+        <div className="pd-form-title sm:col-span-2" style={{ marginBottom: 0 }}><h3>Evidence and access</h3></div>
         <div><label className={lab}>Document title *</label><input className={inp} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
         <div><label className={lab}>Document type *</label>
           <select className={inp} value={docType} disabled={!!renew} onChange={(e) => setDocType(e.target.value)}>{TYPES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}</select></div>
@@ -205,10 +207,10 @@ function DocumentForm({ renew, workers, onClose, onSaved }: { renew: Doc | null;
         <div><label className={lab}>Review state</label><p className="m-0 mt-3 text-sm text-slate-600">Set by Shiftify after upload. It never changes access to the marketplace.</p></div>
         {err && <p className="m-0 text-sm text-red-600 sm:col-span-2">{err}</p>}
       </div>
-      <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <div className="flex items-center gap-3"><span className="text-xs text-slate-500">1 of 1</span>
-          <Button disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : renew ? "Save renewal" : "Save and continue"}</Button></div>
+      <div className="pd-modal-foot">
+        <button type="button" className="pd-btn" onClick={onClose}>Cancel</button>
+        <div className="pd-buttons"><span className="pd-muted text-xs">1 of 1</span>
+          <button type="button" className="pd-btn pd-btn-primary" disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : renew ? "Save renewal" : "Save and continue"}</button></div>
       </div>
     </ModalShell>
   );

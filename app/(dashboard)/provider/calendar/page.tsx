@@ -14,7 +14,7 @@ type View = "day" | "week" | "month" | "list";
 
 const LIVE = ["OPEN"];
 const CONFIRMED = ["CONFIRMED", "ASSIGNED", "IN_PROGRESS"];
-const URGENCY: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const URGENCY: Record<string, string> = { RAPID: "Last Min", URGENT: "Urgent", LAST_MINUTE: "Short Notice", ROUTINE: "Routine" };
 
 const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 const mondayOf = (d: Date) => { const x = startOfDay(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };

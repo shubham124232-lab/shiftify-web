@@ -272,6 +272,33 @@ export function WizardScreen({
   saving?: boolean;
 }) {
   const accent = LANE_PANELS.find((l) => tierLabel.toLowerCase().includes(l.match))?.accent;
+  const { activeRole } = useAuth();
+  const pd = activeRole === "PROVIDER";
+  if (modal && pd) {
+    // Provider workspace: the demo's labelled, underlined step bar and form title.
+    return (
+      <ModalShell title={modal.title} subtitle={modal.subtitle} onClose={modal.onClose}>
+        <ol className="pd-steps">
+          {modal.tabs.map((t, i) => (
+            <li key={t} aria-current={i === step ? "step" : undefined} className={cn("pd-step", i === step ? "active" : i < step ? "done" : "")}>{i + 1}. {t}</li>
+          ))}
+        </ol>
+        <div className="pd-modal-body">
+          <div className="pd-form-title"><h3>{screenTitle}</h3></div>
+          {error && !belowError && <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+          {belowError && <div className="mb-4">{belowError}</div>}
+          {children}
+        </div>
+        <div className="pd-modal-foot">
+          <Button variant="outline" onClick={step === 0 ? (modal.firstBack ?? modal.onClose) : onBack}>{step === 0 ? (modal.firstBack ? "Back" : "Close") : "Back"}</Button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-slate-400">{step + 1} of {total}</span>
+            <Button onClick={onNext} disabled={nextDisabled || saving} loading={saving}>{nextLabel}</Button>
+          </div>
+        </div>
+      </ModalShell>
+    );
+  }
   if (modal) {
     return (
       <ModalShell title={modal.title} subtitle={modal.subtitle} onClose={modal.onClose}>

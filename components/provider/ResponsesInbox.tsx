@@ -279,12 +279,17 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   // Enquiries & Applications (demo): search + "Incoming interest" list; worker applications sit behind a header button.
   const interestMode = view === "enquiries" && tab !== "workers";
   const [openConv, setOpenConv] = useState<string | null>(null);
-  const interest = threads.filter((t) => !q.trim() || `${t.other} ${t.listingTitle ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const interest = threads
+    .filter((t) => !q.trim() || `${t.other} ${t.listingTitle ?? ""} ${t.messages.map((m) => m.body).join(" ")}`.toLowerCase().includes(q.trim().toLowerCase()))
+    .filter((t) => !statusF || t.status === statusF || (statusF === "NEW" && t.unread));
   const interestList = (
     <>
       <div className="pd-toolbar">
         <input placeholder="Search enquiries" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search enquiries" />
-        <button type="button" className="pd-btn" onClick={() => setQ("")}><RefreshCw />Clear filters</button>
+        <select value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
+          <option value="">All</option><option value="NEW">New</option><option value="FOLLOW_UP">Follow-up</option><option value="CONFIRMED">Confirmed</option><option value="CLOSED">Closed</option>
+        </select>
+        <button type="button" className="pd-btn" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw />Clear filters</button>
       </div>
       <section className="pd-panel">
         <div className="pd-panel-head"><h2>Incoming interest</h2></div>
@@ -298,15 +303,16 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
                   <article className="pd-request-row">
                     <div>
                       <div className="pd-row-title">
-                        <strong>{t.other}</strong>
+                        <strong>{(t.messages.find((m) => m.id === t.rootId)?.body ?? t.messages[0]?.body ?? "Direct enquiry").slice(0, 70)}</strong>
                         <span className={`pd-badge ${label === "New" ? "pd-badge-pink" : label === "Follow-up" ? "pd-badge-orange" : ""}`}>{label}</span>
                       </div>
-                      <div className="pd-small pd-muted">{t.listingTitle ? `About: ${t.listingTitle}` : "Direct enquiry"}</div>
+                      <div className="pd-small pd-muted">{[t.other, t.kind === "HOME_LIVING" ? "Housing enquiry" : t.kind === "CAPACITY" ? "Capacity enquiry" : "Service enquiry", t.listingTitle].filter(Boolean).join(" · ")}</div>
                       <div className="pd-small pd-muted">Owner: {t.intake?.ownerName ?? "Unassigned"}</div>
                     </div>
                     <div className="pd-buttons">
-                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</button>
-                      {canOpen && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</button>}
+                      {canOpen
+                        ? <button type="button" className="pd-btn pd-btn-primary" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</button>
+                        : <button type="button" className="pd-btn" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</button>}
                     </div>
                   </article>
                   {openConv === t.rootId && <div style={{ margin: "0 24px 16px" }}>{threadList([t], "")}</div>}

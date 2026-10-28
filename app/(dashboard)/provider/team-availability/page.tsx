@@ -29,7 +29,7 @@ const STATUS: Record<Member["status"], { label: string; cls: string }> = {
   ON_SHIFT:  { label: "On shift",  cls: "pd-badge-blue" },
   INVITED:   { label: "Invited",   cls: "pd-badge-orange" },
   NOT_SET:   { label: "No availability set", cls: "" },
-  VERIFIED:  { label: "Verified",  cls: "" },
+  VERIFIED:  { label: "Available", cls: "pd-badge-green" },
 };
 const REPLY: Record<Reply["status"], { label: string; cls: string }> = {
   PENDING:     { label: "Waiting", cls: "bg-slate-100 text-slate-500" },

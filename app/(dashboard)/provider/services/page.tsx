@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { ServiceOrCapacityDialog } from "@/components/provider/DashboardDialogs";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { ServiceListingWizard } from "@/components/provider/listing-wizard/ServiceListingWizard";
 
 interface ServiceListing {
   branchId?: string | null;
@@ -60,6 +61,8 @@ export default function ProviderServicesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" | "capacity" } | null>(null);
   const [chooser, setChooser] = useState(false);
+  const [wizard, setWizard] = useState<{ kind: "service" | "capacity"; listing?: ServiceListing | null; duplicate?: boolean } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pauseAtZero, setPauseAtZero] = useState(false);
   const [slots, setSlots] = useState("");
   const [accepting, setAccepting] = useState<"YES" | "LIMITED" | "NO">("YES");
@@ -74,6 +77,20 @@ export default function ProviderServicesPage() {
       .finally(() => setLoading(false));
   }
   useEffect(() => { load(); }, []);
+
+  // Deep links from other screens: ?wizard=service|capacity opens the form; ?edit= / ?duplicate= reopen an existing listing.
+  const [launched, setLaunched] = useState(false);
+  useEffect(() => {
+    if (launched) return;
+    const sp = new URLSearchParams(window.location.search);
+    const want = sp.get("wizard"); const editId = sp.get("edit"); const dupId = sp.get("duplicate");
+    if (!want && !editId && !dupId) { setLaunched(true); return; }
+    if ((editId || dupId) && loading) return;
+    setLaunched(true);
+    const existing = listings.find((l) => l.id === (editId ?? dupId)) ?? null;
+    if ((editId || dupId) && !existing) { setError("That listing could not be found."); return; }
+    setWizard({ kind: want === "capacity" ? "capacity" : "service", listing: existing, duplicate: !!dupId });
+  }, [launched, loading, listings]);
 
   const workspaceBranch = useBranchWorkspace((s) => s.branchId);
   const visible = useMemo(() => {
@@ -125,7 +142,9 @@ export default function ProviderServicesPage() {
             <button type="button" className="pd-btn pd-btn-primary" onClick={() => setChooser(true)}><Plus />Post service or capacity</button>
           </div>
         </div>
-        {chooser && <ServiceOrCapacityDialog onClose={() => setChooser(false)} />}
+        {chooser && <ServiceOrCapacityDialog onClose={() => setChooser(false)} onPick={(kind) => { setChooser(false); setWizard({ kind }); }} />}
+        {wizard && <ServiceListingWizard kind={wizard.kind} listing={wizard.listing} duplicate={wizard.duplicate} onClose={() => setWizard(null)} onDone={(m) => { setWizard(null); setNotice(m); void load(); }} />}
+        {notice && <div className="pd-notice mb-4">{notice}</div>}
         <div className="pd-toolbar">
           <input placeholder="Search services or areas" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search services" />
           <select value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
@@ -174,7 +193,7 @@ export default function ProviderServicesPage() {
 
                   <div className="pd-buttons">
                     <button type="button" className="pd-btn pd-btn-sm" onClick={() => toggle(l.id, "view")}>View listing</button>
-                    {l.status !== "CLOSED" && <Link href={`/provider/post-service?edit=${l.id}`} className="pd-btn pd-btn-sm">Edit</Link>}
+                    {l.status !== "CLOSED" && <button type="button" className="pd-btn pd-btn-sm" onClick={() => setWizard({ kind: "service", listing: l })}>Edit</button>}
                     {l.status === "ACTIVE" && <button type="button" className="pd-btn pd-btn-sm" disabled={busy} onClick={() => patch(l.id, { status: "PAUSED" })}>Pause</button>}
                     {l.status === "PAUSED" && <button type="button" className="pd-btn pd-btn-sm" disabled={busy} onClick={() => patch(l.id, { status: "ACTIVE" })}>Resume</button>}
                     {(l.status === "ACTIVE" || l.status === "PAUSED") && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => toggle(l.id, "capacity", l)}>Update capacity</button>}
@@ -187,7 +206,7 @@ export default function ProviderServicesPage() {
                       <p className="m-0"><span className="text-slate-400">Posted: </span>{new Date(l.createdAt).toLocaleDateString("en-AU")}</p>
                       <p className="m-0 flex flex-wrap gap-4 pt-1">
                         <button type="button" className="pd-textbtn" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</button>
-                        <Link href={`/provider/post-service?duplicate=${l.id}`} className="pd-textbtn">Duplicate listing</Link>
+                        <button type="button" className="pd-textbtn" onClick={() => setWizard({ kind: "service", listing: l, duplicate: true })}>Duplicate listing</button>
                       </p>
                     </div>
                   )}

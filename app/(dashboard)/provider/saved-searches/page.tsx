@@ -16,7 +16,7 @@ export default function ProviderSavedSearchesPage() {
   const [name, setName] = useState("");
   const [suburb, setSuburb] = useState("");
   const [timing, setTiming] = useState("");
-  const [alerts, setAlerts] = useState(true);
+  const [alerts, setAlerts] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export default function ProviderSavedSearchesPage() {
     try {
       const s = await createSavedSearch(name.trim(), { ...(suburb.trim() ? { suburb: suburb.trim() } : {}), ...(timing ? { urgency: timing } : {}) });
       if (!alerts) await updateSavedSearch(s.id, { isActive: false });
-      setName(""); setSuburb(""); setTiming(""); setAlerts(true); load();
+      setName(""); setSuburb(""); setTiming(""); setAlerts(false); load();
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save the search"); }
     finally { setBusy(false); }
   }

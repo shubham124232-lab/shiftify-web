@@ -27,7 +27,7 @@ const STATUS: Record<Member["status"], { label: string; cls: string }> = {
   ON_SHIFT: { label: "On shift", cls: "pd-badge-blue" },
   INVITED: { label: "Invited", cls: "pd-badge-orange" },
   NOT_SET: { label: "No availability set", cls: "" },
-  VERIFIED: { label: "Verified", cls: "pd-badge-green" },
+  VERIFIED: { label: "Available", cls: "pd-badge-green" },
 };
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 

@@ -9,6 +9,7 @@ import { ListingEnquiries, type ListingInquiry } from "@/components/provider/Lis
 import { api } from "@/lib/api";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { HousingVacancyWizard } from "@/components/provider/listing-wizard/HousingVacancyWizard";
 
 interface HousingListing {
   branchId?: string | null;
@@ -67,6 +68,7 @@ export default function ProviderHousingPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: string; label: string; run: () => void } | null>(null);
   const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" } | null>(null);
+  const [wizard, setWizard] = useState<{ listing?: HousingListing | null } | null>(null);
 
   function load() {
     return Promise.all([
@@ -78,6 +80,20 @@ export default function ProviderHousingPage() {
       .finally(() => setLoading(false));
   }
   useEffect(() => { load(); }, []);
+
+  // Deep links: ?wizard=housing opens the form; ?edit=<id> reopens a vacancy.
+  const [launched, setLaunched] = useState(false);
+  useEffect(() => {
+    if (launched) return;
+    const sp = new URLSearchParams(window.location.search);
+    const want = sp.get("wizard"); const editId = sp.get("edit");
+    if (!want && !editId) { setLaunched(true); return; }
+    if (editId && loading) return;
+    setLaunched(true);
+    const existing = listings.find((l) => l.id === editId) ?? null;
+    if (editId && !existing) { setError("That listing could not be found."); return; }
+    setWizard({ listing: existing });
+  }, [launched, loading, listings]);
 
   const workspaceBranch = useBranchWorkspace((s) => s.branchId);
   const visible = useMemo(() => {
@@ -153,6 +169,7 @@ export default function ProviderHousingPage() {
           </div>
         </ModalShell>
       )}
+      {wizard && <HousingVacancyWizard listing={wizard.listing as Record<string, any> | null | undefined} onClose={() => setWizard(null)} onDone={(m) => { setWizard(null); setNotice(m); void load(); }} />}
       <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Housing</div>
@@ -163,7 +180,7 @@ export default function ProviderHousingPage() {
             <p>Manage SIL, SDA, respite and supported-housing enquiries.</p>
           </div>
           <div className="pd-buttons">
-            <Link href="/provider/sil-vacancy" className="pd-btn pd-btn-primary"><Plus />List a vacancy</Link>
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => setWizard({})}><Plus />List a vacancy</button>
           </div>
         </div>
         <div className="pd-toolbar">
@@ -216,7 +233,7 @@ export default function ProviderHousingPage() {
 
                   <div className="pd-buttons">
                     <button type="button" className="pd-btn pd-btn-sm" onClick={() => toggle(l.id, "view")}>View vacancy</button>
-                    {l.status !== "CLOSED" && l.status !== "FILLED" && <Link href={`/provider/sil-vacancy?edit=${l.id}`} className="pd-btn pd-btn-sm">Edit</Link>}
+                    {l.status !== "CLOSED" && l.status !== "FILLED" && <button type="button" className="pd-btn pd-btn-sm" onClick={() => setWizard({ listing: l })}>Edit</button>}
                     {live && <button type="button" className="pd-btn pd-btn-sm" disabled={busy} onClick={() => renew(l)}>Renew</button>}
                     {live && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" disabled={busy} onClick={() => markFilled(l)}>Mark filled</button>}
                   </div>

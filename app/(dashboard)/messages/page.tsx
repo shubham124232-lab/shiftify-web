@@ -84,7 +84,9 @@ function ProviderMessages() {
   useEffect(() => { void loadThreads(); }, [showArchived]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function loadChat(id: string) {
-    return api.get<{ messages: Message[] }>(`/jobs/${id}/messages`).then((r) => setChat(r.messages ?? [])).catch(() => setChat([]));
+    return api.get<{ messages: (Message & { senderUserId?: string; sender?: { id: string; name: string } })[] }>(`/jobs/${id}/messages`)
+      .then((r) => setChat((r.messages ?? []).map((m) => ({ ...m, senderId: m.senderUserId ?? m.senderId, senderName: m.sender?.name ?? m.senderName }))))
+      .catch(() => setChat([]));
   }
   useEffect(() => {
     if (!selected) { setChat([]); return; }
@@ -106,6 +108,8 @@ function ProviderMessages() {
   }
 
   const current = threads?.find((t) => t.id === selected) ?? null;
+  // The other party: whoever last wrote to you; before that, the request itself.
+  const who = (t: Thread) => (t.lastMessage && t.lastMessage.senderId !== user?.id && t.lastMessage.senderName) || t.title;
   const sub = (t: Thread) => [t.counterpartRoleLabels?.[0] ?? t.postedByRoleLabel, t.status ? t.status.replace("_", " ").toLowerCase() : null].filter(Boolean).join(" · ");
 
   return (
@@ -118,9 +122,7 @@ function ProviderMessages() {
             <h1>Messages</h1>
             <p>Conversations stay linked to their request, listing or assignment.</p>
           </div>
-          <div className="pd-buttons">
-            <button type="button" className="pd-btn" onClick={() => setShowArchived((v) => !v)}>{showArchived ? "Inbox" : "Archived"}</button>
-          </div>
+          <div className="pd-buttons" />
         </div>
         {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
         {threads === null ? <div className="pd-quiet-empty">Loading…</div> : threads.length === 0 ? (
@@ -136,18 +138,18 @@ function ProviderMessages() {
             <div className="pd-thread-list">
               {threads.map((t) => (
                 <button key={t.id} type="button" className={`pd-thread${t.id === selected ? " active" : ""}`} onClick={() => setSelected(t.id)}>
-                  <span className="pd-avatar">{initialsOf(t.title)}</span>
+                  <span className="pd-avatar">{initialsOf(who(t))}</span>
                   <span>
-                    <strong>{t.title}</strong>{t.unreadCount > 0 ? ` (${t.unreadCount > 99 ? "99+" : t.unreadCount})` : ""}<br />
-                    <small>{sub(t) || "Request"}</small>
+                    <strong>{who(t)}</strong>{t.unreadCount > 0 ? ` (${t.unreadCount > 99 ? "99+" : t.unreadCount})` : ""}<br />
+                    <small>{t.title}{sub(t) ? ` · ${sub(t)}` : ""}</small>
                   </span>
                 </button>
               ))}
             </div>
             <div className="pd-chat">
               <div className="pd-chat-head">
-                <strong>{current?.title}</strong>
-                <div className="pd-small pd-muted">{current ? sub(current) : ""}</div>
+                <strong>{current ? who(current) : ""}</strong>
+                <div className="pd-small pd-muted">{current ? `${current.title}${sub(current) ? ` · ${sub(current)}` : ""}` : ""}</div>
               </div>
               <div className="pd-chat-messages">
                 {chat.length === 0 ? <p className="pd-small pd-muted" style={{ margin: 0 }}>No messages yet</p> : chat.map((m) => (
@@ -166,6 +168,7 @@ function ProviderMessages() {
           </section>
         )}
         <div className="pd-notice">Please do not send unnecessary sensitive information in messages — share only what is needed to arrange the support.</div>
+        <button type="button" className="pd-textbtn" onClick={() => setShowArchived((v) => !v)}>{showArchived ? "Back to inbox" : "View archived conversations"}</button>
       </div>
     </div>
   );

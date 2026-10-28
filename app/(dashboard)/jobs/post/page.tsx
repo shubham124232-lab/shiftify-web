@@ -143,7 +143,7 @@ function ProviderPostShift() {
                   <span className="pd-icon-plain">{l.icon}</span>
                   <h2>{l.title}</h2>
                   <p className="pd-card-body">{l.timing}</p>
-                  <button type="button" className="pd-btn pd-btn-primary" onClick={() => setTier(t)}>Start {TIER_META[t].label.replace(/ Support$/, "")} request</button>
+                  <button type="button" className="pd-btn pd-btn-primary" onClick={() => setTier(t)}>Start {l.badge} request</button>
                 </div>
               );
             })}

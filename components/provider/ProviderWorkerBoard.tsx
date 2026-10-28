@@ -132,14 +132,14 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
         <ProviderAreaTabs />
         <div>
           <h1>{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
-          <p>{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
+          <p>Discover eligible external workers. Direct Connect is included in paid Provider subscriptions.</p>
         </div>
         <div className="pd-buttons" />
       </div>
       <div className="pd-toolbar">
-        <input placeholder="Search people, skills or suburb" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workers" />
+        <input placeholder="Search people, skills or language" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workers" />
         <select value={availableNow ? "NOW" : ""} onChange={(e) => { setAvailableNow(e.target.value === "NOW"); setPage(1); }} aria-label={mode === "find" ? "Availability" : "Status"}>
-          <option value="">{mode === "find" ? "All workers" : "All statuses"}</option><option value="NOW">Available Now</option>
+          <option value="">All</option><option value="NOW">Available Now</option>
         </select>
         <button type="button" className="pd-btn" onClick={() => { setQ(""); setApplied(""); setAvailableNow(false); setPage(1); }}><RefreshCw />Clear filters</button>
       </div>
@@ -165,7 +165,7 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
                 <span className="pd-avatar pd-avatar-lg">{initials(w.name)}</span>
                 <div>
                   <h3>{w.name}</h3>
-                  <span className="pd-small pd-muted">{w.experienceLevel ?? "Support worker"}{w.suburb ? ` · ${w.suburb}${w.state ? `, ${w.state}` : ""}` : ""}</span>
+                  <span className="pd-small pd-muted">{w.yearsBucket ? `${w.yearsBucket} years experience` : (w.experienceLevel ?? "Support worker")}</span>
                 </div>
               </div>
               {(w.availableNow || w.credentialCurrent) && (
@@ -183,11 +183,8 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
                 </div>
               )}
               <div className="pd-card-body">
-                {w.headline && <>{w.headline}<br /></>}
-                {(w.languages?.length || w.yearsBucket || w.radiusKm) ? (
-                  <>{[w.languages?.length ? w.languages.join(", ") : null, w.yearsBucket ? `${w.yearsBucket} yrs experience` : null, w.radiusKm ? `Travels up to ${w.radiusKm} km` : null].filter(Boolean).join(" · ")}<br /></>
-                ) : null}
-                {w.totalReviews > 0 ? `★ ${w.rating.toFixed(1)} (${w.totalReviews})` : "No reviews yet"}{w.hourlyRate != null ? ` · $${Number(w.hourlyRate).toFixed(2)}/hr` : ""}
+                {w.languages?.length ? <>{w.languages.join(", ")}<br /></> : null}
+                {[w.suburb ? `${w.suburb}${w.state ? `, ${w.state}` : ""}` : null, w.radiusKm ? `travels up to ${w.radiusKm} km` : null, w.hourlyRate != null ? `$${Number(w.hourlyRate).toFixed(2)}/hr` : null, w.totalReviews > 0 ? `★ ${w.rating.toFixed(1)} (${w.totalReviews})` : null].filter(Boolean).join(" · ")}
               </div>
               <div className="pd-buttons">
                 <button type="button" className="pd-btn pd-btn-sm" onClick={() => setProfile(w)}>View profile</button>

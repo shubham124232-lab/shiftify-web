@@ -7,7 +7,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { SetupBanner } from "@/components/dashboard/setup-banner";
 import { Button } from "@/components/ui/button";
 import { Portal } from "@/components/ui/portal";
-import { CreateDialog, PostShiftDialog } from "@/components/provider/DashboardDialogs";
+import { PostShiftDialog } from "@/components/provider/DashboardDialogs";
+import { StaffingRequestRow, type StaffingRow } from "@/components/provider/ProviderStaffingRequests";
+import { TimingCards, TierBadge } from "@/components/provider/timing";
 import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
 import { ApplicationsFlow } from "@/components/provider/ApplicationsFlow";
@@ -16,7 +18,7 @@ import { api } from "@/lib/api";
 import { getDashboard, type ProviderDashboard, type JobSummary } from "@/lib/api/dashboard";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import {
-  Briefcase, Calendar, Users, Search, Plus, Clock, MapPin, RefreshCw, HelpCircle,
+  Briefcase, Calendar, Users, Plus, Clock, MapPin, RefreshCw, HelpCircle,
   MessageCircle, Check, Zap, X,
 } from "lucide-react";
 
@@ -36,12 +38,6 @@ function ago(iso: string): string {
   return `${Math.round(mins / 1440)} days ago`;
 }
 
-const URGENCY_BADGE: Record<string, { label: string; cls: string }> = {
-  RAPID:       { label: "Rapid",       cls: "pd-badge-rapid" },
-  URGENT:      { label: "Urgent",      cls: "pd-badge-urgent" },
-  LAST_MINUTE: { label: "Last-Minute", cls: "pd-badge-last-minute" },
-  ROUTINE:     { label: "Routine",     cls: "pd-badge-routine" },
-};
 
 function categoryLabel(value: string): string {
   return JOB_CATEGORIES.find((c) => c.value === value)?.label ?? value;
@@ -57,12 +53,6 @@ function StatTile({ label, value, hint, href, icon }: { label: string; value: nu
   );
 }
 
-const URGENCY_ICON: Record<string, React.ReactNode> = {
-  RAPID: <Zap />,
-  URGENT: <Clock />,
-  LAST_MINUTE: <Clock />,
-  ROUTINE: <Calendar />,
-};
 
 const ACTIVITY_ICON: Record<string, React.ReactNode> = {
   APPLICATION: <Users />,
@@ -97,7 +87,9 @@ export default function ProviderDashboardPage() {
   const [plan, setPlan] = useState<string | null>(null);
   const [baseSub, setBaseSub] = useState<{ status: string; currentPeriodEnd: string | null; cancelledAt: string | null } | null>(null);
   const [allowance, setAllowance] = useState<{ applies: boolean; limit: number; used: number; remaining: number } | null>(null);
-  const [past, setPast] = useState<JobSummary[]>([]);
+  const [past, setPast] = useState<StaffingRow[]>([]);
+  const [boardTier, setBoardTier] = useState("");
+  const [manageJob, setManageJob] = useState<StaffingRow | null>(null);
   const [repostOpen, setRepostOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const [referral, setReferral] = useState<{ qualified: number; target: number; rewardUnlocked: boolean } | null>(null);
@@ -107,7 +99,6 @@ export default function ProviderDashboardPage() {
   const [teamReplies, setTeamReplies] = useState<Record<string, { available: number; awaiting: number }>>({});
   const [reposting, setReposting] = useState<string | null>(null);
   const [repostError, setRepostError] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
   const [nearbyOpen, setNearbyOpen] = useState(false);
   const [respondJob, setRespondJob] = useState<JobSummary | null>(null);
@@ -149,7 +140,7 @@ export default function ProviderDashboardPage() {
       })
       .catch(() => setTeamReplies({}));
 
-    api.get<{ jobs: JobSummary[] }>("/jobs/my")
+    api.get<{ jobs: StaffingRow[] }>("/jobs/my")
       .then((r) => setPast(r.jobs ?? []))
       .catch(() => setPast([]));
   }, []);
@@ -187,8 +178,6 @@ export default function ProviderDashboardPage() {
           <p>Your staffing and service activity at a glance.</p>
         </div>
         <div className="pd-buttons">
-          <button type="button" className="pd-btn" onClick={() => setCreateOpen(true)}>Create</button>
-          <Link href="/jobs" className="pd-btn"><Search />Browse Requests</Link>
           <button type="button" className="pd-btn pd-btn-primary" onClick={() => setPostOpen(true)}><Plus />Post a Shift</button>
         </div>
       </div>
@@ -212,7 +201,6 @@ export default function ProviderDashboardPage() {
         </div></Portal>
       )}
 
-      {createOpen && <CreateDialog onClose={() => setCreateOpen(false)} />}
       {postOpen && <PostShiftDialog onClose={() => setPostOpen(false)} />}
       {nearbyOpen && <NearbyRequestsDialog mode="opportunity" requests={opportunities} onClose={() => setNearbyOpen(false)} onOpen={(id) => { setNearbyOpen(false); setDetail({ id, own: false }); }} onRespond={(id) => { setNearbyOpen(false); setRespondJob(opportunities.find((o) => o.id === id) ?? null); }} />}
       {respondJob && <ProviderRespondModal job={{ id: respondJob.id, title: respondJob.title, suburb: respondJob.suburb, state: respondJob.state ?? "", scheduledStartAt: respondJob.scheduledStartAt }} onClose={() => setRespondJob(null)} onSuccess={() => setRespondJob(null)} />}
@@ -268,6 +256,30 @@ export default function ProviderDashboardPage() {
         <StatTile label="New enquiries" value={stats?.newInquiries ?? 0} hint="Awaiting an intake response" href={"/provider/enquiries"} icon={<MessageCircle />} />
       </div>
 
+      {/* Your staffing requests: open requests by timing category (approved demo board). */}
+      {(() => {
+        const open = past.filter((j) => j.status === "OPEN").sort((a, b) => +new Date(a.scheduledStartAt) - +new Date(b.scheduledStartAt));
+        const shown = open.filter((j) => !boardTier || j.urgency === boardTier);
+        return (
+          <section className="pd-panel">
+            <div className="pd-panel-head">
+              <h2>Your staffing requests</h2>
+              <Link href="/jobs/my" className="pd-btn pd-btn-ghost">View all requests</Link>
+            </div>
+            <div className="pd-board-body">
+              <TimingCards value={boardTier} onChange={setBoardTier} count={(k) => open.filter((j) => !k || j.urgency === k).length} label="Open staffing request timing" />
+              <p className="pd-board-caption">Open requests seeking worker coverage</p>
+              {shown.length === 0 ? (
+                <div className="pd-quiet-empty text-center">No open staffing requests in this timing category.</div>
+              ) : shown.slice(0, 3).map((j) => (
+                <StaffingRequestRow key={j.id} job={j} onView={() => setDetail({ id: j.id, own: true })} onManage={() => setManageJob(j)} />
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+      {manageJob && <ApplicationsFlow job={manageJob} start="manage" onClose={() => setManageJob(null)} onViewDetails={() => { const id = manageJob.id; setManageJob(null); setDetail({ id, own: true }); }} />}
+
       <div className="pd-home-grid">
         <div className="pd-home-main">
           {/* Needs your attention */}
@@ -319,11 +331,10 @@ export default function ProviderDashboardPage() {
               </p>
             ) : (
               opportunities.map((j) => {
-                const u = URGENCY_BADGE[j.urgency] ?? URGENCY_BADGE.ROUTINE;
                 return (
                   <div key={j.id} className="pd-task-row">
                     <div>
-                      <div className="pd-tags"><span className={`pd-badge ${u.cls}`}>{URGENCY_ICON[j.urgency] ?? URGENCY_ICON.ROUTINE}{u.label}</span></div>
+                      <div className="pd-tags"><TierBadge urgency={j.urgency} /></div>
                       <strong>{j.title}</strong>
                       <p>{`${j.suburb} · Matches your ${categoryLabel(j.category)} service`}</p>
                       <MatchDetails why={`This request is in ${j.suburb} and matches the ${categoryLabel(j.category)} service on your live listings.`} />

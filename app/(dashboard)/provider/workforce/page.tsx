@@ -13,6 +13,7 @@ import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { SendInternalOfferFlow } from "@/components/provider/InternalOfferDialogs";
 import { TeamMemberDialog } from "@/components/provider/TeamMemberDialog";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Member {
   key: string; name: string; kind: "MANAGED" | "ROSTER"; branch: string | null;
@@ -80,6 +81,7 @@ export default function InternalTeamPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Team</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Internal Team</h1>
             <p>Your internal team, Branches, compliance and personal access.</p>

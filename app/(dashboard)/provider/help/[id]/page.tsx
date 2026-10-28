@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Ticket { id: string; reference: string; subject: string; category: string; impact: string; relatedRef: string | null; description: string; status: string; createdAt: string }
 interface Message { id: string; authorKind: "USER" | "SUPPORT"; body: string; createdAt: string }
@@ -35,6 +36,7 @@ export default function TicketDetailPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Help &amp; Tickets / {t?.reference ?? "Ticket"}</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>{t?.subject ?? "Ticket"}</h1>
             {t && <p>{t.reference} · {t.category} · {t.impact} · {STATUS_LABEL[t.status] ?? t.status}</p>}

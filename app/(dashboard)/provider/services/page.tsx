@@ -8,6 +8,7 @@ import { ListingEnquiries, type ListingInquiry } from "@/components/provider/Lis
 import { api } from "@/lib/api";
 import { ServiceOrCapacityDialog } from "@/components/provider/DashboardDialogs";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface ServiceListing {
   branchId?: string | null;
@@ -115,8 +116,9 @@ export default function ProviderServicesPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Services</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
-            <h1>Services &amp; Capacity</h1>
+            <h1>Services and capacity</h1>
             <p>Advertise what you can deliver and the exact capacity available.</p>
           </div>
           <div className="pd-buttons">

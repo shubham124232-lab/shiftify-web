@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { SendInternalOfferFlow } from "@/components/provider/InternalOfferDialogs";
 import { TeamMemberDialog } from "@/components/provider/TeamMemberDialog";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Member {
   key: string;
@@ -103,6 +104,7 @@ export default function ProviderTeamAvailabilityPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Availability</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Internal team availability</h1>
             <p>Check eligible team members before filling or broadcasting a gap.</p>

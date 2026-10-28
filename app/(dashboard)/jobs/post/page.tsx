@@ -23,6 +23,7 @@ import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingW
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 import { Zap, Clock, CalendarDays, Timer, LayoutGrid, ShieldCheck } from "lucide-react";
 import { saveGuestRole, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 const TIER_ORDER: PostingTier[] = ["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
 
@@ -125,6 +126,7 @@ function ProviderPostShift() {
         <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Post</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Post a Shift</h1>
             <p>Start with timing, then choose internal or external distribution.</p>

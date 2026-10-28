@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WorkerAlertControls } from "@/components/notifications/WorkerAlertControls";
 import { ProviderNotificationControls } from "@/components/notifications/ProviderNotificationControls";
 import { WorkspacePage, Panel, Chip, Empty, ErrorNote, OutlineButton } from "@/components/coordinator/workspace-ui";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Notif {
   id: string; type: string; title: string; body: string;
@@ -115,6 +116,7 @@ export default function NotificationsPage() {
         <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Notifications</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Notifications</h1>
             <p>Updates from your requests, team and organisation.</p>

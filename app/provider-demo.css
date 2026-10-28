@@ -3,7 +3,8 @@
  * Every rule is scoped to the Provider role and every class is prefixed `pd-`, so no other role is affected.
  * Fonts stay as the Shiftify app fonts; sizes, spacing, radii, borders and icons follow the demo.
  */
-[data-active-role="PROVIDER"] {
+/* Modals render in a portal outside the role wrapper, so the backdrop carries the tokens and type too. */
+[data-active-role="PROVIDER"], .pd-modal-backdrop {
   --pd-pink: #c91355;
   --pd-pink-dark: #a10e43;
   --pd-pink-light: #fff0f5;
@@ -360,3 +361,70 @@
 .pd-form-title h3 { margin: 0; font-size: 20px; font-weight: 800; color: #17181d; }
 .pd-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; flex-shrink: 0; padding: 16px 24px; border-top: 1px solid #e4e6ed; background: #fcfcfe; }
 @media (max-width: 800px) { .pd-steps { padding: 16px 16px 0; } .pd-modal-body { padding: 16px; } .pd-modal-foot { padding: 14px 16px; } }
+
+/* ── Sidebar (approved demo, 27 Oct): Post a Shift, Workspace areas, Account & tools, Shift Blast ── */
+.pd-side-post { padding: 0 5px 15px; }
+.pd-side-post .pd-btn { font-size: 13px; }
+.pd-side-label { margin: 0 0 8px; padding: 0 12px; font-size: 12px; font-weight: 800; line-height: 1.5; letter-spacing: 1px; text-transform: uppercase; color: #8a8d98; }
+.pd-side-tools { margin-top: 20px; padding-top: 12px; border-top: 1px solid #e4e6ed; }
+.pd-side-tools > summary { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 12px; font-weight: 600; color: #626977; cursor: pointer; list-style: none; }
+.pd-side-tools > summary::-webkit-details-marker { display: none; }
+.pd-side-tools > summary svg { width: 18px; height: 18px; flex-shrink: 0; }
+.pd-side-tools > summary .pd-side-chevron { width: 14px; height: 14px; margin-left: auto; }
+.pd-side-tools[open] > summary { margin-bottom: 6px; }
+.pd-side-extra { margin-top: 18px; padding: 12px 5px; border-top: 1px solid #e4e6ed; }
+.pd-side-extra .pd-btn { min-height: 36px; padding: 7px 10px; font-size: 14px; color: #555a68; }
+.pd-side-extra small { display: block; margin-left: 10px; font-size: 10px; color: #69707e; }
+
+/* ── Area tabs: segmented control under the page heading ─────── */
+.pd-page-head > .pd-area-tabs { grid-column: 1 / -1; grid-row: 2; }
+.pd-area-tabs { display: flex; flex-wrap: wrap; gap: 3px; width: fit-content; max-width: 100%; margin: 0; padding: 5px; border: 1px solid #e0e3e9; border-radius: 9px; background: #ebedf1; }
+.pd-area-tabs a { padding: 9px 12px; border-radius: 6px; font-size: 12px; line-height: 1.3; white-space: nowrap; color: #626977; text-decoration: none; }
+.pd-area-tabs a:hover { color: var(--pd-ink); }
+.pd-area-tabs a.active { background: #fff; color: var(--pd-pink); font-weight: 700; box-shadow: 0 1px 5px rgba(25, 33, 45, 0.07); }
+
+/* ── Timing cards (one design across the workspace) ─────────── */
+.pd-timing { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; align-items: stretch; width: 100%; }
+.pd-timing-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-content: center; align-items: center; gap: 4px 8px; min-width: 0; min-height: 59px; padding: 10px 12px; border: 1px solid #dfe3eb; border-top: 3px solid #c1c7d2; border-radius: 9px; background: #fff; color: #242a35; font-size: 12px; font-weight: 500; line-height: 1.3; text-align: left; cursor: pointer; }
+.pd-timing-card > span { grid-column: 1; grid-row: 1; min-width: 0; overflow-wrap: anywhere; }
+.pd-timing-card > small { grid-column: 1; grid-row: 2; font-size: 10px; font-weight: 400; line-height: 1.25; color: #8993a1; }
+.pd-timing-card > b { grid-column: 2; grid-row: 1 / 3; align-self: center; font-size: 12px; font-weight: 700; line-height: 1; color: #252a34; }
+.pd-timing-card[data-lane="rapid"] { border-top-color: #d62056; }
+.pd-timing-card[data-lane="urgent"] { border-top-color: #d58b22; }
+.pd-timing-card[data-lane="last-minute"] { border-top-color: #3a9d94; }
+.pd-timing-card[data-lane="routine"] { border-top-color: #587cc1; }
+.pd-timing-card:hover { background: #fafbfc; }
+.pd-timing-card.active { border-color: #d62056; background: #fff0f6; color: #ae1a50; }
+.pd-timing-card.active > b { color: #b5174d; }
+.pd-timing-card:focus-visible { outline: 3px solid #df83a7; outline-offset: 2px; }
+.pd-panel > .pd-timing { padding: 16px 20px 14px; }
+.pd-board-caption { margin: 12px 0 12px; font-size: 11px; color: #7b8492; }
+@media (max-width: 1100px) { .pd-timing { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .pd-timing { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; } .pd-timing-card { min-height: 58px; padding: 9px 10px; font-size: 11px; } }
+@media (max-width: 800px) { .pd-page-head > .pd-area-tabs { grid-row: auto; order: 9; } }
+.pd-board-body { padding: 20px; }
+.pd-board-body .pd-request-row { margin-left: 0; margin-right: 0; }
+.pd-board-body .pd-request-row:last-child { margin-bottom: 0; }
+.pd-dash .pd-panel-head .pd-btn-ghost { min-height: 31px; padding: 6px 10px; font-size: 13px; }
+
+/* Shift Blast — SMS */
+.pd-blast-hero { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 28px; margin-bottom: 16px; padding: 28px; border: 1px solid #f2d6e1; border-radius: 12px; background: linear-gradient(110deg, #fff 55%, #fff1f6); box-shadow: var(--pd-shadow); }
+.pd-blast-hero h2 { margin: 10px 0 8px; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--pd-ink); }
+.pd-blast-hero p { margin: 0 0 12px; max-width: 620px; font-size: 14px; line-height: 1.5; color: var(--pd-muted); }
+.pd-blast-hero .pd-eyebrow { color: #5d6472; }
+.pd-blast-hero aside { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-left: 28px; border-left: 1px solid #ecd4de; }
+.pd-blast-hero aside strong { font-family: var(--font-display); font-size: 24px; font-weight: 800; color: var(--pd-ink); }
+.pd-blast-hero aside small { font-size: 12px; color: var(--pd-muted); }
+.pd-blast-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; padding: 0; list-style: none; }
+.pd-blast-steps li { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #4f5664; }
+.pd-blast-steps span { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #e4e6ed; border-radius: 50%; background: #fff; font-size: 11px; font-weight: 700; color: var(--pd-pink); }
+.pd-blast-steps li.done span { border-color: var(--pd-pink); background: var(--pd-pink-light); }
+.pd-blast-row-note { margin: 4px 0 0; font-size: 14px; color: #4f5664; }
+.pd-blast-how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 24px 22px; }
+.pd-blast-how svg { width: 18px; height: 18px; color: var(--pd-pink); }
+.pd-blast-how strong { display: block; margin: 12px 0 8px; font-size: 14px; }
+.pd-blast-how p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--pd-muted); }
+@media (max-width: 800px) { .pd-blast-hero, .pd-blast-how, .pd-blast-steps { grid-template-columns: 1fr; } .pd-blast-hero aside { padding: 16px 0 0; border-left: 0; border-top: 1px solid #ecd4de; } }
+
+.pd-modal-backdrop { font-family: 'DM Sans', Arial, sans-serif; }
+.pd-modal-backdrop :is(h1, h2, h3, h4) { font-family: 'Manrope', Arial, sans-serif; font-weight: 800; }

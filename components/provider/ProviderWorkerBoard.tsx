@@ -6,6 +6,8 @@ import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 // Provider "Find External Workers" and "Saved Workers" (approved demo): worker cards, View profile popup, Save, and Direct Connect
 // (choose an active shift, review the conditional $9.99 charge, send the invitation).
@@ -32,7 +34,7 @@ interface ConnectInvite { id: string; status: string; createdAt: string; invited
 interface ShiftOpt { id: string; title: string; suburb: string; urgency: string; status: string; scheduledStartAt: string }
 
 const PAGE_SIZE = 20;
-const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const URGENCY_LABEL: Record<string, string> = Object.fromEntries(PROVIDER_TIERS.map((t) => [t.key, t.label]));
 const pretty = (v: string) => v.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -126,6 +128,7 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
       <div className="pd-content">
       <div className="pd-breadcrumb">{mode === "find" ? "Provider / External" : "Provider / Saved workers"}</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
           <p>{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>

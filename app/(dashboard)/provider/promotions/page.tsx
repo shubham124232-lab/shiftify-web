@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { Star, Link2, LayoutGrid } from "lucide-react";
 import { FeaturedShiftFlow, PlatinumSponsorshipFlow, FEATURED_PRICE, PLATINUM_PRICE } from "@/components/provider/PromotionFlows";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Promotions {
   featuredShifts: { id: string; tier: string; priceAud: number; purchasedAt: string; expiresAt: string; job: { id: string; title: string } }[];
@@ -40,6 +41,7 @@ export default function ProviderPromotionsPage() {
         <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Promotions</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Provider promotions</h1>
             <p>Optional visibility and connections. Core matching stays included.</p>

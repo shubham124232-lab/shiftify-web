@@ -8,6 +8,7 @@ import { RefreshCw, Plus, LayoutGrid } from "lucide-react";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
 import { api } from "@/lib/api";
 import { ModalShell } from "@/components/jobs/post/shared";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface HousingListing {
   branchId?: string | null;
@@ -156,8 +157,9 @@ export default function ProviderHousingPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Housing</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
-            <h1>Housing Vacancies</h1>
+            <h1>Housing vacancies</h1>
             <p>Manage SIL, SDA, respite and supported-housing enquiries.</p>
           </div>
           <div className="pd-buttons">

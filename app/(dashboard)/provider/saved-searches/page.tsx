@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createSavedSearch, deleteSavedSearch, listSavedSearches, updateSavedSearch, type SavedSearch } from "@/lib/api/saved-searches";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 const TIMING = [
   { value: "", label: "All" }, { value: "RAPID", label: "Rapid" }, { value: "URGENT", label: "Urgent" },
@@ -37,6 +38,7 @@ export default function ProviderSavedSearchesPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Saved searches &amp; alerts</h1>
             <p>Save the request types and areas relevant to your organisation.</p>

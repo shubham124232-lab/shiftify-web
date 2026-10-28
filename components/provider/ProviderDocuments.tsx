@@ -9,6 +9,7 @@ import { api, http } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { cn } from "@/lib/utils";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Doc {
   id: string; userId: string; docType: string; fileName: string; fileUrl?: string; status: string;
@@ -86,6 +87,7 @@ export function ProviderDocuments() {
       <div className="pd-content">
       <div className="pd-breadcrumb">Provider / Documents</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>Documents and compliance</h1>
           <p>Track evidence, expiry and the users permitted to see it.</p>

@@ -3,26 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DashboardFilterBanner, useDashboardFilter } from "@/components/provider/DashboardFilterBanner";
-import { Zap, Clock, Timer, CalendarDays, LayoutGrid, MapPin, Users, Plus } from "lucide-react";
+import { MapPin, Users, Plus, Send, CalendarDays, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { ApplicationsFlow } from "@/components/provider/ApplicationsFlow";
 import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 import { PostShiftDialog } from "@/components/provider/DashboardDialogs";
 import type { JobSummary } from "@/lib/api/dashboard";
 import { cn } from "@/lib/utils";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { TimingCards, TierBadge, tierFor, laneSlug } from "@/components/provider/timing";
 
-interface Row extends JobSummary {
+export interface StaffingRow extends JobSummary {
   scheduledEndAt?: string | null;
   budgetPerHour?: number | string | null;
   _count?: { applications: number };
 }
 
-const TIERS = [
-  { key: "RAPID",       label: "Rapid",       icon: Zap,          badge: "pd-badge-rapid",         bar: "", hex: "#da2950" },
-  { key: "URGENT",      label: "Urgent",      icon: Clock,        badge: "pd-badge-urgent",     bar: "", hex: "#d77a10" },
-  { key: "LAST_MINUTE", label: "Last Minute", icon: Timer,        badge: "pd-badge-last-minute", bar: "", hex: "#008565" },
-  { key: "ROUTINE",     label: "Routine",     icon: CalendarDays, badge: "pd-badge-routine",       bar: "", hex: "#436bc1" },
-] as const;
 
 // Demo status list -> our stored job statuses (there is no stored Paused/Expired state yet, so those two show nothing).
 const STATUS_OPTIONS: { value: string; label: string; match: (s: string) => boolean }[] = [
@@ -43,18 +39,18 @@ const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-AU", { hou
 export function ProviderStaffingRequests() {
   // "open" | "applications" — set by the dashboard number tiles.
   const [dashFilter, clearDashFilter] = useDashboardFilter();
-  const [jobs, setJobs] = useState<Row[] | null>(null);
+  const [jobs, setJobs] = useState<StaffingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tier, setTier] = useState<string>("");
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
-  const [review, setReview] = useState<Row | null>(null);
+  const [review, setReview] = useState<StaffingRow | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [posting, setPosting] = useState(false);
 
   useEffect(() => {
-    api.get<{ jobs: Row[] }>("/jobs/my")
+    api.get<{ jobs: StaffingRow[] }>("/jobs/my")
       .then((r) => setJobs(r.jobs ?? []))
       .catch((e) => { setError(e instanceof Error ? e.message : "Could not load staffing requests"); setJobs([]); });
   }, []);
@@ -85,11 +81,13 @@ export function ProviderStaffingRequests() {
       {bannerText && <DashboardFilterBanner text={bannerText} onClear={clearDashFilter} />}
 
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>Staffing requests</h1>
           <p>Manage internal cover and external applications in one place.</p>
         </div>
         <div className="pd-buttons">
+          <Link href="/provider/shift-blast" className="pd-btn"><Send />Shift Blast — SMS</Link>
           <button type="button" className="pd-btn" onClick={() => setMapOpen(true)}><MapPin />Map view</button>
           <button type="button" className="pd-btn pd-btn-primary" onClick={() => setPosting(true)}><Plus />Post a Shift</button>
         </div>
@@ -98,16 +96,7 @@ export function ProviderStaffingRequests() {
       <section className="pd-panel">
         <div className="pd-panel-head"><h2>Your staffing requests</h2></div>
 
-        <div className="pd-lanes" role="tablist" aria-label="Timing lanes">
-          <button type="button" role="tab" aria-selected={tier === ""} onClick={() => setTier("")} className={cn("pd-lane", tier === "" && "pd-lane-active")}>
-            <LayoutGrid />All shifts<span className="pd-lane-count">{count("")}</span>
-          </button>
-          {TIERS.map((t) => (
-            <button key={t.key} type="button" role="tab" aria-selected={tier === t.key} data-lane={t.key.toLowerCase().replace("_", "-")} onClick={() => setTier(tier === t.key ? "" : t.key)} className={cn("pd-lane", tier === t.key && "pd-lane-active")}>
-              <t.icon />{t.label}<span className="pd-lane-count">{count(t.key)}</span>
-            </button>
-          ))}
-        </div>
+        <TimingCards value={tier} onChange={setTier} count={count} label="Staffing request timing" />
 
         <div className="pd-toolbar" style={{ border: 0, borderRadius: 0, marginBottom: 0 }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, suburb or service…" aria-label="Search staffing" />
@@ -122,48 +111,50 @@ export function ProviderStaffingRequests() {
           <p className="pd-quiet-empty m-0 text-red-600">{error}</p>
         ) : rows.length === 0 ? (
           <div className="pd-quiet-empty">No staffing requests match these filters.</div>
-        ) : rows.map((j) => {
-          const t = TIERS.find((x) => x.key === j.urgency) ?? TIERS[3];
-          const confirmed = ["CONFIRMED", "ASSIGNED", "IN_PROGRESS"].includes(j.status);
-          const apps = j._count?.applications ?? 0;
-          const rate = j.budgetPerHour != null && j.budgetPerHour !== "" ? Number(j.budgetPerHour) : null;
-          return (
-            <article key={j.id} className="pd-request-row" data-urgency={t.key.toLowerCase().replace("_", "-")}>
-              <div>
-                <div className="pd-row-title">
-                  <span className={cn("pd-badge", t.badge)}><t.icon />{t.label}</span>
-                  <strong>{j.title}</strong>
-                  {confirmed && <span className="pd-badge pd-badge-last-minute">Confirmed</span>}
-                  {j.status === "DRAFT" && <span className="pd-badge">Draft</span>}
-                </div>
-                <div className="pd-row-meta">
-                  <span><MapPin />{j.suburb}</span>
-                  <span><CalendarDays />{fmtDay(j.scheduledStartAt)} · {fmtTime(j.scheduledStartAt)}{j.scheduledEndAt ? `–${fmtTime(j.scheduledEndAt)}` : ""}</span>
-                  <span><Users />{apps} application{apps === 1 ? "" : "s"}</span>
-                </div>
-              </div>
-              <div className="pd-row-end">
-                {rate !== null && <strong>${rate.toFixed(2)}/hr</strong>}
-                <div className="pd-buttons">
-                  <button type="button" className="pd-btn pd-btn-md" onClick={() => setDetail(j.id)}>View request</button>
-                  {!confirmed && <button type="button" className="pd-btn pd-btn-md pd-btn-primary" onClick={() => setReview(j)}>Manage</button>}
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        ) : rows.map((j) => (
+          <StaffingRequestRow key={j.id} job={j} onView={() => setDetail(j.id)} onManage={() => setReview(j)} />
+        ))}
         <div style={{ height: 8 }} />
+        <p className="pd-privacy m-0"><ShieldCheck />Applications and confirmations remain accessible after a plan or introductory allowance ends.</p>
       </section>
-
-      <p className="pd-info-banner">
-        Applications and confirmations remain accessible after a plan or introductory allowance ends.
-      </p>
 
       {review && <ApplicationsFlow job={review} start="manage" onClose={() => setReview(null)} onViewDetails={() => { const id = review.id; setReview(null); setDetail(id); }} />}
       {detail && <RequestDetailDialog jobId={detail} own onClose={() => setDetail(null)} />}
-      {posting && <PostShiftDialog onClose={() => { setPosting(false); api.get<{ jobs: Row[] }>("/jobs/my").then((r) => setJobs(r.jobs ?? [])).catch(() => undefined); }} />}
+      {posting && <PostShiftDialog onClose={() => { setPosting(false); api.get<{ jobs: StaffingRow[] }>("/jobs/my").then((r) => setJobs(r.jobs ?? [])).catch(() => undefined); }} />}
       {mapOpen && <NearbyRequestsDialog requests={rows} onClose={() => setMapOpen(false)} onOpen={(id) => { setMapOpen(false); setDetail(id); }} />}
       </div>
     </div>
+  );
+}
+
+// One staffing request row (timing bar, badge, place, time, applications, rate) — shared with the dashboard board.
+export function StaffingRequestRow({ job: j, onView, onManage }: { job: StaffingRow; onView: () => void; onManage: () => void }) {
+  const t = tierFor(j.urgency);
+  const confirmed = ["CONFIRMED", "ASSIGNED", "IN_PROGRESS"].includes(j.status);
+  const apps = j._count?.applications ?? 0;
+  const rate = j.budgetPerHour != null && j.budgetPerHour !== "" ? Number(j.budgetPerHour) : null;
+  return (
+    <article className="pd-request-row" data-urgency={laneSlug(t.key)}>
+      <div>
+        <div className="pd-row-title">
+          <TierBadge urgency={t.key} />
+          <strong>{j.title}</strong>
+          {confirmed && <span className="pd-badge pd-badge-last-minute">Confirmed</span>}
+          {j.status === "DRAFT" && <span className="pd-badge">Draft</span>}
+        </div>
+        <div className="pd-row-meta">
+          <span><MapPin />{j.suburb}</span>
+          <span><CalendarDays />{fmtDay(j.scheduledStartAt)} · {fmtTime(j.scheduledStartAt)}{j.scheduledEndAt ? `–${fmtTime(j.scheduledEndAt)}` : ""}</span>
+          <span><Users />{apps} application{apps === 1 ? "" : "s"}</span>
+        </div>
+      </div>
+      <div className="pd-row-end">
+        {rate !== null && <strong>${rate.toFixed(2)}/hr</strong>}
+        <div className="pd-buttons">
+          <button type="button" className="pd-btn pd-btn-md" onClick={onView}>View request</button>
+          {!confirmed && <button type="button" className="pd-btn pd-btn-md pd-btn-primary" onClick={onManage}>Manage</button>}
+        </div>
+      </div>
+    </article>
   );
 }

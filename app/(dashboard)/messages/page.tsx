@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { api } from "@/lib/api";
 import { CoordinatorMessages } from "@/components/coordinator/pages/Messages";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Message {
   id: string;
@@ -112,6 +113,7 @@ function ProviderMessages() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Messages</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Messages</h1>
             <p>Conversations stay linked to their request, listing or assignment.</p>

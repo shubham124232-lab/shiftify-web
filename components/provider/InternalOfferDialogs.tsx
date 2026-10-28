@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { cn } from "@/lib/utils";
 import { requirementLabels } from "@/lib/constants/job-filters";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 export interface InternalOffer {
   id: string;
@@ -19,7 +20,7 @@ export interface InternalOffer {
   };
 }
 
-const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const URGENCY_LABEL: Record<string, string> = Object.fromEntries(PROVIDER_TIERS.map((t) => [t.key, t.label]));
 interface OpenJob { urgency: string; id: string; title: string; suburb: string; scheduledStartAt: string; scheduledEndAt?: string | null; budgetPerHour?: number | string | null; status: string; riskSafetyNotes?: string | null; workerPreferences?: Record<string, unknown> | null }
 interface Member { key: string; name: string; kind: "MANAGED" | "ROSTER"; branch: string | null; skills?: string[]; status: string }
 

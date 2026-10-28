@@ -159,12 +159,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="td-theme flex h-screen flex-col" data-active-role={user?.activeRole}>
-      {user?.activeRole === "PROVIDER" && (
-        <div className="flex h-7 shrink-0 items-center justify-between bg-slate-950 px-8 text-[11px] font-semibold uppercase tracking-wider text-white">
-          <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />24/7 LIVE</span>
-          <span>0% Platform commission</span>
-        </div>
-      )}
       {/* Provider / Coordinator workspace shell: the header spans the full width above the menu and the page. */}
       {workspaceShell && <AppTopbar />}
       <div className="flex min-h-0 flex-1">

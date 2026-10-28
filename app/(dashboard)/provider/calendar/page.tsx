@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Row { id: string; title: string; suburb: string; status: string; urgency?: string; branchId?: string | null; scheduledStartAt: string; scheduledEndAt?: string | null }
 interface Branch { id: string; name: string }
@@ -74,6 +75,7 @@ export default function ProviderCalendarPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Calendar</h1>
             <p>{`${label} · ${view === "list" ? "List view" : `${view[0].toUpperCase()}${view.slice(1)} view`}`}</p>

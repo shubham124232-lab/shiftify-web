@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Users, LayoutGrid } from "lucide-react";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Inquiry {
   id: string; body: string; createdAt: string; readAt: string | null;
@@ -397,6 +398,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
         <>
           <div className="pd-breadcrumb">Provider / Responses</div>
           <div className="pd-page-head">
+            <ProviderAreaTabs />
             <div>
               <h1>My Provider responses</h1>
               <p>Track proposals, discussions and agreed service starts.</p>
@@ -416,6 +418,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
         <>
           <div className="pd-breadcrumb">Provider / Enquiries</div>
           <div className="pd-page-head">
+            <ProviderAreaTabs />
             <div>
               <h1>Enquiries and applications</h1>
               <p>Respond, allocate an intake owner and track the next step on applications and enquiries about your posts and listings.</p>

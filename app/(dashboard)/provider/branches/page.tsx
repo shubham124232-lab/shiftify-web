@@ -10,6 +10,7 @@ import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
 import { ModalShell, inp } from "@/components/jobs/post/shared";
 import { BRANCH_SERVICE_LINES } from "@/components/provider/branchOptions";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 export interface BranchRow {
   id: string;
@@ -154,6 +155,7 @@ export default function ProviderBranchesPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Branches</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Branch workspaces</h1>
             <p>An operational office, hub or team — not every shift address.</p>

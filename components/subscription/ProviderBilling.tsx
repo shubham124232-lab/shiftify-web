@@ -10,6 +10,7 @@ import { UserStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { Check } from "lucide-react";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface ApiPlan { id: string; key: string; name: string; amountAud: number | string; features?: string[]; isAddOn?: boolean }
 interface Sub { id: string; status: string; startedAt: string; currentPeriodEnd: string | null; cancelledAt: string | null; plan: ApiPlan }
@@ -79,6 +80,7 @@ export function ProviderBilling() {
       <div className="pd-content">
       <div className="pd-breadcrumb">Provider / Billing</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>Subscription and billing</h1>
           <p>Organisation-wide access. Matching and internal assignments are included.</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 // Provider "Account settings" (approved demo + doc P82): shortcuts into profile, billing, notifications, privacy and help.
 const GROUPS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -22,6 +23,7 @@ export default function ProviderSettingsPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Account settings</h1>
             <p>Manage your account, preferences and support.</p>

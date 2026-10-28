@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
 export interface EligibleShift { id: string; title: string; urgency: string; suburb: string; scheduledStartAt: string; featuredUntil: string | null }
 
 export const FEATURED_PRICE = [
-  { urgency: "RAPID", label: "Rapid", window: "up to 60 min", max: "60 minutes or until filled", mins: 60, price: 19.99 },
+  { urgency: "RAPID", label: "Last Min", window: "up to 60 min", max: "60 minutes or until filled", mins: 60, price: 19.99 },
   { urgency: "URGENT", label: "Urgent", window: "up to 24 hr", max: "24 hours or until filled", mins: 1440, price: 14.99 },
-  { urgency: "LAST_MINUTE", label: "Last-Minute", window: "48 hr", max: "48 hours or until filled", mins: 2880, price: 9.99 },
+  { urgency: "LAST_MINUTE", label: "Short Notice", window: "48 hr", max: "48 hours or until filled", mins: 2880, price: 9.99 },
   { urgency: "ROUTINE", label: "Routine", window: "7 days", max: "7 days or until filled", mins: 10080, price: 21.99 },
 ];
 export const PLATINUM_PRICE: Record<string, Record<number, number>> = {

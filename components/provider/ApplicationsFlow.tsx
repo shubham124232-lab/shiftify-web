@@ -12,6 +12,7 @@ import type { JobSummary } from "@/lib/api/dashboard";
 import { FeaturedShiftFlow } from "@/components/provider/PromotionFlows";
 import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import type { PostingTier } from "@/lib/types/posting";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 // Applicant as returned by GET /jobs/:id/applications (poster view).
 interface Applicant {
@@ -31,12 +32,9 @@ interface TeamMember { key: string; name: string; branch: string | null; status:
 
 const MEMBER_STATUS: Record<string, string> = { AVAILABLE: "Available", ON_SHIFT: "On shift", INVITED: "Invited", NOT_SET: "Not set", VERIFIED: "Verified" };
 
-const URGENCY: Record<string, { label: string; cls: string; icon: ReactNode }> = {
-  RAPID:       { label: "Rapid",       cls: "bg-red-50 text-red-700",       icon: <Zap className="h-3 w-3" /> },
-  URGENT:      { label: "Urgent",      cls: "bg-amber-50 text-amber-700",   icon: <Clock className="h-3 w-3" /> },
-  LAST_MINUTE: { label: "Last-Minute", cls: "bg-orange-50 text-orange-700", icon: <Clock className="h-3 w-3" /> },
-  ROUTINE:     { label: "Routine",     cls: "bg-blue-50 text-blue-700",     icon: <CalendarDays className="h-3 w-3" /> },
-};
+const URGENCY: Record<string, { label: string; cls: string; icon: ReactNode }> = Object.fromEntries(
+  PROVIDER_TIERS.map((t) => [t.key, { label: t.label, cls: `pd-badge ${t.badge}`, icon: <t.icon /> }]),
+);
 const STATUS_LABEL: Record<string, string> = { OPEN: "Live", CONFIRMED: "Confirmed", COMPLETED: "Completed", DRAFT: "Draft", CANCELLED: "Cancelled", EXPIRED: "Expired", PAUSED: "Paused" };
 
 const categoryLabel = (v: string) => JOB_CATEGORIES.find((c) => c.value === v)?.label ?? v;
@@ -190,7 +188,7 @@ export function ApplicationsFlow({ job, start = "applications", onClose, onViewD
         </>}>
         {Err}{Ok}
         <div className="flex flex-wrap gap-2">
-          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>
+          <span className={u.cls}>{u.icon}{u.label}</span>
           <span className={pill}>{STATUS_LABEL[job.status] ?? job.status}</span>
         </div>
         <h3 className="m-0 mt-3 text-2xl font-bold text-slate-900">{job.title}</h3>

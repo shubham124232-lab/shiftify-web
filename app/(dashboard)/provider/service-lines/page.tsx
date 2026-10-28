@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { LayoutGrid, Plus } from "lucide-react";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Listing { id: string; status: string; suburb: string; state: string | null; serviceCategory: string | null; serviceCategories: string[] | null }
 
@@ -40,6 +41,7 @@ export default function ProviderServiceLinesPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Service lines</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Service lines</h1>
             <p>Reuse organisation capability in matching and listing forms.</p>

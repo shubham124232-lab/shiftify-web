@@ -14,6 +14,7 @@ import type { JobSummary } from "@/lib/api/dashboard";
 import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
 import type { PostingTier } from "@/lib/types/posting";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 interface JobDetail {
   id: string; title: string; description: string | null; category: string; urgency: string; status: string;
@@ -27,12 +28,9 @@ interface JobDetail {
 }
 
 const STATUS: Record<string, string> = { OPEN: "Open", CONFIRMED: "Confirmed", COMPLETED: "Completed", CANCELLED: "Cancelled", DRAFT: "Draft", ASSIGNED: "Assigned", IN_PROGRESS: "In progress" };
-const URGENCY: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  RAPID:       { label: "Rapid",       cls: "bg-red-50 text-red-700",       icon: <Zap className="h-3 w-3" /> },
-  URGENT:      { label: "Urgent",      cls: "bg-amber-50 text-amber-700",   icon: <Clock className="h-3 w-3" /> },
-  LAST_MINUTE: { label: "Last-Minute", cls: "bg-orange-50 text-orange-700", icon: <Clock className="h-3 w-3" /> },
-  ROUTINE:     { label: "Routine",     cls: "bg-blue-50 text-blue-700",     icon: <CalendarDays className="h-3 w-3" /> },
-};
+const URGENCY: Record<string, { label: string; cls: string; icon: React.ReactNode }> = Object.fromEntries(
+  PROVIDER_TIERS.map((t) => [t.key, { label: t.label, cls: `pd-badge ${t.badge}`, icon: <t.icon /> }]),
+);
 const catLabel = (v: string) => JOB_CATEGORIES.find((c) => c.value === v)?.label ?? v;
 const when = (iso: string | null) => iso ? new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "—";
 
@@ -79,7 +77,7 @@ export function RequestDetailDialog({ jobId, own, onClose }: { jobId: string; ow
       <ModalShell title="Staffing request" subtitle={`Request · ${job.id.slice(0, 8)}`} onClose={onClose}>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <div className="flex flex-wrap gap-2">
-            {u && <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>}
+            {u && <span className={u.cls}>{u.icon}{u.label}</span>}
             <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${confirmed ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{STATUS[job.status] ?? job.status}</span>
           </div>
           <h3 className="m-0 mt-3 text-2xl font-bold text-slate-900">{job.title}</h3>
@@ -137,7 +135,7 @@ export function RequestDetailDialog({ jobId, own, onClose }: { jobId: string; ow
         {error ? <p className="m-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : !job ? <div className="h-24 animate-pulse rounded-xl bg-slate-100" /> : (
           <>
             <div className="flex flex-wrap gap-2">
-              {u && <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>}
+              {u && <span className={u.cls}>{u.icon}{u.label}</span>}
               {job.postedByRoleLabel && <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{job.postedByRoleLabel}</span>}
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{STATUS[job.status] ?? job.status}</span>
             </div>
@@ -339,7 +337,7 @@ export function NearbyRequestsDialog({ requests, onClose, onOpen, mode = "staffi
               return (
                 <li key={j.id} className={`rounded-xl border p-4 ${selected === j.id ? "border-pink-400 bg-pink-50/40" : "border-slate-200"}`}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>
+                    <span className={u.cls}>{u.icon}{u.label}</span>
                     {margin == null
                       ? <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">Travel estimate unavailable</span>
                       : <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${ok ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>{ok ? "Within estimated time" : "May not arrive in time"}</span>}

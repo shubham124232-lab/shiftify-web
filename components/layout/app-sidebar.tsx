@@ -10,23 +10,27 @@ import {
   CreditCard, Building2, Home, Star, ShieldCheck, Inbox,
   Radio, CalendarDays, Handshake, Bookmark, Target, CheckCircle2, GitBranch,
   Layers, Settings, Megaphone, BarChart3, UserCog, FolderOpen, Zap, Plus, Clock, Heart, LifeBuoy, Gift,
-  LayoutGrid, MessageCircle, MapPin, Check, Sun,
+  LayoutGrid, MessageCircle, Sun, Send, CircleHelp, ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { getDashboard, type ProviderDashboard } from "@/lib/api/dashboard";
 import { cn } from "@/lib/utils";
 import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import type { UserRole } from "@/lib/types";
+import { PROVIDER_AREAS, providerAreaFor, type ProviderArea } from "@/lib/constants/provider-areas";
 
-type NavBadge = "openRequests" | "newEnquiries";
-
-interface NavItem { href: string; label: string; icon: LucideIcon; badge?: NavBadge; glyph?: string; }
+interface NavItem { href: string; label: string; icon: LucideIcon; glyph?: string; areaKey?: string; }
 
 interface NavGroup { title: string; items: NavItem[]; }
 
 // `groups` (when present) is rendered with headings instead of the flat main/account lists.
 interface RoleNav { main: NavItem[]; account: NavItem[]; groups?: NavGroup[]; }
+
+// Icons follow the demo's line set: grid, bolt, briefcase, users, search, home, calendar, message, building, card, help.
+const PROVIDER_AREA_ICONS: Record<string, LucideIcon> = {
+  dashboard: LayoutGrid, shiftboard: Zap, staffing: Briefcase, team: Users, opportunities: Search,
+  services: Home, calendar: Calendar, messages: MessageCircle, organisation: Building2, billing: CreditCard, help: CircleHelp,
+};
 
 const NOTIFICATIONS: NavItem = { href: "/notifications", label: "Notifications", icon: Bell };
 
@@ -96,56 +100,13 @@ function navForRole(role: string, managed = false): RoleNav {
         account: [NOTIFICATIONS],
       };
     case "PROVIDER": {
-      // Approved Provider demo (2026-10-09): 6 groups.
-      const groups: NavGroup[] = [
-        { title: "Workspace", items: [
-          { ...dash, label: "My Dashboard", icon: LayoutGrid },
-          { href: "/live-dashboard", label: "Live Shiftboard", icon: Zap },
-        ] },
-        { title: "Staffing", items: [
-          { href: "/jobs/post",                    label: "Post a Shift",           icon: Plus },
-          { href: "/jobs/my",                      label: "Staffing Requests",      icon: Briefcase, badge: "openRequests" },
-          { href: "/provider/team-availability",       label: "Team Availability",      icon: Clock },
-          { href: "/provider/offers-assignments",  label: "Offers and Assignments", icon: Calendar },
-          { href: "/workers/available",            label: "Find External Workers",  icon: Search },
-          { href: "/saved-professionals",          label: "Saved Workers",          icon: Heart },
-        ] },
-        { title: "Opportunities", items: [
-          { href: "/jobs",                          label: "Browse Requests",          icon: Search },
-          { href: "/provider/matched-requests",         label: "Matched Requests",         icon: Zap },
-          { href: "/provider/saved-requests",           label: "Saved Requests",           icon: Heart },
-          { href: "/provider/my-responses",             label: "My Responses",             icon: FileText },
-          { href: "/provider/confirmed-starts", label: "Confirmed Service Starts", icon: Check },
-        ] },
-        { title: "Business", items: [
-          { href: "/provider/services",                 label: "Services & Capacity",      icon: Briefcase },
-          { href: "/provider/housing",                  label: "Housing Vacancies",        icon: Home },
-          { href: "/provider/enquiries",   label: "Enquiries & Applications", icon: MessageCircle, badge: "newEnquiries" },
-          { href: "/messages",                          label: "Messages",                 icon: MessageCircle },
-          { href: "/provider/calendar",                  label: "Calendar",                 icon: Calendar },
-        ] },
-        { title: "Organisation", items: [
-          { href: "/provider/organisation", label: "Organisation Profile",   icon: Building2 },
-          { href: "/provider/branches",     label: "Branches",               icon: MapPin },
-          { href: "/provider/service-lines",    label: "Service Lines",          icon: LayoutGrid },
-          { href: "/provider/administrators", label: "Administrators",       icon: ShieldCheck },
-          { href: "/provider/workforce",    label: "Internal Team",          icon: Users },
-          { href: "/documents",             label: "Documents & Compliance", icon: FileText },
-          { href: "/provider/reports",          label: "Reports",                icon: BarChart3 },
-        ] },
-        { title: "Account", items: [
-          { href: "/subscription",          label: "Subscription & Billing", icon: CreditCard },
-          { href: "/provider/promotions",       label: "Promotions",             icon: Star },
-          NOTIFICATIONS,
-          { href: "/provider/settings", label: "Settings & Help",       icon: Sun },
-        ] },
-        { title: "Help", items: [
-          { href: "/provider/help", label: "Help & Tickets", icon: LifeBuoy, glyph: "⊕" },
-          { href: "/provider/saved-searches", label: "Saved searches & alerts", icon: Star, glyph: "☆" },
-          { href: "/provider/refer-and-earn", label: "Refer & Earn", icon: Gift, glyph: "↗" },
-        ] },
-      ];
-      return { main: groups.flatMap((g) => g.items), account: [], groups };
+      // Approved Provider demo (27 Oct): eight workspace areas, then a collapsible "Account & tools"
+      // group. Each area's secondary screens are tabs under the page heading (ProviderAreaTabs).
+      const toItem = (a: ProviderArea): NavItem => ({ href: a.href, label: a.label, icon: PROVIDER_AREA_ICONS[a.key] ?? LayoutGrid, areaKey: a.key });
+      return {
+        main: PROVIDER_AREAS.filter((a) => !a.account).map(toItem),
+        account: PROVIDER_AREAS.filter((a) => a.account).map(toItem),
+      };
     }
     case "COORDINATOR":
       // Support Coordinator workspace (approved SC demo): flat menu, then account pages.
@@ -225,25 +186,12 @@ export function AppSidebar() {
     return () => window.removeEventListener("shiftify:job-owner", h);
   }, []);
 
-  // Count badges on the Provider menu (open requests, new enquiries) come from the dashboard summary.
-  const [badges, setBadges] = useState<Partial<Record<NavBadge, number>>>({});
   const isProvider = user?.activeRole === "PROVIDER";
   const isCoordinator = user?.activeRole === "COORDINATOR";
   // Provider and Coordinator workspaces share the flat demo menu style.
   const isWorkspace = isProvider || isCoordinator;
   // The workspace menus are always expanded (demo shell has no collapse control).
   const collapsed = isWorkspace ? false : collapsedPref;
-  useEffect(() => {
-    if (!isProvider) return;
-    let cancelled = false;
-    getDashboard()
-      .then((d) => {
-        const stats = (d as ProviderDashboard).stats;
-        if (!cancelled && stats) setBadges({ openRequests: stats.openRequests, newEnquiries: stats.newEnquiries + (stats.newInquiries ?? 0) });
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [isProvider]);
 
   if (!user) return null;
 
@@ -275,8 +223,10 @@ export function AppSidebar() {
     const viewingOwnJob = !!jobId && ownJob?.id === jobId && ownJob.owner;
     const matchesPath = (href: string) => (viewingOwnJob && href === "/jobs/my")
       || pathname === href || (href !== "/" && !!pathname?.startsWith(href + "/"));
-    const isActive = (viewingOwnJob ? item.href === "/jobs/my" || (matchesPath(item.href) && item.href !== "/jobs") : matchesPath(item.href))
-      && ![...nav.main, ...nav.account].some((o) => o.href.length > item.href.length && matchesPath(o.href));
+    const providerArea = isProvider ? providerAreaFor(pathname ?? "", viewingOwnJob)?.key : undefined;
+    const isActive = item.areaKey ? item.areaKey === providerArea
+      : (viewingOwnJob ? item.href === "/jobs/my" || (matchesPath(item.href) && item.href !== "/jobs") : matchesPath(item.href))
+        && ![...nav.main, ...nav.account].some((o) => o.href.length > item.href.length && matchesPath(o.href));
     return (
       <li>
         <Link
@@ -286,6 +236,7 @@ export function AppSidebar() {
           className={cn(
             "group relative flex items-center px-3 py-2.5 text-sm transition-all duration-150",
             isWorkspace ? "min-h-[44px] gap-[11px] rounded-lg" : "gap-3 rounded-xl font-medium",
+            isProvider && "my-0.5 text-xs",
             isActive
               ? isWorkspace
                 ? "bg-[#fff0f5] font-bold text-[#c91355]"
@@ -298,19 +249,12 @@ export function AppSidebar() {
           {item.glyph ? (
             <span className="grid h-[18px] w-[18px] shrink-0 place-items-center text-base leading-none">{item.glyph}</span>
           ) : (
-          <Icon className={cn(
+          <Icon strokeWidth={isProvider ? 1.7 : undefined} className={cn(
             "h-[18px] w-[18px] shrink-0 transition-colors",
             isActive ? (isWorkspace ? "text-[#c91355]" : "text-white") : isWorkspace ? "text-[#555a68]" : "text-slate-400 group-hover:text-brand-600",
           )} />
           )}
           {!collapsed && <span className={cn("tracking-tight", isWorkspace ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
-          {!collapsed && !!item.badge && !!badges[item.badge] && (
-            <span className={cn(
-              "ml-auto px-1.5 font-bold",
-              isWorkspace ? "rounded-[5px] bg-[#edf0f4] text-xs font-medium leading-5 text-[#555a68]" : "rounded-full text-[10px] leading-4",
-              !isWorkspace && (isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"),
-            )}>{badges[item.badge]}</span>
-          )}
         </Link>
       </li>
     );
@@ -341,6 +285,7 @@ export function AppSidebar() {
             </button>
           )}
         </div>}
+        {isProvider ? <ProviderMenu mobile={mobile} /> : (
         <nav className={cn("flex flex-1 flex-col justify-between overflow-y-auto", isWorkspace ? "px-3 pb-4 pt-6" : "p-3")}>
           {isCoordinator && (
             <Link
@@ -402,7 +347,40 @@ export function AppSidebar() {
             </>
           )}
         </nav>
+        )}
       </>
+    );
+  }
+
+  // Provider menu (approved demo): Post a Shift, the Workspace areas, a collapsible
+  // "Account & tools" group (open while one of its areas is showing) and the optional Shift Blast entry.
+  function ProviderMenu({ mobile }: { mobile: boolean }) {
+    const close = mobile ? () => setMobileOpen(false) : undefined;
+    const accountOpen = !!providerAreaFor(pathname ?? "")?.account;
+    return (
+      <nav className="pd-side flex-1 overflow-y-auto px-3 pb-5 pt-6">
+        <div className="pd-side-post">
+          <Link href="/jobs/post" onClick={close} className="pd-btn pd-btn-primary w-full">
+            <Plus strokeWidth={1.7} /> Post a Shift
+          </Link>
+        </div>
+        <p className="pd-side-label">Workspace</p>
+        <ul className="m-0 list-none p-0">
+          {nav.main.map((item) => <NavLink key={item.href} item={item} onClick={close} />)}
+        </ul>
+        <details key={String(accountOpen)} className="pd-side-tools" open={accountOpen}>
+          <summary><Sun strokeWidth={1.7} /> Account &amp; tools <ChevronDown className="pd-side-chevron" strokeWidth={1.7} /></summary>
+          <ul className="m-0 list-none p-0">
+            {nav.account.map((item) => <NavLink key={item.href} item={item} onClick={close} />)}
+          </ul>
+        </details>
+        <div className="pd-side-extra">
+          <Link href="/provider/shift-blast" onClick={close} className="pd-btn pd-btn-ghost">
+            <Send strokeWidth={1.7} /> Shift Blast — SMS
+          </Link>
+          <small>Optional SMS reach</small>
+        </div>
+      </nav>
     );
   }
 
@@ -437,7 +415,7 @@ export function AppSidebar() {
       <aside className={cn(
         "hidden md:flex flex-col shrink-0 bg-white transition-[width] duration-200 overflow-hidden",
         isProvider
-          ? "relative z-10 w-64 shadow-[15px_0_40px_rgba(0,0,0,0.067)]"
+          ? "w-64 border-r border-[#e4e6ed]"
           : isCoordinator
           ? "w-64 border-r border-[#e4e6ed]"
           : cn("border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)]", collapsed ? "w-16" : "w-56"),

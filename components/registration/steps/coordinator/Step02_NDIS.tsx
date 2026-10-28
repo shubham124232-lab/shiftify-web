@@ -5,7 +5,7 @@ import { useRegistrationStore } from '@/lib/store/registration.store';
 import { listDocuments }        from '@/lib/api/profile';
 import { FileUploadField }      from '../../fields/FileUploadField';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const QUALIFICATIONS = [
@@ -19,7 +19,7 @@ const QUALIFICATIONS = [
 const BASIC_DOCS = [
   { docType: 'POLICE_CHECK',   label: 'Police Check',                helpText: 'Recommended for participant-facing coordinators.', showIssueDate: true, showExpiryDate: true },
   { docType: 'WWCC',           label: 'Working With Children Check', helpText: 'Required if coordinating for participants under 18.', showReferenceNumber: true, referenceNumberLabel: 'WWCC Number', showExpiryDate: true },
-  { docType: 'NDIS_SCREENING', label: 'NDIS Worker Screening Check', helpText: 'Required for direct participant contact.', showReferenceNumber: true, referenceNumberLabel: 'Clearance Number', showExpiryDate: true },
+  { docType: 'NDIS_SCREENING', label: 'Worker Screening Check',      helpText: 'Required for direct participant contact.', showReferenceNumber: true, referenceNumberLabel: 'Clearance Number', showExpiryDate: true },
 ] as const;
 
 export function CoordStep02_NDIS() {
@@ -40,7 +40,7 @@ export function CoordStep02_NDIS() {
 
       {/* Qualifications */}
       <div>
-        <label style={labelStyle}>Relevant Qualifications <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Relevant Qualifications <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select all that apply.</p>
         <Controller name="qualifications" control={control} defaultValue={[]} render={({ field }) => {
           const selected: string[] = field.value ?? [];
@@ -56,8 +56,8 @@ export function CoordStep02_NDIS() {
                       onClick={() => field.onChange(sel ? selected.filter(s => s !== q.value) : [...selected, q.value])}
                       style={{ padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
                         border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                        background: sel ? 'var(--clr-primary)' : '#fff',
-                        color: sel ? '#fff' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
+                        background: sel ? 'var(--clr-primary)' : 'var(--td-white)',
+                        color: sel ? 'var(--td-white)' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
                       {q.label}
                     </button>
                   );
@@ -77,10 +77,10 @@ export function CoordStep02_NDIS() {
             </div>
           );
         }} />
-        {errors.qualifications && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.qualifications.message as string}</p>}
+        {errors.qualifications && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{errors.qualifications.message as string}</p>}
       </div>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb' }} />
+      <hr style={{ border: 'none', borderTop: '1px solid var(--td-border)' }} />
 
       {/* Professional Indemnity Insurance */}
       <div>
@@ -143,12 +143,12 @@ export function CoordStep02_NDIS() {
         </div>
       </div>
 
-      <hr style={{ border: 'none', borderTop: '1px solid #e5e7eb' }} />
+      <hr style={{ border: 'none', borderTop: '1px solid var(--td-border)' }} />
 
       {/* Screening docs */}
       <div>
         <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)' }}>Screening &amp; Checks</p>
-        <div style={{ background: 'rgba(79,70,229,0.04)', border: '1px solid rgba(79,70,229,0.2)', borderRadius: 10, padding: 12, marginBottom: 14 }}>
+        <div style={{ background: 'rgba(183,37,88,0.04)', border: '1px solid rgba(183,37,88,0.2)', borderRadius: 10, padding: 12, marginBottom: 14 }}>
           <p style={{ margin: 0, fontSize: 12, color: 'var(--clr-primary)' }}>
             <i className="bi bi-info-circle" style={{ marginRight: 6 }} />All documents are optional at this stage and can be uploaded later.
           </p>

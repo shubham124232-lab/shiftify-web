@@ -14,18 +14,18 @@ interface Service {
 }
 
 const services: Service[] = [
-  { Icon: FiAlertTriangle, title: 'Emergency Support',       desc: 'Immediate 24/7 crisis support with verified workers dispatched within minutes.',                    accent: '#DC2626', accentBg: '#FEF2F2' },
-  { Icon: FiHeart,         title: 'Personal Care',           desc: 'Bathing, grooming, dressing and personal hygiene support tailored to you.',                         accent: '#C2185B', accentBg: '#FFF0F5' },
-  { Icon: FiHome,          title: 'Daily Living Support',    desc: 'Help with everyday tasks — meal prep, medication, and household routines.',                          accent: '#2563EB', accentBg: '#EFF6FF' },
-  { Icon: FiUsers,         title: 'Community Participation', desc: 'Get out and about — social outings, events, and community connection.',                              accent: '#059669', accentBg: '#ECFDF5' },
-  { Icon: FiMoon,          title: 'Overnight Care',          desc: 'Awake or sleepover overnight support for safety and peace of mind.',                                 accent: '#7C3AED', accentBg: '#F5F3FF' },
-  { Icon: FiTruck,         title: 'Disability Transport',    desc: 'Accessible, reliable transport to appointments, shopping, and activities.',                          accent: '#D97706', accentBg: '#FFFBEB' },
-  { Icon: FiTool,          title: 'Domestic Assistance',     desc: 'Housekeeping, laundry, grocery assistance, and home maintenance.',                                   accent: '#0891B2', accentBg: '#ECFEFF' },
-  { Icon: FiActivity,      title: 'Nursing & Complex Care',  desc: 'Skilled nursing for complex medical needs, wound care, and medication management.',                  accent: '#DC2626', accentBg: '#FEF2F2' },
-  { Icon: FiSun,           title: 'Respite Care',            desc: 'Short-term relief for carers — planned or emergency, in-home or residential.',                      accent: '#EA580C', accentBg: '#FFF7ED' },
-  { Icon: FiClipboard,     title: 'Support Coordination',    desc: 'Expert coordinators to navigate your NDIS plan and connect you to services.',                       accent: '#C2185B', accentBg: '#FFF0F5' },
-  { Icon: FiAward,         title: 'Therapy & Allied Health', desc: 'OT, physio, speech therapy, and psychology from qualified NDIS therapists.',                        accent: '#059669', accentBg: '#ECFDF5' },
-  { Icon: FiMapPin,        title: 'SIL / SDA Accommodation', desc: 'Supported independent living and specialist disability accommodation.',                              accent: '#7C3AED', accentBg: '#F5F3FF' },
+  { Icon: FiAlertTriangle, title: 'Emergency Support',       desc: 'Immediate 24/7 crisis support with verified workers dispatched within minutes.',                    accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 8%, var(--td-white))' },
+  { Icon: FiHeart,         title: 'Personal Care',           desc: 'Bathing, grooming, dressing and personal hygiene support tailored to you.',                         accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 6%, var(--td-white))' },
+  { Icon: FiHome,          title: 'Daily Living Support',    desc: 'Help with everyday tasks — meal prep, medication, and household routines.',                          accent: 'var(--td-dark-text-soft)', accentBg: 'color-mix(in srgb, var(--td-dark-text-soft) 8%, var(--td-white))' },
+  { Icon: FiUsers,         title: 'Community Participation', desc: 'Get out and about — social outings, events, and community connection.',                              accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 8%, var(--td-white))' },
+  { Icon: FiMoon,          title: 'Overnight Care',          desc: 'Awake or sleepover overnight support for safety and peace of mind.',                                 accent: 'var(--td-black)', accentBg: 'color-mix(in srgb, var(--td-black) 6%, var(--td-white))' },
+  { Icon: FiTruck,         title: 'Disability Transport',    desc: 'Accessible, reliable transport to appointments, shopping, and activities.',                          accent: 'var(--td-dark-text-soft)', accentBg: 'color-mix(in srgb, var(--td-dark-text-soft) 8%, var(--td-white))' },
+  { Icon: FiTool,          title: 'Domestic Assistance',     desc: 'Housekeeping, laundry, grocery assistance, and home maintenance.',                                   accent: 'var(--td-dark-text-soft)', accentBg: 'color-mix(in srgb, var(--td-dark-text-soft) 8%, var(--td-white))' },
+  { Icon: FiActivity,      title: 'Nursing & Complex Care',  desc: 'Skilled nursing for complex medical needs, wound care, and medication management.',                  accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 8%, var(--td-white))' },
+  { Icon: FiSun,           title: 'Respite Care',            desc: 'Short-term relief for carers — planned or emergency, in-home or residential.',                      accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 8%, var(--td-white))' },
+  { Icon: FiClipboard,     title: 'Support Coordination',    desc: 'Expert coordinators to navigate your NDIS plan and connect you to services.',                       accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 6%, var(--td-white))' },
+  { Icon: FiAward,         title: 'Therapy & Allied Health', desc: 'OT, physio, speech therapy, and psychology from qualified NDIS therapists.',                        accent: 'var(--td-pink)', accentBg: 'color-mix(in srgb, var(--td-pink) 8%, var(--td-white))' },
+  { Icon: FiMapPin,        title: 'SIL / SDA Accommodation', desc: 'Supported independent living and specialist disability accommodation.',                              accent: 'var(--td-black)', accentBg: 'color-mix(in srgb, var(--td-black) 6%, var(--td-white))' },
 ];
 
 export default function ServicesSection() {
@@ -49,8 +49,8 @@ export default function ServicesSection() {
             <div className="services-stat-cluster">
               {[
                 { Icon: FiGrid,     color: 'var(--clr-primary)', num: '12+',   label: 'Service Types'    },
-                { Icon: FiUsers,    color: '#059669',            num: '2,400+', label: 'Verified Workers' },
-                { Icon: FiActivity, color: '#2563EB',            num: '24/7',   label: 'Available Support' },
+                { Icon: FiUsers,    color: 'var(--td-pink)',            num: '2,400+', label: 'Verified Workers' },
+                { Icon: FiActivity, color: 'var(--td-dark-text-soft)',            num: '24/7',   label: 'Available Support' },
               ].map(({ Icon, color, num, label }) => (
                 <div key={label} className="svc-stat-card">
                   <Icon size={22} color={color} aria-hidden="true" />

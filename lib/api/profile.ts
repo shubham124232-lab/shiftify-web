@@ -37,10 +37,6 @@ export async function upsertProfile(role: string, data: AnyProfileData | Record<
   return api.post(`/users/me/profile/${slug}`, data);
 }
 
-export async function getProfile(): Promise<unknown> {
-  return api.get('/users/me/profile');
-}
-
 // ─── Avatar upload ────────────────────────────────────────────────────────────
 
 export interface PresignResult {
@@ -172,5 +168,5 @@ export interface AvailabilitySlotPayload {
 export async function replaceAvailabilitySlots(
   slots: AvailabilitySlotPayload[],
 ): Promise<void> {
-  await api.put('/users/me/availability/slots', { slots });
+  await api.put('/users/me/availability', { slots });
 }

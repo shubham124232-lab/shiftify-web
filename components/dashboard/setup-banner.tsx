@@ -1,201 +1,36 @@
 'use client';
-// SetupBanner -- shown at top of every dashboard home when setup is incomplete.
-// Reads marketplace.missing + profileCompletion from GET /users/me.
-// Falls back to a minimal "complete your profile" nudge if the API is unreachable.
+// SetupBanner -- shown at top of every dashboard home while the account is PENDING (subscription not active).
+// Profile-completion prompts were removed from the dashboards; only the subscription-required notice remains.
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { useAuthStore, selectProfileStep } from '@/lib/store/auth.store';
-import { api } from '@/lib/api';
-import { TOTAL_STEPS } from '@/lib/registration/stepConfig';
-
-interface MarketplaceCheck {
-  canPost: boolean; canBrowse: boolean; canApply: boolean; missing: string[];
-}
 
 export function SetupBanner() {
   const { user, activeRole } = useAuth();
-  const profileStep = useAuthStore(selectProfileStep);
   // Participants are free -- never show a subscription lock banner for them.
-  const isParticipant = activeRole === 'PARTICIPANT';
-  const [check,            setCheck]           = useState<MarketplaceCheck | null>(null);
-  const [completion,       setCompletion]       = useState<number | null>(null);
-  const [completionMissing,setCompletionMissing]= useState<string[]>([]);
-  const [apiError,         setApiError]         = useState(false);
-  const [dismissed,        setDismissed]        = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    setApiError(false);
-    api.get<{ user: unknown; marketplace: MarketplaceCheck; profileCompletion: number; completionMissing: string[] }>('/users/me')
-      .then(res => {
-        setCheck(res.marketplace ?? null);
-        setCompletion(typeof res.profileCompletion === 'number' ? res.profileCompletion : null);
-        setCompletionMissing(Array.isArray(res.completionMissing) ? res.completionMissing : []);
-      })
-      .catch(() => setApiError(true));
-  }, [user]);
-
-  if (dismissed) return null;
-
-  const totalWizardSteps = activeRole ? (TOTAL_STEPS[activeRole] ?? 0) : 0;
-  const isManaged  = (user as unknown as Record<string, unknown>)?.accountType === 'MANAGED';
-  const hasMissing = completionMissing.length > 0 || (check?.missing?.length ?? 0) > 0;
-  const pct        = completion ?? 0;
+  if (activeRole === 'PARTICIPANT') return null;
   const userStatus = (user as unknown as Record<string, unknown>)?.status as string | undefined;
-
-  // PENDING + profile not yet done → guide them to complete it
-  const showPendingProfileBanner =
-    !isManaged && !isParticipant && !!activeRole &&
-    userStatus === 'PENDING' &&
-    totalWizardSteps > 0 && profileStep < totalWizardSteps;
-
-  // PENDING + profile done → needs subscription
-  const showPendingSubscriptionBanner =
-    !isParticipant &&
-    userStatus === 'PENDING' &&
-    !showPendingProfileBanner;
-
-  // ACTIVE users with incomplete wizard (re-entry from dashboard)
-  const showWizardBanner =
-    !isManaged && !isParticipant && !!activeRole &&
-    userStatus === 'ACTIVE' &&
-    profileStep >= 2 && profileStep < totalWizardSteps;
-
-  // Nothing to show
-  if (!apiError && !showPendingProfileBanner && !showPendingSubscriptionBanner && !hasMissing && pct >= 100 && !showWizardBanner && completion !== null) return null;
-
-  // API unreachable — minimal nudge (wizard banners don't need API data)
-  if (apiError && !showPendingProfileBanner && !showWizardBanner) {
-    return (
-      <div style={{
-        background: '#F0F9FF', border: '1px solid #BAE6FD',
-        borderRadius: 12, padding: '14px 20px', marginBottom: 20,
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <i className="bi bi-person-fill-gear" style={{ fontSize: 20, color: '#0284c7', flexShrink: 0 }} />
-        <div style={{ flex: 1, fontSize: 13, color: '#0369a1' }}>
-          Make sure your profile is complete to unlock all features.
-        </div>
-        <Link href="/profile" style={{ fontSize: 13, fontWeight: 700, color: '#0284c7', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-          View Profile
-        </Link>
-        <button type="button" onClick={() => setDismissed(true)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 14, padding: 4, flexShrink: 0 }}>
-          <i className="bi bi-x-lg" />
-        </button>
-      </div>
-    );
-  }
+  if (userStatus !== 'PENDING') return null;
 
   return (
-    <div style={{
-      background: showPendingSubscriptionBanner ? '#FFF9C4' : '#fff7ed',
-      border: `1px solid ${showPendingSubscriptionBanner ? '#F59E0B' : '#fb923c'}`,
-      borderRadius: 12, padding: '16px 20px', marginBottom: 20,
-      display: 'flex', alignItems: 'flex-start', gap: 14, position: 'relative',
-    }}>
-      {/* Icon */}
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: showPendingSubscriptionBanner ? 'rgba(245,158,11,0.12)' : 'rgba(251,146,60,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <i className={`bi ${showPendingSubscriptionBanner ? 'bi-lock-fill' : 'bi-person-fill-exclamation'}`}
-          style={{ fontSize: 18, color: showPendingSubscriptionBanner ? '#d97706' : '#ea580c' }} />
+    <div className="relative mb-5 flex items-start gap-4 rounded-2xl border border-amber-300/50 bg-gradient-to-br from-amber-50 via-amber-50/40 to-white p-4 shadow-sm sm:p-5">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-200/60 text-amber-700 shadow-sm ring-1 ring-inset ring-amber-300/40">
+        <i className="bi bi-lock-fill text-[18px]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="mb-1 text-[14px] font-bold tracking-tight text-slate-900">
+          Subscription required — jobs are locked
+        </p>
+        <p className="mb-3 text-[13px] leading-relaxed text-slate-500">
+          You cannot post or apply to jobs until your subscription is active.
+        </p>
+        <Link
+          href="/subscription"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-amber-500/25 transition hover:shadow-md hover:shadow-amber-500/30"
+        >
+          Activate Plan <i className="bi bi-arrow-right" />
+        </Link>
       </div>
-
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-
-        {/* PENDING — profile incomplete */}
-        {showPendingProfileBanner && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
-                Complete your profile ({Math.max(0, profileStep - 2)} of {totalWizardSteps - 2} steps done)
-              </div>
-            </div>
-            <div style={{ height: 5, background: '#fed7aa', borderRadius: 4, marginBottom: 10, maxWidth: 320 }}>
-              <div style={{ height: '100%', width: `${Math.round((profileStep / totalWizardSteps) * 100)}%`, background: '#ea580c', borderRadius: 4, transition: 'width 0.4s' }} />
-            </div>
-            <div style={{ fontSize: 13, color: '#92400e', marginBottom: 10, lineHeight: 1.5 }}>
-              Finish your profile to unlock marketplace features and activate your plan.
-            </div>
-            <Link href="/profile/edit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
-              Complete Profile <i className="bi bi-arrow-right" />
-            </Link>
-          </>
-        )}
-
-        {/* PENDING — profile done, needs subscription */}
-        {showPendingSubscriptionBanner && (
-          <>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
-              Subscription required — jobs are locked
-            </div>
-            <div style={{ fontSize: 13, color: '#78350f', marginBottom: 10, lineHeight: 1.5 }}>
-              You cannot post or apply to jobs until your subscription is active.
-            </div>
-            <Link href="/subscription" className="btn-shiftify" style={{ display: 'inline-flex', height: 34, padding: '0 16px', fontSize: 13, fontWeight: 700, alignItems: 'center', textDecoration: 'none', borderRadius: 8 }}>
-              Activate Plan
-            </Link>
-          </>
-        )}
-
-        {!showPendingProfileBanner && !showPendingSubscriptionBanner && (hasMissing || pct < 100) && !showWizardBanner && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12' }}>
-                Profile {pct}% complete — finish to unlock all features
-              </div>
-            </div>
-            {/* Progress bar */}
-            <div style={{ height: 5, background: '#fed7aa', borderRadius: 4, marginBottom: 10, maxWidth: 320 }}>
-              <div style={{ height: '100%', width: `${pct}%`, background: '#ea580c', borderRadius: 4, transition: 'width 0.4s' }} />
-            </div>
-            {/* Missing fields from completionMissing */}
-            {completionMissing.length > 0 && (
-              <ul style={{ margin: '0 0 10px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {completionMissing.slice(0, 5).map((m, i) => (
-                  <li key={i} style={{ fontSize: 12, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <i className="bi bi-circle-fill" style={{ fontSize: 5, color: '#f97316' }} />
-                    {m}
-                  </li>
-                ))}
-                {completionMissing.length > 5 && (
-                  <li style={{ fontSize: 12, color: '#92400e' }}>+{completionMissing.length - 5} more fields</li>
-                )}
-              </ul>
-            )}
-            <Link href="/profile/edit" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}>
-              Complete Profile <i className="bi bi-arrow-right" />
-            </Link>
-          </>
-        )}
-
-        {showWizardBanner && (
-          <>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#7c2d12', marginBottom: 4 }}>
-              Your profile is incomplete ({profileStep - 2} of {totalWizardSteps - 2} steps done)
-            </div>
-            <div style={{ fontSize: 13, color: '#92400e', marginBottom: 10, lineHeight: 1.5 }}>
-              Complete your profile to unlock full marketplace access.
-            </div>
-            <Link
-              href="/profile/edit"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#ea580c', textDecoration: 'none' }}
-            >
-              Continue Setup <i className="bi bi-arrow-right" />
-            </Link>
-          </>
-        )}
-      </div>
-
-      {/* Dismiss */}
-      {!showPendingSubscriptionBanner && (
-        <button type="button" onClick={() => setDismissed(true)}
-          style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16, padding: 4 }}>
-          <i className="bi bi-x-lg" />
-        </button>
-            )}
     </div>
   );
 }

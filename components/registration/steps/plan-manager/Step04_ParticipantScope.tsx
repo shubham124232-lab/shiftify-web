@@ -29,7 +29,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
                 onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== opt) : [...cur, opt]); }}
                 style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: sel ? 'rgba(79,70,229,0.1)' : '#fff', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                  background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
                 {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{opt}
               </button>
             );

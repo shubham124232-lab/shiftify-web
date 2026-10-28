@@ -1,11 +1,13 @@
 // Per-step Zod schemas for Provider profile wizard — 12 spec-aligned steps.
 
 import { z } from 'zod';
+import '../zod-config';
 
 // Step 1 — Business Identity (merged: name + ABN + structure + NDIS + GST + years)
 export const providerStep1Schema = z.object({
   businessName:       z.string().min(2, 'Business name is required'),
   legalEntityName:    z.string().optional(),
+  businessAddress:    z.string().optional(),
   businessStructure:  z.string().optional(),
   yearsInOperation:   z.string().optional(),
   abn:                z.string().min(11, 'ABN must be 11 digits').max(20),
@@ -58,7 +60,8 @@ export const providerStep4Schema = z.object({
 // Step 5 — Service Coverage
 export const providerStep5Schema = z.object({
   serviceAreas:      z.array(z.string()).min(1, 'Add at least one service area'),
-  serviceMode:       z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { required_error: 'Service mode is required' }),
+  stateCoverage:     z.array(z.string()).optional(),
+  serviceMode:       z.enum(['IN_PERSON', 'REMOTE', 'BOTH'], { message: 'Service mode is required' }),
   multipleLocations: z.array(z.string()).optional(),
 });
 
@@ -102,6 +105,10 @@ export const providerStep10Schema = z.object({
 // Step 11 — Profile & Branding
 export const providerStep11Schema = z.object({
   businessDescription: z.string().max(3000).optional(),
+  languages:                 z.array(z.string()).optional(),
+  accessibilityCapabilities: z.array(z.string()).optional(),
+  culturalCapabilities:      z.array(z.string()).optional(),
+  enquiryPreference:         z.enum(['IN_APP', 'EMAIL', 'PHONE']).optional(),
   websiteUrl:          z.string().url().optional().or(z.literal('')),
   socialLinks: z.object({
     facebook:  z.string().optional(),

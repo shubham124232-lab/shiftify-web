@@ -1,7 +1,7 @@
 'use client';
 import { useFormContext } from 'react-hook-form';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 export function ParticipantStep02_NDIS() {
@@ -19,7 +19,7 @@ export function ParticipantStep02_NDIS() {
 
       {/* Funding Management Type */}
       <div>
-        <label style={labelStyle}>How is your NDIS funding managed? <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>How is your NDIS funding managed? <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
             { value: 'SELF_MANAGED',  label: 'Self-Managed', desc: 'You manage your own budget and pay providers directly' },
@@ -29,7 +29,7 @@ export function ParticipantStep02_NDIS() {
             <label key={opt.value} style={{
               display: 'flex', gap: 12, cursor: 'pointer', padding: '12px 14px',
               border: `1.5px solid ${fundingType === opt.value ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-              borderRadius: 10, background: fundingType === opt.value ? 'rgba(79,70,229,0.05)' : '#fff',
+              borderRadius: 10, background: fundingType === opt.value ? 'rgba(183,37,88,0.05)' : 'var(--td-white)',
             }}>
               <input type="radio" value={opt.value} {...register('fundingManagementType')} style={{ marginTop: 2, accentColor: 'var(--clr-primary)' }} />
               <div>
@@ -39,7 +39,7 @@ export function ParticipantStep02_NDIS() {
             </label>
           ))}
         </div>
-        {errors.fundingManagementType && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{errors.fundingManagementType.message as string}</p>}
+        {errors.fundingManagementType && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{errors.fundingManagementType.message as string}</p>}
       </div>
 
       {/* Support Coordination Funding */}

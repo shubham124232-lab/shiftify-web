@@ -13,18 +13,18 @@ import { WorkerStep07_Financials }   from '@/components/registration/steps/worke
 import { WorkerStep08_Documents }    from '@/components/registration/steps/worker/Step08_Documents';
 import { WorkerStep09_Compliance }   from '@/components/registration/steps/worker/Step09_Compliance';
 
-import { ProviderStep01_Business }        from '@/components/registration/steps/provider/Step01_Business';       // Business Identity
-import { ProviderStep02_ABN }             from '@/components/registration/steps/provider/Step02_ABN';              // Key Contacts
-import { ProviderStep03_PrimaryContact }  from '@/components/registration/steps/provider/Step03_PrimaryContact';  // Compliance & Legal
-import { ProviderStep04_AccountsContact } from '@/components/registration/steps/provider/Step04_AccountsContact'; // Services Offered
-import { ProviderStep05_Logo }            from '@/components/registration/steps/provider/Step05_Logo';             // Service Coverage
-import { ProviderStep06_Services }        from '@/components/registration/steps/provider/Step06_Services';         // Workforce Capability
-import { ProviderStep07_ServiceAreas }    from '@/components/registration/steps/provider/Step07_ServiceAreas';    // Capacity & Availability
-import { ProviderStep08_Workforce }       from '@/components/registration/steps/provider/Step08_Workforce';       // Participant Handling
-import { ProviderStep09_Pricing }         from '@/components/registration/steps/provider/Step09_Pricing';         // Pricing & Billing
-import { ProviderStep10_About }           from '@/components/registration/steps/provider/Step10_About';           // Platform Features
-import { ProviderStep11_Documents }       from '@/components/registration/steps/provider/Step11_Documents';       // Profile & Branding
-import { ProviderStep12_Declaration }     from '@/components/registration/steps/provider/Step12_Declaration';     // Agreements
+import { ProviderStep01_Business }           from '@/components/registration/steps/provider/Step01_Business';
+import { ProviderStep02_KeyContacts }        from '@/components/registration/steps/provider/Step02_KeyContacts';
+import { ProviderStep03_ComplianceLegal }    from '@/components/registration/steps/provider/Step03_ComplianceLegal';
+import { ProviderStep04_ServicesOffered }    from '@/components/registration/steps/provider/Step04_ServicesOffered';
+import { ProviderStep05_ServiceCoverage }    from '@/components/registration/steps/provider/Step05_ServiceCoverage';
+import { ProviderStep06_Workforce }          from '@/components/registration/steps/provider/Step06_Workforce';
+import { ProviderStep07_Capacity }           from '@/components/registration/steps/provider/Step07_Capacity';
+import { ProviderStep08_ParticipantHandling } from '@/components/registration/steps/provider/Step08_ParticipantHandling';
+import { ProviderStep09_Pricing }            from '@/components/registration/steps/provider/Step09_Pricing';
+import { ProviderStep10_About }              from '@/components/registration/steps/provider/Step10_About';
+import { ProviderStep11_Documents }          from '@/components/registration/steps/provider/Step11_Documents';
+import { ProviderStep12_Declaration }        from '@/components/registration/steps/provider/Step12_Declaration';
 
 import { CoordStep01_RoleOrg }     from '@/components/registration/steps/coordinator/Step01_RoleOrg';
 import { CoordStep02_NDIS }        from '@/components/registration/steps/coordinator/Step02_NDIS';
@@ -72,13 +72,13 @@ export const STEP_COMPONENTS: Record<string, React.ComponentType[]> = {
   ],
   [UserRole.PROVIDER]: [
     ProviderStep01_Business,
-    ProviderStep02_ABN,
-    ProviderStep03_PrimaryContact,
-    ProviderStep04_AccountsContact,
-    ProviderStep05_Logo,
-    ProviderStep06_Services,
-    ProviderStep07_ServiceAreas,
-    ProviderStep08_Workforce,
+    ProviderStep02_KeyContacts,
+    ProviderStep03_ComplianceLegal,
+    ProviderStep04_ServicesOffered,
+    ProviderStep05_ServiceCoverage,
+    ProviderStep06_Workforce,
+    ProviderStep07_Capacity,
+    ProviderStep08_ParticipantHandling,
     ProviderStep09_Pricing,
     ProviderStep10_About,
     ProviderStep11_Documents,

@@ -5,7 +5,7 @@ import { FileUploadField } from '../../fields/FileUploadField';
 import { useAuthStore }    from '@/lib/store/auth.store';
 import { updateAvatarUrl } from '@/lib/api/profile';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say', 'Other'];
@@ -24,12 +24,12 @@ export function WorkerStep01_Identity() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {/* Profile Photo */}
       <div>
-        <label style={labelStyle}>Profile Photo <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Profile Photo</label>
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 0, marginBottom: 8 }}>
           A clear, professional photo helps participants recognise you. Max 5 MB.
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', flexShrink: 0, background: avatarUrl ? 'transparent' : 'rgba(79,70,229,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', flexShrink: 0, background: avatarUrl ? 'transparent' : 'rgba(183,37,88,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             {avatarUrl
               ? <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <i className="bi bi-person-fill" style={{ fontSize: 28, color: 'var(--clr-primary)' }} />}
@@ -43,11 +43,11 @@ export function WorkerStep01_Identity() {
 
       {/* Suburb + Postcode + State */}
       <div>
-        <label style={labelStyle}>Location <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Location <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px', gap: 10 }}>
           <div>
-            <input id="suburb" {...register('suburb')} placeholder="Suburb" style={{ ...inputStyle, borderColor: errors.suburb ? '#ef4444' : undefined }} />
-            {errors.suburb && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.suburb.message as string}</p>}
+            <input id="suburb" {...register('suburb')} placeholder="Suburb" style={{ ...inputStyle, borderColor: errors.suburb ? 'var(--td-pink)' : undefined }} />
+            {errors.suburb && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.suburb.message as string}</p>}
           </div>
           <div>
             <input {...register('postcode')} placeholder="Postcode" style={inputStyle} maxLength={4} />
@@ -57,7 +57,7 @@ export function WorkerStep01_Identity() {
               <option value="">State</option>
               {['NSW','VIC','QLD','WA','SA','TAS','ACT','NT'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            {errors.state && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.state.message as string}</p>}
+            {errors.state && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.state.message as string}</p>}
           </div>
         </div>
       </div>
@@ -78,7 +78,7 @@ export function WorkerStep01_Identity() {
             return (
               <label key={g} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '6px 12px', borderRadius: 20,
                 border: `1.5px solid ${current === g ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                background: current === g ? 'rgba(79,70,229,0.07)' : '#fff', fontSize: 12, fontWeight: 500,
+                background: current === g ? 'rgba(183,37,88,0.07)' : 'var(--td-white)', fontSize: 12, fontWeight: 500,
                 color: current === g ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
                 <input type="radio" value={g} {...register('gender')} style={{ display: 'none' }} />
                 {g}

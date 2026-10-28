@@ -18,11 +18,11 @@ import { ParticipantStep05_Declaration } from "@/components/registration/steps/p
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4,
+  display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4,
 };
 
 // Same field set the self-registration wizard collects across 5 steps
@@ -167,13 +167,13 @@ export default function EditParticipantPage() {
       <>
         <PageHeader title="Edit Participant" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>Only coordinators can edit participant profiles.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>Only coordinators can edit participant profiles.</p>
         </div>
       </>
     );
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#94a3b8" }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading...</div>;
 
   return (
     <>
@@ -189,9 +189,9 @@ export default function EditParticipantPage() {
             <CardHeader><CardTitle>Account details</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {username && (
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Login username</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", fontFamily: "monospace" }}>{username}</span>
+                <div style={{ background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "var(--td-muted-dark)" }}>Login username</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--td-ink-800)", fontFamily: "monospace" }}>{username}</span>
                 </div>
               )}
               <div>
@@ -238,17 +238,17 @@ export default function EditParticipantPage() {
           </FormProvider>
 
           {error && (
-            <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+            <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
               {error}
             </div>
           )}
           {success && (
-            <div style={{ background: "#E8F5E9", border: "2px solid #A5D6A7", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#2E7D32", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: "var(--td-grey)", border: "2px solid var(--td-border-hard)", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "var(--td-ink-700)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: 600 }}>✓ Participant profile saved successfully.</span>
               <button
                 type="button"
                 onClick={() => router.push("/participants")}
-                style={{ background: "#2E7D32", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                style={{ background: "var(--td-ink-700)", color: "var(--td-white)", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               >
                 ← Back to participants
               </button>
@@ -259,7 +259,7 @@ export default function EditParticipantPage() {
           <Card>
             <CardHeader><CardTitle style={{ fontSize: 15 }}>Reset login password</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <p style={{ fontSize: 13, color: "#64748b" }}>Set a new password for this participant's account. Share it with them directly.</p>
+              <p style={{ fontSize: 13, color: "var(--td-muted-dark)" }}>Set a new password for this participant's account. Share it with them directly.</p>
               <div style={{ position: "relative" }}>
                 <input
                   type={showNewPw ? "text" : "password"}
@@ -269,11 +269,11 @@ export default function EditParticipantPage() {
                   style={{ ...inp, paddingRight: 60 }}
                 />
                 <button type="button" onClick={() => setShowNewPw(v => !v)}
-                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
+                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--td-muted)", background: "none", border: "none", cursor: "pointer" }}>
                   {showNewPw ? "Hide" : "Show"}
                 </button>
               </div>
-              {resetSuccess && <p style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>✓ Password updated successfully.</p>}
+              {resetSuccess && <p style={{ fontSize: 12, color: "var(--td-dark-text-soft)", fontWeight: 600 }}>✓ Password updated successfully.</p>}
               <button
                 type="button"
                 disabled={resetting || newPassword.length < 8}
@@ -285,7 +285,7 @@ export default function EditParticipantPage() {
                   } catch (err: any) { setError(err?.message ?? "Reset failed."); }
                   finally { setResetting(false); }
                 }}
-                style={{ alignSelf: "flex-start", height: 38, padding: "0 18px", background: newPassword.length >= 8 ? "#374151" : "#e2e8f0", color: newPassword.length >= 8 ? "#fff" : "#94a3b8", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: newPassword.length >= 8 ? "pointer" : "not-allowed" }}
+                style={{ alignSelf: "flex-start", height: 38, padding: "0 18px", background: newPassword.length >= 8 ? "var(--td-dark-text-soft)" : "var(--td-border)", color: newPassword.length >= 8 ? "var(--td-white)" : "var(--td-muted)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: newPassword.length >= 8 ? "pointer" : "not-allowed" }}
               >
                 {resetting ? "Resetting..." : "Reset password"}
               </button>

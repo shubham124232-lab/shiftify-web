@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platinum tile variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --heading: #111318; --muted: #4A4A47; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Manrope, system-ui, sans-serif; background: #F6F7F8; color: var(--heading); padding: 32px; }
+  h1 { font-family: Poppins, sans-serif; font-size: 22px; margin-bottom: 6px; }
+  .note { color: #6B6F76; font-size: 14px; margin-bottom: 28px; }
+  .variant { margin-bottom: 34px; }
+  .variant h2 { font-family: Poppins, sans-serif; font-size: 16px; margin-bottom: 4px; }
+  .variant p.desc { font-size: 13px; color: #6B6F76; margin-bottom: 10px; }
+
+  /* Outer strip — same as the live page: gold rim, polished silver face. */
+  .plat {
+    max-width: 920px;
+    border: 3px solid transparent;
+    border-radius: 14px;
+    padding: 10px;
+    background:
+      radial-gradient(ellipse 60% 70% at 45% 0%, rgba(255,255,255,.95), transparent 70%) padding-box,
+      linear-gradient(180deg, #ECECEA 0%, #F8F8F7 30%, #E4E4E1 62%, #F1F1EF 100%) padding-box,
+      linear-gradient(135deg, #E7C49A 0%, #FFF4E4 20%, #C99E6F 42%, #FBE6CB 62%, #B98C5C 82%, #E2BE92 100%) border-box;
+    box-shadow: 0 4px 16px rgba(120,90,50,.16);
+  }
+  .head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 8px 6px; font-weight: 600; font-size: 15px; }
+  .head button { font: 600 11px Manrope; border: 1px solid #E3E5E8; background: #fff; border-radius: 6px; padding: 3px 8px; }
+  .list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+
+  .tile {
+    position: relative; overflow: hidden; isolation: isolate;
+    display: flex; align-items: center; gap: 12px;
+    height: 68px; padding: 0 12px 0 10px;
+    border: 1.5px solid transparent; border-radius: 9px;
+    color: var(--heading); text-decoration: none;
+  }
+  .tile img { width: 44px; height: 44px; border-radius: 10px; border: 1px solid #EEF0F2; background: #fff; flex: none; }
+  .tile span { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .tile strong { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile small { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile i { font-style: normal; font-size: 18px; }
+
+  /* Shared glint: a bright diagonal flash sweeping across each tile in turn. */
+  .tile::after {
+    content: ''; position: absolute; top: -50%; bottom: -50%; left: -60%; width: 34%; z-index: -1;
+    background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.6) 35%, #fff 50%, rgba(255,255,255,.6) 65%, rgba(255,255,255,0) 100%);
+    transform: skewX(-20deg);
+    animation: sweep 3.4s ease-in-out infinite;
+  }
+  .list > :nth-child(2)::after { animation-delay: .6s; }
+  .list > :nth-child(3)::after { animation-delay: 1.2s; }
+  @keyframes sweep { 0% { left: -60%; } 45%, 100% { left: 130%; } }
+
+  .rim { --rim: linear-gradient(135deg, #F3DCBE 0%, #D4AE80 30%, #FFF4E4 52%, #C29566 78%, #EBCFAA 100%) border-box; }
+
+  /* A — Polished silver: bright top, a soft (blurred, not sharp) darker middle, bright bottom. */
+  .a .tile {
+    background:
+      linear-gradient(180deg, #FFFFFF 0%, #E9E9E9 22%, #BDBDBD 50%, #E2E2E2 78%, #FAFAFA 100%) padding-box,
+      linear-gradient(135deg, #F3DCBE 0%, #D4AE80 30%, #FFF4E4 52%, #C29566 78%, #EBCFAA 100%) border-box;
+    box-shadow: inset 0 1px 0 #fff, 0 2px 5px rgba(0,0,0,.16);
+  }
+  .a .tile span { text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+
+  /* B — Mirror chrome: strong light/dark reflections, like a chrome bar. */
+  .b .tile {
+    background:
+      linear-gradient(180deg, #FFFFFF 0%, #F2F2F2 18%, #A8A8A8 46%, #CFCFCF 58%, #F5F5F5 82%, #D9D9D9 100%) padding-box,
+      linear-gradient(135deg, #F3DCBE 0%, #D4AE80 30%, #FFF4E4 52%, #C29566 78%, #EBCFAA 100%) border-box;
+    box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.15), 0 2px 6px rgba(0,0,0,.2);
+  }
+  .b .tile span { text-shadow: 0 1px 0 rgba(255,255,255,.8); }
+
+  /* C — Satin silver sheen: a conic sheen (like a brushed silver disc), smooth, no lines. */
+  .c .tile {
+    background:
+      conic-gradient(from 200deg at 30% 50%, #F7F7F7, #CFCFCF, #FFFFFF, #BEBEBE, #F2F2F2, #D6D6D6, #F7F7F7) padding-box,
+      linear-gradient(135deg, #F3DCBE 0%, #D4AE80 30%, #FFF4E4 52%, #C29566 78%, #EBCFAA 100%) border-box;
+    box-shadow: inset 0 1px 0 #fff, 0 2px 5px rgba(0,0,0,.16);
+  }
+  .c .tile span { text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+
+  /* D — Current version on the page (pale silver). */
+  .d .tile {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 55%) padding-box,
+      linear-gradient(160deg, #FFFFFF 0%, #F2F2F0 35%, #E0E0DD 72%, #EEEEEC 100%) padding-box,
+      linear-gradient(135deg, #F3DCBE 0%, #D4AE80 30%, #FFF4E4 52%, #C29566 78%, #EBCFAA 100%) border-box;
+    box-shadow: inset 0 1px 0 #fff, 0 2px 5px rgba(120,90,50,.14);
+  }
+</style>
+</head>
+<body>
+  <h1>Platinum tile finishes: pick one</h1>
+  <p class="note">All four keep the gold outline. Only the silver finish inside the tiles changes. Watch a few seconds for the glint.</p>
+
+  <section class="variant a">
+    <h2>A · Polished silver</h2>
+    <p class="desc">Bright top and bottom with a soft, blurred darker middle, like a polished silver bar.</p>
+    <div class="plat"><div class="head">💎 Platinum businesses <button>Rotate</button></div><div class="list">
+      <a class="tile"><img src="/images/platinum/carebridge.svg" alt=""><span><strong>CareBridge Supports</strong><small>In-home &amp; community support</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/everyday-ability.svg" alt=""><span><strong>Everyday Ability</strong><small>Complex care &amp; daily living</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/brightpath.svg" alt=""><span><strong>BrightPath Care</strong><small>Behaviour &amp; social support</small></span><i>›</i></a>
+    </div></div>
+  </section>
+
+  <section class="variant b">
+    <h2>B · Mirror chrome</h2>
+    <p class="desc">Strongest shine: sharper light and dark reflections, like chrome.</p>
+    <div class="plat"><div class="head">💎 Platinum businesses <button>Rotate</button></div><div class="list">
+      <a class="tile"><img src="/images/platinum/carebridge.svg" alt=""><span><strong>CareBridge Supports</strong><small>In-home &amp; community support</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/everyday-ability.svg" alt=""><span><strong>Everyday Ability</strong><small>Complex care &amp; daily living</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/brightpath.svg" alt=""><span><strong>BrightPath Care</strong><small>Behaviour &amp; social support</small></span><i>›</i></a>
+    </div></div>
+  </section>
+
+  <section class="variant c">
+    <h2>C · Satin silver sheen</h2>
+    <p class="desc">A circular sheen like a brushed silver disc: soft light and dark areas, no lines.</p>
+    <div class="plat"><div class="head">💎 Platinum businesses <button>Rotate</button></div><div class="list">
+      <a class="tile"><img src="/images/platinum/carebridge.svg" alt=""><span><strong>CareBridge Supports</strong><small>In-home &amp; community support</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/everyday-ability.svg" alt=""><span><strong>Everyday Ability</strong><small>Complex care &amp; daily living</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/brightpath.svg" alt=""><span><strong>BrightPath Care</strong><small>Behaviour &amp; social support</small></span><i>›</i></a>
+    </div></div>
+  </section>
+
+  <section class="variant d">
+    <h2>D · Current (pale silver)</h2>
+    <p class="desc">What the page has now, for comparison.</p>
+    <div class="plat"><div class="head">💎 Platinum businesses <button>Rotate</button></div><div class="list">
+      <a class="tile"><img src="/images/platinum/carebridge.svg" alt=""><span><strong>CareBridge Supports</strong><small>In-home &amp; community support</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/everyday-ability.svg" alt=""><span><strong>Everyday Ability</strong><small>Complex care &amp; daily living</small></span><i>›</i></a>
+      <a class="tile"><img src="/images/platinum/brightpath.svg" alt=""><span><strong>BrightPath Care</strong><small>Behaviour &amp; social support</small></span><i>›</i></a>
+    </div></div>
+  </section>
+</body>
+</html>

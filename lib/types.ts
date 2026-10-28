@@ -80,8 +80,7 @@ export interface User {
 // ─── API response shape ───────────────────────────────────────────────────────
 
 export interface ApiEnvelope<T> {
-  success: boolean;
-  data:    T;
+  data: T;
 }
 
 export interface ApiErrorBody {
@@ -124,6 +123,7 @@ export interface RegisterPayload {
   phone?:    string;
   username?: string;
   password:  string;
+  referralCode?: string;   // optional peer code (Provider Refer & Earn)
 }
 
 export interface RegisterResponse {

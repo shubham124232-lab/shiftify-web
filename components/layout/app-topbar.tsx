@@ -1,13 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { Bell, ChevronDown, LogOut, User, CheckCircle } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, MessageCircle, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
-import type { UserRole } from "@/lib/types";
+import { getNotifications } from "@/lib/api/dashboard";
+import { api } from "@/lib/api";
+import { useAuthStore } from "@/lib/store/auth.store";
+import { UserRole } from "@/lib/types";
+import { BranchWorkspaceSelect } from "@/components/provider/BranchWorkspaceSelect";
+import { ProviderIdentity } from "@/components/provider/ProviderIdentity";
+import { CoordinatorIdentity } from "@/components/coordinator/CoordinatorIdentity";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
@@ -16,8 +23,48 @@ const STATUS_BADGE: Record<string, string> = {
   INACTIVE:  "bg-slate-100 text-slate-700",
 };
 
+const PROVIDER_MENU = [
+  { href: "/documents", label: "Documents", icon: FileText },
+  { href: "/subscription", label: "Membership and billing", icon: CreditCard },
+  { href: "/provider/settings", label: "Settings", icon: Settings },
+  { href: "/provider/help", label: "Help and Tickets", icon: LifeBuoy },
+];
+
+const COORDINATOR_MENU = [
+  { href: "/profile", label: "My profile" },
+  { href: "/documents", label: "Documents" },
+  { href: "/subscription", label: "Membership and billing" },
+  { href: "/settings", label: "Settings" },
+  { href: "/help-safety", label: "Help and Tickets" },
+];
+
 function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+}
+
+// Support Coordinator profile menu: avatar opens a plain card of links, as in the SC workspace.
+function CoordinatorProfileMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
+  useEffect(() => { if (ref.current) ref.current.open = false; }, [pathname]);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current?.open && !ref.current.contains(e.target as Node)) ref.current.open = false; };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return (
+    <details ref={ref} className="sc-profile">
+      <summary aria-label="Open profile menu">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#fde8f0] text-[13px] font-bold text-[#c91355]">{initials(name)}</span>
+      </summary>
+      <div className="sc-profile-menu">
+        <strong>{name}</strong>
+        <small>Support Coordinator</small>
+        {COORDINATOR_MENU.map((m) => <Link key={m.href} href={m.href}>{m.label}</Link>)}
+        <button type="button" onClick={onSignOut}>Sign out</button>
+      </div>
+    </details>
+  );
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -30,8 +77,16 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export function AppTopbar() {
-  const { user, switchRole, logout } = useAuth();
+  const { user, logout } = useAuth();
   const router = useRouter();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getNotifications()
+      .then(r => setHasUnread((r.notifications ?? []).some(n => !n.read)))
+      .catch(() => {});
+  }, [user]);
 
   if (!user) return null;
 
@@ -46,20 +101,108 @@ export function AppTopbar() {
     window.location.replace('/login');
   }
 
-  async function handleSwitch(role: UserRole) {
-    await switchRole(role);
-    router.replace(ROLE_DASHBOARD_PATHS[role]);
-  }
+  const identityLine = (role: UserRole) =>
+    role === UserRole.PROVIDER ? "Acting as your Provider organisation — requests and responses show your organisation."
+    : `Acting as ${ROLE_LABELS[role]}.`;
 
-  const hasMultipleRoles = user.roles.length > 1;
+  const isProviderUser = user.activeRole === UserRole.PROVIDER;
+  const isCoordinatorUser = user.activeRole === UserRole.COORDINATOR;
+  // Provider and Support Coordinator workspaces share the full-width header.
+  const workspaceMenu = PROVIDER_MENU;
+
+  const profileMenuItems = (
+    <MenuItems
+      transition
+      className="absolute right-0 z-30 mt-1 w-72 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg focus:outline-none transition ease-out duration-100 data-[closed]:scale-95 data-[closed]:opacity-0 data-[closed]:transform"
+    >
+      <div className="border-b border-slate-100 px-4 py-3">
+        <p className="m-0 truncate text-sm font-semibold text-slate-900">{displayName}</p>
+        <p className="m-0 truncate text-xs text-slate-500">{isCoordinatorUser ? "Support Coordinator account" : "Provider account"}</p>
+      </div>
+      <MenuItem>
+        {({ focus }: { focus: boolean }) => (
+          <Link href="/profile" className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
+            <User className="h-4 w-4 text-slate-400" />
+            My profile
+          </Link>
+        )}
+      </MenuItem>
+      {workspaceMenu.map((m) => (
+        <MenuItem key={m.href}>
+          {({ focus }: { focus: boolean }) => (
+            <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
+              <m.icon className="h-4 w-4 text-slate-400" />
+              {m.label}
+            </Link>
+          )}
+        </MenuItem>
+      ))}
+      <MenuItem>
+        {({ focus }: { focus: boolean }) => (
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className={cn("flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}
+          >
+            <LogOut className="h-4 w-4 text-slate-400" />
+            Sign out
+          </button>
+        )}
+      </MenuItem>
+    </MenuItems>
+  );
+
+  // Provider / Coordinator workspace header: full-width, 88px, logo + identity on the left, bell / messages / profile on the right.
+  if (isProviderUser || isCoordinatorUser) {
+    return (
+      <header className="z-20 flex h-[88px] shrink-0 items-center gap-6 border-b border-[#e4e6ed] bg-white px-8 py-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo.png" alt="Shiftify" className="h-16 w-32 shrink-0 object-contain" />
+        {isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}
+        <div className="flex-1" />
+        <div className="flex items-center gap-3">
+          {isProviderUser && <BranchWorkspaceSelect />}
+          <button
+            type="button"
+            onClick={() => router.push("/notifications")}
+            className="relative grid h-11 w-8 place-items-center rounded-lg border border-[#e4e6ed] bg-white text-[#525766] hover:bg-slate-50"
+            aria-label="Notifications"
+          >
+            <Bell className="h-[18px] w-[18px]" />
+            {hasUnread && <span className="absolute right-[7px] top-[5px] h-1.5 w-1.5 rounded-full bg-[#c91355]" />}
+          </button>
+          <Link
+            href="/messages"
+            className="grid h-11 w-8 place-items-center rounded-lg border border-[#e4e6ed] bg-white text-[#525766] hover:bg-slate-50"
+            aria-label="Messages"
+          >
+            <MessageCircle className="h-[18px] w-[18px]" />
+          </Link>
+          {isCoordinatorUser ? (
+            <CoordinatorProfileMenu name={displayName} onSignOut={handleLogout} />
+          ) : (
+          <Menu as="div" className="relative">
+            <MenuButton className="flex items-center gap-[7px] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Profile menu">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#fde8f0] text-sm font-bold text-[#c91355]">{initials(displayName)}</span>
+              <span className="text-base leading-none text-slate-700">⌄</span>
+            </MenuButton>
+            {profileMenuItems}
+          </Menu>
+          )}
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
       {/* Left: active role + status */}
       <div className="flex items-center gap-2">
-        <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", ROLE_COLORS[user.activeRole])}>
-          {ROLE_LABELS[user.activeRole]}
-        </span>
+        {isProviderUser ? <ProviderIdentity /> : (
+          <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", ROLE_COLORS[user.activeRole])}>
+            {ROLE_LABELS[user.activeRole]}
+          </span>
+        )}
         {user.status && user.status !== "ACTIVE" && (
           <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", STATUS_BADGE[user.status] ?? "bg-slate-100 text-slate-700")}>
             {user.status.charAt(0) + user.status.slice(1).toLowerCase()}
@@ -67,8 +210,9 @@ export function AppTopbar() {
         )}
       </div>
 
-      {/* Right: bell + account menu */}
-      <div className="flex items-center gap-3">
+      {/* Right: bell + messages + account menu */}
+      <div className="flex items-center gap-2">
+        {isProviderUser && <BranchWorkspaceSelect />}
         <button
           type="button"
           onClick={() => router.push("/notifications")}
@@ -76,14 +220,25 @@ export function AppTopbar() {
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
+          {hasUnread && (
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-white" />
+          )}
         </button>
 
+        <Link
+          href="/messages"
+          className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 sm:flex"
+        >
+          <MessageSquare className="h-[18px] w-[18px]" />
+          {isProviderUser ? <span className="sr-only">Messages</span> : "Messages"}
+        </Link>
+
         <Menu as="div" className="relative">
-          <MenuButton className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          <MenuButton className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
               {initials(displayName)}
             </span>
-            <span className="max-w-[120px] truncate font-medium">{displayName}</span>
+            <span className={cn("max-w-[120px] truncate font-medium", isProviderUser && "hidden")}>{displayName}</span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           </MenuButton>
 
@@ -109,30 +264,10 @@ export function AppTopbar() {
                 </div>
               </div>
 
-              {/* Role switcher */}
-              {hasMultipleRoles && (
-                <div className="border-b border-slate-100 px-4 py-3">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Switch role</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {user.roles.map(role => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => void handleSwitch(role)}
-                        className={cn(
-                          "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                          role === user.activeRole
-                            ? cn(ROLE_COLORS[role], "ring-1 ring-current ring-offset-1")
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                        )}
-                      >
-                        {role === user.activeRole && <CheckCircle className="h-3 w-3" />}
-                        {ROLE_LABELS[role]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* One account = one role: no switcher; the menu just states who the session acts as. */}
+              <div className="border-b border-slate-100 px-4 py-3">
+                <p className="m-0 text-[11px] text-slate-500">{identityLine(user.activeRole)}</p>
+              </div>
 
               <MenuItem>
                 {({ focus }: { focus: boolean }) => (
@@ -142,6 +277,18 @@ export function AppTopbar() {
                   </Link>
                 )}
               </MenuItem>
+
+              {/* Provider handoff: profile menu also opens Documents, billing, Settings and Help & Tickets. */}
+              {isProviderUser && PROVIDER_MENU.map((m) => (
+                <MenuItem key={m.href}>
+                  {({ focus }: { focus: boolean }) => (
+                    <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
+                      <m.icon className="h-4 w-4 text-slate-400" />
+                      {m.label}
+                    </Link>
+                  )}
+                </MenuItem>
+              ))}
 
               <MenuItem>
                 {({ focus }: { focus: boolean }) => (

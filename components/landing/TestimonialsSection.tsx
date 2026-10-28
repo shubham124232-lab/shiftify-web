@@ -3,10 +3,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { FiChevronLeft, FiChevronRight, FiStar } from 'react-icons/fi';
 
 const testimonials = [
-  { name: 'Deborah M.', role: 'NDIS Participant · Melbourne, VIC', initials: 'DM', color: '#C2185B', stars: 5, tag: 'Emergency Support',  quote: "My carer cancelled at 9pm and I panicked. Within 6 minutes of posting on Shiftify, a verified worker confirmed. Honestly a lifesaver — I don't know what I would have done without this platform." },
-  { name: 'Rachel T.',  role: 'Support Worker · Sydney, NSW',      initials: 'RT', color: '#7C3AED', stars: 5, tag: 'Worker Experience',  quote: "I went from zero clients to full-time hours in 3 weeks. The platform is so professional and NDIS-compliant invoicing has saved me hours every week. I've referred 4 of my colleagues already." },
-  { name: 'James & Patricia O.', role: 'Carers of NDIS Participant · Brisbane, QLD', initials: 'JP', color: '#0D9488', stars: 5, tag: 'Family Carers', quote: "We care for our son who has complex needs. Shiftify gives us peace of mind — we can see worker credentials, ratings, and insurance upfront. The emergency feature has saved us multiple times." },
-  { name: 'Sandra K.', role: 'Support Coordinator · Perth, WA',    initials: 'SK', color: '#1D4ED8', stars: 5, tag: 'Coordinator',       quote: "I coordinate support for 40+ participants. Shiftify's multi-participant dashboard has cut my admin time by 60%. When a gap appears, I fill it in minutes — not days." },
+  { name: 'Deborah M.', role: 'NDIS Participant · Melbourne, VIC', initials: 'DM', color: 'var(--td-pink)', stars: 5, tag: 'Emergency Support',  quote: "My carer cancelled at 9pm and I panicked. Within 6 minutes of posting on Shiftify, a verified worker confirmed. Honestly a lifesaver — I don't know what I would have done without this platform." },
+  { name: 'Rachel T.',  role: 'Support Worker · Sydney, NSW',      initials: 'RT', color: 'var(--td-black)', stars: 5, tag: 'Worker Experience',  quote: "I went from zero clients to full-time hours in 3 weeks. The platform is so professional and NDIS-compliant invoicing has saved me hours every week. I've referred 4 of my colleagues already." },
+  { name: 'James & Patricia O.', role: 'Carers of NDIS Participant · Brisbane, QLD', initials: 'JP', color: 'var(--td-dark-text-soft)', stars: 5, tag: 'Family Carers', quote: "We care for our son who has complex needs. Shiftify gives us peace of mind — we can see worker credentials, ratings, and insurance upfront. The emergency feature has saved us multiple times." },
+  { name: 'Sandra K.', role: 'Support Coordinator · Perth, WA',    initials: 'SK', color: 'var(--td-pink)', stars: 5, tag: 'Coordinator',       quote: "I coordinate support for 40+ participants. Shiftify's multi-participant dashboard has cut my admin time by 60%. When a gap appears, I fill it in minutes — not days." },
 ] as const;
 
 const stats = [
@@ -82,22 +82,22 @@ export default function TestimonialsSection() {
           <div className="testi-card-area" aria-live="polite" aria-atomic="true">
             <div key={active} className={`testi-card-v2 testi-in-${animDir}`}>
               <div className="testi-card-top">
-                <span className="testi-tag" style={{ background: `${t.color}18`, color: t.color, borderColor: `${t.color}30` }}>
+                <span className="testi-tag" style={{ background: `color-mix(in srgb, ${t.color} 9%, var(--td-white))`, color: t.color, borderColor: `color-mix(in srgb, ${t.color} 19%, transparent)` }}>
                   {t.tag}
                 </span>
                 <div className="testi-stars" aria-label={`${t.stars} out of 5 stars`}>
                   {Array.from({ length: t.stars }).map((_, i) => (
-                    <FiStar key={i} size={16} fill="#F59E0B" color="#F59E0B" strokeWidth={0} aria-hidden="true" />
+                    <FiStar key={i} size={16} fill="currentColor" color="var(--td-pink)" strokeWidth={0} aria-hidden="true" />
                   ))}
                 </div>
               </div>
 
-              <div className="testi-quote-mark" aria-hidden="true" style={{ color: `${t.color}25` }}>&ldquo;</div>
+              <div className="testi-quote-mark" aria-hidden="true" style={{ color: `color-mix(in srgb, ${t.color} 15%, transparent)` }}>&ldquo;</div>
               <blockquote className="testi-quote-text">{t.quote}</blockquote>
-              <div className="testi-divider" style={{ background: `linear-gradient(90deg, ${t.color}40, transparent)` }} />
+              <div className="testi-divider" style={{ background: `color-mix(in srgb, ${t.color} 25%, transparent)` }} />
 
               <div className="testi-person">
-                <div className="testi-avatar" style={{ background: `linear-gradient(135deg, ${t.color}, ${t.color}99)` }} aria-hidden="true">
+                <div className="testi-avatar" style={{ background: t.color }} aria-hidden="true">
                   {t.initials}
                 </div>
                 <div>
@@ -105,7 +105,7 @@ export default function TestimonialsSection() {
                   <div className="testi-person-role">{t.role}</div>
                 </div>
                 <div className="testi-verified ml-auto">
-                  <i className="bi bi-patch-check-fill" aria-hidden="true" style={{ color: '#10B981' }} />
+                  <i className="bi bi-patch-check-fill" aria-hidden="true" style={{ color: 'var(--td-pink)' }} />
                   <span>Verified</span>
                 </div>
               </div>

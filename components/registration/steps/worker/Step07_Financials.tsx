@@ -2,13 +2,13 @@
 import { useFormContext, Controller } from 'react-hook-form';
 
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 
 function Toggle({ label, name, desc }: { label: string; name: string; desc?: string }) {
   const { register, watch } = useFormContext();
   const val = watch(name) as boolean;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
         {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
@@ -16,7 +16,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
       <label style={{ cursor: 'pointer' }}>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <div style={{ width: 42, height: 24, borderRadius: 12, transition: 'background 0.2s', background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative' }}>
-          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)' }} />
         </div>
       </label>
     </div>
@@ -37,7 +37,7 @@ function ChipPicker({ name, options, label }: { name: string; options: string[];
                 onClick={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== opt) : [...cur, opt]); }}
                 style={{ padding: '5px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: sel ? 'rgba(79,70,229,0.1)' : '#fff', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                  background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)', color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
                 {sel && <i className="bi bi-check2" style={{ marginRight: 4 }} />}{opt}
               </button>
             );
@@ -58,14 +58,14 @@ export function WorkerStep07_Financials() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Hourly Rate */}
       <div>
-        <label htmlFor="hourlyRate" style={labelStyle}>Hourly Rate <span style={{ color: '#ef4444' }}>*</span></label>
+        <label htmlFor="hourlyRate" style={labelStyle}>Hourly Rate <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <div style={{ position: 'relative' }}>
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 600, color: 'var(--clr-muted)' }}>$</span>
-          <input id="hourlyRate" type="number" step="0.50" min="1" max="9999" {...register('hourlyRate', { valueAsNumber: true })}
-            placeholder="35.00" style={{ ...inputStyle, paddingLeft: 28, borderColor: errors.hourlyRate ? '#ef4444' : undefined }} />
+          <input id="hourlyRate" type="number" step="0.50" min="1" max="9999" {...register('hourlyRate', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+            placeholder="35.00" style={{ ...inputStyle, paddingLeft: 28, borderColor: errors.hourlyRate ? 'var(--td-pink)' : undefined }} />
           <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--clr-muted)' }}>/hr</span>
         </div>
-        {errors.hourlyRate && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.hourlyRate.message as string}</p>}
+        {errors.hourlyRate && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.hourlyRate.message as string}</p>}
       </div>
 
       {/* Rate Type */}
@@ -74,7 +74,7 @@ export function WorkerStep07_Financials() {
         <select {...register('hourlyRateType')} style={{ ...inputStyle, cursor: 'pointer' }}>
           <option value="">Select…</option>
           <option value="FIXED">Fixed Rate</option>
-          <option value="NDIS_PRICE_GUIDE">NDIS Price Guide Rate</option>
+          <option value="NDIS_PRICE_GUIDE">Applicable price-limit rate</option>
           <option value="NEGOTIABLE">Negotiable</option>
         </select>
       </div>
@@ -83,13 +83,17 @@ export function WorkerStep07_Financials() {
       <div>
         <label style={labelStyle}>Weekend & Night Rates (optional)</label>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          {[['weekendNightRates.weekendRate', 'Weekend $/hr'], ['weekendNightRates.nightRate', 'Night $/hr'], ['weekendNightRates.publicHolidayRate', 'Public Holiday $/hr']].map(([field, ph]) => (
-            <div key={field} style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--clr-muted)' }}>$</span>
-              <input type="number" step="0.50" min="0" {...register(field, { valueAsNumber: true })}
-                placeholder={ph} style={{ ...inputStyle, paddingLeft: 22, fontSize: 12 }} />
-            </div>
-          ))}
+          {[['weekendNightRates.weekendRate', 'Weekend $/hr'], ['weekendNightRates.nightRate', 'Night $/hr'], ['weekendNightRates.publicHolidayRate', 'Public Holiday $/hr']].map(([field, ph]) => {
+            const err = field.split('.').reduce((o: any, k) => o?.[k], errors) as { message?: string } | undefined;
+            return (
+              <div key={field} style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--clr-muted)' }}>$</span>
+                <input type="number" step="0.50" min="0" {...register(field, { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+                  placeholder={ph} style={{ ...inputStyle, paddingLeft: 22, fontSize: 12, borderColor: err ? 'var(--td-pink)' : undefined }} />
+                {err && <p style={{ fontSize: 11, color: 'var(--td-pink)', marginTop: 3 }}>{err.message}</p>}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -100,7 +104,7 @@ export function WorkerStep07_Financials() {
           <option value="">Select…</option>
           <option value="NONE">No travel charges</option>
           <option value="INCLUDED">Included in hourly rate</option>
-          <option value="CHARGED_SEPARATELY">Charged separately (NDIS rates)</option>
+          <option value="CHARGED_SEPARATELY">Charged separately (applicable rates)</option>
         </select>
       </div>
 
@@ -141,6 +145,30 @@ export function WorkerStep07_Financials() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Toggle label="Mark as Available Now" name="isAvailableNow" desc="You'll appear with an 'Available Now' badge. Auto-clears after 24 hours." />
         <Toggle label="Seeking a Plan Manager" name="seekingPlanManager" desc="Plan Managers in your area can reach out to you" />
+      </div>
+
+      {/* Capacity */}
+      <div>
+        <label style={labelStyle}>Capacity</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+          <div>
+            <label htmlFor="maxWeeklyHours" style={{ ...labelStyle, fontWeight: 400, fontSize: 11 }}>Max hours per week</label>
+            <input id="maxWeeklyHours" type="number" min="0" max="168" {...register('maxWeeklyHours', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+              placeholder="e.g. 30" style={inputStyle} />
+          </div>
+          <div>
+            <label htmlFor="maxConcurrentJobs" style={{ ...labelStyle, fontWeight: 400, fontSize: 11 }}>Max concurrent jobs</label>
+            <input id="maxConcurrentJobs" type="number" min="0" max="50" {...register('maxConcurrentJobs', { setValueAs: (v: string) => (v === '' ? undefined : Number(v)) })}
+              placeholder="e.g. 3" style={inputStyle} />
+          </div>
+        </div>
+        <label htmlFor="currentCapacityStatus" style={{ ...labelStyle, fontWeight: 400, fontSize: 11 }}>Current status</label>
+        <select id="currentCapacityStatus" {...register('currentCapacityStatus')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="OPEN">Open to work</option>
+          <option value="LIMITED">Limited availability</option>
+          <option value="FULL">Fully booked</option>
+        </select>
       </div>
     </div>
   );

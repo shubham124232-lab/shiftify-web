@@ -6,19 +6,31 @@ import { useForm, FormProvider, type FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
-import { upsertProfile } from '@/lib/api/profile';
+import { useAuthStore } from '@/lib/store/auth.store';
+import { api, ApiError } from '@/lib/api';
+import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
+import { upsertProfile, replaceAvailabilitySlots, type AvailabilitySlotPayload } from '@/lib/api/profile';
 import { getStepsForRole, type StepConfig } from '@/lib/registration';
 import { STEP_COMPONENTS } from '@/lib/registration/stepComponents';
 import { ROLE_LABELS } from '@/lib/registration/stepConfig';
 import { UserRole } from '@/lib/types';
 import { PageHeader } from '@/components/dashboard/page-header';
-import { sanitiseDates } from '@/lib/utils';
+import { sanitisePayload } from '@/lib/utils';
 import DocumentUploadField, { type ExistingDoc, type MetadataFieldConfig } from '@/components/profile/DocumentUploadField';
 
 // ── Roles that get the Documents tab ─────────────────────────────────────────
 
 const DOC_TAB_ROLES: string[] = ['SUPPORT_WORKER', 'COORDINATOR', 'PROVIDER', 'PLAN_MANAGER'];
+
+// ── Role -> profile relation key on the /users/me response ──────────────────
+
+const ROLE_PROFILE_KEY: Record<string, string> = {
+  SUPPORT_WORKER: 'workerProfile',
+  PROVIDER:       'providerProfile',
+  COORDINATOR:    'coordinatorProfile',
+  PARTICIPANT:    'participantProfile',
+  PLAN_MANAGER:   'planManagerProfile',
+};
 
 // ── Per-role document rows config ─────────────────────────────────────────────
 
@@ -41,7 +53,7 @@ const ROLE_DOC_ROWS: Record<string, DocRowConfig[]> = {
       ],
     },
     {
-      docType: 'NDIS_SCREENING', label: 'NDIS Worker Screening', uploadRequired: true,
+      docType: 'NDIS_SCREENING', label: 'Worker Screening Check', uploadRequired: true,
       metadataFields: [
         { name: 'referenceNumber', label: 'Reference Number', type: 'text', required: true },
         { name: 'expiryDate',      label: 'Expiry Date',      type: 'date', required: true },
@@ -123,7 +135,7 @@ const ROLE_DOC_ROWS: Record<string, DocRowConfig[]> = {
       ],
     },
     {
-      docType: 'NDIS_SCREENING', label: 'NDIS Worker Screening', uploadRequired: false,
+      docType: 'NDIS_SCREENING', label: 'Worker Screening Check', uploadRequired: false,
       metadataFields: [
         { name: 'referenceNumber', label: 'Reference Number', type: 'text', required: true },
         { name: 'expiryDate',      label: 'Expiry Date',      type: 'date', required: true },
@@ -194,6 +206,9 @@ const ROLE_DOC_ROWS: Record<string, DocRowConfig[]> = {
           ] },
       ],
     },
+    {
+      docType: 'NDIS_AUDIT', label: 'NDIS Provider Registration Certificate', uploadRequired: true,
+    },
   ],
 
   PLAN_MANAGER: [
@@ -240,12 +255,16 @@ function DocumentsTabPanel({ role }: { role: string }) {
       if (existing) return prev.map((d) => (d.id === saved.id ? saved : d));
       return [...prev, saved];
     });
+    // Document status can flip marketplaceMissing — keep the gate in sync.
+    useAuthStore.getState().refreshGateStatus();
   }
 
   async function handleDelete(id: string) {
     try {
       await api.delete(`/upload/document/${id}`);
       setDocs((prev) => prev.filter((d) => d.id !== id));
+      // Deleting a required doc can re-flip marketplaceMissing — keep the gate in sync.
+      useAuthStore.getState().refreshGateStatus();
     } catch {
       // ignore
     }
@@ -263,7 +282,7 @@ function DocumentsTabPanel({ role }: { role: string }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(194,24,91,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(183,37,88,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <i className="bi bi-file-earmark-text" style={{ color: 'var(--clr-primary)', fontSize: 16 }} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -350,16 +369,30 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
 
   const [saving, setSaving] = useState(false);
   const [err,    setErr]    = useState<string | null>(null);
+  const [upgradeMsg, setUpgradeMsg] = useState<string | null>(null);
   const [saved,  setSaved]  = useState(false);
 
+  const hasAvailabilityField = !!(step.schema as unknown as { shape?: Record<string, unknown> })?.shape?.availability;
+
   async function onSubmit(data: FieldValues) {
-    setSaving(true); setErr(null); setSaved(false);
+    setSaving(true); setErr(null); setUpgradeMsg(null); setSaved(false);
     try {
-      await upsertProfile(role, sanitiseDates(data as Record<string, unknown>));
+      const { availability, ...profileFields } = data as Record<string, unknown>;
+      await upsertProfile(role, sanitisePayload(profileFields));
+      if (hasAvailabilityField && Array.isArray(availability)) {
+        await replaceAvailabilitySlots(availability as AvailabilitySlotPayload[]);
+      }
+      // Otherwise AppLayout's gate keeps reading pre-save profileCompletion/
+      // marketplaceMissing and bounces the user straight back here.
+      await useAuthStore.getState().refreshGateStatus();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Save failed. Please try again.');
+      if (e instanceof ApiError && (e.code === 'SUBSCRIPTION_LIMIT' || e.code === 'SUBSCRIPTION_REQUIRED')) {
+        setUpgradeMsg(e.message);
+      } else {
+        setErr(e instanceof Error ? e.message : 'Save failed. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -367,11 +400,13 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
 
   if (!StepComp) return null;
 
+  const hasBlockingErrors = Object.keys(form.formState.errors).length > 0;
+
   return (
     <FormProvider {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(194,24,91,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(183,37,88,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <i className={`bi ${step.icon}`} style={{ color: 'var(--clr-primary)', fontSize: 16 }} />
           </div>
           <div>
@@ -382,9 +417,16 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
 
         <StepComp />
 
+        {upgradeMsg && <div style={{ marginTop: 20 }}><UpgradePrompt message={upgradeMsg} /></div>}
         {err && (
-          <div style={{ background: '#FFF0F0', border: '1px solid #FFCDD2', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#C62828', marginTop: 20 }}>
+          <div style={{ background: 'var(--td-pink-soft)', border: '1px solid var(--td-pink-tint)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--td-pink-hover)', marginTop: 20 }}>
             {err}
+          </div>
+        )}
+
+        {!err && hasBlockingErrors && (
+          <div style={{ background: 'var(--td-pink-soft)', border: '1px solid var(--td-pink-tint)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--td-pink-hover)', marginTop: 20 }}>
+            Some fields need attention — check the highlighted fields above.
           </div>
         )}
 
@@ -396,12 +438,12 @@ function TabPanel({ role, step, stepIndex, defaultValues }: TabPanelProps) {
             style={{ height: 40, padding: '0 24px', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {saving && (
-              <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+              <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'var(--td-white)', borderRadius: '50%', animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
             )}
             {saving ? 'Saving…' : 'Save changes'}
           </button>
           {saved && (
-            <span style={{ fontSize: 13, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 13, color: 'var(--td-dark-text-soft)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
               <i className="bi bi-check-circle-fill" /> Saved
             </span>
           )}
@@ -432,23 +474,24 @@ export default function ProfileEditPage() {
   const activeStep  = steps[activeIndex];
   const isDocTab    = hasDocTab && activeIndex === docTabIndex;
 
+  // An independent Support Worker builds their profile in the step-by-step profile builder (SW journey Windows 5-14).
+  const sendToBuilder = role === UserRole.SUPPORT_WORKER && user?.accountType !== 'MANAGED';
+  useEffect(() => { if (sendToBuilder) router.replace('/profile/build'); }, [sendToBuilder, router]);
+
   useEffect(() => {
-    if (!user) return;
+    if (!user || !role) return;
     api.get<{ user: Record<string, unknown> }>('/users/me')
       .then(res => {
         const u = res.user as Record<string, unknown>;
+        const profileKey = ROLE_PROFILE_KEY[role];
         setDefaultValues({
           ...u,
-          ...((u.workerProfile      as Record<string, unknown>) ?? {}),
-          ...((u.providerProfile    as Record<string, unknown>) ?? {}),
-          ...((u.coordinatorProfile as Record<string, unknown>) ?? {}),
-          ...((u.participantProfile as Record<string, unknown>) ?? {}),
-          ...((u.planManagerProfile as Record<string, unknown>) ?? {}),
+          ...((u[profileKey] as Record<string, unknown>) ?? {}),
         });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, role]);
 
   function setTab(index: number) {
     const p = new URLSearchParams(searchParams.toString());
@@ -456,7 +499,7 @@ export default function ProfileEditPage() {
     router.push(`?${p.toString()}`, { scroll: false });
   }
 
-  if (!user || !role) return null;
+  if (!user || !role || sendToBuilder) return null;
 
   const roleLabel = ROLE_LABELS[role] ?? role;
 
@@ -483,7 +526,7 @@ export default function ProfileEditPage() {
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', borderBottom: '1.5px solid #e5e7eb', marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', borderBottom: '1.5px solid var(--td-border)', marginBottom: 24 }}>
           {steps.map((step, i) => (
             <button
               key={i}
@@ -494,7 +537,7 @@ export default function ProfileEditPage() {
                 fontWeight: activeIndex === i ? 700 : 500,
                 cursor: 'pointer', background: 'none', border: 'none',
                 borderBottom: activeIndex === i ? '2.5px solid var(--clr-primary)' : '2.5px solid transparent',
-                color: activeIndex === i ? 'var(--clr-primary)' : '#64748b',
+                color: activeIndex === i ? 'var(--clr-primary)' : 'var(--td-muted-dark)',
                 marginBottom: -1.5, transition: 'color 0.15s', whiteSpace: 'nowrap',
               }}
             >
@@ -510,7 +553,7 @@ export default function ProfileEditPage() {
                 fontWeight: isDocTab ? 700 : 500,
                 cursor: 'pointer', background: 'none', border: 'none',
                 borderBottom: isDocTab ? '2.5px solid var(--clr-primary)' : '2.5px solid transparent',
-                color: isDocTab ? 'var(--clr-primary)' : '#64748b',
+                color: isDocTab ? 'var(--clr-primary)' : 'var(--td-muted-dark)',
                 marginBottom: -1.5, transition: 'color 0.15s', whiteSpace: 'nowrap',
               }}
             >
@@ -520,7 +563,7 @@ export default function ProfileEditPage() {
         </div>
 
         {/* Active panel */}
-        <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '28px 28px' }}>
+        <div style={{ background: 'var(--td-white)', border: '1.5px solid var(--td-border)', borderRadius: 12, padding: '28px 28px' }}>
           {isDocTab ? (
             <DocumentsTabPanel role={role} />
           ) : activeStep ? (

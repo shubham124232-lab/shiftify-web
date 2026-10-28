@@ -4,11 +4,34 @@ import { useFormContext } from 'react-hook-form';
 import { FileUploadField } from '../../fields/FileUploadField';
 import { upsertProfile }   from '@/lib/api/profile';
 
-const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' };
+const inputStyle: React.CSSProperties = { width: '100%', height: 42, padding: '0 12px', borderRadius: 'var(--btn-radius)', border: '1.5px solid var(--clr-border)', fontSize: 14, outline: 'none', background: 'var(--td-white)', boxSizing: 'border-box' };
 const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--clr-text)', marginBottom: 5 };
 
 export function ProviderStep11_Documents() {
-  const { register, formState: { errors } } = useFormContext();
+  const { register, watch, setValue, formState: { errors } } = useFormContext();
+  const chipField = (name: 'languages' | 'accessibilityCapabilities' | 'culturalCapabilities', label: string, options: string[]) => {
+    const current: string[] = watch(name) ?? [];
+    return (
+      <div>
+        <label style={labelStyle}>{label}</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {options.map(opt => {
+            const sel = current.includes(opt);
+            return (
+              <button key={opt} type="button"
+                onClick={() => setValue(name, sel ? current.filter(c => c !== opt) : [...current, opt], { shouldDirty: true })}
+                style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
+                  background: sel ? 'rgba(183,37,88,0.1)' : 'var(--td-white)',
+                  color: sel ? 'var(--clr-primary)' : 'var(--clr-text)' }}>
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   async function handleLogoUploaded(url: string) {
@@ -28,6 +51,20 @@ export function ProviderStep11_Documents() {
         <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>Appears on your provider profile. Be warm, specific and professional.</p>
       </div>
 
+      {chipField('languages', 'Languages spoken by your team', ['English', 'Auslan', 'Arabic', 'Mandarin', 'Cantonese', 'Vietnamese', 'Greek', 'Italian', 'Hindi', 'Punjabi', 'Spanish', 'Tagalog'])}
+      {chipField('accessibilityCapabilities', 'Accessibility capabilities', ['Wheelchair-accessible premises', 'Easy Read materials', 'Auslan support', 'Sensory-friendly practice', 'Assistive technology support', 'Communication supports'])}
+      {chipField('culturalCapabilities', 'Cultural capabilities', ['Aboriginal and Torres Strait Islander communities', 'Culturally and linguistically diverse communities', 'Faith-based support', 'LGBTQIA+ inclusive practice', 'Refugee and migrant support'])}
+      <div>
+        <label style={labelStyle}>Enquiry preference</label>
+        <select {...register('enquiryPreference')} style={{ ...inputStyle, cursor: 'pointer' }}>
+          <option value="">Select…</option>
+          <option value="IN_APP">Messages in Shiftify</option>
+          <option value="EMAIL">Email</option>
+          <option value="PHONE">Phone</option>
+        </select>
+        <p style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>How participants, coordinators and plan managers should contact you about enquiries.</p>
+      </div>
+
       {/* Logo */}
       <div>
         <label style={labelStyle}>Organisation Logo</label>
@@ -35,7 +72,7 @@ export function ProviderStep11_Documents() {
           <div style={{
             width: 72, height: 72, borderRadius: 12, flexShrink: 0, overflow: 'hidden',
             border: '1.5px solid var(--clr-border)',
-            background: logoUrl ? 'transparent' : 'rgba(79,70,229,0.07)',
+            background: logoUrl ? 'transparent' : 'rgba(183,37,88,0.07)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {logoUrl
@@ -62,8 +99,8 @@ export function ProviderStep11_Documents() {
       <div>
         <label style={labelStyle}>Website URL <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--clr-muted)' }}>Optional</span></label>
         <input {...register('websiteUrl')} type="url" placeholder="https://yourorganisation.com.au"
-          style={{ ...inputStyle, borderColor: errors.websiteUrl ? '#ef4444' : undefined }} />
-        {errors.websiteUrl && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 3 }}>{errors.websiteUrl.message as string}</p>}
+          style={{ ...inputStyle, borderColor: errors.websiteUrl ? 'var(--td-pink)' : undefined }} />
+        {errors.websiteUrl && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 3 }}>{errors.websiteUrl.message as string}</p>}
       </div>
 
       {/* Social links */}

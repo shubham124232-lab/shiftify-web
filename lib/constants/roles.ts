@@ -19,11 +19,11 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 export const ROLE_TAGLINES: Record<SignupRole, string> = {
-  PARTICIPANT:   "Find support workers & manage your NDIS plan",
+  PARTICIPANT:   "Find support workers & manage your support needs",
   SUPPORT_WORKER:"Find shifts and connect with participants",
-  PROVIDER:      "Manage your team and grow your NDIS business",
+  PROVIDER:      "Manage your team and grow your business",
   COORDINATOR:   "Coordinate support for participants in your care",
-  PLAN_MANAGER:  "Manage budgets, invoices and NDIS funds",
+  PLAN_MANAGER:  "Manage budgets, invoices and plan funds",
 };
 
 export const ROLE_DASHBOARD_PATHS: Record<UserRole, string> = {

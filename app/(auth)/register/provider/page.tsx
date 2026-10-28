@@ -1,2 +1,2 @@
 import { redirect } from 'next/navigation';
-export default function ProviderRegisterPage() { redirect('/register'); }
+export default function ProviderRegisterPage() { redirect('/register?role=PROVIDER'); }

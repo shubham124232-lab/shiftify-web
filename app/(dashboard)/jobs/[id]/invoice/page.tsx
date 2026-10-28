@@ -25,26 +25,34 @@ interface JobDetail {
   scheduledEndAt: string | null;
   totalHours: number | null;
   status: string;
-  poster: { id: string; name: string };
+  postedBy: { id: string; name: string };
+  forParticipant: { id: string; name: string } | null;
   assignedWorker: { id: string; name: string } | null;
+}
+
+interface PlanManagerOption {
+  id: string;
+  name: string;
+  email: string | null;
+  businessName: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const inp: React.CSSProperties = {
   width: "100%", height: 42, padding: "0 12px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 5,
+  display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 5,
 };
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid #f1f5f9" }}>
-      <span style={{ width: 160, flexShrink: 0, fontSize: 13, color: "#64748b", fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 13, color: "#1e293b", flex: 1 }}>{value}</span>
+    <div style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid var(--td-grey)" }}>
+      <span style={{ width: 160, flexShrink: 0, fontSize: 13, color: "var(--td-muted-dark)", fontWeight: 600 }}>{label}</span>
+      <span style={{ fontSize: 13, color: "var(--td-ink-800)", flex: 1 }}>{value}</span>
     </div>
   );
 }
@@ -68,22 +76,34 @@ export default function CreateInvoicePage() {
   const [note,               setNote]               = useState("");
   const [saving,             setSaving]             = useState(false);
 
+  // Recipient picker — real plan managers connected to this job's participant,
+  // replacing the old raw "type in any user ID" text field.
+  const [planManagers,        setPlanManagers]        = useState<PlanManagerOption[]>([]);
+  const [recipientsLoading,   setRecipientsLoading]   = useState(true);
+  const [recipientsError,     setRecipientsError]     = useState<string | null>(null);
+
   useEffect(() => {
     api.get<{ job: JobDetail }>(`/jobs/${id}`)
       .then(r => {
         setJob(r.job);
         // Pre-fill hours from job if available
         if (r.job.totalHours) setHours(String(r.job.totalHours));
-        // Pre-fill participant if poster is participant
-        setParticipantUserId(r.job.poster.id);
+        // Pre-fill the actual participant (not the poster — for coordinator-posted
+        // jobs the poster is the coordinator, not the participant).
+        if (r.job.forParticipant) setParticipantUserId(r.job.forParticipant.id);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
+
+    api.get<{ participant: { id: string; name: string } | null; planManagers: PlanManagerOption[] }>(`/jobs/${id}/invoice-recipients`)
+      .then(r => setPlanManagers(r.planManagers))
+      .catch(e => setRecipientsError(e.message))
+      .finally(() => setRecipientsLoading(false));
   }, [id]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!planManagerUserId.trim()) { setError("Plan Manager user ID is required."); return; }
+    if (!planManagerUserId.trim()) { setError("Choose a plan manager."); return; }
     if (!participantUserId.trim()) { setError("Participant user ID is required."); return; }
     setSaving(true); setError(null);
     try {
@@ -101,8 +121,8 @@ export default function CreateInvoicePage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#94a3b8" }}>Loading job details...</div>;
-  if (!job && error) return <div style={{ padding: 40, color: "#b91c1c" }}>{error}<br /><Link href={`/jobs/${id}`}><Button style={{ marginTop: 16 }}>Back to job</Button></Link></div>;
+  if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading job details...</div>;
+  if (!job && error) return <div style={{ padding: 40, color: "var(--td-pink-hover)" }}>{error}<br /><Link href={`/jobs/${id}`}><Button style={{ marginTop: 16 }}>Back to job</Button></Link></div>;
   if (!job) return null;
 
   const catLabel = JOB_CATEGORIES.find(c => c.value === job.category)?.label ?? job.category;
@@ -114,12 +134,12 @@ export default function CreateInvoicePage() {
       <>
         <PageHeader title="Invoice Sent" />
         <div style={{ maxWidth: 600, margin: "40px auto", padding: "0 20px" }}>
-          <div style={{ background: "#fff", border: "1.5px solid #a7f3d0", borderRadius: 16, padding: 40, textAlign: "center" }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>
+          <div style={{ background: "var(--td-white)", border: "1.5px solid var(--td-border)", borderRadius: 16, padding: 40, textAlign: "center" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--td-grey)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: 28 }}>
               ✅
             </div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1e293b", marginBottom: 8 }}>Invoice sent successfully</h2>
-            <p style={{ fontSize: 14, color: "#64748b", marginBottom: 28, lineHeight: 1.6 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--td-ink-800)", marginBottom: 8 }}>Invoice sent successfully</h2>
+            <p style={{ fontSize: 14, color: "var(--td-muted-dark)", marginBottom: 28, lineHeight: 1.6 }}>
               The plan manager has been notified and will see the full job details, who performed the work, and the time taken.
             </p>
             <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
@@ -138,7 +158,7 @@ export default function CreateInvoicePage() {
     <>
       <PageHeader
         title="Send Invoice"
-        description="Submit this job's details to a plan manager for NDIS claim processing."
+        description="Submit this job's details to a plan manager for claim processing."
       />
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
@@ -147,7 +167,7 @@ export default function CreateInvoicePage() {
           <CardHeader><CardTitle>Job details</CardTitle></CardHeader>
           <CardContent>
             <DetailRow label="Job title"      value={<strong>{job.title}</strong>} />
-            <DetailRow label="Description"    value={job.description ?? <span style={{ color: "#94a3b8", fontStyle: "italic" }}>No description</span>} />
+            <DetailRow label="Description"    value={job.description ?? <span style={{ color: "var(--td-muted)", fontStyle: "italic" }}>No description</span>} />
             <DetailRow label="Service type"   value={catLabel} />
             <DetailRow label="Urgency"        value={job.urgency.replace("_", " ")} />
             <DetailRow label="Location"       value={`${job.suburb}, ${job.state}${job.postcode ? ` ${job.postcode}` : ""}`} />
@@ -155,14 +175,14 @@ export default function CreateInvoicePage() {
             {job.scheduledEndAt && (
               <DetailRow label="Scheduled end" value={new Date(job.scheduledEndAt).toLocaleString("en-AU", { dateStyle: "full", timeStyle: "short" })} />
             )}
-            <DetailRow label="Total hours"    value={job.totalHours ? `${job.totalHours} hours` : <span style={{ color: "#94a3b8" }}>Not specified</span>} />
-            <DetailRow label="Posted by"      value={job.poster.name} />
-            <DetailRow label="Performed by"   value={job.assignedWorker?.name ?? <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Not yet assigned</span>} />
+            <DetailRow label="Total hours"    value={job.totalHours ? `${job.totalHours} hours` : <span style={{ color: "var(--td-muted)" }}>Not specified</span>} />
+            <DetailRow label="Posted by"      value={job.postedBy.name} />
+            <DetailRow label="Performed by"   value={job.assignedWorker?.name ?? <span style={{ color: "var(--td-muted)", fontStyle: "italic" }}>Not yet assigned</span>} />
             <DetailRow label="Job status"     value={
               <span style={{
                 padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700,
-                background: job.status === "COMPLETED" ? "#dcfce7" : "#fef9c3",
-                color:      job.status === "COMPLETED" ? "#15803d" : "#854d0e",
+                background: job.status === "COMPLETED" ? "var(--td-grey)" : "var(--td-grey)",
+                color:      job.status === "COMPLETED" ? "var(--td-ink-700)" : "var(--td-ink-800)",
               }}>
                 {job.status.replace("_", " ")}
               </span>
@@ -176,30 +196,43 @@ export default function CreateInvoicePage() {
             <CardHeader><CardTitle>Invoice details</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "#475569" }}>
-                <strong>How this works:</strong> Enter the plan manager's user ID and confirm the participant. The plan manager will be notified immediately and can see every job detail above.
+              <div style={{ background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 10, padding: "12px 16px", fontSize: 13, color: "var(--td-dark-text-soft)" }}>
+                <strong>How this works:</strong> Pick the participant's plan manager below. They'll be notified immediately and can see every job detail above.
               </div>
 
               <div>
-                <label style={lbl}>Plan Manager user ID <span style={{ color: "#ef4444" }}>*</span></label>
-                <input
-                  style={inp}
-                  value={planManagerUserId}
-                  onChange={e => setPlanManagerUserId(e.target.value)}
-                  placeholder="e.g. cm123abc..."
-                />
-                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Ask the participant's plan manager for their Shiftify user ID.</p>
+                <label style={lbl}>Participant</label>
+                <div style={{ ...inp, height: "auto", padding: "10px 12px", display: "flex", alignItems: "center", background: "var(--td-grey-tint)", color: "var(--td-dark-text-soft)" }}>
+                  {job.forParticipant?.name ?? <span style={{ color: "var(--td-muted)", fontStyle: "italic" }}>No participant on this job</span>}
+                </div>
               </div>
 
               <div>
-                <label style={lbl}>Participant user ID <span style={{ color: "#ef4444" }}>*</span></label>
-                <input
-                  style={inp}
-                  value={participantUserId}
-                  onChange={e => setParticipantUserId(e.target.value)}
-                  placeholder="e.g. cm456def..."
-                />
-                <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Pre-filled from the job poster. Edit only if different.</p>
+                <label style={lbl}>Plan Manager <span style={{ color: "var(--td-pink)" }}>*</span></label>
+                {recipientsLoading ? (
+                  <p style={{ fontSize: 13, color: "var(--td-muted)" }}>Loading connected plan managers...</p>
+                ) : recipientsError ? (
+                  <p style={{ fontSize: 13, color: "var(--td-pink-hover)" }}>{recipientsError}</p>
+                ) : planManagers.length === 0 ? (
+                  <div style={{ background: "var(--td-grey-tint)", border: "1px solid var(--td-muted-dark)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--td-dark-text)" }}>
+                    No plan manager is connected to this participant yet.{" "}
+                    <Link href="/connections" style={{ color: "var(--td-dark-text)", textDecoration: "underline", fontWeight: 600 }}>Connect one</Link>{" "}
+                    before sending an invoice.
+                  </div>
+                ) : (
+                  <select
+                    style={inp}
+                    value={planManagerUserId}
+                    onChange={e => setPlanManagerUserId(e.target.value)}
+                  >
+                    <option value="">Select a plan manager...</option>
+                    {planManagers.map(pm => (
+                      <option key={pm.id} value={pm.id}>
+                        {pm.name}{pm.businessName ? ` — ${pm.businessName}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -216,7 +249,7 @@ export default function CreateInvoicePage() {
                   />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                  <div style={{ background: "#f1f5f9", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#475569" }}>
+                  <div style={{ background: "var(--td-grey)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--td-dark-text-soft)" }}>
                     <strong>Scheduled:</strong> {job.totalHours ? `${job.totalHours}h` : "Not set"}
                   </div>
                 </div>
@@ -234,7 +267,7 @@ export default function CreateInvoicePage() {
               </div>
 
               {error && (
-                <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>
+                <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>
                   {error}
                 </div>
               )}

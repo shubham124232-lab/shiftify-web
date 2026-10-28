@@ -1,0 +1,57 @@
+import Link from "next/link";
+import { ChevronRight, ClipboardList } from "lucide-react";
+import type { ReactNode } from "react";
+
+interface DashboardListRowProps {
+  icon?: ReactNode;
+  title: string;
+  subtitle?: string;
+  badge?: ReactNode;
+  rightLabel?: string;
+  /** Show the right label as a grey-bordered button instead of a text link (Provider dashboard). */
+  rightAsButton?: boolean;
+  href?: string;
+  /** When set (and no href) the row is a button that calls this instead of navigating. */
+  onClick?: () => void;
+}
+
+export function DashboardListRow({ icon, title, subtitle, badge, rightLabel, rightAsButton, href, onClick }: DashboardListRowProps) {
+  const body = (
+    <div className="flex items-center gap-3 py-3">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+        {icon ?? <ClipboardList className="h-5 w-5" />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
+        {subtitle ? <p className="mt-0.5 truncate text-xs text-slate-500">{subtitle}</p> : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        {badge}
+        {rightLabel && rightAsButton ? (
+          <span className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800">{rightLabel}</span>
+        ) : rightLabel ? (
+          <span className="flex items-center gap-1 text-sm font-semibold text-brand-600">
+            {rightLabel}
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  if (onClick && !href) {
+    return (
+      <button type="button" onClick={onClick} className="-mx-6 block w-[calc(100%+3rem)] border-b border-slate-100 px-6 text-left last:border-0 hover:bg-slate-50/60">
+        {body}
+      </button>
+    );
+  }
+  if (href) {
+    return (
+      <Link href={href} className="-mx-6 block border-b border-slate-100 px-6 last:border-0 hover:bg-slate-50/60">
+        {body}
+      </Link>
+    );
+  }
+  return <div className="-mx-6 border-b border-slate-100 px-6 last:border-0">{body}</div>;
+}

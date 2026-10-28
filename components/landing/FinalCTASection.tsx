@@ -11,15 +11,15 @@ export default function FinalCTASection() {
     <section
       id="emergency"
       className="section-py"
-      style={{ background: 'linear-gradient(135deg, #880E4F 0%, #C2185B 50%, #E91E63 100%)', color: '#fff' }}
+      style={{ background: 'var(--td-pink)', color: 'var(--td-white)' }}
       aria-labelledby="cta-heading"
     >
       <div className="container-xl">
         <div className="flex justify-center">
           <div className="text-center" style={{ maxWidth: 640 }}>
 
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 100, padding: '6px 18px', fontSize: 13, fontWeight: 700, marginBottom: 28 }} role="status" aria-live="polite">
-              <span style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%', animation: 'blink 1.5s infinite' }} aria-hidden="true" />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--td-white) 18%, transparent)', border: '1.5px solid color-mix(in srgb, var(--td-white) 30%, transparent)', borderRadius: 100, padding: '6px 18px', fontSize: 13, fontWeight: 700, marginBottom: 28 }} role="status" aria-live="polite">
+              <span style={{ width: 8, height: 8, background: 'var(--td-white)', borderRadius: '50%', animation: 'blink 1.5s infinite' }} aria-hidden="true" />
               Available 24/7 — Emergency Team On Standby
             </div>
 
@@ -36,15 +36,15 @@ export default function FinalCTASection() {
               <a
                 href="#emergency-form"
                 className="btn-emergency"
-                style={{ borderRadius: 14, padding: '16px 32px', fontSize: 17, fontWeight: 800, border: '2px solid rgba(255,255,255,0.25)' }}
+                style={{ borderRadius: 14, padding: '16px 32px', fontSize: 17, fontWeight: 800, border: '2px solid color-mix(in srgb, var(--td-white) 25%, transparent)' }}
                 aria-label="Get Emergency Support — immediate response"
               >
-                <span style={{ width: 10, height: 10, background: '#fff', borderRadius: '50%', animation: 'blink 1s infinite', flexShrink: 0 }} aria-hidden="true" />
+                <span style={{ width: 10, height: 10, background: 'var(--td-white)', borderRadius: '50%', animation: 'blink 1s infinite', flexShrink: 0 }} aria-hidden="true" />
                 Get Emergency Support Now
               </a>
               <a
                 href="/register"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.15)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 14, padding: '16px 32px', fontSize: 17, fontWeight: 700, fontFamily: 'var(--font-body)', backdropFilter: 'blur(4px)', textDecoration: 'none' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--td-white) 15%, transparent)', color: 'var(--td-white)', border: '2px solid color-mix(in srgb, var(--td-white) 40%, transparent)', borderRadius: 14, padding: '16px 32px', fontSize: 17, fontWeight: 700, fontFamily: 'var(--font-body)', backdropFilter: 'blur(4px)', textDecoration: 'none' }}
               >
                 Create Free Account
               </a>
@@ -55,9 +55,9 @@ export default function FinalCTASection() {
                 <a
                   key={text}
                   href={href}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: 700, textDecoration: 'none', transition: 'color 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = '#fff'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'color-mix(in srgb, var(--td-white) 85%, transparent)', fontSize: 14, fontWeight: 700, textDecoration: 'none', transition: 'color 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--td-white)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'color-mix(in srgb, var(--td-white) 85%, transparent)'; }}
                 >
                   <i className={`bi ${icon}`} aria-hidden="true" />
                   {text}

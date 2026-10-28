@@ -1,5 +1,7 @@
 "use client";
 
+import "@/app/provider-demo.css";
+
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,12 +9,48 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { StatusBanner } from "@/components/layout/status-banner";
+import { ResumeDraftBanner } from "@/components/jobs/ResumeDraftBanner";
+import { AdminInviteBanner } from "@/components/provider/AdminInviteBanner";
 import { Spinner } from "@/components/ui/spinner";
 import { TOTAL_STEPS } from "@/lib/registration/stepConfig";
+import { ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 
 // Pages inside the dashboard that should be accessible even with an incomplete profile
 // (so the user can actually go fix their profile without getting redirect-looped)
-const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability"];
+const GATE_EXEMPT = ["/profile", "/documents", "/subscription", "/availability", "/help-safety", "/blocked-users"];
+
+// Pages accessible WITHOUT logging in at all — guest job-post draft flow.
+// See [[guest-draft-job-post-design]] memory. Rendered without the sidebar/
+// topbar chrome below, since there's no user to show it for.
+const PUBLIC_EXEMPT = ["/jobs/post"];
+
+// Areas that belong to specific roles (mirrors the "only available to …" notices on those pages).
+const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
+  { prefix: "/connect-invites",         roles: ["SUPPORT_WORKER"] },
+  { prefix: "/earnings",                roles: ["SUPPORT_WORKER"] },
+  { prefix: "/connections/my",          roles: ["SUPPORT_WORKER", "PROVIDER"] }, // SW Window 27 — must match before the Plan Manager /connections area
+  { prefix: "/connections",             roles: ["PLAN_MANAGER"] },
+  { prefix: "/load-board",              roles: ["PLAN_MANAGER"] },
+  { prefix: "/job-invites",             roles: ["SUPPORT_WORKER", "PROVIDER"] },
+  { prefix: "/coordinator-connections", roles: ["COORDINATOR", "PARTICIPANT"] },
+  { prefix: "/participants",            roles: ["COORDINATOR"] },
+  { prefix: "/calendar",                roles: ["COORDINATOR"] },
+  { prefix: "/refer-and-earn",          roles: ["COORDINATOR"] },
+  { prefix: "/organisation-team",       roles: ["COORDINATOR"] },
+  { prefix: "/reports",                 roles: ["COORDINATOR"] },
+  { prefix: "/add-ons",                 roles: ["COORDINATOR"] },
+  { prefix: "/shift-blast",             roles: ["COORDINATOR"] },
+  { prefix: "/action-history",          roles: ["COORDINATOR"] },
+  { prefix: "/settings",                roles: ["COORDINATOR"] },
+  { prefix: "/team",                    roles: ["PROVIDER"] },
+  { prefix: "/provider/help",           roles: ["PROVIDER", "COORDINATOR"] }, // ticket detail is shared with Coordinator Help & Tickets
+  { prefix: "/provider",                roles: ["PROVIDER"] },
+];
+
+// A Provider Team Member (managed worker) sees only their own assignments — never the marketplace,
+// posting, worker search or subscription areas (Pricing V2 §4.4).
+const MANAGED_BLOCKED_EXACT = ["/jobs", "/live-dashboard", "/find", "/saved-professionals", "/subscription", "/referrals", "/invoices", "/workers/available"];
+const MANAGED_BLOCKED_PREFIX = ["/jobs/post", "/workers", "/coordinators", "/saved-searches", "/connect-invites"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuth, loading, silentInit } = useAuth();
@@ -29,12 +67,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isPublicExempt = PUBLIC_EXEMPT.some(p => pathname.startsWith(p));
+
   useEffect(() => {
     if (loading) return;
 
-    // 1. Not authenticated -> login
+    // 1. Not authenticated -> login (unless this page allows guests)
     if (!isAuth || !user) {
-      router.replace("/login");
+      if (!isPublicExempt) router.replace("/login");
+      return;
+    }
+
+    // Role dashboards are per active role: a Worker opening /dashboard/provider (or a
+    // stale bookmark after a role switch) is sent to the dashboard for their own role.
+    const roleDashboards = Object.values(ROLE_DASHBOARD_PATHS) as string[];
+    const onRoleDashboard = roleDashboards.find((p) => pathname === p || pathname.startsWith(p + "/"));
+    if (onRoleDashboard) {
+      const own = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS];
+      if (own && onRoleDashboard !== own) {
+        router.replace(own);
+        return;
+      }
+      if (!own) {
+        router.replace("/admin"); // ADMIN has no role dashboard
+        return;
+      }
+    }
+
+    // Role-specific management areas: opening one with the wrong active role goes back to that
+    // role's own dashboard (the API enforces the same rule on every call).
+    const roleOnly = ROLE_ONLY_AREAS.find((a) => pathname === a.prefix || pathname.startsWith(a.prefix + "/"));
+    const ownDashboard = ROLE_DASHBOARD_PATHS[user.activeRole as keyof typeof ROLE_DASHBOARD_PATHS];
+    if (roleOnly && ownDashboard && !roleOnly.roles.includes(user.activeRole as string)) {
+      router.replace(ownDashboard);
+      return;
+    }
+
+    if (user.accountType === "MANAGED" && ownDashboard
+      && (MANAGED_BLOCKED_EXACT.includes(pathname) || MANAGED_BLOCKED_PREFIX.some((p) => pathname === p || pathname.startsWith(p + "/")))) {
+      router.replace(ownDashboard);
       return;
     }
 
@@ -42,24 +113,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const isExempt = GATE_EXEMPT.some(p => pathname.startsWith(p));
     if (isExempt) return;
 
-    // 2. PENDING status — only block if phone is unverified.
-    //    Profile completion is handled by the setup banner inside the dashboard.
+    // 2. PENDING with unverified phone -- can't do anything until verified.
     //    JWT claims can say PENDING even after activation, so wait for initialized.
     if (!initialized) return;
-    if (user.status === "PENDING") {
-      if (!phoneVerified) {
-        router.replace("/setup/verify");
-        return;
-      }
-      // Phone verified — let them into the dashboard; banner will guide them.
+    if (user.status === "PENDING" && !phoneVerified) {
+      router.replace("/setup/verify");
       return;
     }
 
-    // 3. Profile incomplete -- only gate paid roles; Participants are free and
-    //    their wizard covers the required fields, so don't force-redirect them.
+    // 3. Profile incomplete -- gate all roles (including PENDING-but-verified,
+    //    now that registration no longer walks anyone through a wizard).
     //    ACTIVE users are already approved — don't gate them (handles seeded accounts).
-    const isParticipant = user.activeRole === "PARTICIPANT";
-    if (!isParticipant && user.status !== "ACTIVE" && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
+    if (user.status !== "ACTIVE" && profileCompletion !== null && profileCompletion < 100 && marketplaceMissing.length > 0) {
       router.replace("/profile");
       return;
     }
@@ -67,29 +132,50 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // 4. Profile complete but plan never activated (paid roles only) — send them
     //    to the subscription page instead of letting them sit in the dashboard
     //    with no active plan.
+    const isParticipant = user.activeRole === "PARTICIPANT";
     if (!isParticipant && user.status !== "ACTIVE") {
       router.replace("/subscription");
     }
-  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified]);
+  }, [loading, isAuth, user, profileCompletion, marketplaceMissing, router, pathname, initialized, profileStep, phoneVerified, isPublicExempt]);
+
+  // Guest on a publicly-exempt page (e.g. /jobs/post) -- render the page with
+  // no sidebar/topbar chrome, since there's no logged-in user to show it for.
+  if (!loading && (!isAuth || !user) && isPublicExempt) {
+    return <main className="min-h-screen bg-slate-50">{children}</main>;
+  }
 
   // Not authenticated and done loading -- render nothing, redirect fires above
   if (!loading && (!isAuth || !user)) return null;
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center text-slate-500">
+      <div className="td-theme flex h-screen items-center justify-center text-slate-500">
         <Spinner /> <span className="ml-2">Loading</span>
       </div>
     );
   }
 
+  const workspaceShell = user?.activeRole === "PROVIDER" || user?.activeRole === "COORDINATOR";
+
   return (
-    <div className="flex h-screen">
-      <AppSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <AppTopbar />
-        <StatusBanner />
-        <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
+    <div className="td-theme flex h-screen flex-col" data-active-role={user?.activeRole}>
+      {user?.activeRole === "PROVIDER" && (
+        <div className="flex h-7 shrink-0 items-center justify-between bg-slate-950 px-8 text-[11px] font-semibold uppercase tracking-wider text-white">
+          <span className="inline-flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />24/7 LIVE</span>
+          <span>0% Platform commission</span>
+        </div>
+      )}
+      {/* Provider / Coordinator workspace shell: the header spans the full width above the menu and the page. */}
+      {workspaceShell && <AppTopbar />}
+      <div className="flex min-h-0 flex-1">
+        <AppSidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          {!workspaceShell && <AppTopbar />}
+          <StatusBanner />
+          <ResumeDraftBanner />
+          <AdminInviteBanner />
+          <main className="flex-1 overflow-y-auto bg-slate-50">{children}</main>
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/lib/api';
+import { docStatusLabel } from '@/lib/worker/profileWindows';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,29 +37,24 @@ interface Props {
   existingDoc?: ExistingDoc | null;
   onSaved: (doc: ExistingDoc) => void;
   optional?: boolean;
+  requiredNote?: string;
 }
 
 // ── Status chip ───────────────────────────────────────────────────────────────
 
 function StatusChip({ doc }: { doc?: ExistingDoc | null }) {
-  if (!doc) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-        Not Uploaded
-      </span>
-    );
-  }
-  const expired = doc.expiryDate && new Date(doc.expiryDate) < new Date();
-  if (expired) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
-        Expired
-      </span>
-    );
-  }
+  // Worker-facing wording (SW journey Window 9). "Submitted" never means checked — Shiftify only says a document
+  // is verified when that check has actually happened.
+  const label = docStatusLabel(doc);
+  const tone =
+    label === 'Not added' ? 'bg-gray-100 text-gray-600'
+    : label === 'Submitted' ? 'bg-blue-50 text-blue-700'
+    : label === 'Current' ? 'bg-green-100 text-green-700'
+    : label === 'Expiring soon' ? 'bg-amber-100 text-amber-700'
+    : 'bg-red-100 text-red-700';
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-      Uploaded
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${tone}`}>
+      {label}
     </span>
   );
 }
@@ -85,6 +81,7 @@ export default function DocumentUploadField({
   existingDoc,
   onSaved,
   optional = false,
+  requiredNote,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,14 +151,11 @@ export default function DocumentUploadField({
         });
         onSaved(saved);
       } else {
-        // Metadata-only (no file required, or re-saving metadata without re-uploading)
+        // Metadata-only (no file required, or re-saving metadata without re-uploading) —
+        // the stored file must not be touched, so the request carries no file fields at all.
         const { document: saved } = await api.post<{ document: ExistingDoc }>('/upload/document/confirm', {
-          key: existingDoc?.id ?? '',
-          publicUrl: existingDoc?.publicUrl ?? '',
+          metadataOnly: true,
           docType,
-          fileName: existingDoc?.fileName ?? 'metadata',
-          mimeType: 'application/octet-stream',
-          sizeBytes: 0,
           ...meta,
         });
         onSaved(saved);
@@ -183,6 +177,7 @@ export default function DocumentUploadField({
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-medium text-sm text-gray-800 truncate">{label}</span>
           {optional && <span className="text-xs text-gray-400">(optional)</span>}
+          {requiredNote && <span className="text-xs text-amber-700">{requiredNote}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <StatusChip doc={existingDoc} />

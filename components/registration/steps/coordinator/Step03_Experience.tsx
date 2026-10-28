@@ -43,14 +43,14 @@ function ChipGroup({ name, options }: { name: string; options: { value: string; 
                 }}
                 style={{ padding: '7px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
                   border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: sel ? 'var(--clr-primary)' : '#fff',
-                  color: sel ? '#fff' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
+                  background: sel ? 'var(--clr-primary)' : 'var(--td-white)',
+                  color: sel ? 'var(--td-white)' : 'var(--clr-text)', fontWeight: sel ? 600 : 400 }}>
                 {o.label}
               </button>
             );
           })}
         </div>
-        {err && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{err}</p>}
+        {err && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 4 }}>{err}</p>}
       </>
     )} />
   );
@@ -61,21 +61,21 @@ export function CoordStep03_Experience() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       <div>
-        <label style={labelStyle}>Support Coordination Level(s) Offered <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Support Coordination Level(s) Offered <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select all service types you are qualified to provide.</p>
-        <ChipGroup name="coordinationLevels" options={COORD_LEVELS} />
+        <ChipGroup name="supportCoordinationLevel" options={COORD_LEVELS} />
       </div>
 
       <div>
-        <label style={labelStyle}>Participant Complexity Experience <span style={{ color: '#ef4444' }}>*</span></label>
+        <label style={labelStyle}>Participant Complexity Experience <span style={{ color: 'var(--td-pink)' }}>*</span></label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Select the disability and complexity types you are experienced with.</p>
-        <ChipGroup name="participantComplexity" options={COMPLEXITY} />
+        <ChipGroup name="participantComplexityExperience" options={COMPLEXITY} />
       </div>
 
       <div>
         <label style={labelStyle}>Services Offered Beyond Coordination</label>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--clr-muted)' }}>Optional — select any additional services you provide.</p>
-        <ChipGroup name="additionalServices" options={EXTRA_SERVICES} />
+        <ChipGroup name="servicesOfferedBeyondCoordination" options={EXTRA_SERVICES} />
       </div>
 
     </div>

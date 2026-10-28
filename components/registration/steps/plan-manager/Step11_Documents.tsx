@@ -79,8 +79,8 @@ export function PmStep11_Documents() {
       ))}
 
       {!mandatoryUploaded && (
-        <div style={{ padding: '10px 14px', background: '#FFF8E1', border: '1px solid #FFE082', borderRadius: 10 }}>
-          <p style={{ margin: 0, fontSize: 12, color: '#92400e', fontWeight: 600 }}>
+        <div style={{ padding: '10px 14px', background: 'var(--td-grey-tint)', border: '1px solid var(--td-border-hard)', borderRadius: 10 }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--td-ink-800)', fontWeight: 600 }}>
             <i className="bi bi-exclamation-triangle" style={{ marginRight: 6 }} />
             Upload all 6 required documents to complete this step. You can click Next to continue and upload later from your profile.
           </p>
@@ -88,8 +88,8 @@ export function PmStep11_Documents() {
       )}
 
       {mandatoryUploaded && (
-        <div style={{ padding: '10px 14px', background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 10 }}>
-          <p style={{ margin: 0, fontSize: 12, color: '#15803d', fontWeight: 600 }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(75,82,89,0.06)', border: '1px solid rgba(75,82,89,0.25)', borderRadius: 10 }}>
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--td-ink-700)', fontWeight: 600 }}>
             <i className="bi bi-check-circle-fill" style={{ marginRight: 6 }} />
             All required documents uploaded. Click Next to continue.
           </p>

@@ -7,7 +7,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
   const { register, watch } = useFormContext();
   const val = watch(name) as boolean;
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: '#fff' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1.5px solid var(--clr-border)', borderRadius: 10, background: 'var(--td-white)' }}>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--clr-text)' }}>{label}</div>
         {desc && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 1 }}>{desc}</div>}
@@ -15,7 +15,7 @@ function Toggle({ label, name, desc }: { label: string; name: string; desc?: str
       <label style={{ cursor: 'pointer' }}>
         <input type="checkbox" {...register(name)} style={{ display: 'none' }} />
         <div style={{ width: 42, height: 24, borderRadius: 12, background: val ? 'var(--clr-primary)' : 'var(--clr-border)', position: 'relative', transition: 'background 0.2s' }}>
-          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          <div style={{ position: 'absolute', top: 3, left: val ? 21 : 3, width: 18, height: 18, borderRadius: '50%', background: 'var(--td-white)', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(10,10,10,0.2)' }} />
         </div>
       </label>
     </div>
@@ -43,7 +43,7 @@ export function PmStep10_ProviderInteraction() {
               return (
                 <label key={r} style={{ display: 'flex', gap: 10, cursor: 'pointer', padding: '10px 14px', borderRadius: 10,
                   border: `1.5px solid ${sel ? 'var(--clr-primary)' : 'var(--clr-border)'}`,
-                  background: sel ? 'rgba(79,70,229,0.06)' : '#fff' }}>
+                  background: sel ? 'rgba(183,37,88,0.06)' : 'var(--td-white)' }}>
                   <input type="checkbox" checked={sel}
                     onChange={() => { const cur = field.value ?? []; field.onChange(sel ? cur.filter((s: string) => s !== r) : [...cur, r]); }}
                     style={{ accentColor: 'var(--clr-primary)', marginTop: 2 }} />
@@ -60,6 +60,12 @@ export function PmStep10_ProviderInteraction() {
           desc="Process invoices on a regular schedule from providers with ongoing arrangements" />
         <Toggle label="Accept Once-Off Claims" name="acceptsOnceOffClaims"
           desc="Process individual one-time invoices from providers" />
+        <Toggle label="Accept Transport Claims" name="acceptsTransportClaims"
+          desc="Process transport-related claims from providers" />
+        <Toggle label="Accept Allied Health Invoices" name="acceptsAlliedHealthInvoices"
+          desc="Process invoices from allied health providers (physio, OT, etc.)" />
+        <Toggle label="Require Docs for High-Value Invoices" name="requiresDocsForHighValueInvoices"
+          desc="Require extra supporting documents before paying a large invoice" />
         <Toggle label="Allow Provider Portal Messaging" name="allowsProviderPortalMessaging"
           desc="Providers can message you directly through the Shiftify platform about invoices and payments" />
       </div>

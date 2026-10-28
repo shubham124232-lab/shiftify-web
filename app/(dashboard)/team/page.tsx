@@ -38,14 +38,15 @@ export default function TeamPage() {
     finally { setUnlinking(null); }
   }
 
-  useEffect(() => { if (activeRole === UserRole.PROVIDER) load(); }, [activeRole]); // eslint-disable-line
+  // Workers with a login now live on Internal Workforce (Provider doc PR-W01); this URL stays for deep links.
+  useEffect(() => { if (activeRole === UserRole.PROVIDER) router.replace("/provider/workforce"); }, [activeRole]); // eslint-disable-line
 
   if (activeRole !== UserRole.PROVIDER) {
     return (
       <>
         <PageHeader title="My Team" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>This page is only available to Provider accounts.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>This page is only available to Provider accounts.</p>
         </div>
       </>
     );
@@ -59,7 +60,7 @@ export default function TeamPage() {
         actions={
           <button
             onClick={() => router.push("/team/new")}
-            style={{ height: 40, padding: "0 18px", background: "#c2185b", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            style={{ height: 40, padding: "0 18px", background: "var(--td-pink)", color: "var(--td-white)", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
           >
             + Add Worker
           </button>
@@ -67,46 +68,46 @@ export default function TeamPage() {
       />
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-{error && <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#C62828" }}>{error}</div>}
+{error && <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "var(--td-pink-hover)" }}>{error}</div>}
 
         <Card>
           <CardHeader><CardTitle>Workers ({workers.length})</CardTitle></CardHeader>
           <CardContent>
-            {loading ? <p style={{ color: "#94a3b8", fontSize: 14 }}>Loading...</p>
+            {loading ? <p style={{ color: "var(--td-muted)", fontSize: 14 }}>Loading...</p>
               : workers.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "32px 0" }}>
                   <div style={{ fontSize: 36, marginBottom: 12 }}>👥</div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>No workers yet</p>
-                  <p style={{ fontSize: 13, color: "#94a3b8", marginTop: 4 }}>Add support workers to assign them to jobs.</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "var(--td-dark-text-soft)" }}>No workers yet</p>
+                  <p style={{ fontSize: 13, color: "var(--td-muted)", marginTop: 4 }}>Add support workers to assign them to jobs.</p>
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {workers.map(w => (
-                    <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid #e2e8f0", borderRadius: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#e0e7ff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "#4338ca" }}>
+                    <div key={w.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", border: "1.5px solid var(--td-border)", borderRadius: 10 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--td-pink-tint)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: "var(--td-pink)" }}>
                         {w.name[0]}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 14, fontWeight: 600 }}>{w.name}</span>
                           {w.status === "DRAFT" && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: "2px 8px" }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--td-ink-800)", background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 12, padding: "2px 8px" }}>
                               Setup Incomplete
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 12, color: "#94a3b8" }}>{w.email ?? w.phone ?? "No contact"}</div>
+                        <div style={{ fontSize: 12, color: "var(--td-muted)" }}>{w.email ?? w.phone ?? "No contact"}</div>
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
                         <Link href={`/team/${w.id}/edit`}>
-                          <button style={{ height: 32, padding: "0 12px", background: w.status === "DRAFT" ? "#c2185b" : "transparent", border: w.status === "DRAFT" ? "none" : "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: w.status === "DRAFT" ? "#fff" : "#374151", fontWeight: w.status === "DRAFT" ? 600 : 400, cursor: "pointer" }}>
+                          <button style={{ height: 32, padding: "0 12px", background: w.status === "DRAFT" ? "var(--td-pink)" : "transparent", border: w.status === "DRAFT" ? "none" : "1px solid var(--td-border)", borderRadius: 8, fontSize: 12, color: w.status === "DRAFT" ? "var(--td-white)" : "var(--td-dark-text-soft)", fontWeight: w.status === "DRAFT" ? 600 : 400, cursor: "pointer" }}>
                             {w.status === "DRAFT" ? "Continue setup" : "Edit"}
                           </button>
                         </Link>
                         <button
                           onClick={() => handleUnlink(w.id, w.name)}
                           disabled={unlinking === w.id}
-                          style={{ height: 32, padding: "0 12px", background: "transparent", border: "1px solid #fecaca", borderRadius: 8, fontSize: 12, color: "#b91c1c", cursor: "pointer" }}
+                          style={{ height: 32, padding: "0 12px", background: "transparent", border: "1px solid var(--td-pink-tint)", borderRadius: 8, fontSize: 12, color: "var(--td-pink-hover)", cursor: "pointer" }}
                         >
                           {unlinking === w.id ? "..." : "Remove"}
                         </button>

@@ -23,26 +23,87 @@ export interface ShiftSummary {
   suburb: string;
   scheduledStartAt: string;
   status: string;
+  selectedApplicant?: { name: string } | null;
 }
 
 // ─── Dashboard feed ───────────────────────────────────────────────────────────
 
+export interface WorkerDashboardStats {
+  upcomingShifts: number;
+  activeApplications: number;
+  matchedJobs: number;
+  hoursThisWeek: number;
+  completedShifts: number;
+  savedJobs: number;
+  unreadMessages: number;
+}
+
+export interface WorkerApplication {
+  applicationId: string;
+  status: string;
+  createdAt?: string;
+  note?: string | null;
+  rateResponse?: string | null;
+  proposedRate?: number | string | null;
+  job: JobSummary;
+}
+
 export interface WorkerDashboard {
+  stats?: WorkerDashboardStats;
   upcomingShifts: ShiftSummary[];
   matchedJobs: JobSummary[];
-  pendingApplications: { applicationId: string; status: string; job: JobSummary }[];
+  availableNow?: { isAvailableNow: boolean; availableNowUntil: string | null };
+  pendingApplications: WorkerApplication[];
+  shortlistedApplications?: WorkerApplication[];
+  allApplications?: WorkerApplication[];
   unreadNotifications?: number;
   unreadMessages?: number;
 }
 
+export interface ParticipantDashboardStats {
+  activeRequests: number;
+  applicationsReceived: number;
+  confirmedSupports: number;
+  upcomingBookings: number;
+  awaitingConfirmation?: number;
+  urgentRequests: number;
+  draftRequests: number;
+  unreadMessages: number;
+  recurringSupports: number;
+}
+
 export interface ParticipantDashboard {
+  stats?: ParticipantDashboardStats;
   openJobs: JobSummary[];
   upcomingShifts: ShiftSummary[];
   awaitingConfirmation: ShiftSummary[];
   unreadNotifications?: number;
 }
 
+export interface CoordinatorDashboardStats {
+  activeRequests: number;
+  draftRequests: number;
+  urgentRequests: number;
+  unfilledRequests: number;
+  upcomingShifts: number;
+  awaitingConfirmation: number;
+  managedParticipants: number;
+  connectedParticipants?: number;
+  newResponses?: number;
+  confirmedSupport?: number;
+  unreadMessages: number;
+}
+
+export interface CoordinatorRecentResponse {
+  id: string; jobId: string; jobTitle: string; status: string;
+  proposedRate: number | null; message: string | null; createdAt: string;
+  applicant: { id: string; name: string; avatarUrl: string | null };
+  applicantType: "Provider" | "Support worker";
+}
+
 export interface CoordinatorDashboard {
+  stats?: CoordinatorDashboardStats;
+  recentResponses?: CoordinatorRecentResponse[];
   openJobs: JobSummary[];
   upcomingShifts: ShiftSummary[];
   awaitingConfirmation: ShiftSummary[];
@@ -50,11 +111,44 @@ export interface CoordinatorDashboard {
   unreadNotifications?: number;
 }
 
+export interface ProviderDashboardStats {
+  /** Responses received on the Provider's own requests that are still new. */
+  newEnquiries: number;
+  /** Responses received on the Provider's own requests that are shortlisted. */
+  shortlistedCount: number;
+  /** Own requests that have received at least one response. */
+  matchedRequests: number;
+  confirmedIntakes: number;
+  unfilledWorkforceGaps: number;
+  unreadMessages: number;
+  openRequests: number;
+  responsesReceived: number;
+  outgoingPendingApplications: number;
+  /** Direct, service-capacity and housing enquiries waiting for a first response. */
+  newInquiries?: number;
+}
+
 export interface ProviderDashboard {
+  stats?: ProviderDashboardStats;
+  /** Responses to the Provider's own staffing requests. */
+  workerResponses?: { applicationId: string; status: string; applicantName: string | null; job: JobSummary }[];
+  /** The Provider's own open staffing requests. */
+  myRequests?: JobSummary[];
+  /** Own open requests created to replace a booked shift that fell through. */
+  replacementNeeded?: JobSummary[];
+  /** Insurance and Home and Living listing expiries coming up. */
+  expiringSoon?: { label: string; date: string }[];
+  /** The Provider's own outgoing expressions of interest on other people's requests. */
   pendingExpressions: { applicationId: string; job: JobSummary }[];
   activeShifts: ShiftSummary[];
   unassignedAccepted: JobSummary[];
   unreadNotifications?: number;
+  /** Service pipeline strip: referrals awaiting acceptance, intake, and confirmed starts. */
+  pipeline?: { awaitingAcceptance: number; awaitingIntake: number; startConfirmed: number };
+  /** Other people's open, upcoming requests in a category this Provider services. */
+  relevantOpportunities?: JobSummary[];
+  /** Newest-first feed of applications, enquiries and confirmations. */
+  recentActivity?: { id: string; type: "APPLICATION" | "ENQUIRY" | "CONFIRMATION"; at: string; text: string }[];
 }
 
 export interface PlanManagerDashboard {

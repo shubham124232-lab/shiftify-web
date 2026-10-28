@@ -76,7 +76,7 @@ export function AvailabilityGrid({ value, onChange, error }: Props) {
                     : isOpen
                     ? '1.5px solid var(--clr-primary)'
                     : '1.5px solid var(--clr-border)',
-                  background: hasSlot ? 'rgba(79,70,229,0.07)' : '#fff',
+                  background: hasSlot ? 'rgba(183,37,88,0.07)' : 'var(--td-white)',
                   cursor: 'pointer', fontSize: 12, fontWeight: 600,
                   color: hasSlot ? 'var(--clr-primary)' : 'var(--clr-text)',
                   transition: 'all 0.15s',
@@ -99,7 +99,7 @@ export function AvailabilityGrid({ value, onChange, error }: Props) {
                 }}>
                   {slot.startTime}–{slot.endTime}
                   <button type="button" onClick={() => removeSlot(day, slot.startTime, slot.endTime)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 0, fontSize: 12 }}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--td-pink)', padding: 0, fontSize: 12 }}>
                     <i className="bi bi-x" />
                   </button>
                 </div>
@@ -108,7 +108,7 @@ export function AvailabilityGrid({ value, onChange, error }: Props) {
               {/* Inline time picker when active */}
               {isOpen && (
                 <div style={{
-                  marginTop: 8, padding: 10, background: '#fff',
+                  marginTop: 8, padding: 10, background: 'var(--td-white)',
                   border: '1.5px solid var(--clr-primary)', borderRadius: 8,
                 }}>
                   <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
@@ -125,7 +125,7 @@ export function AvailabilityGrid({ value, onChange, error }: Props) {
                   <button type="button" onClick={() => addSlot(day)}
                     style={{
                       width: '100%', height: 30,
-                      background: 'var(--clr-primary)', color: '#fff',
+                      background: 'var(--clr-primary)', color: 'var(--td-white)',
                       border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                     }}>
                     + Add Slot
@@ -136,7 +136,7 @@ export function AvailabilityGrid({ value, onChange, error }: Props) {
           );
         })}
       </div>
-      {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 2, marginBottom: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: 12, color: 'var(--td-pink)', marginTop: 2, marginBottom: 0 }}>{error}</p>}
     </div>
   );
 }

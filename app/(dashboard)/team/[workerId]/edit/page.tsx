@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm, FormProvider } from "react-hook-form";
 import { api } from "@/lib/api";
-import { presignUpload, putFileToR2 } from "@/lib/api/profile";
 import { useAuth } from "@/hooks/useAuth";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,13 +18,13 @@ import { WorkerStep07_Financials } from "@/components/registration/steps/worker/
 
 const inp: React.CSSProperties = {
   width: "100%", height: 40, padding: "0 10px",
-  border: "1.5px solid #e2e8f0", borderRadius: 8,
-  fontSize: 14, outline: "none", background: "#fff", boxSizing: "border-box",
+  border: "1.5px solid var(--td-border)", borderRadius: 8,
+  fontSize: 14, outline: "none", background: "var(--td-white)", boxSizing: "border-box",
 };
 const lbl: React.CSSProperties = {
-  display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4,
+  display: "block", fontSize: 12, fontWeight: 600, color: "var(--td-dark-text-soft)", marginBottom: 4,
 };
-const hint: React.CSSProperties = { fontSize: 11, color: "#94a3b8", marginTop: 4 };
+const hint: React.CSSProperties = { fontSize: 11, color: "var(--td-muted)", marginTop: 4 };
 
 const EXPERIENCE_LEVELS = [
   { value: "BEGINNER",     label: "Beginner (0-1 years)" },
@@ -34,12 +33,24 @@ const EXPERIENCE_LEVELS = [
   { value: "EXPERT",       label: "Expert (7+ years)" },
 ];
 
+// Mirrors Backend REQUIRED_DOCS_BY_ROLE.SUPPORT_WORKER — activation is gated on
+// exactly these, so the checklist and dropdown must list the same set.
 const REQUIRED_DOCS = [
-  { docType: "POLICE_CHECK",   label: "Police Check" },
-  { docType: "NDIS_SCREENING", label: "NDIS Worker Screening Check" },
-  { docType: "WWCC",           label: "Working with Children Check (WWCC)" },
-  { docType: "FIRST_AID",      label: "First Aid Certificate" },
+  { docType: "POLICE_CHECK",                 label: "Police Check" },
+  { docType: "NDIS_SCREENING",               label: "Worker Screening Check" },
+  { docType: "FIRST_AID",                    label: "First Aid Certificate" },
+  { docType: "CPR",                          label: "CPR Certificate" },
+  { docType: "MANUAL_HANDLING",              label: "Manual Handling Certificate" },
+  { docType: "DRIVERS_LICENCE",              label: "Driver's Licence" },
+  { docType: "PUBLIC_LIABILITY_INSURANCE",   label: "Public Liability Insurance" },
+  { docType: "PERSONAL_ACCIDENT_INSURANCE",  label: "Personal Accident Insurance" },
+  { docType: "QUALIFICATION_CERTIFICATE",    label: "Qualification Certificate" },
 ];
+// Accepted for upload but not required for activation.
+const OPTIONAL_DOCS = [
+  { docType: "WWCC", label: "Working with Children Check (WWCC)" },
+];
+const ALL_DOCS = [...REQUIRED_DOCS, ...OPTIONAL_DOCS];
 
 interface ChildDocument {
   id: string;
@@ -222,10 +233,12 @@ export default function EditWorkerPage() {
         servicesOffered, experienceLevel: experienceLevel || undefined,
         serviceAreas: serviceAreas.length ? serviceAreas : undefined,
         travelRadiusKm: radiusNum,
-        ...extra,
+        // Blank date/select inputs arrive as "" — the profile schema rejects those (Invalid date / Invalid enum value).
+        // hasDriversLicence/ownVehicle are form-only toggles; the strict schema takes hasVehicle/driversLicence* below instead.
+        ...Object.fromEntries(Object.entries(extra).filter(([k, v]) => v !== "" && k !== "hasDriversLicence" && k !== "ownVehicle")),
         hasVehicle: extra.ownVehicle,
         driversLicenceType: extra.hasDriversLicence ? extra.driversLicenceType : undefined,
-        driversLicenceExpiry: extra.hasDriversLicence ? extra.driversLicenceExpiry : undefined,
+        driversLicenceExpiry: extra.hasDriversLicence ? (extra.driversLicenceExpiry || undefined) : undefined,
       }).catch(profileErr => {
         console.warn("Profile save warning:", profileErr?.message);
         throw profileErr;
@@ -250,15 +263,12 @@ export default function EditWorkerPage() {
     if (!file || !workerId) return;
     setUploading(true); setDocError(null);
     try {
-      const presign = await presignUpload("compliance", file.name, file.type);
-      await putFileToR2(presign.uploadUrl, file);
-      await api.post("/upload/register-document", {
-        fileKey:   presign.fileKey,
-        fileName:  file.name,
-        mimeType:  file.type,
-        sizeBytes: file.size,
-        docType:   uploadType,
-      });
+      // Attach to the managed worker (not the signed-in Provider): this route
+      // stores the file and creates the Document against :workerId.
+      const form = new FormData();
+      form.append("docType", uploadType);
+      form.append("file", file);
+      await api.post(`/users/${workerId}/documents`, form, { headers: { "Content-Type": "multipart/form-data" } });
       loadDocuments();
     } catch (err: any) {
       setDocError(err?.message ?? "Upload failed.");
@@ -315,20 +325,20 @@ export default function EditWorkerPage() {
       <>
         <PageHeader title="Edit Worker" />
         <div style={{ padding: "32px 20px" }}>
-          <p style={{ color: "#64748b", fontSize: 14 }}>Only providers can edit worker profiles.</p>
+          <p style={{ color: "var(--td-muted-dark)", fontSize: 14 }}>Only providers can edit worker profiles.</p>
         </div>
       </>
     );
   }
 
-  if (loading) return <div style={{ padding: 40, color: "#94a3b8" }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 40, color: "var(--td-muted)" }}>Loading...</div>;
 
   return (
     <>
       <PageHeader
         title="Edit Worker Profile"
         description="Update this worker's details. The worker cannot edit these themselves — you maintain everything on their behalf."
-        actions={<Link href="/team"><Button variant="outline" size="sm">← Back</Button></Link>}
+        actions={<Link href="/provider/workforce"><Button variant="outline" size="sm">← Back</Button></Link>}
       />
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "24px 20px" }}>
 
@@ -336,16 +346,16 @@ export default function EditWorkerPage() {
           <div
             style={{
               marginBottom: 20, borderRadius: 12, padding: "16px 18px",
-              background: readyToActivate ? "#E8F5E9" : "#FFFBEB",
-              border: readyToActivate ? "2px solid #A5D6A7" : "2px solid #FDE68A",
+              background: readyToActivate ? "var(--td-grey)" : "var(--td-grey-tint)",
+              border: readyToActivate ? "2px solid var(--td-border-hard)" : "2px solid var(--td-border)",
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: readyToActivate ? "#2E7D32" : "#92400E" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: readyToActivate ? "var(--td-ink-700)" : "var(--td-ink-800)" }}>
                   {readyToActivate ? "✓ Ready to Activate" : "Setup Incomplete — Draft"}
                 </div>
-                <p style={{ fontSize: 12, color: readyToActivate ? "#2E7D32" : "#92400E", marginTop: 4 }}>
+                <p style={{ fontSize: 12, color: readyToActivate ? "var(--td-ink-700)" : "var(--td-ink-800)", marginTop: 4 }}>
                   {readyToActivate
                     ? "All required details and documents are in place. Activate this worker to make them visible for job matching."
                     : `Still needed before this worker can be activated: ${onboardingMissing.join(", ")}`}
@@ -357,8 +367,8 @@ export default function EditWorkerPage() {
                 onClick={handleActivate}
                 style={{
                   height: 38, padding: "0 18px", borderRadius: 8, fontSize: 13, fontWeight: 600, border: "none",
-                  background: readyToActivate ? "#2E7D32" : "#e2e8f0",
-                  color: readyToActivate ? "#fff" : "#94a3b8",
+                  background: readyToActivate ? "var(--td-ink-700)" : "var(--td-border)",
+                  color: readyToActivate ? "var(--td-white)" : "var(--td-muted)",
                   cursor: readyToActivate && !activating ? "pointer" : "not-allowed",
                 }}
               >
@@ -366,7 +376,7 @@ export default function EditWorkerPage() {
               </button>
             </div>
             {activateError && (
-              <p style={{ fontSize: 12, color: "#C62828", marginTop: 10, fontWeight: 600 }}>✗ {activateError}</p>
+              <p style={{ fontSize: 12, color: "var(--td-pink-hover)", marginTop: 10, fontWeight: 600 }}>✗ {activateError}</p>
             )}
           </div>
         )}
@@ -377,9 +387,9 @@ export default function EditWorkerPage() {
             <CardHeader><CardTitle>Personal details</CardTitle></CardHeader>
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {username && (
-                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>Login username</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1e293b", fontFamily: "monospace" }}>{username}</span>
+                <div style={{ background: "var(--td-grey-tint)", border: "1px solid var(--td-border)", borderRadius: 8, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "var(--td-muted-dark)" }}>Login username</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--td-ink-800)", fontFamily: "monospace" }}>{username}</span>
                 </div>
               )}
               <div>
@@ -410,9 +420,9 @@ export default function EditWorkerPage() {
                         key={cat.value} type="button" onClick={() => toggleService(cat.value)}
                         style={{
                           padding: "6px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                          border: selected ? "2px solid #c2185b" : "1.5px solid #e2e8f0",
-                          background: selected ? "rgba(194,24,91,0.08)" : "#fff",
-                          color: selected ? "#c2185b" : "#64748b",
+                          border: selected ? "2px solid var(--td-pink)" : "1.5px solid var(--td-border)",
+                          background: selected ? "rgba(183,37,88,0.08)" : "var(--td-white)",
+                          color: selected ? "var(--td-pink)" : "var(--td-muted-dark)",
                         }}
                       >
                         {cat.label}
@@ -482,11 +492,11 @@ export default function EditWorkerPage() {
             <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <label style={lbl}>NDIS Screening Number</label>
+                  <label style={lbl}>Worker Screening Check Number</label>
                   <input style={inp} {...extraForm.register("ndisScreeningNumber")} />
                 </div>
                 <div>
-                  <label style={lbl}>NDIS Screening Expiry</label>
+                  <label style={lbl}>Worker Screening Check Expiry</label>
                   <input style={inp} type="date" {...extraForm.register("ndisScreeningExpiry")} />
                 </div>
                 <div>
@@ -523,27 +533,27 @@ export default function EditWorkerPage() {
                   <input style={inp} type="date" {...extraForm.register("cprExpiry")} />
                 </div>
               </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--td-dark-text-soft)" }}>
                 <input type="checkbox" {...extraForm.register("infectionControlCompleted")} /> Infection Control Training completed
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--td-dark-text-soft)" }}>
                 <input type="checkbox" {...extraForm.register("manualHandlingCompleted")} /> Manual Handling Training completed
               </label>
             </CardContent>
           </Card>
 
           {error && (
-            <div style={{ background: "#FFF0F0", border: "2px solid #FFCDD2", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#C62828", fontWeight: 600 }}>
+            <div style={{ background: "var(--td-pink-soft)", border: "2px solid var(--td-pink-tint)", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "var(--td-pink-hover)", fontWeight: 600 }}>
               ✗ {error}
             </div>
           )}
           {success && (
-            <div style={{ background: "#E8F5E9", border: "2px solid #A5D6A7", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "#2E7D32", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: "var(--td-grey)", border: "2px solid var(--td-border-hard)", borderRadius: 10, padding: "14px 16px", fontSize: 13, color: "var(--td-ink-700)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ fontWeight: 600 }}>✓ Worker profile saved successfully.</span>
               <button
                 type="button"
-                onClick={() => router.push("/team")}
-                style={{ background: "#2E7D32", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                onClick={() => router.push("/provider/workforce")}
+                style={{ background: "var(--td-ink-700)", color: "var(--td-white)", border: "none", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               >
                 ← Back to team
               </button>
@@ -552,7 +562,7 @@ export default function EditWorkerPage() {
 
           <div style={{ display: "flex", gap: 12 }}>
             <Button type="submit" loading={saving}>Save changes</Button>
-            <Button type="button" variant="ghost" onClick={() => router.push("/team")}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => router.push("/provider/workforce")}>Cancel</Button>
           </div>
         </form>
 
@@ -565,7 +575,7 @@ export default function EditWorkerPage() {
             </p>
 
             {docError && (
-              <div style={{ background: "#FFF0F0", border: "1px solid #FFCDD2", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#C62828" }}>
+              <div style={{ background: "var(--td-pink-soft)", border: "1px solid var(--td-pink-tint)", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "var(--td-pink-hover)" }}>
                 {docError}
               </div>
             )}
@@ -573,14 +583,14 @@ export default function EditWorkerPage() {
             {documents.length > 0 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {documents.map(doc => (
-                  <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #e2e8f0", borderRadius: 8, padding: "8px 12px" }}>
+                  <div key={doc.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid var(--td-border)", borderRadius: 8, padding: "8px 12px" }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{REQUIRED_DOCS.find(d => d.docType === doc.docType)?.label ?? doc.docType}</div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{doc.fileName} · {doc.status}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--td-ink-800)" }}>{ALL_DOCS.find(d => d.docType === doc.docType)?.label ?? doc.docType}</div>
+                      <div style={{ fontSize: 11, color: "var(--td-muted)" }}>{doc.fileName} · {doc.status}</div>
                     </div>
                     <button
                       type="button" onClick={() => handleDeleteDocument(doc.id)}
-                      style={{ background: "none", border: "none", color: "#C62828", fontSize: 12, cursor: "pointer", fontWeight: 600 }}
+                      style={{ background: "none", border: "none", color: "var(--td-pink-hover)", fontSize: 12, cursor: "pointer", fontWeight: 600 }}
                     >
                       Remove
                     </button>
@@ -593,14 +603,14 @@ export default function EditWorkerPage() {
               <div style={{ flex: "1 1 220px" }}>
                 <label style={lbl}>Document type</label>
                 <select style={inp} value={uploadType} onChange={e => setUploadType(e.target.value)}>
-                  {REQUIRED_DOCS.map(d => <option key={d.docType} value={d.docType}>{d.label}</option>)}
+                  {ALL_DOCS.map(d => <option key={d.docType} value={d.docType}>{d.label}</option>)}
                 </select>
               </div>
               <div>
                 <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleUpload} disabled={uploading} style={{ fontSize: 13 }} />
               </div>
             </div>
-            {uploading && <p style={{ fontSize: 12, color: "#94a3b8" }}>Uploading...</p>}
+            {uploading && <p style={{ fontSize: 12, color: "var(--td-muted)" }}>Uploading...</p>}
           </CardContent>
         </Card>
 
@@ -608,7 +618,7 @@ export default function EditWorkerPage() {
         <Card style={{ marginTop: 20 }}>
           <CardHeader><CardTitle style={{ fontSize: 15 }}>Reset login password</CardTitle></CardHeader>
           <CardContent style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 13, color: "#64748b" }}>Set a new password for this worker's account. Share the new password with them directly.</p>
+            <p style={{ fontSize: 13, color: "var(--td-muted-dark)" }}>Set a new password for this worker's account. Share the new password with them directly.</p>
             <div style={{ position: "relative" }}>
               <input
                 type={showNewPw ? "text" : "password"}
@@ -618,11 +628,11 @@ export default function EditWorkerPage() {
                 style={{ ...inp, paddingRight: 60 }}
               />
               <button type="button" onClick={() => setShowNewPw(v => !v)}
-                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#94a3b8", background: "none", border: "none", cursor: "pointer" }}>
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "var(--td-muted)", background: "none", border: "none", cursor: "pointer" }}>
                 {showNewPw ? "Hide" : "Show"}
               </button>
             </div>
-            {resetSuccess && <p style={{ fontSize: 12, color: "#16a34a", fontWeight: 600 }}>✓ Password updated successfully.</p>}
+            {resetSuccess && <p style={{ fontSize: 12, color: "var(--td-dark-text-soft)", fontWeight: 600 }}>✓ Password updated successfully.</p>}
             <button
               type="button"
               disabled={resetting || newPassword.length < 8}
@@ -634,7 +644,7 @@ export default function EditWorkerPage() {
                 } catch (err: any) { setError(err?.message ?? "Reset failed."); }
                 finally { setResetting(false); }
               }}
-              style={{ alignSelf: "flex-start", height: 38, padding: "0 18px", background: newPassword.length >= 8 ? "#374151" : "#e2e8f0", color: newPassword.length >= 8 ? "#fff" : "#94a3b8", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: newPassword.length >= 8 ? "pointer" : "not-allowed" }}
+              style={{ alignSelf: "flex-start", height: 38, padding: "0 18px", background: newPassword.length >= 8 ? "var(--td-dark-text-soft)" : "var(--td-border)", color: newPassword.length >= 8 ? "var(--td-white)" : "var(--td-muted)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: newPassword.length >= 8 ? "pointer" : "not-allowed" }}
             >
               {resetting ? "Resetting..." : "Reset password"}
             </button>

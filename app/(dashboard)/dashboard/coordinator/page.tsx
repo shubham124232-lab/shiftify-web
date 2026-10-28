@@ -1,45 +1,60 @@
 "use client";
 
 import { SetupBanner } from "@/components/dashboard/setup-banner";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/hooks/useAuth";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { ActionTilesCard, type ActionTile } from "@/components/dashboard/action-tiles";
-import { DashboardTabCard } from "@/components/dashboard/tab-card";
-import { DashboardListRow } from "@/components/dashboard/list-row";
-import { QuickActionsPanel, type QuickAction } from "@/components/dashboard/quick-actions-panel";
-import { LiveShiftboardTeaser } from "@/components/dashboard/live-shiftboard-teaser";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboard, type CoordinatorDashboard } from "@/lib/api/dashboard";
+import { listSavedSearches, type SavedSearch } from "@/lib/api/saved-searches";
 import { api } from "@/lib/api";
+import { URGENCY_STYLE } from "@/lib/constants/job-filters";
 import {
-  Zap, Clock, CalendarClock, CalendarDays, UserCheck, MessageSquare,
-  ClipboardList, Users, AlertTriangle,
-} from "lucide-react";
+  Panel, HeaderLink, OutlineButton, PrimaryButton, Chip, Empty, Avatar, ParticipantViewSelect, useParticipantScope, TierTabs, TIER_LABEL, shortName, when,
+} from "@/components/coordinator/workspace-ui";
+import { JOB_CATEGORIES } from "@/lib/constants/categories";
+import { Users, FileText, MessageSquare, CalendarDays } from "lucide-react";
 
-function expiresInLabel(deadline: string): string {
-  const ms = new Date(deadline).getTime() - Date.now();
-  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
-  if (days <= 0) return "Today";
-  if (days === 1) return "1 day";
-  return `${days} days`;
-}
+// Leaflet touches `window` on import, so the map only loads in the browser.
+const NearbyMap = dynamic(() => import("@/components/provider/NearbyMap"), {
+  ssr: false,
+  loading: () => <div className="h-[340px] w-full rounded-xl border border-slate-200 bg-slate-50" />,
+});
+
+// Public suburb centre only — participant addresses are never mapped.
+const SERVICE_CENTRE = { lat: -33.815, lng: 151.001 };
 
 interface MyJob {
-  id: string; title: string; status: string; urgency: string; suburb: string;
+  id: string; title: string; status: string; urgency: string; suburb: string; category?: string;
+  scheduledStartAt?: string; isRecurring?: boolean;
+  forParticipantUserId?: string | null;
   applicationDeadlineAt: string | null;
   cancelledAt?: string | null; cancelledByRole?: string | null;
   _count: { applications: number };
 }
 
+interface ManagedParticipant { id: string; name: string }
+interface Connection {
+  id: string; status: string; initiatedBy?: string;
+  participant: { id: string; name: string };
+}
+
+const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(JOB_CATEGORIES.map((c) => [c.value, c.label]));
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CoordinatorDashboard() {
   const { user } = useAuth();
-  const [data,        setData]        = useState<CoordinatorDashboard | null>(null);
-  const [myJobs,       setMyJobs]      = useState<MyJob[]>([]);
-  const [loading,      setLoading]     = useState(true);
-  const [jobsLoading,  setJobsLoading] = useState(true);
-  const [error,        setError]       = useState<string | null>(null);
+  const [data,         setData]         = useState<CoordinatorDashboard | null>(null);
+  const [myJobs,       setMyJobs]       = useState<MyJob[]>([]);
+  const [managed,      setManaged]      = useState<ManagedParticipant[]>([]);
+  const [connections,  setConnections]  = useState<Connection[]>([]);
+  const [saved,        setSaved]        = useState<SavedSearch[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [jobsLoading,  setJobsLoading]  = useState(true);
+  const [error,        setError]        = useState<string | null>(null);
+  const [participant,  setParticipant]  = useParticipantScope();
+  const [tier,         setTier]         = useState<string>("ALL");
   // SC-A02 — the first thing the coordinator chose at sign-up, offered once until dismissed.
   const [goal, setGoal] = useState<{ title: string; href: string } | null>(null);
   useEffect(() => {
@@ -55,72 +70,81 @@ export default function CoordinatorDashboard() {
       .then((r) => setMyJobs(r.jobs ?? []))
       .catch(() => {})
       .finally(() => setJobsLoading(false));
+    api.get<{ users: ManagedParticipant[] }>("/linking/participants").then((r) => setManaged(r.users ?? [])).catch(() => {});
+    api.get<{ connections: Connection[] }>("/coordinator-connections").then((r) => setConnections(r.connections ?? [])).catch(() => {});
+    listSavedSearches().then((r) => setSaved(Array.isArray(r) ? r : [])).catch(() => {});
   }, []);
+
+  // Participant view — everyone this coordinator manages or is connected to.
+  const participants = useMemo(() => {
+    const map = new Map<string, string>();
+    managed.forEach((p) => map.set(p.id, p.name));
+    connections.filter((c) => c.status === "ACCEPTED").forEach((c) => map.set(c.participant.id, c.participant.name));
+    return [...map].map(([id, name]) => ({ id, name }));
+  }, [managed, connections]);
+  const nameById = useMemo(() => new Map(participants.map((p) => [p.id, p.name])), [participants]);
 
   if (!user) return null;
 
-  const draftCount    = myJobs.filter((j) => j.status === "DRAFT").length;
-  const openJobs      = myJobs.filter((j) => j.status === "OPEN");
-  const unfilledJobs  = openJobs.filter((j) => j._count.applications === 0);
-  const responseCount = myJobs.reduce((sum, j) => sum + (j._count?.applications ?? 0), 0);
-  const urgentJobs    = openJobs.filter((j) => j.urgency === "RAPID" || j.urgency === "URGENT");
-  const unread        = data?.stats?.unreadMessages ?? 0;
-  const expiringSoon  = openJobs
-    .filter((j) => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() - Date.now() < 1000 * 60 * 60 * 24 * 7)
-    .sort((a, b) => new Date(a.applicationDeadlineAt!).getTime() - new Date(b.applicationDeadlineAt!).getTime());
-
-  const postTiles: ActionTile[] = [
-    { key: "rapid",       icon: Zap,           title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
-    { key: "urgent",      icon: Clock,         title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
-    { key: "last-minute", icon: CalendarClock, title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
-    { key: "routine",     icon: CalendarDays,  title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
-  ];
-
-  // SC-D01 — Post support request, Find workers or providers, Add or connect participant, View responses, Messages.
-  const quickActions: QuickAction[] = [
-    { key: "post",         icon: ClipboardList, label: "Post support request", href: "/jobs/post" },
-    { key: "workers",      icon: Users,         label: "Find workers or providers", href: "/find" },
-    { key: "participants", icon: UserCheck,     label: "Add or connect participant", href: "/participants" },
-    { key: "applications", icon: ClipboardList, label: jobsLoading ? "View responses" : `View responses (${responseCount})`, href: "/jobs/my" },
-    { key: "messages",     icon: MessageSquare, label: unread > 0 ? `Messages (${unread})` : "Messages", href: "/messages" },
-  ];
+  const inView      = (j: MyJob) => participant === "ALL" || j.forParticipantUserId === participant;
+  const jobs        = myJobs.filter(inView);
+  const openJobs    = jobs.filter((j) => j.status === "OPEN");
+  const tierCount   = (k: string) => openJobs.filter((j) => (j.urgency || "ROUTINE") === k).length;
+  const shownJobs   = tier === "ALL" ? openJobs : openJobs.filter((j) => (j.urgency || "ROUTINE") === tier);
+  const pendingConnections = connections.filter((c) => c.status === "PENDING");
+  const participantName = (j: MyJob) => j.forParticipantUserId ? nameById.get(j.forParticipantUserId) : undefined;
 
   // SC-D02 — only the priority items that apply right now are shown.
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const priorityItems: { key: string; text: string; href: string; tone: "red" | "amber" | "slate" }[] = [
-    ...openJobs.filter((j) => j.urgency === "RAPID" && j._count.applications === 0)
-      .map((j) => ({ key: "rapid-" + j.id, text: `Rapid request waiting for responses — ${j.title}`, href: `/jobs/${j.id}`, tone: "red" as const })),
+  const expiringSoon = openJobs
+    .filter((j) => j.applicationDeadlineAt && new Date(j.applicationDeadlineAt).getTime() - Date.now() < 1000 * 60 * 60 * 24 * 7)
+    .sort((a, b) => new Date(a.applicationDeadlineAt!).getTime() - new Date(b.applicationDeadlineAt!).getTime());
+  const attention: { key: string; job: MyJob; chip: string; tone: "red" | "blue" | "slate" }[] = [
+    ...openJobs.filter((j) => (j.urgency === "RAPID" || j.urgency === "URGENT") && j._count.applications === 0)
+      .map((j) => ({ key: "waiting-" + j.id, job: j, chip: "Waiting for responses", tone: "red" as const })),
     ...openJobs.filter((j) => j.urgency === "URGENT" && j._count.applications > 0)
-      .map((j) => ({ key: "urgent-" + j.id, text: `Urgent request with new responses — ${j.title}`, href: `/jobs/${j.id}`, tone: "red" as const })),
-    ...myJobs.filter((j) => j.cancelledByRole === "SUPPORT_WORKER" && j.cancelledAt && new Date(j.cancelledAt).getTime() > weekAgo)
-      .map((j) => ({ key: "cancel-" + j.id, text: `Worker cancelled — replacement needed — ${j.title}`, href: `/jobs/${j.id}`, tone: "red" as const })),
+      .map((j) => ({ key: "responses-" + j.id, job: j, chip: "New responses", tone: "blue" as const })),
+    ...jobs.filter((j) => j.cancelledByRole === "SUPPORT_WORKER" && j.cancelledAt && new Date(j.cancelledAt).getTime() > weekAgo)
+      .map((j) => ({ key: "cancel-" + j.id, job: j, chip: "Replacement needed", tone: "red" as const })),
     ...expiringSoon.slice(0, 3)
-      .map((j) => ({ key: "close-" + j.id, text: `Request closing soon — ${j.title}`, href: `/jobs/${j.id}`, tone: "amber" as const })),
-    ...(!loading && (data?.stats?.awaitingConfirmation ?? 0) > 0
-      ? [{ key: "await", text: `Participant waiting for confirmation (${data?.stats?.awaitingConfirmation})`, href: "/upcoming-support", tone: "amber" as const }] : []),
-    ...(unread > 0 ? [{ key: "unread", text: `Unread message (${unread})`, href: "/messages", tone: "slate" as const }] : []),
+      .map((j) => ({ key: "close-" + j.id, job: j, chip: "Closing soon", tone: "slate" as const })),
   ];
 
-  // SC-D03 — coordination activity summary.
-  const summary: { label: string; value: number | string }[] = [
-    { label: "Connected participants", value: loading ? "…" : (data?.stats?.connectedParticipants ?? 0) },
-    { label: "Active requests", value: loading ? "…" : (data?.stats?.activeRequests ?? 0) },
-    { label: "New responses", value: loading ? "…" : (data?.stats?.newResponses ?? 0) },
-    { label: "Confirmed support", value: loading ? "…" : (data?.stats?.confirmedSupport ?? 0) },
-    { label: "Unfilled requests", value: loading ? "…" : (data?.stats?.unfilledRequests ?? 0) },
-    { label: "Unread messages", value: loading ? "…" : unread },
+  const stats: { label: string; value: number; note: string; icon: typeof Users }[] = [
+    { label: "Connected participants", value: data?.stats?.connectedParticipants ?? participants.length, note: "Approved participant workspaces", icon: Users },
+    { label: "Open requests", value: participant === "ALL" ? (data?.stats?.activeRequests ?? openJobs.length) : openJobs.length, note: "Including unfilled support gaps", icon: FileText },
+    { label: "New responses", value: data?.stats?.newResponses ?? 0, note: "Ready for review", icon: MessageSquare },
+    { label: "Confirmed support", value: data?.stats?.confirmedSupport ?? 0, note: "Upcoming arrangements", icon: CalendarDays },
   ];
 
   return (
     <div className="container-page space-y-6 py-8">
-      <DashboardHeader
-        name={(user.name || (user as any).username || "there").split(" ")[0]}
-        description="What would you like to organise today?"
-      />
+      {/* ── Title row ── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-extrabold leading-tight text-slate-900">My Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">Keep participant needs, responses and upcoming support in view.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <ParticipantViewSelect value={participant} onChange={setParticipant} participants={participants} />
+          <PrimaryButton href="/jobs/post">Post Support Request</PrimaryButton>
+          <Link href="/help-safety" aria-label="Help" className="px-2 text-sm font-semibold text-slate-500 hover:text-slate-900">?</Link>
+        </div>
+      </div>
+
       <SetupBanner />
 
+      {/* ── Plan strip ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 px-3 py-2.5 text-[13px] text-slate-800">
+        <span>Shiftify plan · Manage your support-request posts and add-ons</span>
+        <span className="flex items-center gap-2">
+          <HeaderLink href="/help-safety">How it works</HeaderLink>
+          <OutlineButton href="/subscription" className="px-2.5 py-1.5 text-xs">View plans</OutlineButton>
+        </span>
+      </div>
+
       {goal && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#e4e6ed] bg-white px-4 py-3 text-sm">
           <span className="text-slate-700">You chose to start with: <strong>{goal.title}</strong>.</span>
           <span className="flex gap-3">
             <Link href={goal.href} className="font-semibold underline">Continue</Link>
@@ -130,168 +154,202 @@ export default function CoordinatorDashboard() {
       )}
 
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* ── Main column ── */}
-        <div className="space-y-6 lg:col-span-2">
-          {priorityItems.length > 0 && (
-            <Card>
-              <CardHeader><CardTitle>Requests needing attention</CardTitle></CardHeader>
-              <CardContent className="py-2">
-                {priorityItems.slice(0, 6).map((it) => (
-                  <DashboardListRow key={it.key} title={it.text} href={it.href} rightLabel="View"
-                    badge={<span className={`rounded-full px-2 py-0.5 text-xs ${it.tone === "red" ? "bg-red-100 text-red-700" : it.tone === "amber" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{it.tone === "slate" ? "Info" : "Action"}</span>} />
-                ))}
-              </CardContent>
-            </Card>
-          )}
+      {/* ── Stat cards ── */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border border-[#e4e6ed] bg-white p-6">
+            <div className="flex items-start justify-between">
+              <span className="text-[13px] text-slate-600">{s.label}</span>
+              <s.icon className="h-[18px] w-[18px] text-brand-600" />
+            </div>
+            <div className="mt-3 text-[30px] font-extrabold leading-none text-slate-900">{loading ? "…" : s.value}</div>
+            <div className="mt-3 text-xs text-slate-500">{s.note}</div>
+          </div>
+        ))}
+      </div>
 
-          <Card>
-            <CardHeader><CardTitle>Your coordination activity</CardTitle></CardHeader>
-            <CardContent className="py-3">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {summary.map((s) => (
-                  <div key={s.label} className="rounded-lg border border-slate-200 px-3 py-2.5">
-                    <div className="text-xl font-bold text-slate-900">{s.value}</div>
-                    <div className="text-xs text-slate-500">{s.label}</div>
+      {/* ── Your support requests ── */}
+      <Panel title="Your support requests" action={<HeaderLink href="/jobs/my">View all requests</HeaderLink>}>
+        <TierTabs value={tier} onChange={setTier} loading={jobsLoading} count={(k) => (k === "ALL" ? openJobs.length : tierCount(k))} />
+
+        {jobsLoading ? (
+          <p className="py-8 text-center text-sm text-slate-400">Loading…</p>
+        ) : !shownJobs.length ? (
+          <div className="py-6 text-center">
+            <p className="text-sm text-slate-500">No open support requests yet.</p>
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex justify-center"><OutlineButton href="/participants/connect">Add or connect participant</OutlineButton></div>
+              <div className="flex justify-center"><PrimaryButton href="/jobs/post">Post support request</PrimaryButton></div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 space-y-2.5">
+            {shownJobs.map((j) => {
+              const style = URGENCY_STYLE[j.urgency] ?? URGENCY_STYLE.ROUTINE;
+              const who = participantName(j);
+              return (
+                <div key={j.id} className="flex items-center justify-between gap-4 rounded-lg border-l-2 bg-slate-50 px-3.5 py-3.5" style={{ borderLeftColor: style.solid }}>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap gap-1.5">
+                      {j._count.applications === 0 ? <Chip tone="red">Service gap</Chip> : <Chip tone="green">Live</Chip>}
+                      <Chip tone={style}>{TIER_LABEL[j.urgency] ?? "Routine"}</Chip>
+                      {j.isRecurring && <Chip tone="blue">Recurring</Chip>}
+                    </div>
+                    <p className="mt-2 truncate text-sm font-bold text-slate-900">{j.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{[who && shortName(who), j.suburb, when(j.scheduledStartAt)].filter(Boolean).join(" · ")}</p>
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      {j._count.applications} {j._count.applications === 1 ? "response" : "responses"}{j.category ? ` · ${CATEGORY_LABEL[j.category] ?? j.category}` : ""}
+                    </p>
+                  </div>
+                  <OutlineButton href={`/jobs/${j.id}`}>Manage</OutlineButton>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
+
+      {/* ── Main + right rail ── */}
+      <div className="grid grid-cols-1 gap-[22px] lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <Panel title="Needs your attention" action={<HeaderLink href="/jobs/my">All requests</HeaderLink>} bodyClassName="px-5">
+            {jobsLoading ? <Empty>Loading…</Empty> : !attention.length ? <Empty>No urgent items in this participant view.</Empty> : (
+              <div className="divide-y divide-[#e4e6ed]">
+                {attention.slice(0, 5).map(({ key, job, chip, tone }) => {
+                  const who = participantName(job);
+                  return (
+                    <div key={key} className="flex items-center justify-between gap-4 py-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap gap-1.5">
+                          <Chip tone={tone}>{chip}</Chip>
+                          <Chip tone={URGENCY_STYLE[job.urgency] ?? URGENCY_STYLE.ROUTINE}>{TIER_LABEL[job.urgency] ?? "Routine"}</Chip>
+                        </div>
+                        <p className="mt-2 truncate text-sm font-bold text-slate-900">{job.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">{[who && shortName(who), job.suburb, when(job.scheduledStartAt)].filter(Boolean).join(" · ")}</p>
+                        <p className="mt-1.5 text-xs text-slate-500">{job._count.applications} {job._count.applications === 1 ? "response" : "responses"}{job.category ? ` · ${CATEGORY_LABEL[job.category] ?? job.category}` : ""}</p>
+                      </div>
+                      <OutlineButton href={`/jobs/${job.id}`}>Manage</OutlineButton>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Upcoming support" action={<HeaderLink href="/upcoming-support">Weekly calendar</HeaderLink>} bodyClassName="px-5">
+            {loading ? <Empty>Loading…</Empty> : !data?.upcomingShifts?.length ? <Empty>Confirmed support will appear here.</Empty> : (
+              <div className="divide-y divide-[#e4e6ed]">
+                {data.upcomingShifts.slice(0, 5).map((s) => (
+                  <div key={s.id} className="flex flex-wrap items-center justify-between gap-4 py-5">
+                    <div className="min-w-0">
+                      <Chip tone="green">Confirmed</Chip>
+                      <p className="mt-2 truncate text-sm font-bold text-slate-900">{s.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{[s.suburb, s.selectedApplicant?.name].filter(Boolean).join(" · ")}</p>
+                      <p className="mt-1 text-xs text-slate-500">{when(s.scheduledStartAt)}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <OutlineButton href={`/jobs/${s.id}`}>View support</OutlineButton>
+                      <OutlineButton href="/messages">Message</OutlineButton>
+                    </div>
                   </div>
                 ))}
               </div>
-              <Link href="/jobs/my" className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline">View all activity →</Link>
-            </CardContent>
-          </Card>
+            )}
+          </Panel>
 
-          <ActionTilesCard
-            title="Post a support request"
-            tiles={postTiles}
-            note="Shiftify is not an emergency service. If there is immediate danger, call 000."
-          />
-
-          <DashboardTabCard
-            title="Support requests"
-            headerAction={<Link href="/jobs/post" className="text-sm font-semibold text-brand-600 hover:underline">Post request →</Link>}
-            tabs={[
-              {
-                key: "open", label: "Open", count: loading ? undefined : (data?.stats?.activeRequests ?? data?.openJobs?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.openJobs?.length
-                    ? <p className="py-4 text-sm text-slate-500">No open jobs.</p>
-                    : data.openJobs.map((j) => (
-                      <DashboardListRow key={j.id} icon={<Users className="h-5 w-5" />} title={j.title} subtitle={j.suburb} href={`/jobs/${j.id}`} rightLabel="View" />
-                    )),
-              },
-              {
-                key: "upcoming", label: "Upcoming support", count: loading ? undefined : (data?.stats?.upcomingShifts ?? data?.upcomingShifts?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.upcomingShifts?.length
-                    ? <p className="py-4 text-sm text-slate-500">No upcoming shifts.</p>
-                    : data.upcomingShifts.map((s) => (
-                      <DashboardListRow key={s.id} icon={<Users className="h-5 w-5" />} title={s.title}
-                        subtitle={new Date(s.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
-                        href={`/jobs/${s.id}`} rightLabel="View" />
-                    )),
-              },
-              {
-                key: "awaiting", label: "Participant waiting for confirmation", count: loading ? undefined : (data?.stats?.awaitingConfirmation ?? data?.awaitingConfirmation?.length ?? 0),
-                content: loading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !data?.awaitingConfirmation?.length
-                    ? <p className="py-4 text-sm text-slate-500">Nothing awaiting confirmation.</p>
-                    : data.awaitingConfirmation.map((s) => (
-                      <DashboardListRow key={s.id} icon={<Users className="h-5 w-5" />} title={s.title}
-                        subtitle={new Date(s.scheduledStartAt).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
-                        href={`/jobs/${s.id}`} rightLabel="Confirm" />
-                    )),
-              },
-              {
-                key: "urgent", label: "Urgent", count: jobsLoading ? undefined : urgentJobs.length,
-                content: jobsLoading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !urgentJobs.length
-                    ? <p className="py-4 text-sm text-slate-500">No urgent requests right now.</p>
-                    : urgentJobs.slice(0, 5).map((u) => (
-                      <DashboardListRow key={u.id} icon={<AlertTriangle className="h-5 w-5" />} title={u.title} subtitle={u.suburb} href={`/jobs/${u.id}`}
-                        badge={<span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">{u.urgency.replace("_", " ")}</span>} />
-                    )),
-              },
-              {
-                key: "gaps", label: "Service Gaps", count: jobsLoading ? undefined : unfilledJobs.length,
-                content: jobsLoading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !unfilledJobs.length
-                    ? <p className="py-4 text-sm text-slate-500">No open requests without applicants.</p>
-                    : unfilledJobs.slice(0, 5).map((g) => (
-                      <DashboardListRow key={g.id} icon={<Users className="h-5 w-5" />} title={g.title} href={`/jobs/${g.id}`}
-                        badge={<span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">No applicants</span>} />
-                    )),
-              },
-              {
-                key: "drafts", label: "Drafts", count: jobsLoading ? undefined : draftCount,
-                content: jobsLoading
-                  ? <p className="py-4 text-sm text-slate-400">Loading…</p>
-                  : !draftCount
-                    ? <p className="py-4 text-sm text-slate-500">No drafts yet.</p>
-                    : myJobs.filter((j) => j.status === "DRAFT").map((d) => (
-                      <DashboardListRow key={d.id} icon={<ClipboardList className="h-5 w-5" />} title={d.title} href={`/jobs/${d.id}`} rightLabel="Edit" />
-                    )),
-              },
-            ]}
-          />
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>New worker and provider responses</CardTitle>
-              <Link href="/jobs/my" className="text-sm font-semibold text-brand-600 hover:underline">View all responses →</Link>
-            </CardHeader>
-            <CardContent className="py-2">
-              {loading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
-              ) : !data?.recentResponses?.length ? (
-                <p className="py-4 text-sm text-slate-500">No new responses right now.</p>
-              ) : data.recentResponses.map((r) => (
-                <DashboardListRow
-                  key={r.id}
-                  icon={<Users className="h-5 w-5" />}
-                  title={`${r.applicant.name} · ${r.applicantType}`}
-                  subtitle={`${r.jobTitle}${r.proposedRate != null ? ` · $${r.proposedRate}/hr` : ""}${r.message ? ` · "${r.message.slice(0, 60)}"` : ""}`}
-                  href={`/jobs/${r.jobId}`}
-                  rightLabel="View"
-                />
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Requests expiring soon</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2">
-              {jobsLoading ? (
-                <p className="py-4 text-sm text-slate-400">Loading…</p>
-              ) : !expiringSoon.length ? (
-                <p className="py-4 text-sm text-slate-500">No open requests with a deadline coming up.</p>
-              ) : expiringSoon.slice(0, 5).map((e) => (
-                <DashboardListRow
-                  key={e.id}
-                  title={e.title}
-                  href={`/jobs/${e.id}`}
-                  badge={<span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">{expiresInLabel(e.applicationDeadlineAt!)}</span>}
-                />
-              ))}
-            </CardContent>
-          </Card>
-
-          <LiveShiftboardTeaser />
+          <Panel title="Recent responses" action={<HeaderLink href="/jobs/my">View responses</HeaderLink>}>
+            {loading ? <Empty>Loading…</Empty> : !data?.recentResponses?.length ? <Empty>New responses will appear here.</Empty> : (
+              <div className="space-y-4">
+                {data.recentResponses.slice(0, 4).map((r) => (
+                  <div key={r.id} className="rounded-xl border border-[#e4e6ed] p-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={r.applicant.name} />
+                        <div>
+                          <p className="text-base font-bold text-slate-900">{r.applicant.name}</p>
+                          <p className="text-xs text-slate-500">{r.applicantType}</p>
+                        </div>
+                      </div>
+                      {r.status === "PENDING" && <Chip tone="slate">New</Chip>}
+                    </div>
+                    <p className="mt-5 text-xs text-slate-500">{r.jobTitle} · {when(r.createdAt)}</p>
+                    {r.message && <p className="mt-4 text-sm text-slate-800">{r.message}</p>}
+                    {r.proposedRate != null && (
+                      <div className="mt-4 flex flex-wrap gap-1.5">
+                        <Chip tone="blue">${r.proposedRate.toFixed(2)}/hour indicative</Chip>
+                      </div>
+                    )}
+                    <OutlineButton href={`/jobs/${r.jobId}`} className="mt-4 w-full">Review responses</OutlineButton>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
         </div>
 
-        {/* ── Right rail ── */}
         <div className="space-y-6">
-          <QuickActionsPanel actions={quickActions} />
+          <Panel title="Find support nearby">
+            <div className="relative">
+              <NearbyMap origin={SERVICE_CENTRE} radiusKm={8} pins={[]} />
+              <Link href="/live-dashboard" className="absolute bottom-3 left-3 z-[400] rounded-md bg-white px-2.5 py-1 text-xs font-semibold text-brand-600">Open full map ↗</Link>
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed text-slate-500">Service-area centre. Public suburb centres only. Participant addresses are never mapped publicly. Listings below remain available if the map cannot load.</p>
+            <OutlineButton href="/find" className="mt-3">Find local support</OutlineButton>
+          </Panel>
+
+          <Panel title="Participant connections" action={<OutlineButton href="/participants/new">Add participant</OutlineButton>} bodyClassName="px-5">
+            {!pendingConnections.length ? <Empty>All participant connections are up to date.</Empty> : (
+              <div className="divide-y divide-[#e4e6ed]">
+                {pendingConnections.slice(0, 5).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between gap-3 py-5">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{shortName(c.participant.name)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{c.initiatedBy === "PARTICIPANT" ? "Waiting for your response" : "Awaiting permission approval"}</p>
+                    </div>
+                    <OutlineButton href="/participants">View</OutlineButton>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+
+          <Panel title="Saved searches" action={<HeaderLink href="/jobs/alerts">Manage</HeaderLink>} bodyClassName="px-5">
+            {!saved.length ? <Empty>Saved searches will appear here.</Empty> : (
+              <div className="divide-y divide-[#e4e6ed]">
+                {saved.slice(0, 4).map((s) => {
+                  const q = new URLSearchParams(Object.entries(s.filters).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)]));
+                  return (
+                    <div key={s.id} className="flex items-center justify-between gap-3 py-5">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">{s.label || s.filters.category || "Saved search"}</p>
+                        <p className="mt-1 text-xs text-slate-500">{[s.filters.suburb, s.isActive ? "Alerts on" : "Alerts off"].filter(Boolean).join(" · ")}</p>
+                      </div>
+                      <OutlineButton href={`/find?${q.toString()}`}>Run</OutlineButton>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Panel>
         </div>
+      </div>
+
+      {/* ── Bottom row ── */}
+      <div className="grid grid-cols-1 gap-[22px] md:grid-cols-2">
+        <Panel title="Refer & Earn">
+          <p className="text-sm text-slate-600">A Pro subscriber benefit: refer 10 qualifying professionals and earn a free Pro month.</p>
+          <OutlineButton href="/referrals" className="mt-3">How it works</OutlineButton>
+        </Panel>
+        <Panel title="Optional tools">
+          <p className="text-sm leading-relaxed text-slate-600">Growth for Direct Invite. Speed for Available Now and a focused replacement desk. Shift Blast for optional SMS outreach.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <OutlineButton href="/subscription">Compare add-ons</OutlineButton>
+            <OutlineButton href="/subscription">Shift Blast SMS</OutlineButton>
+          </div>
+        </Panel>
       </div>
     </div>
   );

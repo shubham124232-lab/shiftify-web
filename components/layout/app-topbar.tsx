@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, MessageCircle, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ import { useAuthStore } from "@/lib/store/auth.store";
 import { UserRole } from "@/lib/types";
 import { BranchWorkspaceSelect } from "@/components/provider/BranchWorkspaceSelect";
 import { ProviderIdentity } from "@/components/provider/ProviderIdentity";
+import { CoordinatorIdentity } from "@/components/coordinator/CoordinatorIdentity";
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING:   "bg-amber-100 text-amber-800",
@@ -29,8 +30,41 @@ const PROVIDER_MENU = [
   { href: "/provider/help", label: "Help and Tickets", icon: LifeBuoy },
 ];
 
+const COORDINATOR_MENU = [
+  { href: "/profile", label: "My profile" },
+  { href: "/documents", label: "Documents" },
+  { href: "/subscription", label: "Membership and billing" },
+  { href: "/settings", label: "Settings" },
+  { href: "/help-safety", label: "Help and Tickets" },
+];
+
 function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+}
+
+// Support Coordinator profile menu: avatar opens a plain card of links, as in the SC workspace.
+function CoordinatorProfileMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
+  useEffect(() => { if (ref.current) ref.current.open = false; }, [pathname]);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (ref.current?.open && !ref.current.contains(e.target as Node)) ref.current.open = false; };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+  return (
+    <details ref={ref} className="sc-profile">
+      <summary aria-label="Open profile menu">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#fde8f0] text-[13px] font-bold text-[#c91355]">{initials(name)}</span>
+      </summary>
+      <div className="sc-profile-menu">
+        <strong>{name}</strong>
+        <small>Support Coordinator</small>
+        {COORDINATOR_MENU.map((m) => <Link key={m.href} href={m.href}>{m.label}</Link>)}
+        <button type="button" onClick={onSignOut}>Sign out</button>
+      </div>
+    </details>
+  );
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -72,6 +106,9 @@ export function AppTopbar() {
     : `Acting as ${ROLE_LABELS[role]}.`;
 
   const isProviderUser = user.activeRole === UserRole.PROVIDER;
+  const isCoordinatorUser = user.activeRole === UserRole.COORDINATOR;
+  // Provider and Support Coordinator workspaces share the full-width header.
+  const workspaceMenu = PROVIDER_MENU;
 
   const profileMenuItems = (
     <MenuItems
@@ -80,7 +117,7 @@ export function AppTopbar() {
     >
       <div className="border-b border-slate-100 px-4 py-3">
         <p className="m-0 truncate text-sm font-semibold text-slate-900">{displayName}</p>
-        <p className="m-0 truncate text-xs text-slate-500">Provider account</p>
+        <p className="m-0 truncate text-xs text-slate-500">{isCoordinatorUser ? "Support Coordinator account" : "Provider account"}</p>
       </div>
       <MenuItem>
         {({ focus }: { focus: boolean }) => (
@@ -90,7 +127,7 @@ export function AppTopbar() {
           </Link>
         )}
       </MenuItem>
-      {PROVIDER_MENU.map((m) => (
+      {workspaceMenu.map((m) => (
         <MenuItem key={m.href}>
           {({ focus }: { focus: boolean }) => (
             <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
@@ -115,16 +152,16 @@ export function AppTopbar() {
     </MenuItems>
   );
 
-  // Provider demo header: full-width, 88px, logo + organisation on the left, branch / bell / messages / profile on the right.
-  if (isProviderUser) {
+  // Provider / Coordinator workspace header: full-width, 88px, logo + identity on the left, bell / messages / profile on the right.
+  if (isProviderUser || isCoordinatorUser) {
     return (
       <header className="z-20 flex h-[88px] shrink-0 items-center gap-6 border-b border-[#e4e6ed] bg-white px-8 py-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo.png" alt="Shiftify" className="h-16 w-32 shrink-0 object-contain" />
-        <ProviderIdentity />
+        {isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}
         <div className="flex-1" />
         <div className="flex items-center gap-3">
-          <BranchWorkspaceSelect />
+          {isProviderUser && <BranchWorkspaceSelect />}
           <button
             type="button"
             onClick={() => router.push("/notifications")}
@@ -141,6 +178,9 @@ export function AppTopbar() {
           >
             <MessageCircle className="h-[18px] w-[18px]" />
           </Link>
+          {isCoordinatorUser ? (
+            <CoordinatorProfileMenu name={displayName} onSignOut={handleLogout} />
+          ) : (
           <Menu as="div" className="relative">
             <MenuButton className="flex items-center gap-[7px] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Profile menu">
               <span className="grid h-10 w-10 place-items-center rounded-full bg-[#fde8f0] text-sm font-bold text-[#c91355]">{initials(displayName)}</span>
@@ -148,6 +188,7 @@ export function AppTopbar() {
             </MenuButton>
             {profileMenuItems}
           </Menu>
+          )}
         </div>
       </header>
     );

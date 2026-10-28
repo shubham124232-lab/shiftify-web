@@ -148,23 +148,34 @@ function navForRole(role: string, managed = false): RoleNav {
       return { main: groups.flatMap((g) => g.items), account: [], groups };
     }
     case "COORDINATOR":
+      // Support Coordinator workspace (approved SC demo): flat menu, then account pages.
       return {
         main: [
           dash,
-          { href: "/participants",         label: "Participants",              icon: UserCheck },
-          { href: "/jobs/post",            label: "Post Support Request",      icon: FilePlus },
-          { href: "/find",                 label: "Find Support",              icon: Search },
+          { href: "/live-dashboard",       label: "Live Shiftboard ↗",         icon: Radio },
+          { href: "/participants",         label: "Participants",              icon: Users },
           { href: "/jobs/my",              label: "Requests & Responses",      icon: ClipboardList },
-          { href: "/upcoming-support",     label: "Upcoming Support",          icon: Calendar },
+          { href: "/find",                 label: "Find Support",              icon: Search },
+          { href: "/upcoming-support",     label: "Confirmed Support",         icon: ShieldCheck },
+          { href: "/calendar",             label: "Calendar",                  icon: Calendar },
           { href: "/messages",             label: "Messages",                  icon: MessageSquare },
-          { href: "/saved-professionals",  label: "Saved Workers & Providers", icon: Star },
-          { href: "/profile",              label: "My Profile",                icon: User },
-          { href: "/subscription",         label: "Subscription",              icon: CreditCard },
-          { href: "/help-safety",          label: "Help",                      icon: ShieldCheck },
+          { href: "/refer-and-earn",       label: "Refer & Earn",              icon: Gift },
+        ],
+        // "Account & tools" — a collapsible text-only group. Saved Workers & Providers lives under Find Support's tabs.
+        account: [
+          { href: "/profile",              label: "Profile & enquiries",       icon: User },
+          { href: "/organisation-team",    label: "Organisation & team",       icon: Building2 },
           // Required documents are a submission gate for Coordinators, so Documents stays reachable.
           { href: "/documents",            label: "Documents",                 icon: FileText },
+          { href: "/reports",              label: "Reports",                   icon: BarChart3 },
+          { href: "/subscription",         label: "Subscription & billing",    icon: CreditCard },
+          { href: "/add-ons",              label: "Add-ons",                   icon: Layers },
+          { href: "/shift-blast",          label: "Shift Blast SMS",           icon: Megaphone },
+          { href: "/action-history",       label: "Free action history",       icon: Clock },
+          NOTIFICATIONS,
+          { href: "/help-safety",          label: "Help & tickets",            icon: LifeBuoy },
+          { href: "/settings",             label: "Settings",                  icon: Settings },
         ],
-        account: [NOTIFICATIONS],
       };
     case "PLAN_MANAGER":
       return {
@@ -217,8 +228,11 @@ export function AppSidebar() {
   // Count badges on the Provider menu (open requests, new enquiries) come from the dashboard summary.
   const [badges, setBadges] = useState<Partial<Record<NavBadge, number>>>({});
   const isProvider = user?.activeRole === "PROVIDER";
-  // The Provider menu is always expanded (demo shell has no collapse control).
-  const collapsed = isProvider ? false : collapsedPref;
+  const isCoordinator = user?.activeRole === "COORDINATOR";
+  // Provider and Coordinator workspaces share the flat demo menu style.
+  const isWorkspace = isProvider || isCoordinator;
+  // The workspace menus are always expanded (demo shell has no collapse control).
+  const collapsed = isWorkspace ? false : collapsedPref;
   useEffect(() => {
     if (!isProvider) return;
     let cancelled = false;
@@ -236,7 +250,25 @@ export function AppSidebar() {
   const nav = navForRole(user.activeRole as string, user.accountType === "MANAGED");
   const items = nav.main;
 
-  function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
+  // `compact`: the coordinator "Account & tools" rows — 12px text, no icon, indented.
+  function NavLink({ item, onClick, compact = false }: { item: NavItem; onClick?: () => void; compact?: boolean }) {
+    if (compact) {
+      const active = pathname === item.href || !!pathname?.startsWith(item.href + "/");
+      return (
+        <li>
+          <Link
+            href={item.href}
+            onClick={onClick}
+            className={cn(
+              "my-0.5 flex min-h-[35px] items-center rounded-lg py-2.5 pl-[25px] pr-3 text-xs",
+              active ? "bg-[#fff0f5] font-bold text-[#c91355]" : "font-medium text-[#555a68] hover:bg-[#f8f8fa]",
+            )}
+          >
+            {item.label}
+          </Link>
+        </li>
+      );
+    }
     const Icon = item.icon;
     // Only the most specific matching item is highlighted, so /jobs/my does not also light up /jobs.
     const jobId = pathname?.match(/^\/jobs\/([0-9a-f-]{36})$/i)?.[1];
@@ -253,12 +285,12 @@ export function AppSidebar() {
           onClick={onClick}
           className={cn(
             "group relative flex items-center px-3 py-2.5 text-sm transition-all duration-150",
-            isProvider ? "min-h-[44px] gap-[11px] rounded-lg" : "gap-3 rounded-xl font-medium",
+            isWorkspace ? "min-h-[44px] gap-[11px] rounded-lg" : "gap-3 rounded-xl font-medium",
             isActive
-              ? isProvider
+              ? isWorkspace
                 ? "bg-[#fff0f5] font-bold text-[#c91355]"
                 : "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/25"
-              : isProvider
+              : isWorkspace
                 ? "font-medium text-[#555a68] hover:bg-slate-50 hover:text-slate-900"
                 : "text-slate-600 hover:translate-x-0.5 hover:bg-slate-50 hover:text-slate-900",
           )}
@@ -268,15 +300,15 @@ export function AppSidebar() {
           ) : (
           <Icon className={cn(
             "h-[18px] w-[18px] shrink-0 transition-colors",
-            isActive ? (isProvider ? "text-[#c91355]" : "text-white") : isProvider ? "text-[#555a68]" : "text-slate-400 group-hover:text-brand-600",
+            isActive ? (isWorkspace ? "text-[#c91355]" : "text-white") : isWorkspace ? "text-[#555a68]" : "text-slate-400 group-hover:text-brand-600",
           )} />
           )}
-          {!collapsed && <span className={cn("tracking-tight", isProvider ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
+          {!collapsed && <span className={cn("tracking-tight", isWorkspace ? "whitespace-nowrap" : "truncate")}>{item.label}</span>}
           {!collapsed && !!item.badge && !!badges[item.badge] && (
             <span className={cn(
               "ml-auto px-1.5 font-bold",
-              isProvider ? "rounded-[5px] bg-[#edf0f4] text-xs font-medium leading-5 text-[#555a68]" : "rounded-full text-[10px] leading-4",
-              !isProvider && (isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"),
+              isWorkspace ? "rounded-[5px] bg-[#edf0f4] text-xs font-medium leading-5 text-[#555a68]" : "rounded-full text-[10px] leading-4",
+              !isWorkspace && (isActive ? "bg-white/25 text-white" : "bg-brand-50 text-brand-700"),
             )}>{badges[item.badge]}</span>
           )}
         </Link>
@@ -287,7 +319,7 @@ export function AppSidebar() {
   function SidebarContents({ mobile = false }: { mobile?: boolean }) {
     return (
       <>
-        {(!isProvider || mobile) && <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
+        {(!isWorkspace || mobile) && <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {(!collapsed || mobile)
@@ -309,7 +341,16 @@ export function AppSidebar() {
             </button>
           )}
         </div>}
-        <nav className={cn("flex flex-1 flex-col justify-between overflow-y-auto", isProvider ? "px-3 pb-4 pt-6" : "p-3")}>
+        <nav className={cn("flex flex-1 flex-col justify-between overflow-y-auto", isWorkspace ? "px-3 pb-4 pt-6" : "p-3")}>
+          {isCoordinator && (
+            <Link
+              href="/jobs/post"
+              onClick={mobile ? () => setMobileOpen(false) : undefined}
+              className="mb-5 flex min-h-[44px] items-center justify-center rounded-lg bg-[#c91355] px-3 text-sm font-bold text-white hover:bg-[#a90f47]"
+            >
+              Post Support Request
+            </Link>
+          )}
           {nav.groups ? (
             <div className={isProvider ? "space-y-6" : "space-y-3"}>
               {nav.groups.map((g) => (
@@ -327,15 +368,22 @@ export function AppSidebar() {
             </div>
           ) : (
           <div>
-            {(!collapsed || mobile) && (
+            {(!collapsed || mobile) && !isCoordinator && (
               <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Menu</p>
             )}
-            <ul className="space-y-1">
+            <ul className={isCoordinator ? "m-0 list-none space-y-0.5 p-0" : "space-y-1"}>
               {items.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
           )}
-          {nav.account.length > 0 && (
+          {isCoordinator ? (
+            <details className="sc-account-tools" open>
+              <summary><Sun className="h-[18px] w-[18px]" strokeWidth={1.7} /> Account &amp; tools</summary>
+              <ul className="m-0 list-none p-0">
+                {nav.account.map(item => <NavLink key={item.href} item={item} compact onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
+              </ul>
+            </details>
+          ) : nav.account.length > 0 && (
           <div className="border-t border-slate-100 pt-3">
             {(!collapsed || mobile) && (
               <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">Account</p>
@@ -344,6 +392,14 @@ export function AppSidebar() {
               {nav.account.map(item => <NavLink key={item.href} item={item} onClick={mobile ? () => setMobileOpen(false) : undefined} />)}
             </ul>
           </div>
+          )}
+          {isCoordinator && (
+            <>
+              <Link href="/help-safety" className="mx-3 my-5 block text-[11px] text-[#9a1746]">Understand each feature ↗</Link>
+              <p className="m-0 border-t border-[#e4e6ed] px-3 pt-4 text-[11px] leading-relaxed text-slate-500">
+                Shiftify connects people and services. Service agreements and payments are arranged directly.
+              </p>
+            </>
           )}
         </nav>
       </>
@@ -382,6 +438,8 @@ export function AppSidebar() {
         "hidden md:flex flex-col shrink-0 bg-white transition-[width] duration-200 overflow-hidden",
         isProvider
           ? "relative z-10 w-64 shadow-[15px_0_40px_rgba(0,0,0,0.067)]"
+          : isCoordinator
+          ? "w-64 border-r border-[#e4e6ed]"
           : cn("border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(20,24,28,0.12)]", collapsed ? "w-16" : "w-56"),
       )}>
         <SidebarContents />

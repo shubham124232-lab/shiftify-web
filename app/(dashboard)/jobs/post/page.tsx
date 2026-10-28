@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { TIER_META, type PostingTier } from "@/lib/types/posting";
+import { WizardSidePanel } from "@/components/jobs/post/shared";
+import { WorkspacePage, Panel, SubTabs } from "@/components/coordinator/workspace-ui";
+import { URGENCY_STYLE } from "@/lib/constants/job-filters";
 import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 import { Zap, Clock, CalendarDays, Timer, LayoutGrid, ShieldCheck } from "lucide-react";
@@ -198,6 +201,43 @@ export default function PostRequestTierPicker() {
             <p className="text-sm text-slate-500 mt-1">Posting as a support coordinator.</p>
           </button>
       </PickerShell>
+    );
+  }
+
+  // Support Coordinator workspace frame: the same four timing journeys as cards.
+  if (activeRole === "COORDINATOR") {
+    return (
+      <WorkspacePage title="Post Support Request" description="Case-linked support, with private information kept separate.">
+        <SubTabs items={[
+          { label: "All requests", href: "/jobs/my" },
+          { label: "Responses", href: "/jobs/my" },
+          { label: "Post support request", active: true },
+        ]} />
+        <Panel title="How quickly is support needed?">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {TIER_ORDER.map((tier) => {
+              const meta = TIER_META[tier];
+              return (
+                <button
+                  key={tier}
+                  type="button"
+                  onClick={() => router.push(`/jobs/post/${meta.path}`)}
+                  className="flex flex-col rounded-xl border border-[#e4e6ed] bg-white p-5 text-left hover:bg-slate-50"
+                  style={{ borderTopWidth: 3, borderTopColor: URGENCY_STYLE[tier]?.solid }}
+                >
+                  <span className="flex w-full items-center justify-between gap-2">
+                    <span className="text-base font-extrabold text-slate-900">{meta.label}</span>
+                    <span className="rounded-md bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-600">{meta.timing}</span>
+                  </span>
+                  <span className="mt-2 text-sm text-slate-600">{TIER_DESCRIPTIONS[tier]}</span>
+                  <span className="mt-4 text-sm font-bold text-brand-600">Start {meta.label.toLowerCase()} request →</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-5 text-xs text-slate-500">Progress saves on each step. If anyone is in immediate danger or needs emergency medical help, call Triple Zero (000). Shiftify is not an emergency service.</p>
+        </Panel>
+      </WorkspacePage>
     );
   }
 

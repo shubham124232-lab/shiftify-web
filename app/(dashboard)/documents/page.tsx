@@ -7,6 +7,9 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProviderDocuments } from "@/components/provider/ProviderDocuments";
+import {
+  WorkspacePage, Panel, FilterBar, fieldClass, Chip, Empty, ErrorNote, OutlineButton, PrimaryButton,
+} from "@/components/coordinator/workspace-ui";
 
 interface Doc {
   id: string;
@@ -153,6 +156,62 @@ function DocumentsPage() {
     } catch (err: any) {
       setError(err?.message ?? "Delete failed.");
     }
+  }
+
+  // Support Coordinator workspace layout — same upload / delete handlers as below.
+  if (activeRole === "COORDINATOR") {
+    const sorted = [...docs].sort((a, b) => DOC_GROUPS.indexOf(docGroup(a)) - DOC_GROUPS.indexOf(docGroup(b)));
+    return (
+      <WorkspacePage
+        title="Documents"
+        description="Professional evidence and review status. Participant files stay in their case workspace."
+        actions={<PrimaryButton onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Uploading…" : "Add document"}</PrimaryButton>}
+      >
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <FilterBar>
+          <select value={selType} onChange={e => setSelType(e.target.value)} className={`${fieldClass} min-w-[14rem]`} aria-label="Document type">
+            {docTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            Expiry date
+            <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className={fieldClass} />
+          </label>
+          <OutlineButton onClick={() => fileRef.current?.click()} disabled={uploading}>{uploading ? "Uploading…" : "Choose file & upload"}</OutlineButton>
+          <span className="text-xs text-slate-500">PDF, JPG or PNG. Max 10 MB.</span>
+          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleUpload} />
+        </FilterBar>
+        <Panel title="Professional documents" bodyClassName="px-5">
+          {loading ? <Empty>Loading…</Empty> : !sorted.length ? <Empty>No documents uploaded yet. Add your insurance and qualifications to get started.</Empty> : (
+            <div className="divide-y divide-[#e4e6ed]">
+              {sorted.map(doc => {
+                const group = docGroup(doc);
+                const typeLabel = ALL_LABELS.find(t => t.value === doc.docType)?.label ?? doc.docType;
+                const chip = doc.status === "REJECTED" ? <Chip tone="red">Rejected</Chip>
+                  : group === "Expired" ? <Chip tone="red">Expired</Chip>
+                  : group === "Expiring soon" ? <Chip tone="amber">Expiring soon</Chip>
+                  : doc.status === "VERIFIED" ? <Chip tone="green">Current</Chip>
+                  : <Chip tone="amber">Pending review</Chip>;
+                return (
+                  <div key={doc.id} className="flex flex-wrap items-center justify-between gap-3 py-5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-900">{doc.fileName}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {typeLabel} · {doc.expiryDate ? `Expires ${new Date(doc.expiryDate).toLocaleDateString("en-AU")}` : "No expiry recorded"}
+                      </p>
+                      {doc.rejectionReason && <p className="mt-1 text-xs text-red-700">Rejected: {doc.rejectionReason}</p>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {chip}
+                      <OutlineButton onClick={() => handleDelete(doc.id)}>Remove</OutlineButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Panel>
+      </WorkspacePage>
+    );
   }
 
   return (

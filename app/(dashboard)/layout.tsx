@@ -34,7 +34,16 @@ const ROLE_ONLY_AREAS: { prefix: string; roles: string[] }[] = [
   { prefix: "/job-invites",             roles: ["SUPPORT_WORKER", "PROVIDER"] },
   { prefix: "/coordinator-connections", roles: ["COORDINATOR", "PARTICIPANT"] },
   { prefix: "/participants",            roles: ["COORDINATOR"] },
+  { prefix: "/calendar",                roles: ["COORDINATOR"] },
+  { prefix: "/refer-and-earn",          roles: ["COORDINATOR"] },
+  { prefix: "/organisation-team",       roles: ["COORDINATOR"] },
+  { prefix: "/reports",                 roles: ["COORDINATOR"] },
+  { prefix: "/add-ons",                 roles: ["COORDINATOR"] },
+  { prefix: "/shift-blast",             roles: ["COORDINATOR"] },
+  { prefix: "/action-history",          roles: ["COORDINATOR"] },
+  { prefix: "/settings",                roles: ["COORDINATOR"] },
   { prefix: "/team",                    roles: ["PROVIDER"] },
+  { prefix: "/provider/help",           roles: ["PROVIDER", "COORDINATOR"] }, // ticket detail is shared with Coordinator Help & Tickets
   { prefix: "/provider",                roles: ["PROVIDER"] },
 ];
 
@@ -146,6 +155,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const workspaceShell = user?.activeRole === "PROVIDER" || user?.activeRole === "COORDINATOR";
+
   return (
     <div className="td-theme flex h-screen flex-col" data-active-role={user?.activeRole}>
       {user?.activeRole === "PROVIDER" && (
@@ -154,12 +165,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span>0% Platform commission</span>
         </div>
       )}
-      {/* Provider demo shell: the header spans the full width above the menu and the page. */}
-      {user?.activeRole === "PROVIDER" && <AppTopbar />}
+      {/* Provider / Coordinator workspace shell: the header spans the full width above the menu and the page. */}
+      {workspaceShell && <AppTopbar />}
       <div className="flex min-h-0 flex-1">
         <AppSidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
-          {user?.activeRole !== "PROVIDER" && <AppTopbar />}
+          {!workspaceShell && <AppTopbar />}
           <StatusBanner />
           <ResumeDraftBanner />
           <AdminInviteBanner />

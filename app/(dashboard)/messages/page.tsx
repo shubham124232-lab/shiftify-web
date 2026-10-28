@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { api } from "@/lib/api";
+import { CoordinatorMessages } from "@/components/coordinator/pages/Messages";
 
 interface Message {
   id: string;
@@ -170,6 +171,7 @@ function ProviderMessages() {
 
 export default function MessagesPage() {
   const { activeRole } = useAuth();
+  if (activeRole === "COORDINATOR") return <CoordinatorMessages />;
   return activeRole === "PROVIDER" ? <ProviderMessages /> : <GeneralMessages />;
 }
 

@@ -8,6 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { ProviderWorkerBoard } from "@/components/provider/ProviderWorkerBoard";
+import {
+  WorkspacePage, Panel, SubTabs, FilterBar, fieldClass, Chip, Avatar, Empty, ErrorNote, OutlineButton, PrimaryButton,
+} from "@/components/coordinator/workspace-ui";
+import { FIND_TABS } from "@/components/coordinator/pages/find-tabs";
 
 const LIST_TYPES = [
   "GENERAL",
@@ -66,6 +70,7 @@ export default function SavedProfessionalsRoute() {
 }
 
 function SavedProfessionalsPage() {
+  const { activeRole } = useAuth();
   const [saved, setSaved] = useState<SavedProfessional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +116,78 @@ function SavedProfessionalsPage() {
 
   const visible = activeFilter === "ALL" ? saved : saved.filter(item => item.listType === activeFilter);
   const presentTypes = LIST_TYPES.filter(t => saved.some(item => item.listType === t));
+
+  // Support Coordinator workspace layout — same remove / add-to-list actions as below.
+  if (activeRole === "COORDINATOR") {
+    return (
+      <WorkspacePage
+        title="Find Workers & Providers"
+        description="Browse suitable professionals. Availability is self-reported and confirmed for each request."
+        actions={<PrimaryButton href="/find">Find support</PrimaryButton>}
+      >
+        <SubTabs items={FIND_TABS("SAVED")} />
+        {error && <ErrorNote>{error}</ErrorNote>}
+        {!loading && saved.length > 0 && (
+          <FilterBar>
+            <select className={`${fieldClass} min-w-[14rem]`} value={activeFilter} onChange={e => setActiveFilter(e.target.value as ListType | "ALL")} aria-label="Saved list">
+              <option value="ALL">All saved ({saved.length})</option>
+              {presentTypes.map(t => <option key={t} value={t}>{LIST_TYPE_LABELS[t]} ({saved.filter(item => item.listType === t).length})</option>)}
+            </select>
+          </FilterBar>
+        )}
+        {loading ? <Empty>Loading…</Empty> : !visible.length ? (
+          <Panel><Empty>{saved.length ? "No professionals in this list yet." : "No saved professionals yet. Save workers and providers from Find Support to build your shortlist."}</Empty></Panel>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {visible.map(item => {
+              const isWorker = item.professional.roles.some(r => r.role === "SUPPORT_WORKER");
+              const wp = item.professional.workerProfile;
+              const pp = item.professional.providerProfile;
+              const name = pp?.businessName ?? item.professional.name;
+              const services = (isWorker ? wp?.servicesOffered : pp?.coreServices) ?? [];
+              const rating = isWorker ? wp?.rating : pp?.averageRating;
+              const totalReviews = isWorker ? wp?.totalReviews : pp?.totalRatings;
+              return (
+                <div key={item.id} className="flex flex-col rounded-xl border border-[#e4e6ed] bg-white p-6">
+                  <div className="flex items-start gap-3">
+                    <Avatar name={name} tone={isWorker ? "pink" : "blue"} />
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-bold text-slate-900">{name}</p>
+                      <p className="text-xs text-slate-500">{isWorker ? "Independent Support Worker" : "Provider"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    <Chip tone={item.listType === "DO_NOT_INVITE" ? "red" : "green"}>{LIST_TYPE_LABELS[item.listType]}</Chip>
+                    {services.slice(0, 3).map(sv => <Chip key={sv} tone="slate">{sv}</Chip>)}
+                  </div>
+                  {item.note && <p className="mt-4 text-sm text-slate-700">{item.note}</p>}
+                  <p className="mt-4 text-xs text-slate-500">
+                    {[wp?.suburb && `${wp.suburb}${wp.state ? `, ${wp.state}` : ""}`, wp?.hourlyRate != null && `$${wp.hourlyRate.toFixed(2)}/hour indicative`, !!totalReviews && `★ ${rating?.toFixed(1)} (${totalReviews})`].filter(Boolean).join(" · ")}
+                  </p>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <OutlineButton href={`/profile/${item.professionalUserId}`}>View profile</OutlineButton>
+                    <select
+                      className={`${fieldClass} h-[38px]`}
+                      disabled={addingId === item.professionalUserId}
+                      value=""
+                      onChange={e => { const v = e.target.value as ListType; if (v) addToList(item.professionalUserId, v); }}
+                      aria-label="Add to list"
+                    >
+                      <option value="">Add to list…</option>
+                      {LIST_TYPES.filter(t => !saved.some(x => x.professionalUserId === item.professionalUserId && x.listType === t)).map(t => (
+                        <option key={t} value={t}>{LIST_TYPE_LABELS[t]}</option>
+                      ))}
+                    </select>
+                    <OutlineButton onClick={() => remove(item)} disabled={removingId === item.id}>{removingId === item.id ? "…" : "Remove"}</OutlineButton>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </WorkspacePage>
+    );
+  }
 
   return (
     <>

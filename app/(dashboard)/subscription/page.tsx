@@ -14,6 +14,9 @@ import { api } from '@/lib/api';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { BillingHistoryCard } from '@/components/subscription/BillingHistoryCard';
 import { ProviderBilling } from '@/components/subscription/ProviderBilling';
+import {
+  WorkspacePage, Panel, SubTabs, Chip, ErrorNote, OutlineButton as WsOutline, PrimaryButton as WsPrimary,
+} from '@/components/coordinator/workspace-ui';
 
 interface ApiPlan {
   id: string; key: string; name: string; role: string;
@@ -129,6 +132,9 @@ export default function SubscriptionPage() {
       `Renewal cancelled. You keep access until ${until}.`);
   }
 
+  if (loading && activeRole === 'COORDINATOR') {
+    return <WorkspacePage title="Subscription & Billing" description="Choose the access that fits your coordination work."><Panel><p className="py-10 text-center text-sm text-slate-500">Loading…</p></Panel></WorkspacePage>;
+  }
   if (loading) {
     return (
       <>
@@ -182,6 +188,91 @@ export default function SubscriptionPage() {
   );
   const shiftPassCopy = SHIFT_PASS_COPY[activeRole ?? ''];
   const canBuyPass = allowance?.shiftPassPriceAud != null && shiftPassCopy;
+
+  // Support Coordinator workspace layout — same plan / add-on / Shift Pass actions as below.
+  if (activeRole === 'COORDINATOR') {
+    const planCard = (plan: ApiPlan, kind: 'BASE' | 'ADD_ON') => {
+      const isCurrent = kind === 'BASE' ? base?.plan.key === plan.key && !cancelled : ownedAddOnStems.has(plan.key.replace(/_ANNUAL$/, ''));
+      const locked = kind === 'ADD_ON' && (!paidBase || cancelled);
+      const features = (plan.features ?? []).filter(f => !/^(Billed annually|Requires)/.test(f));
+      return (
+        <div key={plan.id} className={`flex flex-col rounded-xl border bg-white p-6 ${isCurrent ? 'border-brand-600' : 'border-[#e4e6ed]'}`}>
+          <p className="text-[11px] font-extrabold uppercase tracking-[1px] text-slate-500">
+            {kind === 'BASE' ? (isFree(plan) ? 'Free' : 'Core membership') : `Optional · requires ${ADD_ON_REQUIRES.COORDINATOR.replace('Shiftify ', '')}`}
+          </p>
+          <p className="mt-2 text-lg font-extrabold text-slate-900">{plan.name}</p>
+          <p className="mt-1 text-[26px] font-extrabold leading-tight text-slate-900">
+            {isFree(plan) ? 'Free' : money(plan.amountAud)}
+            {!isFree(plan) && <span className="text-sm font-semibold text-slate-500"> / {isAnnual(plan.key) ? 'year' : 'month'}</span>}
+          </p>
+          {features.length > 0 && (
+            <ul className="mt-4 flex-1 space-y-1.5 text-sm text-slate-700">
+              {features.map(f => <li key={f} className="flex gap-2"><span className="text-brand-600">✓</span>{f}</li>)}
+            </ul>
+          )}
+          {locked && !isCurrent && <p className="mt-3 text-xs text-brand-600">Requires an active {ADD_ON_REQUIRES.COORDINATOR} subscription.</p>}
+          <div className="mt-5">
+            {isCurrent
+              ? (kind === 'BASE' && paidBase
+                  ? <WsOutline onClick={cancelRenewal} disabled={working === 'cancel'} className="w-full">{working === 'cancel' ? 'Cancelling…' : 'Manage subscription · Cancel renewal'}</WsOutline>
+                  : <Chip tone="green">Active</Chip>)
+              : <WsPrimary
+                  className="w-full"
+                  disabled={!!working || locked}
+                  onClick={() => (kind === 'BASE' ? selectPlan(plan) : selectAddOn(plan))}
+                >
+                  {working === plan.id ? 'Working…' : kind === 'ADD_ON' ? 'Add' : base ? 'Switch to this plan' : 'Choose plan'}
+                </WsPrimary>}
+          </div>
+        </div>
+      );
+    };
+
+    return (
+      <WorkspacePage title="Subscription & Billing" description="Choose the access that fits your coordination work.">
+        {error && <ErrorNote>{error}</ErrorNote>}
+        {notice && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-100 bg-brand-50 px-3 py-2.5 text-[13px] text-slate-800">
+          <span>
+            {base
+              ? `${base.plan.name} · ${isFree(base.plan) ? 'Free' : isAnnual(base.plan.key) ? 'Annual membership' : 'Monthly membership'}`
+              : 'No active plan — choose one below. Existing requests, connections, messages and confirmed work stay accessible.'}
+            {paidBase && (cancelled ? ` · Paid through ${fmtDate(base!.currentPeriodEnd)}, will not renew` : ` · Renews ${fmtDate(base!.currentPeriodEnd)}`)}
+            {addOns.map(a => ` · + ${a.plan.name}`).join('')}
+          </span>
+          {showAllowance && allowance && <span className="font-semibold">{allowance.remaining} / {allowance.limit} free support-request posts remaining · No expiry</span>}
+        </div>
+
+        {hasAnnual && (
+          <SubTabs items={(['MONTHLY', 'ANNUAL'] as Billing[]).map(b => ({ label: b === 'MONTHLY' ? 'Monthly' : 'Annual · save 35%', active: billing === b, onClick: () => setBilling(b) }))} />
+        )}
+
+        {(basePlans.length > 0 || addOnPlans.length > 0) && (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {basePlans.map(p => planCard(p, 'BASE'))}
+            {addOnPlans.map(p => planCard(p, 'ADD_ON'))}
+          </div>
+        )}
+        {!basePlans.every(isFree) && (
+          <p className="text-xs leading-relaxed text-slate-500">
+            Plans renew automatically each {periodWord} until cancelled. Cancellation takes effect at the end of the paid period and access continues until then.
+            Paying provides access to Shiftify&apos;s technology and marketplace; it does not guarantee responses or a confirmed worker, provider or shift.
+          </p>
+        )}
+
+        {canBuyPass && (
+          <Panel title="Pay as you go" action={<WsPrimary onClick={buyShiftPass} disabled={!!working}>{working === 'shift-pass' ? 'Purchasing…' : `Buy Shift Pass · ${money(allowance!.shiftPassPriceAud!)}`}</WsPrimary>}>
+            <p className="text-sm text-slate-700">{shiftPassCopy}</p>
+            <p className="mt-1 text-xs text-slate-500">One-time payment, no subscription. Activity that follows from the action stays free.</p>
+          </Panel>
+        )}
+
+        <BillingHistoryCard />
+        <p className="text-[11px] text-slate-500">Test mode — changes take effect immediately. Stripe billing will be connected in Phase 2.</p>
+      </WorkspacePage>
+    );
+  }
 
   return (
     <>

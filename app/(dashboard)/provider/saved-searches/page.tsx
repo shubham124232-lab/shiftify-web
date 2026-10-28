@@ -6,8 +6,8 @@ import { createSavedSearch, deleteSavedSearch, listSavedSearches, updateSavedSea
 import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 const TIMING = [
-  { value: "", label: "All" }, { value: "RAPID", label: "Rapid" }, { value: "URGENT", label: "Urgent" },
-  { value: "LAST_MINUTE", label: "Last-Minute" }, { value: "ROUTINE", label: "Routine" },
+  { value: "", label: "All" }, { value: "RAPID", label: "Last Min" }, { value: "URGENT", label: "Urgent" },
+  { value: "LAST_MINUTE", label: "Short Notice" }, { value: "ROUTINE", label: "Routine" },
 ];
 
 // Provider "Saved searches & alerts" (approved demo): save request types and areas; alerts can be switched on per search.

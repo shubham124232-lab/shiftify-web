@@ -34,7 +34,7 @@ const DAY = 86400000;
 // Submission gate for Providers (not a verification gate): these must be on file and unexpired before posting.
 const REQUIRED = ["PUBLIC_LIABILITY_INSURANCE", "PROFESSIONAL_INDEMNITY", "NDIS_AUDIT"];
 const typeLabel = (v: string) => TYPES.find((t) => t.v === v)?.l
-  ?? (/^[A-Z0-9_]+$/.test(v) ? v.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase()) : v);
+  ?? (/^[A-Z0-9_]+$/.test(v) ? v.toLowerCase().replace(/_/g, " ").replace(/\bcpr\b/g, "CPR").replace(/^\w/, (c) => c.toUpperCase()) : v);
 const visLabel = (v: string | null) => VISIBILITY.find((x) => x.v === v)?.l ?? "Verification team";
 const short = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "No expiry");
 const inp = "mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm";

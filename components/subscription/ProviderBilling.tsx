@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { Check } from "lucide-react";
 import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { ShiftBlastCard } from "@/components/provider/ShiftBlastCard";
 
 interface ApiPlan { id: string; key: string; name: string; amountAud: number | string; features?: string[]; isAddOn?: boolean }
 interface Sub { id: string; status: string; startedAt: string; currentPeriodEnd: string | null; cancelledAt: string | null; plan: ApiPlan }
@@ -27,7 +28,9 @@ const stem = (k: string) => k.replace(/_ANNUAL$/, "");
 const shortName = (n: string) => n.replace(/\s*\(Annual\)$/, "");
 const money = (v: number | string) => `$${Number(v).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const day = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "N/A");
-const BULLETS = ["Unlimited genuine core actions", "Internal and external matching"];
+const BULLETS = ["Unlimited genuine core actions", "Internal and external matching", "Direct Connect included"];
+// Plan limits read the way the approved demo words them.
+const planLine = (f: string) => f.replace(/\bTeam Members\b/, (m, i, str) => (/Internal/.test(str) ? m : "Internal Team Members")).replace(/\bBranches\b/, "Branch Workspaces");
 
 export function ProviderBilling() {
   const setUser = useAuthStore((s) => s.updateProfile);
@@ -155,7 +158,7 @@ export function ProviderBilling() {
         {orgPlans.map((p) => {
           const current = base?.plan.key === p.key && !cancelled;
           const recommended = stem(p.key).endsWith("_TEAM");
-          const lines = (p.features ?? []).filter((f) => !/^Billed annually/.test(f)).concat(BULLETS);
+          const lines = (p.features ?? []).filter((f) => !/^Billed annually/.test(f)).map(planLine).concat(BULLETS);
           return (
             <article key={p.id} className={`pd-plan${current || recommended ? " recommended" : ""}`}>
               {recommended && <span className="pd-plan-ribbon">GROWING TEAMS</span>}
@@ -200,6 +203,8 @@ export function ProviderBilling() {
           </div>
         </section>
       </div>
+
+      <ShiftBlastCard />
 
       <section className="pd-panel">
         <div className="pd-panel-head"><h2>Referral or sales code</h2></div>

@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { useBranchWorkspace } from "@/lib/store/branchWorkspace";
 
 interface Row { id: string; title: string; suburb: string; status: string; urgency?: string; branchId?: string | null; scheduledStartAt: string; scheduledEndAt?: string | null }
 interface Branch { id: string; name: string }
@@ -29,7 +30,10 @@ const SHOW_VIEW_TOGGLE = false;
 export default function ProviderCalendarPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [branch, setBranch] = useState(() => (typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("branch") ?? ""));
+  // The header "All Branches" picker scopes this calendar; a ?branch= link (from a Branch workspace) overrides it.
+  const headerBranch = useBranchWorkspace((st) => st.branchId);
+  const [linkedBranch] = useState(() => (typeof window === "undefined" ? "" : new URLSearchParams(window.location.search).get("branch") ?? ""));
+  const branch = linkedBranch || headerBranch || "";
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [view, setView] = useState<View>("week");
@@ -88,19 +92,13 @@ export default function ProviderCalendarPage() {
             </>}
           </div>
         </div>
-        {(SHOW_VIEW_TOGGLE || branches.length > 0) && (
+        {SHOW_VIEW_TOGGLE && (
           <div className="pd-toolbar">
             {SHOW_VIEW_TOGGLE ? <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-white text-sm font-semibold">
               {(["day", "week", "month", "list"] as View[]).map((v) => (
                 <button key={v} type="button" onClick={() => setView(v)} className={cn("px-4 py-2 capitalize", view === v ? "bg-slate-900 text-white" : "text-slate-500")}>{v}</button>
               ))}
             </div> : null}
-            {branches.length > 0 && (
-              <select value={branch} onChange={(e) => setBranch(e.target.value)} aria-label="Branch">
-                <option value="">All Branches</option>
-                {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-            )}
           </div>
         )}
 

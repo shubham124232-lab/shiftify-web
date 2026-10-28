@@ -114,14 +114,14 @@ const COVER_REASONS = [
   { v: "ROSTER_GAP", l: "Roster gap" }, { v: "ADDITIONAL_DEMAND", l: "Additional participant demand" }, { v: "OTHER", l: "Other" },
 ];
 
-const TIER_NAME: Record<PostingTier, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const TIER_NAME: Record<PostingTier, string> = { RAPID: "Last Min", URGENT: "Urgent", LAST_MINUTE: "Short Notice", ROUTINE: "Routine" };
 
 // Minutes from now → [min, max] the start must fall in for each tier (PR-P01).
 const START_WINDOW: Record<PostingTier, { min: number; max: number; msg: string }> = {
-  RAPID: { min: -1, max: 120, msg: "Rapid must start within 2 hours. For a later start choose Urgent, Last-Minute or Routine." },
-  URGENT: { min: 120, max: 360, msg: "Urgent starts after 2 hours and within 6 hours. Choose Rapid for sooner or Last-Minute for later." },
-  LAST_MINUTE: { min: 360, max: 48 * 60, msg: "Last-Minute starts after 6 hours and within 48 hours. Choose Urgent for sooner or Routine for later." },
-  ROUTINE: { min: 48 * 60, max: Number.POSITIVE_INFINITY, msg: "Routine starts more than 48 hours from now. Choose Last-Minute for sooner." },
+  RAPID: { min: -1, max: 120, msg: "Last Min must start within 2 hours. For a later start choose Urgent, Short Notice or Routine." },
+  URGENT: { min: 120, max: 360, msg: "Urgent starts after 2 hours and within 6 hours. Choose Last Min for sooner or Short Notice for later." },
+  LAST_MINUTE: { min: 360, max: 48 * 60, msg: "Short Notice starts after 6 hours and within 48 hours. Choose Urgent for sooner or Routine for later." },
+  ROUTINE: { min: 48 * 60, max: Number.POSITIVE_INFINITY, msg: "Routine starts more than 48 hours from now. Choose Short Notice for sooner." },
 };
 
 function toggle<T>(list: T[], v: T): T[] {
@@ -139,7 +139,7 @@ const TAB_NAMES = SECTIONS.map((k) => SECTION_TITLES[k]);
 export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes, editJobId, onSaved, onViewRequest }: { tier: PostingTier; onClose?: () => void; onBackToLanes?: () => void; editJobId?: string; onSaved?: () => void; onViewRequest?: (id: string) => void }) {
   const [tier, setTierState] = useState<PostingTier>(startTier);
   const name = TIER_NAME[tier];
-  const tierLabel = TIER_META[tier].label;
+  const tierLabel = `${TIER_NAME[tier]} Support`;
   const router = useRouter();
   const [step, setStep] = useState(0);
   const key = SECTIONS[step];
@@ -597,7 +597,7 @@ export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes
               <select className={inp} value={requestType} onChange={(e) => setRequestType(e.target.value)}>{REQUEST_TYPES.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select></div>
             <div><label className={lbl}>Timing lane *</label>
               <select className={inp} value={tier} disabled={!!editId} onChange={(e) => setTier(e.target.value as PostingTier)}>
-                {(["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"] as PostingTier[]).map((t) => <option key={t} value={t}>{t === "LAST_MINUTE" ? "Last-Minute" : TIER_NAME[t]}</option>)}
+                {(["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"] as PostingTier[]).map((t) => <option key={t} value={t}>{TIER_NAME[t]}</option>)}
               </select></div>
             <div><label className={lbl}>Responsible administrator *</label>
               <select className={inp} value={adminId} onChange={(e) => setAdminId(e.target.value)}>
@@ -620,9 +620,9 @@ export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes
       {key === "when" && (
         <div className="space-y-5">
           <p className="text-xs text-slate-500 m-0">
-            {tier === "RAPID" && "Rapid: within 2 hours. Live countdown and immediate matching start when you post."}
+            {tier === "RAPID" && "Last Min: within 2 hours. Live countdown and immediate matching start when you post."}
             {tier === "URGENT" && "Urgent: after 2 hours and within 6 hours. A four-hour response deadline applies. Speed is never required to publish."}
-            {tier === "LAST_MINUTE" && "Last-Minute: after 6 hours and within 48 hours. Recurring needs belong in a Routine request."}
+            {tier === "LAST_MINUTE" && "Short Notice: after 6 hours and within 48 hours. Recurring needs belong in a Routine request."}
             {tier === "ROUTINE" && "Routine: more than 48 hours away, or ongoing."}
           </p>
 
@@ -900,7 +900,7 @@ export function ProviderStaffingWizard({ tier: startTier, onClose, onBackToLanes
                       if (!(at.getTime() > Date.now() + 60_000)) { setError("Choose a publish time in the future."); return; }
                       const start = effectiveStart();
                       if (start && at.getTime() >= start.getTime()) { setError("The publish time must be before the shift starts."); return; }
-                      if (tier === "LAST_MINUTE" && start && start.getTime() - at.getTime() > 48 * 3600000) { setError("A Last-Minute request can be published at most 48 hours before it starts."); return; }
+                      if (tier === "LAST_MINUTE" && start && start.getTime() - at.getTime() > 48 * 3600000) { setError("A Short Notice request can be published at most 48 hours before it starts."); return; }
                       void submit(true, at);
                     }}
                     className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"

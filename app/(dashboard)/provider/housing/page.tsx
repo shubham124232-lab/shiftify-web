@@ -167,9 +167,9 @@ export default function ProviderHousingPage() {
           </div>
         </div>
         <div className="pd-toolbar">
-          <input placeholder="Search vacancies" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search vacancies" />
+          <input placeholder="Search vacancies or suburb" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search vacancies" />
           <select value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
-            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All statuses" : f.label}</option>)}
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All" : f.label}</option>)}
           </select>
           <button type="button" className="pd-btn" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw />Clear filters</button>
         </div>

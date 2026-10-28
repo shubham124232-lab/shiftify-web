@@ -35,7 +35,8 @@ interface ShiftOpt { id: string; title: string; suburb: string; urgency: string;
 
 const PAGE_SIZE = 20;
 const URGENCY_LABEL: Record<string, string> = Object.fromEntries(PROVIDER_TIERS.map((t) => [t.key, t.label]));
-const pretty = (v: string) => v.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+const ACRONYMS = new Set(["CPR", "NDIS", "SIL", "SDA"]);
+const pretty = (v: string) => v.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S+/g, (w) => (ACRONYMS.has(w.trim().toUpperCase()) ? w.toUpperCase() : w.replace(/\S/, (c) => c.toUpperCase())));
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 function fromListing(w: Listing): WorkerCardData {

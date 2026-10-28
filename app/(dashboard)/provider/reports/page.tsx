@@ -20,7 +20,7 @@ interface Report {
 }
 
 const LANES: { key: keyof Report["lanes"]; label: string }[] = [
-  { key: "RAPID", label: "Rapid" }, { key: "URGENT", label: "Urgent" }, { key: "LAST_MINUTE", label: "Last-Minute" }, { key: "ROUTINE", label: "Routine" },
+  { key: "RAPID", label: "Last Min" }, { key: "URGENT", label: "Urgent" }, { key: "LAST_MINUTE", label: "Short Notice" }, { key: "ROUTINE", label: "Routine" },
 ];
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);

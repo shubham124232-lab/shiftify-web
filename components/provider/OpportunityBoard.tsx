@@ -134,6 +134,9 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
       </div>
       <div className="pd-toolbar" style={SHOW_EXTRA_FILTERS && moreFilters ? { marginBottom: 12 } : undefined}>
         <input placeholder="Search service, suburb or request" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search requests" />
+        <select value={urgency} onChange={(e) => setUrgency(e.target.value)} aria-label="Timing">
+          <option value="">All</option>{PROVIDER_TIERS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+        </select>
         <button type="button" className="pd-btn" onClick={clear}><RefreshCw />Clear filters</button>
         {SHOW_EXTRA_FILTERS && <button type="button" onClick={() => setMoreFilters((v) => !v)} className="text-sm font-semibold text-slate-600 hover:text-slate-900">{moreFilters ? "Fewer filters" : "More filters"}</button>}
         {SHOW_EXTRA_FILTERS && moreFilters && <div className="flex w-full flex-wrap items-center gap-3 border-t border-slate-100 pt-3">
@@ -215,7 +218,6 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
                 <div className="pd-buttons">
                   <button type="button" className="pd-btn pd-btn-sm" onClick={() => setWhy(r)}>Why this match</button>
                   <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewId(r.id)}>View request</button>
-                  {mode !== "saved" && <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" onClick={() => hide(r.id, !hidden.includes(r.id))}>{hidden.includes(r.id) ? "Unhide" : mode === "matched" ? "Not suitable" : "Hide"}</button>}
                   {mode === "saved" && <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" disabled={busyId === r.id} onClick={() => void toggleSave(r)}>{saved ? "Unsave" : "Save"}</button>}
                   {isOpen && !r.responseStatus && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setRespondId(r.id)}>Respond as Provider</button>}
                 </div>

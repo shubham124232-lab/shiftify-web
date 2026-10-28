@@ -127,9 +127,9 @@ export default function ProviderServicesPage() {
         </div>
         {chooser && <ServiceOrCapacityDialog onClose={() => setChooser(false)} />}
         <div className="pd-toolbar">
-          <input placeholder="Search services" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search services" />
+          <input placeholder="Search services or areas" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search services" />
           <select value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
-            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All statuses" : f.label}</option>)}
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All" : f.label}</option>)}
           </select>
           <button type="button" className="pd-btn" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw />Clear filters</button>
         </div>
@@ -157,13 +157,16 @@ export default function ProviderServicesPage() {
               return (
                 <article key={l.id} className="pd-record-card">
                   <div className="pd-tags">
-                    {(cats.length ? cats : ["Service"]).map((c) => <span key={c} className="pd-badge pd-badge-pink">{c}</span>)}
                     <span className={`pd-badge ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
+                    {(cats.length ? cats : ["Service"]).map((c) => <span key={c} className="pd-badge pd-badge-pink">{c}</span>)}
                   </div>
-                  <h2>{l.suburb}{l.state ? `, ${l.state}` : ""}</h2>
-                  <div className="pd-card-body">{days.length ? days.map((d) => d.charAt(0) + d.slice(1).toLowerCase()).join(", ") : "Days not set"}</div>
+                  <h2>{l.title}</h2>
+                  <div className="pd-card-body">
+                    <div>{l.suburb}{l.state ? `, ${l.state}` : ""}</div>
+                    <div>{days.length ? days.map((d) => d.charAt(0) + d.slice(1).toLowerCase()).join(", ") : "Days not set"}</div>
+                  </div>
                   <div className="pd-tags">
-                    <span className="pd-pill">{l.openSlots != null ? `${l.openSlots} open place${l.openSlots === 1 ? "" : "s"}` : "Places not set"}</span>
+                    <span className="pd-pill">{l.openSlots != null ? `${l.openSlots} open slot${l.openSlots === 1 ? "" : "s"}` : "Slots not set"}</span>
                     {l.acceptingStatus && <span className="pd-pill">{ACCEPTING_LABEL[l.acceptingStatus]}</span>}
                     {l.responseExpectation && <span className="pd-pill">Responds {RESPONSE_LABEL[l.responseExpectation]?.toLowerCase()}</span>}
                   </div>

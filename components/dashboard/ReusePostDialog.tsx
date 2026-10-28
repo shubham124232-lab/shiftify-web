@@ -46,11 +46,11 @@ export function ReusePostDialog({ posts, busyId, error, onPick, onClose }: {
 
   return (
     <Portal>
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
+    <div className="pd-modal-backdrop" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Reuse a previous post"
-        className="w-full max-w-[80vw] overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-5">
-          <h2 className="m-0 text-xl font-bold text-slate-900">Reuse a previous post</h2>
+        className="pd-modal pd-modal-scroll" onClick={(e) => e.stopPropagation()}>
+        <div className="pd-modal-head">
+          <h2>Reuse a previous post</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
         </div>
 

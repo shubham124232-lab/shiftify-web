@@ -135,7 +135,7 @@ export function SendInternalOfferFlow({ onClose, onSent }: { onClose: () => void
                 <button key={j.id} type="button" onClick={() => { setJob(j); setStep("team"); }}
                   className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left transition-colors hover:border-brand-400 hover:bg-brand-50/40">
                   <span><span className="block text-base font-bold text-slate-900">{j.title}</span><span className="block text-sm text-slate-500">{j.suburb} · {URGENCY_LABEL[j.urgency] ?? j.urgency}</span></span>
-                  <span className="text-sm font-semibold text-brand-700">Select</span>
+                  <span className="pd-btn pd-btn-primary pd-btn-sm">Select</span>
                 </button>
               ))}
             </div>}

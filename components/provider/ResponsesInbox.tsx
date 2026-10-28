@@ -95,14 +95,14 @@ function IntakeDialog({ thread, me, admins, onClose, onSaved }: { thread: Thread
     finally { setBusy(false); }
   }
 
-  const shell = "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4";
-  const card = "w-full max-w-[80vw] rounded-2xl bg-white p-6 shadow-xl";
+  const shell = "pd-modal-backdrop";
+  const card = "pd-modal pd-modal-pad";
   if (done) {
     return (
       <div className={shell}><div role="dialog" aria-modal="true" className={card}>
         <h2 className="m-0 text-lg font-bold text-slate-900">{done}</h2>
         <p className="mt-2 text-sm text-slate-600">Internal notes remain separate from messages. Direct enquiry management is free.</p>
-        <div className="mt-5 flex justify-end"><button type="button" onClick={onSaved} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Done</button></div>
+        <div className="mt-5 flex justify-end"><button type="button" onClick={onSaved} className="pd-btn pd-btn-primary">Done</button></div>
       </div></div>
     );
   }
@@ -118,7 +118,7 @@ function IntakeDialog({ thread, me, admins, onClose, onSaved }: { thread: Thread
         {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 flex items-center justify-between">
           <button type="button" onClick={() => setScheduling(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Back</button>
-          <button type="button" disabled={busy || !apptAt} onClick={() => void save({ appointmentAt: new Date(apptAt).toISOString(), appointmentType: apptType }, "Appointment saved")} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save appointment"}</button>
+          <button type="button" disabled={busy || !apptAt} onClick={() => void save({ appointmentAt: new Date(apptAt).toISOString(), appointmentType: apptType }, "Appointment saved")} className="pd-btn pd-btn-primary disabled:opacity-50">{busy ? "Saving…" : "Save appointment"}</button>
         </div>
       </div></div>
     );
@@ -148,7 +148,7 @@ function IntakeDialog({ thread, me, admins, onClose, onSaved }: { thread: Thread
           <div className="flex flex-wrap gap-2">
             <Link href="/messages" className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 no-underline">Open conversation</Link>
             <button type="button" onClick={() => setScheduling(true)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Schedule call or inspection</button>
-            <button type="button" disabled={busy} onClick={() => void save()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save intake update"}</button>
+            <button type="button" disabled={busy} onClick={() => void save()} className="pd-btn pd-btn-primary disabled:opacity-50">{busy ? "Saving…" : "Save intake update"}</button>
           </div>
         </div>
       </div>
@@ -379,7 +379,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
             {replyFor === t.rootId && (
               <div className="mt-2 flex gap-2">
                 <input className="flex-1 rounded-md border border-slate-200 px-2 py-1 text-sm" value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder="Write a reply" maxLength={2000} />
-                <button type="button" disabled={busy || !replyBody.trim()} onClick={() => sendReply(t)} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50">Send</button>
+                <button type="button" disabled={busy || !replyBody.trim()} onClick={() => sendReply(t)} className="pd-btn pd-btn-primary pd-btn-sm" >Send</button>
               </div>
             )}
           </div>

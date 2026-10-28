@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Zap, Clock, CalendarDays, ShieldCheck, X, Check, LayoutGrid } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import type { JobSummary } from "@/lib/api/dashboard";
@@ -64,17 +65,17 @@ function Modal({ title, subtitle, onClose, footer, children, wide }: { title: st
   }, [onClose]);
   return (
     <Portal>
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl max-w-[80vw]`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-5">
+    <div className="pd-modal-backdrop" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={cn("pd-modal", wide && "pd-modal-wide")} onClick={(e) => e.stopPropagation()}>
+        <div className="pd-modal-head">
           <div>
-            <h2 className="m-0 text-xl font-bold text-slate-900">{title}</h2>
-            {subtitle ? <p className="m-0 mt-1 text-xs text-slate-500">{subtitle}</p> : null}
+            <h2>{title}</h2>
+            {subtitle ? <p>{subtitle}</p> : null}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-6 py-4">{footer}</div>
+        <div className="pd-modal-body">{children}</div>
+        <div className="pd-modal-foot">{footer}</div>
       </div>
     </div>
     </Portal>

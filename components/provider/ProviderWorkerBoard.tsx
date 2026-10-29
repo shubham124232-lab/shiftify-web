@@ -6,6 +6,8 @@ import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 // Provider "Find External Workers" and "Saved Workers" (approved demo): worker cards, View profile popup, Save, and Direct Connect
 // (choose an active shift, review the conditional $9.99 charge, send the invitation).
@@ -32,8 +34,9 @@ interface ConnectInvite { id: string; status: string; createdAt: string; invited
 interface ShiftOpt { id: string; title: string; suburb: string; urgency: string; status: string; scheduledStartAt: string }
 
 const PAGE_SIZE = 20;
-const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
-const pretty = (v: string) => v.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+const URGENCY_LABEL: Record<string, string> = Object.fromEntries(PROVIDER_TIERS.map((t) => [t.key, t.label]));
+const ACRONYMS = new Set(["CPR", "NDIS", "SIL", "SDA"]);
+const pretty = (v: string) => v.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\S+/g, (w) => (ACRONYMS.has(w.trim().toUpperCase()) ? w.toUpperCase() : w.replace(/\S/, (c) => c.toUpperCase())));
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
 function fromListing(w: Listing): WorkerCardData {
@@ -126,16 +129,17 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
       <div className="pd-content">
       <div className="pd-breadcrumb">{mode === "find" ? "Provider / External" : "Provider / Saved workers"}</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>{mode === "find" ? "Find External Workers" : "Saved Workers"}</h1>
-          <p>{mode === "find" ? "Discover eligible external workers and use Direct Connect to invite them to an active shift." : "Workers you have saved from Find External Workers. Use Direct Connect to invite them to an active shift."}</p>
+          <p>Discover eligible external workers. Direct Connect is included in paid Provider subscriptions.</p>
         </div>
         <div className="pd-buttons" />
       </div>
       <div className="pd-toolbar">
-        <input placeholder="Search people, skills or suburb" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workers" />
+        <input placeholder="Search people, skills or language" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search workers" />
         <select value={availableNow ? "NOW" : ""} onChange={(e) => { setAvailableNow(e.target.value === "NOW"); setPage(1); }} aria-label={mode === "find" ? "Availability" : "Status"}>
-          <option value="">{mode === "find" ? "All workers" : "All statuses"}</option><option value="NOW">Available Now</option>
+          <option value="">All</option><option value="NOW">Available Now</option>
         </select>
         <button type="button" className="pd-btn" onClick={() => { setQ(""); setApplied(""); setAvailableNow(false); setPage(1); }}><RefreshCw />Clear filters</button>
       </div>
@@ -161,7 +165,7 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
                 <span className="pd-avatar pd-avatar-lg">{initials(w.name)}</span>
                 <div>
                   <h3>{w.name}</h3>
-                  <span className="pd-small pd-muted">{w.experienceLevel ?? "Support worker"}{w.suburb ? ` · ${w.suburb}${w.state ? `, ${w.state}` : ""}` : ""}</span>
+                  <span className="pd-small pd-muted">{w.yearsBucket ? `${w.yearsBucket} years experience` : (w.experienceLevel ?? "Support worker")}</span>
                 </div>
               </div>
               {(w.availableNow || w.credentialCurrent) && (
@@ -179,11 +183,8 @@ export function ProviderWorkerBoard({ mode }: { mode: WorkerBoardMode }) {
                 </div>
               )}
               <div className="pd-card-body">
-                {w.headline && <>{w.headline}<br /></>}
-                {(w.languages?.length || w.yearsBucket || w.radiusKm) ? (
-                  <>{[w.languages?.length ? w.languages.join(", ") : null, w.yearsBucket ? `${w.yearsBucket} yrs experience` : null, w.radiusKm ? `Travels up to ${w.radiusKm} km` : null].filter(Boolean).join(" · ")}<br /></>
-                ) : null}
-                {w.totalReviews > 0 ? `★ ${w.rating.toFixed(1)} (${w.totalReviews})` : "No reviews yet"}{w.hourlyRate != null ? ` · $${Number(w.hourlyRate).toFixed(2)}/hr` : ""}
+                {w.languages?.length ? <>{w.languages.join(", ")}<br /></> : null}
+                {[w.suburb ? `${w.suburb}${w.state ? `, ${w.state}` : ""}` : null, w.radiusKm ? `travels up to ${w.radiusKm} km` : null, w.hourlyRate != null ? `$${Number(w.hourlyRate).toFixed(2)}/hr` : null, w.totalReviews > 0 ? `★ ${w.rating.toFixed(1)} (${w.totalReviews})` : null].filter(Boolean).join(" · ")}
               </div>
               <div className="pd-buttons">
                 <button type="button" className="pd-btn pd-btn-sm" onClick={() => setProfile(w)}>View profile</button>
@@ -273,10 +274,13 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Direct Connect is included in a paid Provider plan; without one it is a conditional $9.99.
+  const [included, setIncluded] = useState(false);
 
   useEffect(() => {
-    api.get<{ jobs: ShiftOpt[] }>("/jobs/my").then((r) => setShifts((r.jobs ?? []).filter((j) => j.status === "OPEN" && new Date(j.scheduledStartAt) > new Date())))
+    api.get<{ jobs: ShiftOpt[] }>("/jobs/my").then((r) => setShifts((r.jobs ?? []).filter((j) => j.status === "OPEN" && new Date(j.scheduledStartAt) > new Date()).sort((a, b) => +new Date(a.scheduledStartAt) - +new Date(b.scheduledStartAt))))
       .catch(() => setShifts([]));
+    api.get<{ capacity: unknown | null }>("/provider-org/capacity").then((c) => setIncluded(!!c.capacity)).catch(() => setIncluded(false));
   }, []);
 
   async function send() {
@@ -284,7 +288,7 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
     setBusy(true); setError(null);
     try {
       await api.post(`/job-invites/${shift.id}`, { invitedUserId: worker.userId });
-      onSent(`Direct Connect invitation sent to ${worker.name} for ${shift.title}. You are charged $9.99 only if the worker accepts.`);
+      onSent(`Direct Connect invitation sent to ${worker.name} for ${shift.title}.${included ? "" : " You are charged $9.99 only if the worker accepts."}`);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not send the invitation"); }
     finally { setBusy(false); }
   }
@@ -292,38 +296,38 @@ function DirectConnectFlow({ worker, onClose, onSent }: { worker: WorkerCardData
   if (!shift) {
     return (
       <ModalShell title="Choose an active shift" onClose={onClose}>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <p className="m-0 mb-3 text-sm text-slate-500">Direct Connect must be linked to a valid active external shift.</p>
-          {shifts === null ? <div className="h-20 animate-pulse rounded-xl bg-slate-100" /> : shifts.length === 0 ? (
-            <p className="m-0 text-sm text-slate-600">You have no active external staffing requests. Post a shift first, then invite a worker to it.</p>
+        <div className="pd-modal-body">
+          <p className="pd-muted m-0 mb-4 text-sm">Direct Connect must be linked to a valid active external shift.</p>
+          {shifts === null ? <div className="pd-quiet-empty">Loading…</div> : shifts.length === 0 ? (
+            <p className="pd-notice m-0">You have no active external staffing requests. Post a shift first, then invite a worker to it.</p>
           ) : (
-            <ul className="m-0 list-none divide-y divide-slate-100 p-0">
+            <div className="space-y-3">
               {shifts.map((j) => (
-                <li key={j.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0"><p className="m-0 truncate text-base font-semibold text-slate-900">{j.title}</p><p className="m-0 text-sm text-slate-500">{j.suburb} · {URGENCY_LABEL[j.urgency] ?? j.urgency}</p></div>
-                  <Button variant="outline" size="sm" onClick={() => setShift(j)}>Select</Button>
-                </li>
+                <div key={j.id} className="pd-task-row" style={{ border: "1px solid var(--pd-line)", borderRadius: 10, padding: "12px 16px" }}>
+                  <div><strong>{j.title}</strong><p>{j.suburb} · {URGENCY_LABEL[j.urgency] ?? j.urgency}</p></div>
+                  <button type="button" className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => setShift(j)}>Select</button>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
-        <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4"><Button variant="outline" onClick={onClose}>Close</Button></div>
+        <div className="pd-modal-foot"><button type="button" className="pd-btn" onClick={onClose}>Close</button></div>
       </ModalShell>
     );
   }
 
   return (
-    <ModalShell title="Direct Connect invitation" subtitle={`${worker.name} · ${shift.title}`} onClose={onClose}>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
-        <p className="m-0 text-lg font-bold text-slate-900">$9.99 per accepted connection</p>
-        <p className="m-0 text-sm text-slate-600">You will not be charged for sending this invitation. If the worker accepts and the private connection opens, $9.99 will be charged. A connection does not guarantee that the worker will accept, perform or complete the shift.</p>
-        <p className="m-0 text-sm text-slate-600">If declined or expired: $0. For a one-worker shift, only the first accepted invitation opens and remaining invitations close. Subscriptions do not include Direct Connect credits.</p>
-        <label className="flex items-start gap-2 text-sm text-slate-700"><input type="checkbox" className="mt-1" checked={ack} onChange={(e) => setAck(e.target.checked)} />I authorise the conditional charge for this successful connection.</label>
-        {error && <p className="m-0 text-sm text-red-700">{error}</p>}
+    <ModalShell title="Review Direct Connect invitation" subtitle={`${worker.name} · ${shift.title}`} onClose={onClose}>
+      <div className="pd-modal-body">
+        <p className="m-0 mb-3 text-lg font-bold">{included ? "Included in your Provider subscription" : "$9.99 per accepted connection"}</p>
+        <p className="pd-muted m-0 mb-3 text-sm">Invite this worker to discuss your active staffing request. The worker decides whether to accept and share permitted contact details.</p>
+        <p className="pd-muted m-0 mb-3 text-sm">For a one-worker request, you may have up to three invitations open. The first accepted connection opens and the remaining invitations close. A connection does not confirm a shift or guarantee work.</p>
+        {!included && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={ack} onChange={(e) => setAck(e.target.checked)} />I authorise the conditional $9.99 charge for this successful connection. You are not charged for sending, declined or expired invitations.</label>}
+        {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
       </div>
-      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-6 py-4">
-        <Button variant="outline" onClick={() => setShift(null)}>Back</Button>
-        <Button disabled={!ack || busy} onClick={() => void send()}>{busy ? "Sending…" : "Send invitation"}</Button>
+      <div className="pd-modal-foot">
+        <button type="button" className="pd-btn" onClick={() => setShift(null)}>Back</button>
+        <button type="button" className="pd-btn pd-btn-primary" disabled={(!included && !ack) || busy} onClick={() => void send()}>{busy ? "Sending…" : "Send invitation"}</button>
       </div>
     </ModalShell>
   );

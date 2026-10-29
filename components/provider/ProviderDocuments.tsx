@@ -9,6 +9,7 @@ import { api, http } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { cn } from "@/lib/utils";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Doc {
   id: string; userId: string; docType: string; fileName: string; fileUrl?: string; status: string;
@@ -33,7 +34,7 @@ const DAY = 86400000;
 // Submission gate for Providers (not a verification gate): these must be on file and unexpired before posting.
 const REQUIRED = ["PUBLIC_LIABILITY_INSURANCE", "PROFESSIONAL_INDEMNITY", "NDIS_AUDIT"];
 const typeLabel = (v: string) => TYPES.find((t) => t.v === v)?.l
-  ?? (/^[A-Z0-9_]+$/.test(v) ? v.toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase()) : v);
+  ?? (/^[A-Z0-9_]+$/.test(v) ? v.toLowerCase().replace(/_/g, " ").replace(/\bcpr\b/g, "CPR").replace(/^\w/, (c) => c.toUpperCase()) : v);
 const visLabel = (v: string | null) => VISIBILITY.find((x) => x.v === v)?.l ?? "Verification team";
 const short = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "No expiry");
 const inp = "mt-1 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm";
@@ -86,6 +87,7 @@ export function ProviderDocuments() {
       <div className="pd-content">
       <div className="pd-breadcrumb">Provider / Documents</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>Documents and compliance</h1>
           <p>Track evidence, expiry and the users permitted to see it.</p>
@@ -185,7 +187,9 @@ function DocumentForm({ renew, workers, onClose, onSaved }: { renew: Doc | null;
 
   return (
     <ModalShell title="Document evidence" subtitle={renew ? "Renew existing record" : undefined} onClose={onClose}>
-      <div className="grid gap-4 overflow-y-auto px-6 py-5 sm:grid-cols-2">
+      <ol className="pd-steps"><li className="pd-step active">1. Evidence and access</li></ol>
+      <div className="pd-modal-body grid gap-4 sm:grid-cols-2">
+        <div className="pd-form-title sm:col-span-2" style={{ marginBottom: 0 }}><h3>Evidence and access</h3></div>
         <div><label className={lab}>Document title *</label><input className={inp} value={title} onChange={(e) => setTitle(e.target.value)} /></div>
         <div><label className={lab}>Document type *</label>
           <select className={inp} value={docType} disabled={!!renew} onChange={(e) => setDocType(e.target.value)}>{TYPES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}</select></div>
@@ -203,10 +207,10 @@ function DocumentForm({ renew, workers, onClose, onSaved }: { renew: Doc | null;
         <div><label className={lab}>Review state</label><p className="m-0 mt-3 text-sm text-slate-600">Set by Shiftify after upload. It never changes access to the marketplace.</p></div>
         {err && <p className="m-0 text-sm text-red-600 sm:col-span-2">{err}</p>}
       </div>
-      <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <div className="flex items-center gap-3"><span className="text-xs text-slate-500">1 of 1</span>
-          <Button disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : renew ? "Save renewal" : "Save and continue"}</Button></div>
+      <div className="pd-modal-foot">
+        <button type="button" className="pd-btn" onClick={onClose}>Cancel</button>
+        <div className="pd-buttons"><span className="pd-muted text-xs">1 of 1</span>
+          <button type="button" className="pd-btn pd-btn-primary" disabled={!ok || busy} onClick={save}>{busy ? "Saving…" : renew ? "Save renewal" : "Save and continue"}</button></div>
       </div>
     </ModalShell>
   );

@@ -69,9 +69,9 @@ export default function ParticipantDashboard() {
   const unread = data?.stats?.unreadMessages ?? 0;
 
   const postTiles: ActionTile[] = [
-    { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 60 minutes", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
-    { key: "urgent",      icon: Clock,        title: "Urgent",      subtitle: "Within 4 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
-    { key: "last-minute", icon: CalendarClock,title: "Last-Minute", subtitle: "4–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
+    { key: "rapid",       icon: Zap,          title: "Rapid",       subtitle: "Within 2 hours", ctaLabel: "Post Rapid request",       href: "/jobs/post?urgency=RAPID",   highlighted: true },
+    { key: "urgent",      icon: Clock,        title: "Urgent",      subtitle: "Within 6 hours",     ctaLabel: "Post Urgent request",      href: "/jobs/post?urgency=URGENT" },
+    { key: "last-minute", icon: CalendarClock,title: "Last-Minute", subtitle: "6–48 hours",         ctaLabel: "Post Last-Minute request", href: "/jobs/post?urgency=LAST_MINUTE" },
     { key: "routine",     icon: CalendarDays, title: "Routine",     subtitle: "Plan ahead",         ctaLabel: "Post Routine request",     href: "/jobs/post" },
   ];
 

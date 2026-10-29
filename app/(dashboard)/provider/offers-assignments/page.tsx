@@ -11,6 +11,7 @@ import { URGENCY_BADGE } from "@/components/provider/RequestCard";
 import { DashboardFilterBanner, useDashboardFilter } from "@/components/provider/DashboardFilterBanner";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 import { SendInternalOfferFlow, InternalOfferDetailDialog, OFFER_STATUS, type InternalOffer } from "@/components/provider/InternalOfferDialogs";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Offer {
   id: string;
@@ -54,6 +55,7 @@ export default function ProviderOffersAssignmentsPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Assignments</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Offers and assignments</h1>
             <p>An availability response or application is not a confirmed assignment.</p>
@@ -101,7 +103,7 @@ export default function ProviderOffersAssignmentsPage() {
                           </div>
                         </div>
                         <div className="pd-buttons">
-                          <span className={`pd-badge ${u.cls}`}>{u.label}</span>
+                          <span className={u.cls}>{u.label}</span>
                           <span className="pd-badge pd-badge-orange">Awaiting reply</span>
                           <button type="button" className="pd-btn pd-btn-sm" onClick={() => setAssignment(o.job.id)}>View request</button>
                         </div>

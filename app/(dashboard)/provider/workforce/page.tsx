@@ -13,6 +13,7 @@ import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { SendInternalOfferFlow } from "@/components/provider/InternalOfferDialogs";
 import { TeamMemberDialog } from "@/components/provider/TeamMemberDialog";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Member {
   key: string; name: string; kind: "MANAGED" | "ROSTER"; branch: string | null;
@@ -26,7 +27,7 @@ const STATUS: Record<Member["status"], { label: string; cls: string }> = {
   ON_SHIFT: { label: "On shift", cls: "pd-badge-blue" },
   INVITED: { label: "Invited", cls: "pd-badge-orange" },
   NOT_SET: { label: "No availability set", cls: "" },
-  VERIFIED: { label: "Verified", cls: "pd-badge-green" },
+  VERIFIED: { label: "Available", cls: "pd-badge-green" },
 };
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
 
@@ -80,6 +81,7 @@ export default function InternalTeamPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Team</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Internal Team</h1>
             <p>Your internal team, Branches, compliance and personal access.</p>

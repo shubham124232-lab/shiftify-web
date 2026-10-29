@@ -1127,8 +1127,8 @@ Price: $${info.priceAud.toFixed(2)}. Non-refundable once the promotion begins. C
                     <label className="text-xs font-semibold text-slate-600 block mb-1">How quickly is replacement support needed?</label>
                     <select value={replUrgency} onChange={e => setReplUrgency(e.target.value)} className="h-9 px-2.5 border border-slate-200 rounded-md text-sm w-full">
                       <option value="">Keep original timing type</option>
-                      <option value="RAPID">Rapid — within 60 minutes</option>
-                      <option value="URGENT">Urgent — within 4 hours</option>
+                      <option value="RAPID">Rapid — within 2 hours</option>
+                      <option value="URGENT">Urgent — within 6 hours</option>
                       <option value="LAST_MINUTE">Last-Minute — within 48 hours</option>
                       <option value="ROUTINE">Routine replacement — more than 48 hours</option>
                     </select>

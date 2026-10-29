@@ -8,6 +8,8 @@ import { RefreshCw, Plus, LayoutGrid } from "lucide-react";
 import { ListingEnquiries, type ListingInquiry } from "@/components/provider/ListingEnquiries";
 import { api } from "@/lib/api";
 import { ModalShell } from "@/components/jobs/post/shared";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { HousingVacancyWizard } from "@/components/provider/listing-wizard/HousingVacancyWizard";
 
 interface HousingListing {
   branchId?: string | null;
@@ -65,7 +67,8 @@ export default function ProviderHousingPage() {
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: string; label: string; run: () => void } | null>(null);
-  const [open, setOpen] = useState<{ id: string; panel: "view" | "enquiries" } | null>(null);
+  const [view, setView] = useState<HousingListing | null>(null);
+  const [wizard, setWizard] = useState<{ listing?: HousingListing | null } | null>(null);
 
   function load() {
     return Promise.all([
@@ -77,6 +80,20 @@ export default function ProviderHousingPage() {
       .finally(() => setLoading(false));
   }
   useEffect(() => { load(); }, []);
+
+  // Deep links: ?wizard=housing opens the form; ?edit=<id> reopens a vacancy.
+  const [launched, setLaunched] = useState(false);
+  useEffect(() => {
+    if (launched) return;
+    const sp = new URLSearchParams(window.location.search);
+    const want = sp.get("wizard"); const editId = sp.get("edit");
+    if (!want && !editId) { setLaunched(true); return; }
+    if (editId && loading) return;
+    setLaunched(true);
+    const existing = listings.find((l) => l.id === editId) ?? null;
+    if (editId && !existing) { setError("That listing could not be found."); return; }
+    setWizard({ listing: existing });
+  }, [launched, loading, listings]);
 
   const workspaceBranch = useBranchWorkspace((s) => s.branchId);
   const visible = useMemo(() => {
@@ -137,9 +154,6 @@ export default function ProviderHousingPage() {
     });
   }
 
-  function toggle(id: string, panel: "view" | "enquiries") {
-    setOpen(open?.id === id && open.panel === panel ? null : { id, panel });
-  }
 
   return (
     <>
@@ -152,22 +166,64 @@ export default function ProviderHousingPage() {
           </div>
         </ModalShell>
       )}
+      {view && (() => {
+        const l = view; const d = (l.housingDetails ?? {}) as Record<string, any>; const busy = busyId === l.id; const live = l.status === "ACTIVE" || l.status === "PAUSED";
+        const features: string[] = d.accessibilityFeatures ?? [];
+        const rows: [string, string][] = [
+          ["Location", `${l.suburb}${l.state ? `, ${l.state}` : ""}`],
+          ["Layout", [d.bedrooms != null ? `${d.bedrooms} bedrooms` : null, d.bathrooms != null ? `${d.bathrooms} bathrooms` : null, l.propertyType].filter(Boolean).join(" · ") || "—"],
+          ["Vacancies", l.vacancyCount != null ? String(l.vacancyCount) : "—"],
+          ["Expiry", fmtDate(l.listingExpiresAt)],
+          ["Availability", l.urgency ? URGENCY_LABEL[l.urgency] ?? l.urgency : "—"],
+          ["Funding routes", l.fundingRoutes?.join(", ") || "—"],
+        ];
+        return (
+          <ModalShell title="Housing vacancy" onClose={() => setView(null)}>
+            <div className="pd-modal-body">
+              <div className="pd-tags" style={{ marginBottom: 8 }}>
+                <span className="pd-badge pd-badge-purple">{(l.vacancyCategory && VACANCY_LABEL[l.vacancyCategory]) || "Housing"}</span>
+                {l.isFeatured && <span className="pd-badge pd-badge-orange">Featured</span>}
+                <span className={`pd-badge ${STATUS_BADGE[l.status] ?? ""}`}>{STATUS_LABEL[l.status] ?? l.status}</span>
+              </div>
+              <h3 style={{ margin: "0 0 16px", fontSize: 20, fontWeight: 800 }}>{l.title}</h3>
+              {rows.map(([k, v]) => <div key={k} className="pd-review-row"><span>{k}</span><strong style={{ fontWeight: 600 }}>{v}</strong></div>)}
+              {features.length > 0 && (<><h3 style={{ margin: "16px 0 8px", fontSize: 16, fontWeight: 800 }}>Property features</h3><div className="pd-tags">{features.map((f) => <span key={f} className="pd-badge">{f}</span>)}</div></>)}
+              <div className="pd-detail-block" style={{ marginTop: 16 }}><h3>Support arrangement</h3><p>{l.supportModel || d.rosterArrangement || "—"}</p></div>
+              <div className="pd-detail-block"><h3>Suitability and intake</h3><p>{d.compatibility || l.description || "—"}</p></div>
+              <p className="pd-notice">A promoted listing does not imply SDA enrolment, NDIS registration, funding eligibility or suitability. Exact address and resident details stay private.</p>
+            </div>
+            <div className="pd-modal-foot">
+              <Link href="/provider/enquiries" className="pd-btn">View enquiries ({inquiries.filter((q) => q.listingId === l.id).length})</Link>
+              <div className="pd-buttons">
+                {l.status === "DRAFT" && <button type="button" className="pd-btn" disabled={busy} onClick={() => { setView(null); void changeStatus(l.id, "ACTIVE", "Draft published."); }}>Publish draft</button>}
+                {l.status === "ACTIVE" && <button type="button" className="pd-btn" disabled={busy} onClick={() => { setView(null); void changeStatus(l.id, "PAUSED"); }}>Pause</button>}
+                {l.status === "PAUSED" && <button type="button" className="pd-btn" disabled={busy} onClick={() => { setView(null); void changeStatus(l.id, "ACTIVE"); }}>Resume</button>}
+                {l.status === "ACTIVE" && !l.isFeatured && <button type="button" className="pd-btn" disabled={busy} onClick={() => { setView(null); feature(l); }}>Feature — ${FEATURED_PRICE}.00</button>}
+                {live && <button type="button" className="pd-btn" disabled={busy} onClick={() => { setView(null); markFilled(l); }}>Mark filled</button>}
+                {live && <button type="button" className="pd-btn pd-btn-primary" disabled={busy} onClick={() => { setView(null); renew(l); }}>Renew listing</button>}
+              </div>
+            </div>
+          </ModalShell>
+        );
+      })()}
+      {wizard && <HousingVacancyWizard listing={wizard.listing as Record<string, any> | null | undefined} onClose={() => setWizard(null)} onDone={(m) => { setWizard(null); setNotice(m); void load(); }} />}
       <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Housing</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
-            <h1>Housing Vacancies</h1>
+            <h1>Housing vacancies</h1>
             <p>Manage SIL, SDA, respite and supported-housing enquiries.</p>
           </div>
           <div className="pd-buttons">
-            <Link href="/provider/sil-vacancy" className="pd-btn pd-btn-primary"><Plus />List a vacancy</Link>
+            <button type="button" className="pd-btn pd-btn-primary" onClick={() => setWizard({})}><Plus />List a vacancy</button>
           </div>
         </div>
         <div className="pd-toolbar">
-          <input placeholder="Search vacancies" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search vacancies" />
+          <input placeholder="Search vacancies or suburb" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search vacancies" />
           <select value={filter} onChange={(e) => setFilter(e.target.value as (typeof FILTERS)[number]["key"])} aria-label="Status">
-            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All statuses" : f.label}</option>)}
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "ALL" ? "All" : f.label}</option>)}
           </select>
           <button type="button" className="pd-btn" onClick={() => { setSearch(""); setFilter("ALL"); }}><RefreshCw />Clear filters</button>
         </div>
@@ -190,7 +246,6 @@ export default function ProviderHousingPage() {
             {visible.map((l) => {
               const enq = inquiries.filter((q) => q.listingId === l.id);
               const busy = busyId === l.id;
-              const panel = open?.id === l.id ? open.panel : null;
               const live = l.status === "ACTIVE" || l.status === "PAUSED";
               const features = l.housingDetails?.accessibilityFeatures ?? [];
               const expired = !!l.listingExpiresAt && new Date(l.listingExpiresAt) < new Date();
@@ -213,33 +268,12 @@ export default function ProviderHousingPage() {
                   {l.description && <div className="pd-card-body line-clamp-2">{l.description}</div>}
 
                   <div className="pd-buttons">
-                    <button type="button" className="pd-btn pd-btn-sm" onClick={() => toggle(l.id, "view")}>View vacancy</button>
-                    {l.status !== "CLOSED" && l.status !== "FILLED" && <Link href={`/provider/sil-vacancy?edit=${l.id}`} className="pd-btn pd-btn-sm">Edit</Link>}
+                    <button type="button" className="pd-btn pd-btn-sm" onClick={() => setView(l)}>View vacancy</button>
+                    {l.status !== "CLOSED" && l.status !== "FILLED" && <button type="button" className="pd-btn pd-btn-sm" onClick={() => setWizard({ listing: l })}>Edit</button>}
                     {live && <button type="button" className="pd-btn pd-btn-sm" disabled={busy} onClick={() => renew(l)}>Renew</button>}
                     {live && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" disabled={busy} onClick={() => markFilled(l)}>Mark filled</button>}
                   </div>
 
-                  {panel === "view" && (
-                    <div className="space-y-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-                      <p className="m-0">{l.description}</p>
-                      <p className="m-0"><span className="text-slate-400">Availability: </span>{l.urgency ? URGENCY_LABEL[l.urgency] ?? l.urgency : "—"}{l.housingDetails?.vacancyDate ? ` · ${l.housingDetails.vacancyDate}` : ""}</p>
-                      <p className="m-0"><span className="text-slate-400">Support arrangement: </span>{l.supportModel || l.housingDetails?.rosterArrangement || "—"}</p>
-                      <p className="m-0"><span className="text-slate-400">Suitable for: </span>{l.suitableFor?.join(", ") || "—"}</p>
-                      <p className="m-0"><span className="text-slate-400">Funding routes: </span>{l.fundingRoutes?.join(", ") || "—"}</p>
-                      {l.housingDetails?.compatibility && <p className="m-0"><span className="text-slate-400">Suitability and intake: </span>{l.housingDetails.compatibility}</p>}
-                      <p className="m-0 flex flex-wrap gap-4 pt-1">
-                        <button type="button" className="pd-textbtn" onClick={() => toggle(l.id, "enquiries")}>View enquiries ({enq.length})</button>
-                        {l.status === "DRAFT" && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => changeStatus(l.id, "ACTIVE", "Draft published.")}>Publish draft</button>}
-                        {l.status === "ACTIVE" && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => changeStatus(l.id, "PAUSED")}>Pause</button>}
-                        {l.status === "PAUSED" && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => changeStatus(l.id, "ACTIVE")}>Resume</button>}
-                        {l.status === "ACTIVE" && !l.isFeatured && <button type="button" disabled={busy} className="pd-textbtn" onClick={() => feature(l)}>Feature — ${FEATURED_PRICE}.00</button>}
-                      </p>
-                      <p className="m-0 text-xs text-slate-500">A promoted listing does not imply SDA enrolment, NDIS registration, funding eligibility or suitability. Exact address and resident details stay private.</p>
-                    </div>
-                  )}
-                  {panel === "enquiries" && (
-                    <div className="rounded-lg bg-slate-50 p-3"><ListingEnquiries inquiries={enq} /></div>
-                  )}
                 </article>
               );
             })}

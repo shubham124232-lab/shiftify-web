@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
 import { ModalShell, inp } from "@/components/jobs/post/shared";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 type Preset = "ADMINISTRATOR" | "BRANCH_MANAGER" | "INTAKE" | "WORKFORCE" | "READ_ONLY";
 
@@ -139,6 +140,7 @@ export default function ProviderAdministratorsPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Admins</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Administrators and permissions</h1>
             <p>Named users with Branch-scoped access. Each person counts once.</p>

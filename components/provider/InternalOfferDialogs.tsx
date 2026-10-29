@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { cn } from "@/lib/utils";
 import { requirementLabels } from "@/lib/constants/job-filters";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 export interface InternalOffer {
   id: string;
@@ -19,7 +20,7 @@ export interface InternalOffer {
   };
 }
 
-const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const URGENCY_LABEL: Record<string, string> = Object.fromEntries(PROVIDER_TIERS.map((t) => [t.key, t.label]));
 interface OpenJob { urgency: string; id: string; title: string; suburb: string; scheduledStartAt: string; scheduledEndAt?: string | null; budgetPerHour?: number | string | null; status: string; riskSafetyNotes?: string | null; workerPreferences?: Record<string, unknown> | null }
 interface Member { key: string; name: string; kind: "MANAGED" | "ROSTER"; branch: string | null; skills?: string[]; status: string }
 
@@ -134,7 +135,7 @@ export function SendInternalOfferFlow({ onClose, onSent }: { onClose: () => void
                 <button key={j.id} type="button" onClick={() => { setJob(j); setStep("team"); }}
                   className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left transition-colors hover:border-brand-400 hover:bg-brand-50/40">
                   <span><span className="block text-base font-bold text-slate-900">{j.title}</span><span className="block text-sm text-slate-500">{j.suburb} · {URGENCY_LABEL[j.urgency] ?? j.urgency}</span></span>
-                  <span className="text-sm font-semibold text-brand-700">Select</span>
+                  <span className="pd-btn pd-btn-primary pd-btn-sm">Select</span>
                 </button>
               ))}
             </div>}

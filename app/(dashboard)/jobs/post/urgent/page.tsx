@@ -1,6 +1,6 @@
 "use client";
 
-// Urgent Support journey — support needed over 60 minutes and up to 4 hours. Authoritative
+// Urgent Support journey — support needed over 2 hours and up to 6 hours. Authoritative
 // documents per role:
 //   Participant → Participant Posting Journeys U-01..U-11
 //   Coordinator → SC Journey SC-P00..P02 (participant + authority first) then SC-U01..U10
@@ -115,11 +115,11 @@ function UrgentJourneyBase() {
   }, [isAuth]);
 
   function validate(): string | null {
-    if ((key === "start" || key === "schedule") && !startTime) return "Choose a start time (more than 60 minutes and within 4 hours from now).";
+    if ((key === "start" || key === "schedule") && !startTime) return "Choose a start time (more than 2 hours and within 6 hours from now).";
     if (key === "start" || key === "schedule") {
       const m = (new Date(startTime).getTime() - Date.now()) / 60000;
-      if (m <= 60) return "Urgent Support starts more than 60 minutes from now. For sooner support, post a Rapid request.";
-      if (m > 240) return "Urgent Support must start within 4 hours. For a later start, post a Last-Minute or Routine request.";
+      if (m <= 120) return "Urgent Support starts more than 2 hours from now. For sooner support, post a Rapid request.";
+      if (m > 360) return "Urgent Support must start within 6 hours. For a later start, post a Last-Minute or Routine request.";
     }
     if (key === "schedule" && duration === "OTHER" && !(parseFloat(otherHours) > 0)) return "Enter how long support is needed (in hours).";
     if (key === "person" && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
@@ -154,7 +154,7 @@ function UrgentJourneyBase() {
     if (step === TOTAL_STEPS - 1) {
       // A request saved before signing up may have waited past the time it asked for.
       const m = (new Date(startTime).getTime() - Date.now()) / 60000;
-      if (!startTime || m <= 60 || m > 240) { goTo("start"); setError("Your start time no longer fits an Urgent request (more than 60 minutes and within 4 hours from now). Choose a new start time."); return; }
+      if (!startTime || m <= 120 || m > 360) { goTo("start"); setError("Your start time no longer fits an Urgent request (more than 2 hours and within 6 hours from now). Choose a new start time."); return; }
       void submitCommon(false); return;
     }
     const nextStep = step + 1;
@@ -255,7 +255,7 @@ function UrgentJourneyBase() {
       {key === "start" && (
         <div className="space-y-4">
           <div>
-            <label className={lbl}>Today — choose a time more than 60 minutes and within 4 hours</label>
+            <label className={lbl}>Today — choose a time more than 2 hours and within 6 hours</label>
             <input type="datetime-local" className={inp} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </div>
           {isProvider && <ProviderAlternativeTimesField value={providerCtx} onChange={patchProviderCtx} />}

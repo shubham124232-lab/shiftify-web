@@ -23,6 +23,7 @@ import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingW
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
 import { Zap, Clock, CalendarDays, Timer, LayoutGrid, ShieldCheck } from "lucide-react";
 import { saveGuestRole, loadGuestRole, type GuestPostingRole } from "@/lib/store/guestJobDraft";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 const TIER_ORDER: PostingTier[] = ["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
 
@@ -106,9 +107,9 @@ function ProviderPostExtras({ children, onContinue }: { children?: React.ReactNo
 }
 
 const PROVIDER_LANES: Record<PostingTier, { title: string; timing: string; badge: string; cls: string; icon: React.ReactNode }> = {
-  RAPID:       { title: "Rapid staffing",       timing: "Now–60 minutes",           badge: "Rapid",       cls: "pd-badge-rapid",       icon: <Zap /> },
-  URGENT:      { title: "Urgent staffing",      timing: "Over 60 minutes–4 hours",  badge: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
-  LAST_MINUTE: { title: "Last Minute staffing", timing: "Over 4–48 hours",          badge: "Last Minute", cls: "pd-badge-last-minute", icon: <Timer /> },
+  RAPID:       { title: "Last Min staffing",    timing: "Now–2 hours",           badge: "Last Min",       cls: "pd-badge-rapid",       icon: <Zap /> },
+  URGENT:      { title: "Urgent staffing",      timing: "Over 2–6 hours",  badge: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
+  LAST_MINUTE: { title: "Short Notice staffing", timing: "Over 6–48 hours",        badge: "Short Notice", cls: "pd-badge-last-minute", icon: <Timer /> },
   ROUTINE:     { title: "Routine staffing",     timing: "Beyond 48 hours or recurring", badge: "Routine", cls: "pd-badge-routine",     icon: <CalendarDays /> },
 };
 
@@ -125,6 +126,7 @@ function ProviderPostShift() {
         <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Post</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Post a Shift</h1>
             <p>Start with timing, then choose internal or external distribution.</p>
@@ -141,7 +143,7 @@ function ProviderPostShift() {
                   <span className="pd-icon-plain">{l.icon}</span>
                   <h2>{l.title}</h2>
                   <p className="pd-card-body">{l.timing}</p>
-                  <button type="button" className="pd-btn pd-btn-primary" onClick={() => setTier(t)}>Start {TIER_META[t].label.replace(/ Support$/, "")} request</button>
+                  <button type="button" className="pd-btn pd-btn-primary" onClick={() => setTier(t)}>Start {l.badge} request</button>
                 </div>
               );
             })}

@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { Zap, Clock, CalendarDays, ShieldCheck, X, Check, LayoutGrid } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
 import { JOB_CATEGORIES } from "@/lib/constants/categories";
 import type { JobSummary } from "@/lib/api/dashboard";
 import { FeaturedShiftFlow } from "@/components/provider/PromotionFlows";
 import { ProviderStaffingWizard } from "@/components/jobs/post/ProviderStaffingWizard";
 import type { PostingTier } from "@/lib/types/posting";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 // Applicant as returned by GET /jobs/:id/applications (poster view).
 interface Applicant {
@@ -31,12 +33,9 @@ interface TeamMember { key: string; name: string; branch: string | null; status:
 
 const MEMBER_STATUS: Record<string, string> = { AVAILABLE: "Available", ON_SHIFT: "On shift", INVITED: "Invited", NOT_SET: "Not set", VERIFIED: "Verified" };
 
-const URGENCY: Record<string, { label: string; cls: string; icon: ReactNode }> = {
-  RAPID:       { label: "Rapid",       cls: "bg-red-50 text-red-700",       icon: <Zap className="h-3 w-3" /> },
-  URGENT:      { label: "Urgent",      cls: "bg-amber-50 text-amber-700",   icon: <Clock className="h-3 w-3" /> },
-  LAST_MINUTE: { label: "Last-Minute", cls: "bg-orange-50 text-orange-700", icon: <Clock className="h-3 w-3" /> },
-  ROUTINE:     { label: "Routine",     cls: "bg-blue-50 text-blue-700",     icon: <CalendarDays className="h-3 w-3" /> },
-};
+const URGENCY: Record<string, { label: string; cls: string; icon: ReactNode }> = Object.fromEntries(
+  PROVIDER_TIERS.map((t) => [t.key, { label: t.label, cls: `pd-badge ${t.badge}`, icon: <t.icon /> }]),
+);
 const STATUS_LABEL: Record<string, string> = { OPEN: "Live", CONFIRMED: "Confirmed", COMPLETED: "Completed", DRAFT: "Draft", CANCELLED: "Cancelled", EXPIRED: "Expired", PAUSED: "Paused" };
 
 const categoryLabel = (v: string) => JOB_CATEGORIES.find((c) => c.value === v)?.label ?? v;
@@ -66,17 +65,17 @@ function Modal({ title, subtitle, onClose, footer, children, wide }: { title: st
   }, [onClose]);
   return (
     <Portal>
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl max-w-[80vw]`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-6 py-5">
+    <div className="pd-modal-backdrop" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label={title} className={cn("pd-modal", wide && "pd-modal-wide")} onClick={(e) => e.stopPropagation()}>
+        <div className="pd-modal-head">
           <div>
-            <h2 className="m-0 text-xl font-bold text-slate-900">{title}</h2>
-            {subtitle ? <p className="m-0 mt-1 text-xs text-slate-500">{subtitle}</p> : null}
+            <h2>{title}</h2>
+            {subtitle ? <p>{subtitle}</p> : null}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-6 py-4">{footer}</div>
+        <div className="pd-modal-body">{children}</div>
+        <div className="pd-modal-foot">{footer}</div>
       </div>
     </div>
     </Portal>
@@ -190,7 +189,7 @@ export function ApplicationsFlow({ job, start = "applications", onClose, onViewD
         </>}>
         {Err}{Ok}
         <div className="flex flex-wrap gap-2">
-          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.icon}{u.label}</span>
+          <span className={u.cls}>{u.icon}{u.label}</span>
           <span className={pill}>{STATUS_LABEL[job.status] ?? job.status}</span>
         </div>
         <h3 className="m-0 mt-3 text-2xl font-bold text-slate-900">{job.title}</h3>

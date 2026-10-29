@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Download } from "lucide-react";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Report {
   from: string; to: string;
@@ -19,7 +20,7 @@ interface Report {
 }
 
 const LANES: { key: keyof Report["lanes"]; label: string }[] = [
-  { key: "RAPID", label: "Rapid" }, { key: "URGENT", label: "Urgent" }, { key: "LAST_MINUTE", label: "Last-Minute" }, { key: "ROUTINE", label: "Routine" },
+  { key: "RAPID", label: "Last Min" }, { key: "URGENT", label: "Urgent" }, { key: "LAST_MINUTE", label: "Short Notice" }, { key: "ROUTINE", label: "Routine" },
 ];
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
@@ -84,6 +85,7 @@ export default function ProviderReportsPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Reports</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Provider reports</h1>
             <p>Outcomes and organisation activity.</p>

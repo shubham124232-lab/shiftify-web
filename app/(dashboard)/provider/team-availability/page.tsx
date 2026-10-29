@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { SendInternalOfferFlow } from "@/components/provider/InternalOfferDialogs";
 import { TeamMemberDialog } from "@/components/provider/TeamMemberDialog";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Member {
   key: string;
@@ -21,14 +22,14 @@ interface Member {
 interface Reply { id: string; memberType: "MANAGED" | "ROSTER"; memberName: string; status: "PENDING" | "AVAILABLE" | "CONDITIONS" | "UNAVAILABLE"; conditionsNote?: string | null }
 interface AvailabilityRequest { id: string; title: string; startsAt: string | null; message: string | null; createdAt: string; replies: Reply[] }
 interface ShiftOption { id: string; title: string; status: string; scheduledStartAt: string; suburb?: string | null; urgency?: string | null }
-const URGENCY_LABEL: Record<string, string> = { RAPID: "Rapid", URGENT: "Urgent", LAST_MINUTE: "Last-Minute", ROUTINE: "Routine" };
+const URGENCY_LABEL: Record<string, string> = { RAPID: "Last Min", URGENT: "Urgent", LAST_MINUTE: "Short Notice", ROUTINE: "Routine" };
 
 const STATUS: Record<Member["status"], { label: string; cls: string }> = {
   AVAILABLE: { label: "Available", cls: "pd-badge-green" },
   ON_SHIFT:  { label: "On shift",  cls: "pd-badge-blue" },
   INVITED:   { label: "Invited",   cls: "pd-badge-orange" },
   NOT_SET:   { label: "No availability set", cls: "" },
-  VERIFIED:  { label: "Verified",  cls: "" },
+  VERIFIED:  { label: "Available", cls: "pd-badge-green" },
 };
 const REPLY: Record<Reply["status"], { label: string; cls: string }> = {
   PENDING:     { label: "Waiting", cls: "bg-slate-100 text-slate-500" },
@@ -103,6 +104,7 @@ export default function ProviderTeamAvailabilityPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Availability</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Internal team availability</h1>
             <p>Check eligible team members before filling or broadcasting a gap.</p>

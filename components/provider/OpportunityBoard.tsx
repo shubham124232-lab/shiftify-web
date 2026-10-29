@@ -12,6 +12,8 @@ import { requirementLabels } from "@/lib/constants/job-filters";
 import { ProviderRespondModal } from "@/components/jobs/ProviderRespondModal";
 import { NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 import type { ProviderRequestRow } from "@/components/provider/RequestCard";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
+import { PROVIDER_TIERS, TimingCards } from "@/components/provider/timing";
 
 // Provider opportunity lists (Browse / Matched / Saved Requests). One card layout and one set of popups, three data sources.
 export type BoardMode = "browse" | "matched" | "saved";
@@ -22,12 +24,9 @@ const EMPTY: Record<BoardMode, { title: string; body: string }> = {
   matched: { title: "No matching requests right now", body: "New matches appear as Participants and Coordinators post. Matching uses your live service listings." },
   saved: { title: "No requests found", body: "Save opportunities from Browse Requests or Matched Requests to keep them here." },
 };
-const URGENCY: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
-  RAPID:       { label: "Rapid",       cls: "pd-badge-rapid",       icon: <Zap /> },
-  URGENT:      { label: "Urgent",      cls: "pd-badge-urgent",   icon: <Clock /> },
-  LAST_MINUTE: { label: "Last Minute", cls: "pd-badge-last-minute", icon: <Timer /> },
-  ROUTINE:     { label: "Routine",     cls: "pd-badge-routine",     icon: <CalendarDays /> },
-};
+const URGENCY: Record<string, { label: string; cls: string; icon: React.ReactNode }> = Object.fromEntries(
+  PROVIDER_TIERS.map((t) => [t.key, { label: t.label, cls: `pd-badge ${t.badge}`, icon: <t.icon /> }]),
+);
 const FUNDING: Record<string, string> = { SELF_MANAGED: "Self-managed", PLAN_MANAGED: "Plan-managed", NDIA_MANAGED: "NDIA-managed", PRIVATE: "Private", MIXED: "Mixed", DISCUSS: "To discuss" };
 const RESPONSE: Record<string, string> = { INTERESTED: "Responded", SHORTLISTED: "Shortlisted", SELECTED: "Accepted", DECLINED: "Unsuccessful", WITHDRAWN: "Withdrawn", REQUEST_FILLED: "Closed" };
 const URGENCY_RANK = ["RAPID", "URGENT", "LAST_MINUTE", "ROUTINE"];
@@ -119,6 +118,7 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
       <div className="pd-content">
       <div className="pd-breadcrumb">{crumb}</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>{title}</h1>
           <p>{description}</p>
@@ -128,10 +128,14 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
           {headerExtra}
         </div>
       </div>
+      <div className="mb-4">
+        <TimingCards value={urgency} onChange={setUrgency} label="Opportunity timing"
+          count={(k) => (rows ?? []).filter((r) => (showHidden || !hidden.includes(r.id)) && (!k || r.urgency === k)).length} />
+      </div>
       <div className="pd-toolbar" style={SHOW_EXTRA_FILTERS && moreFilters ? { marginBottom: 12 } : undefined}>
         <input placeholder="Search service, suburb or request" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search requests" />
-        <select value={urgency} onChange={(e) => setUrgency(e.target.value)} aria-label="Urgency">
-          <option value="">All urgency</option><option value="RAPID">Rapid</option><option value="URGENT">Urgent</option><option value="LAST_MINUTE">Last Minute</option><option value="ROUTINE">Routine</option>
+        <select value={urgency} onChange={(e) => setUrgency(e.target.value)} aria-label="Timing">
+          <option value="">All</option>{PROVIDER_TIERS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
         </select>
         <button type="button" className="pd-btn" onClick={clear}><RefreshCw />Clear filters</button>
         {SHOW_EXTRA_FILTERS && <button type="button" onClick={() => setMoreFilters((v) => !v)} className="text-sm font-semibold text-slate-600 hover:text-slate-900">{moreFilters ? "Fewer filters" : "More filters"}</button>}
@@ -199,7 +203,7 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
             return (
               <article key={r.id} className="pd-record-card">
                 <div className="pd-tags">
-                  <span className={`pd-badge ${u.cls}`}>{u.icon}{u.label}</span>
+                  <span className={u.cls}>{u.icon}{u.label}</span>
                   <span className="pd-badge pd-badge-blue">{r.posterKind}</span>
                   {!isOpen && <span className="pd-badge">No longer open</span>}
                   {r.responseStatus && <span className="pd-badge pd-badge-green">{RESPONSE[r.responseStatus] ?? r.responseStatus}</span>}
@@ -214,7 +218,6 @@ export function OpportunityBoard({ mode, crumb, title, description, headerExtra 
                 <div className="pd-buttons">
                   <button type="button" className="pd-btn pd-btn-sm" onClick={() => setWhy(r)}>Why this match</button>
                   <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewId(r.id)}>View request</button>
-                  {mode !== "saved" && <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" onClick={() => hide(r.id, !hidden.includes(r.id))}>{hidden.includes(r.id) ? "Unhide" : mode === "matched" ? "Not suitable" : "Hide"}</button>}
                   {mode === "saved" && <button type="button" className="pd-btn pd-btn-sm pd-btn-ghost" disabled={busyId === r.id} onClick={() => void toggleSave(r)}>{saved ? "Unsave" : "Save"}</button>}
                   {isOpen && !r.responseStatus && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setRespondId(r.id)}>Respond as Provider</button>}
                 </div>
@@ -321,7 +324,7 @@ function OpportunityDetail({ id, row, reasons, saved, onToggleSave, onClose, onR
         {error && !job ? <p className="m-0 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : !job ? <div className="h-24 animate-pulse rounded-xl bg-slate-100" /> : (
           <>
             <div className="flex flex-wrap gap-2">
-              {u && <span className={`pd-badge ${u.cls}`}>{u.icon}{u.label}</span>}
+              {u && <span className={u.cls}>{u.icon}{u.label}</span>}
               <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">{job.postedByRoleLabel ?? row?.posterKind ?? "Poster"}</span>
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{job.status === "OPEN" ? "Open" : job.status}</span>
             </div>

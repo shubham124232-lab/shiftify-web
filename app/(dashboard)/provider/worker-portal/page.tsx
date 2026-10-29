@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { LayoutGrid, ShieldCheck } from "lucide-react";
+import { LayoutGrid, MapPin, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
-import { PageHeader } from "@/components/dashboard/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/jobs/post/shared";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 import { InternalOfferDetailDialog, OFFER_STATUS, type InternalOffer } from "@/components/provider/InternalOfferDialogs";
+import { NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 
 interface Member { key: string; name: string; kind: "MANAGED" | "ROSTER" }
 interface Reply { id: string; memberName: string; status: "PENDING" | "AVAILABLE" | "CONDITIONS" | "UNAVAILABLE"; conditionsNote?: string | null }
@@ -15,6 +15,7 @@ interface Assignment { id: string; title: string; suburb: string; scheduledStart
 
 const fmt = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 const initials = (n: string) => n.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+const REPLY_LABEL = { PENDING: "Pending", AVAILABLE: "Available", CONDITIONS: "Available with conditions", UNAVAILABLE: "Unavailable" } as const;
 
 // Provider "Internal worker portal" (approved demo): preview what one internal worker sees and answer on their behalf.
 export default function ProviderWorkerPortalPage() {
@@ -27,6 +28,8 @@ export default function ProviderWorkerPortalPage() {
   const [condFor, setCondFor] = useState<string | null>(null);
   const [condNote, setCondNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const load = useCallback(() => Promise.all([
     api.get<{ members: Member[]; requests: Req[] }>("/provider-workspace/team-availability"),
@@ -47,105 +50,126 @@ export default function ProviderWorkerPortalPage() {
   const myOffers = offers.filter((o) => o.memberName === who);
   const myAssignments = assignments.filter((a) => a.workerName === who);
   const viewingOffer = myOffers.find((o) => o.id === viewing) ?? null;
+  const first = who.split(" ")[0];
 
   return (
-    <>
-      <PageHeader crumb="Provider / Internal worker portal" title="Internal worker portal" description="Personal access preview · funded by the Provider organisation." />
-      <div className="container-page space-y-5 py-8">
-        {error && <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
-        {members === null ? <div className="h-32 animate-pulse rounded-2xl bg-slate-100" /> : members.length === 0 ? (
-          <Card><CardContent className="py-10 text-center text-sm text-slate-500">No internal team members yet. Add one from Internal Team to preview their portal.</CardContent></Card>
+    <div className="pd-workspace">
+      <div className="pd-content">
+        <div className="pd-breadcrumb">Provider / Worker portal</div>
+        <div className="pd-page-head">
+          <ProviderAreaTabs />
+          <div>
+            <h1>Internal worker portal</h1>
+            <p>Personal access preview · funded by the Provider organisation.</p>
+          </div>
+          <div className="pd-buttons" />
+        </div>
+        {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+
+        {members === null ? <div className="pd-quiet-empty">Loading…</div> : members.length === 0 ? (
+          <section className="pd-panel"><div className="pd-quiet-empty">No internal team members yet. Add one from Internal Team to preview their portal.</div></section>
         ) : (
           <>
-            <Card>
-              <CardContent className="flex flex-wrap items-center gap-3 py-5">
-                <label className="text-sm font-semibold text-slate-900">Preview as
-                  <select value={who} onChange={(e) => setWho(e.target.value)} className="ml-3 h-11 min-w-[220px] rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal">
-                    {members.map((m) => <option key={m.key} value={m.name}>{m.name}</option>)}
-                  </select>
-                </label>
-                <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">Own records only</span>
-              </CardContent>
-            </Card>
+            <div className="pd-toolbar">
+              <label className="pd-field" style={{ flex: "0 1 320px" }}>Preview as
+                <select value={who} onChange={(e) => setWho(e.target.value)}>
+                  {members.map((m) => <option key={m.key} value={m.name}>{m.name}</option>)}
+                </select>
+              </label>
+              <span className="pd-badge pd-badge-blue">Own records only</span>
+              <button type="button" className="pd-btn" onClick={() => setMapOpen(true)}><MapPin />Check travel on map</button>
+              <button type="button" className="pd-btn" onClick={() => setInviteOpen(true)}>Passwordless invitation preview</button>
+            </div>
 
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">{initials(who)}</span>
+            <div className="pd-card-header" style={{ marginBottom: 24 }}>
+              <span className="pd-avatar pd-avatar-lg">{initials(who)}</span>
               <div>
-                <p className="m-0 text-xl font-bold text-slate-900">Hello, {who.split(" ")[0]}</p>
-                <p className="m-0 text-sm text-slate-500">Your offers, assignments and assignment messages.</p>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Hello, {first}</h2>
+                <span className="pd-small pd-muted">Your offers, assignments and assignment messages.</span>
               </div>
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <Card>
-                <CardHeader><CardTitle>My availability requests</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {mine.length === 0 ? <p className="m-0 py-4 text-sm text-slate-500">No availability requests.</p> : mine.map(({ r, reply }) => (
-                    <div key={r.id} className="rounded-xl border border-slate-200 p-4">
-                      <p className="m-0 text-base font-bold text-slate-900">{r.title}</p>
-                      <p className="m-0 mt-1 text-sm text-slate-500">{r.startsAt ? fmt(r.startsAt) : "Time to be confirmed"}</p>
-                      <span className="mt-2 inline-block rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{reply!.status === "PENDING" ? "Pending" : reply!.status === "AVAILABLE" ? "Available" : reply!.status === "CONDITIONS" ? "Available with conditions" : "Unavailable"}</span>
-                      {reply!.status === "CONDITIONS" && reply!.conditionsNote && <p className="m-0 mt-2 text-sm text-slate-600">Conditions: {reply!.conditionsNote}</p>}
-                      {reply!.status === "PENDING" && (
-                        <div className="mt-3 flex gap-2">
-                          <Button size="sm" onClick={() => answer(reply!.id, "AVAILABLE")}>Available</Button>
-                          <Button size="sm" variant="outline" onClick={() => { setCondFor(reply!.id); setCondNote(""); }}>Available with conditions</Button>
-                          <Button size="sm" variant="outline" onClick={() => answer(reply!.id, "UNAVAILABLE")}>Unavailable</Button>
-                        </div>
-                      )}
-                      {condFor === reply!.id && (
-                        <div className="mt-3 space-y-2">
-                          <input value={condNote} onChange={(e) => setCondNote(e.target.value)} maxLength={500} placeholder="e.g. Can start after 10am" className="h-11 w-full rounded-lg border border-slate-200 px-3.5 text-sm" />
-                          <div className="flex gap-2"><Button size="sm" disabled={!condNote.trim()} onClick={() => answer(reply!.id, "CONDITIONS", condNote.trim())}>Send</Button><Button size="sm" variant="outline" onClick={() => setCondFor(null)}>Cancel</Button></div>
-                        </div>
-                      )}
+            <div className="pd-grid2">
+              <section className="pd-panel">
+                <div className="pd-panel-head"><h2>My availability requests</h2></div>
+                {mine.length === 0 ? (
+                  <div className="pd-empty"><LayoutGrid /><h3>No availability requests</h3><p>Your Provider can send a personal availability request.</p></div>
+                ) : mine.map(({ r, reply }) => (
+                  <div key={r.id} className="pd-task-row" style={{ alignItems: "flex-start", flexDirection: "column" }}>
+                    <div>
+                      <strong>{r.title}</strong>
+                      <p>{r.startsAt ? fmt(r.startsAt) : "Time to be confirmed"}</p>
+                      <span className="pd-badge" style={{ marginTop: 8 }}>{REPLY_LABEL[reply!.status]}</span>
+                      {reply!.status === "CONDITIONS" && reply!.conditionsNote && <p>Conditions: {reply!.conditionsNote}</p>}
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                    {reply!.status === "PENDING" && (
+                      <div className="pd-buttons">
+                        <button type="button" className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => answer(reply!.id, "AVAILABLE")}>Available</button>
+                        <button type="button" className="pd-btn pd-btn-sm" onClick={() => { setCondFor(reply!.id); setCondNote(""); }}>Available with conditions</button>
+                        <button type="button" className="pd-btn pd-btn-sm" onClick={() => answer(reply!.id, "UNAVAILABLE")}>Unavailable</button>
+                      </div>
+                    )}
+                    {condFor === reply!.id && (
+                      <div className="pd-buttons" style={{ width: "100%" }}>
+                        <input value={condNote} onChange={(e) => setCondNote(e.target.value)} maxLength={500} placeholder="e.g. Can start after 10am" aria-label="Conditions"
+                          style={{ flex: 1, minHeight: 40, padding: "0 12px", border: "1px solid var(--pd-line)", borderRadius: 8 }} />
+                        <button type="button" className="pd-btn pd-btn-primary pd-btn-sm" disabled={!condNote.trim()} onClick={() => answer(reply!.id, "CONDITIONS", condNote.trim())}>Send</button>
+                        <button type="button" className="pd-btn pd-btn-sm" onClick={() => setCondFor(null)}>Cancel</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </section>
 
-              <Card>
-                <CardHeader><CardTitle>My assignments and calendar</CardTitle></CardHeader>
-                <CardContent>
-                  {myAssignments.length === 0 ? (
-                    <div className="flex flex-col items-center py-10 text-center">
-                      <LayoutGrid className="h-9 w-9 text-slate-300" />
-                      <p className="m-0 mt-3 text-lg font-bold text-slate-900">No assignments</p>
-                      <p className="m-0 mt-1 text-base text-slate-500">Confirmed assignments will appear on your personal calendar.</p>
-                    </div>
-                  ) : <ul className="m-0 list-none divide-y divide-slate-100 p-0">{myAssignments.map((a) => (
-                    <li key={a.id} className="py-3"><p className="m-0 text-sm font-semibold text-slate-900">{a.title}</p><p className="m-0 text-xs text-slate-500">{a.suburb} · {fmt(a.scheduledStartAt)}</p></li>
-                  ))}</ul>}
-                </CardContent>
-              </Card>
-            </div>
+              <section className="pd-panel">
+                <div className="pd-panel-head"><h2>My assignments and calendar</h2></div>
+                {myAssignments.length === 0 ? (
+                  <div className="pd-empty"><LayoutGrid /><h3>No assignments</h3><p>Confirmed assignments will appear on your personal calendar.</p></div>
+                ) : myAssignments.map((a) => (
+                  <div key={a.id} className="pd-task-row"><div><strong>{a.title}</strong><p>{a.suburb} · {fmt(a.scheduledStartAt)}</p></div></div>
+                ))}
+              </section>
 
-            <div className="grid gap-5 lg:grid-cols-2">
-              <Card>
-                <CardHeader><CardTitle>My offers</CardTitle></CardHeader>
-                <CardContent className="py-2">
-                  {myOffers.length === 0 ? <p className="m-0 py-4 text-sm text-slate-500">No offers.</p> : (
-                    <ul className="m-0 list-none divide-y divide-slate-100 p-0">{myOffers.map((o) => (
-                      <li key={o.id} className="flex items-center justify-between gap-3 py-3">
-                        <div><p className="m-0 text-sm font-semibold text-slate-900">{o.job.title}</p><p className="m-0 text-xs text-slate-500">{fmt(o.job.scheduledStartAt)}</p></div>
-                        <span className="flex items-center gap-2">
-                          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${OFFER_STATUS[o.status].cls}`}>{OFFER_STATUS[o.status].label}</span>
-                          <Button size="sm" variant="outline" onClick={() => setViewing(o.id)}>View offer</Button>
-                        </span>
-                      </li>
-                    ))}</ul>
-                  )}
-                </CardContent>
-              </Card>
-              <p className="m-0 flex gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
-                This portal does not grant Provider-wide board access or independent worker applications.
+              <section className="pd-panel">
+                <div className="pd-panel-head"><h2>My offers</h2></div>
+                {myOffers.length === 0 ? (
+                  <div className="pd-empty"><LayoutGrid /><h3>No personal offers</h3><p>An application or availability response does not confirm a shift.</p></div>
+                ) : myOffers.map((o) => (
+                  <div key={o.id} className="pd-task-row">
+                    <div><strong>{o.job.title}</strong><p>{fmt(o.job.scheduledStartAt)}</p></div>
+                    <span className="pd-buttons">
+                      <span className={`pd-badge ${OFFER_STATUS[o.status].cls}`}>{OFFER_STATUS[o.status].label}</span>
+                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setViewing(o.id)}>View offer</button>
+                    </span>
+                  </div>
+                ))}
+              </section>
+
+              <p className="pd-info-banner" style={{ alignSelf: "start" }}>
+                <ShieldCheck width={18} height={18} className="shrink-0" />
+                This portal does not grant Provider-wide board access or independent worker applications. Those belong to a separately verified role.
               </p>
             </div>
           </>
         )}
       </div>
+
       {viewingOffer && <InternalOfferDetailDialog offer={viewingOffer} onClose={() => setViewing(null)} onChanged={() => { setViewing(null); load(); }} />}
-    </>
+      {mapOpen && (
+        <NearbyRequestsDialog
+          requests={myAssignments.map((a) => ({ id: a.id, title: a.title, urgency: "ROUTINE" as never, suburb: a.suburb, scheduledStartAt: a.scheduledStartAt, status: "ASSIGNED" as never, state: null }))}
+          onClose={() => setMapOpen(false)} onOpen={() => setMapOpen(false)} />
+      )}
+      {inviteOpen && (
+        <ModalShell title="Passwordless invitation preview" subtitle={who} onClose={() => setInviteOpen(false)}>
+          <div className="pd-modal-body">
+            <div className="pd-form-title"><h3>What {first} receives</h3></div>
+            <p className="pd-notice">Shiftify: {first}, your Provider has invited you to see your offers, assignments and calendar. Open the link on your phone to sign in. No password is needed, and the link expires after 7 days.</p>
+            <p className="pd-note">Preview only. Nothing is sent from this screen.</p>
+          </div>
+          <div className="pd-modal-foot"><button type="button" className="pd-btn" onClick={() => setInviteOpen(false)}>Close</button></div>
+        </ModalShell>
+      )}
+    </div>
   );
 }

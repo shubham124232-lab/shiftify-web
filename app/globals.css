@@ -3638,7 +3638,7 @@ h1, h2, h3, h4, h5, h6 {
   .section-title { font-size: 28px; }
   .hero-sub { font-size: 16px; }
   .emergency-fab { bottom: 20px; right: 16px; padding: 12px 18px; font-size: 18px; }
-  nav { display: none; }
+  nav:not(aside nav) { display: none; }
   .testi-stats-row { grid-template-columns: repeat(3, 1fr); }
   .testi-stat:nth-child(3) { border-right: none; }
   .testi-card-v2 { padding: 28px 24px; }
@@ -3927,14 +3927,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Provider workspace: secondary buttons are white with a grey border and dark text (client demo). Other roles keep the pink outline. */
-[data-active-role="PROVIDER"] .btn-outline {
+[data-active-role="PROVIDER"] .btn-outline,
+.pd-modal-backdrop .btn-outline {
   background-color: #fff;
   color: #17181d;
   border-color: #e4e6ed;
 }
-[data-active-role="PROVIDER"] .btn-outline:hover:not(:disabled) { background-color: #f6f7f9; border-color: #bfc3ce; }
+[data-active-role="PROVIDER"] .btn-outline:hover:not(:disabled),
+.pd-modal-backdrop .btn-outline:hover:not(:disabled) { background-color: #f6f7f9; border-color: #bfc3ce; }
 
 /* Provider workspace buttons follow the approved demo sizes: 38px default (13px), 36px small (14px), semibold labels. */
-[data-active-role="PROVIDER"] .btn-md { height: 38px; padding: 0 14px; font-size: 13px; font-weight: 600; }
-[data-active-role="PROVIDER"] .btn-sm { height: 36px; padding: 0 12px; font-size: 14px; font-weight: 600; }
-[data-active-role="PROVIDER"] .btn-lg { height: 44px; font-size: 14px; font-weight: 600; }
+[data-active-role="PROVIDER"] .btn-md, .pd-modal-backdrop .btn-md { height: 38px; padding: 0 14px; font-size: 13px; font-weight: 600; }
+[data-active-role="PROVIDER"] .btn-sm, .pd-modal-backdrop .btn-sm { height: 36px; padding: 0 12px; font-size: 14px; font-weight: 600; }
+[data-active-role="PROVIDER"] .btn-lg, .pd-modal-backdrop .btn-lg { height: 44px; font-size: 14px; font-weight: 600; }

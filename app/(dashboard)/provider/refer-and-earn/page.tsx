@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Copy, Check } from "lucide-react";
 import { api } from "@/lib/api";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Referral { id: string; name: string; role: string; status: "PENDING" | "QUALIFIED" | "NOT_ELIGIBLE"; reason: string | null; createdAt: string }
 interface Data {
@@ -39,6 +40,7 @@ export default function ReferAndEarnPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Refer &amp; Earn</h1>
             <p>Grow your support network. Get your next month on us.</p>

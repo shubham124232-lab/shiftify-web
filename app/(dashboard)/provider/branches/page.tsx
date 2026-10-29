@@ -10,6 +10,7 @@ import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { OrgCapacityBar } from "@/components/provider/OrgCapacityBar";
 import { ModalShell, inp } from "@/components/jobs/post/shared";
 import { BRANCH_SERVICE_LINES } from "@/components/provider/branchOptions";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 export interface BranchRow {
   id: string;
@@ -154,6 +155,7 @@ export default function ProviderBranchesPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Branches</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Branch workspaces</h1>
             <p>An operational office, hub or team — not every shift address.</p>
@@ -287,14 +289,9 @@ export default function ProviderBranchesPage() {
                   <span className={`pd-badge ${b.isActive ? "pd-badge-green" : ""}`}>{b.isActive ? "Active" : "Inactive"}</span>
                 </div>
                 <p className="pd-card-body">
-                  {b.region || "No coverage area set"}{b.serviceRadiusKm ? ` · ${b.serviceRadiusKm} km radius` : ""}<br />
+                  {b.region || "No coverage area set"}<br />
                   {b.timezone ?? "Australia/Sydney"}<br />
                   Manager: {b.managerName ?? "Not set"}
-                  {b.address && <><br />Base: {b.address}</>}
-                  {b.contact && <><br />Contact: {b.contact}</>}
-                  {b.escalationContact && <><br />Escalation: {b.escalationContact}</>}
-                  <br />Administrators: {admins.filter((a) => a.branches?.some((x) => x.id === b.id)).map((a) => a.user.name).join(", ") || "None assigned"}
-                  <br /><span className="pd-small">{b._count.teamMembers} team members · {b._count.administrators} administrators</span>
                 </p>
                 {b.serviceLines.length > 0 && (
                   <div className="pd-tags">
@@ -303,8 +300,6 @@ export default function ProviderBranchesPage() {
                 )}
                 <div className="pd-buttons">
                   <button type="button" className="pd-btn pd-btn-sm" onClick={() => startEdit(b)}>Edit Branch</button>
-                  <button type="button" className="pd-btn pd-btn-sm" onClick={() => startAssign(b)}>Assign Team</button>
-                  <Link href={`/provider/calendar?branch=${b.id}`} className="pd-btn pd-btn-sm">View Calendar</Link>
                   <button type="button" className="pd-btn pd-btn-sm" disabled={busyId === b.id} onClick={() => (b.isActive ? setConfirmOff(b) : void setActive(b, true))}>
                     {b.isActive ? "Deactivate" : "Activate"}
                   </button>

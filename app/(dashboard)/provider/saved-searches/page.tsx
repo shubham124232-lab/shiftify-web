@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createSavedSearch, deleteSavedSearch, listSavedSearches, updateSavedSearch, type SavedSearch } from "@/lib/api/saved-searches";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 const TIMING = [
-  { value: "", label: "All" }, { value: "RAPID", label: "Rapid" }, { value: "URGENT", label: "Urgent" },
-  { value: "LAST_MINUTE", label: "Last-Minute" }, { value: "ROUTINE", label: "Routine" },
+  { value: "", label: "All" }, { value: "RAPID", label: "Last Min" }, { value: "URGENT", label: "Urgent" },
+  { value: "LAST_MINUTE", label: "Short Notice" }, { value: "ROUTINE", label: "Routine" },
 ];
 
 // Provider "Saved searches & alerts" (approved demo): save request types and areas; alerts can be switched on per search.
@@ -15,7 +16,7 @@ export default function ProviderSavedSearchesPage() {
   const [name, setName] = useState("");
   const [suburb, setSuburb] = useState("");
   const [timing, setTiming] = useState("");
-  const [alerts, setAlerts] = useState(true);
+  const [alerts, setAlerts] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export default function ProviderSavedSearchesPage() {
     try {
       const s = await createSavedSearch(name.trim(), { ...(suburb.trim() ? { suburb: suburb.trim() } : {}), ...(timing ? { urgency: timing } : {}) });
       if (!alerts) await updateSavedSearch(s.id, { isActive: false });
-      setName(""); setSuburb(""); setTiming(""); setAlerts(true); load();
+      setName(""); setSuburb(""); setTiming(""); setAlerts(false); load();
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save the search"); }
     finally { setBusy(false); }
   }
@@ -37,6 +38,7 @@ export default function ProviderSavedSearchesPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Saved searches &amp; alerts</h1>
             <p>Save the request types and areas relevant to your organisation.</p>

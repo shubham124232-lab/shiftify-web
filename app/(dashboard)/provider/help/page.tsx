@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Ticket { id: string; reference: string; subject: string; category: string; impact: string; status: string; createdAt: string }
 
@@ -29,6 +30,7 @@ export default function ProviderHelpPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Help &amp; Tickets</h1>
             <p>Get help with your Shiftify account, billing or platform use.</p>

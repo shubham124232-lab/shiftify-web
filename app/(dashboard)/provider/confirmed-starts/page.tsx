@@ -7,6 +7,7 @@ import { LayoutGrid } from "lucide-react";
 import { URGENCY_BADGE } from "@/components/provider/RequestCard";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { RequestDetailDialog } from "@/components/provider/RequestDialogs";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface StartRow {
   id: string;
@@ -42,7 +43,7 @@ function Section({ title, hint, rows, action }: { title: string; hint: string; r
             return (
               <article key={r.id} className="pd-request-row">
                 <div>
-                  <div className="pd-row-title"><strong>{r.title}</strong><span className={`pd-badge ${u.cls}`}>{u.label}</span></div>
+                  <div className="pd-row-title"><strong>{r.title}</strong><span className={u.cls}>{u.label}</span></div>
                   <div className="pd-small pd-muted">
                     {r.suburb} · {r.categoryLabel} · {r.posterKind} · {new Date(r.scheduledStartAt).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}
                     {r.workerName ? ` · Worker: ${r.workerName}` : ""}
@@ -157,6 +158,7 @@ export default function ProviderConfirmedStartsPage() {
       <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Starts</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Confirmed service starts</h1>
             <p>Keep referral acceptance, onboarding and delivered support separate.</p>

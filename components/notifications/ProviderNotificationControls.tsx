@@ -17,9 +17,9 @@ interface ProviderPrefs {
 interface Admin { id: string; user: { id: string; name: string } }
 
 const URGENCIES: { v: Urgency; l: string; d: Channel[] }[] = [
-  { v: "RAPID", l: "Rapid", d: ["PUSH", "SMS", "EMAIL"] },
+  { v: "RAPID", l: "Last Min", d: ["PUSH", "SMS", "EMAIL"] },
   { v: "URGENT", l: "Urgent", d: ["PUSH", "SMS", "EMAIL"] },
-  { v: "LAST_MINUTE", l: "Last-Minute", d: ["PUSH", "EMAIL"] },
+  { v: "LAST_MINUTE", l: "Short Notice", d: ["PUSH", "EMAIL"] },
   { v: "ROUTINE", l: "Routine", d: ["PUSH"] },
 ];
 const CHANNELS: { v: Channel; l: string }[] = [{ v: "PUSH", l: "Push" }, { v: "SMS", l: "SMS" }, { v: "EMAIL", l: "Email" }];

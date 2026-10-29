@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 const CATEGORIES = ["Account access", "Billing and plan", "Organisation and access", "Staffing requests", "Listings and enquiries", "Documents and compliance", "Something else"];
 const IMPACTS = ["General question", "Minor problem", "Blocking my work", "Urgent"];
@@ -35,6 +36,7 @@ export default function RaiseTicketPage() {
     <div className="pd-workspace">
       <div className="pd-content">
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Raise a ticket</h1>
             <p>Explain the issue so the support team can understand it.</p>

@@ -12,7 +12,8 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { useAuth } from "@/hooks/useAuth";
 import { RequestDetailDialog, NearbyRequestsDialog } from "@/components/provider/RequestDialogs";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Users, LayoutGrid } from "lucide-react";
+import { RefreshCw, Users, LayoutGrid, X } from "lucide-react";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Inquiry {
   id: string; body: string; createdAt: string; readAt: string | null;
@@ -94,14 +95,14 @@ function IntakeDialog({ thread, me, admins, onClose, onSaved }: { thread: Thread
     finally { setBusy(false); }
   }
 
-  const shell = "fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4";
-  const card = "w-full max-w-[80vw] rounded-2xl bg-white p-6 shadow-xl";
+  const shell = "pd-modal-backdrop";
+  const card = "pd-modal pd-modal-pad";
   if (done) {
     return (
       <div className={shell}><div role="dialog" aria-modal="true" className={card}>
         <h2 className="m-0 text-lg font-bold text-slate-900">{done}</h2>
         <p className="mt-2 text-sm text-slate-600">Internal notes remain separate from messages. Direct enquiry management is free.</p>
-        <div className="mt-5 flex justify-end"><button type="button" onClick={onSaved} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Done</button></div>
+        <div className="mt-5 flex justify-end"><button type="button" onClick={onSaved} className="pd-btn pd-btn-primary">Done</button></div>
       </div></div>
     );
   }
@@ -117,37 +118,48 @@ function IntakeDialog({ thread, me, admins, onClose, onSaved }: { thread: Thread
         {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 flex items-center justify-between">
           <button type="button" onClick={() => setScheduling(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Back</button>
-          <button type="button" disabled={busy || !apptAt} onClick={() => void save({ appointmentAt: new Date(apptAt).toISOString(), appointmentType: apptType }, "Appointment saved")} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save appointment"}</button>
+          <button type="button" disabled={busy || !apptAt} onClick={() => void save({ appointmentAt: new Date(apptAt).toISOString(), appointmentType: apptType }, "Appointment saved")} className="pd-btn pd-btn-primary disabled:opacity-50">{busy ? "Saving…" : "Save appointment"}</button>
         </div>
       </div></div>
     );
   }
+  const kindLabel = thread.kind === "HOME_LIVING" ? "Housing enquiry" : thread.kind === "CAPACITY" ? "Capacity enquiry" : "Service enquiry";
   return (
-    <div className={shell} onClick={onClose}>
-      <div role="dialog" aria-modal="true" className={`${card} max-h-[92vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
-        <p className="m-0 text-xs font-semibold text-slate-500">{thread.kind === "HOME_LIVING" ? "Housing enquiry" : thread.kind === "CAPACITY" ? "Capacity enquiry" : "Service enquiry"} · {STATUS_LABELS[thread.status] ?? thread.status}</p>
-        <h2 className="m-0 mt-1 text-xl font-bold text-slate-900">{thread.listingTitle ?? "Direct enquiry"}</h2>
-        <p className="m-0 mt-1 text-sm text-slate-500">{thread.other}</p>
-        <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">{root.body}</p>
-        <label className="mt-4 block text-sm font-semibold text-slate-700">Assign intake owner
-          <select className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={owner} onChange={(e) => setOwner(e.target.value)}>
-            <option value="">Unassigned</option>
-            <option value={me}>You (organisation owner)</option>
-            {admins.map((a) => <option key={a.id} value={a.user.id}>{a.user.name}</option>)}
-          </select></label>
-        <label className="mt-3 block text-sm font-semibold text-slate-700">Status
-          <select className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
-            {statuses.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select></label>
-        <label className="mt-3 block text-sm font-semibold text-slate-700">Private internal note
-          <textarea className="mt-1 min-h-[90px] w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} /></label>
-        <p className="m-0 mt-3 text-xs text-slate-500">Receiving and responding to a direct enquiry is free. A CRM status does not replace Participant consent or confirmed support.</p>
-        {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Close</button>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/messages" className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 no-underline">Open conversation</Link>
-            <button type="button" onClick={() => setScheduling(true)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Schedule call or inspection</button>
-            <button type="button" disabled={busy} onClick={() => void save()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save intake update"}</button>
+    <div className="pd-modal-backdrop" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Enquiry and intake" className="pd-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="pd-modal-head">
+          <div><h2>Enquiry and intake</h2></div>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="pd-modal-body">
+          <div className="pd-tags" style={{ marginBottom: 8 }}>
+            <span className="pd-badge pd-badge-blue">{kindLabel}</span>
+            <span className={`pd-badge ${(STATUS_LABELS[thread.status] ?? thread.status) === "New" ? "pd-badge-pink" : ""}`}>{STATUS_LABELS[thread.status] ?? thread.status}</span>
+          </div>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{thread.listingTitle ?? "Direct enquiry"}</h3>
+          <p className="pd-small pd-muted" style={{ margin: "4px 0 16px" }}>{thread.other}</p>
+          <p className="pd-notice" style={{ whiteSpace: "pre-wrap", margin: "0 0 20px" }}>{root.body}</p>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+            <label className="block">Assign intake owner
+              <select value={owner} onChange={(e) => setOwner(e.target.value)}>
+                <option value="">Unassigned</option>
+                <option value={me}>You (organisation owner)</option>
+                {admins.map((a) => <option key={a.id} value={a.user.id}>{a.user.name}</option>)}
+              </select></label>
+            <label className="block">Status
+              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                {statuses.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select></label>
+            <label className="block sm:col-span-2">Private internal note
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} /></label>
+          </div>
+          <p className="pd-note">Receiving and responding to a direct enquiry is free. A CRM status does not replace Participant consent or confirmed support.</p>
+          {error && <p className="m-0 mt-3 text-sm text-red-700">{error}</p>}
+        </div>
+        <div className="pd-modal-foot">
+          <Link href="/messages" className="pd-btn">Open conversation</Link>
+          <div className="pd-buttons">
+            <button type="button" className="pd-btn" onClick={() => setScheduling(true)}>Schedule call or inspection</button>
+            <button type="button" className="pd-btn pd-btn-primary" disabled={busy} onClick={() => void save()}>{busy ? "Saving…" : "Save intake update"}</button>
           </div>
         </div>
       </div>
@@ -278,12 +290,17 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
   // Enquiries & Applications (demo): search + "Incoming interest" list; worker applications sit behind a header button.
   const interestMode = view === "enquiries" && tab !== "workers";
   const [openConv, setOpenConv] = useState<string | null>(null);
-  const interest = threads.filter((t) => !q.trim() || `${t.other} ${t.listingTitle ?? ""}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const interest = threads
+    .filter((t) => !q.trim() || `${t.other} ${t.listingTitle ?? ""} ${t.messages.map((m) => m.body).join(" ")}`.toLowerCase().includes(q.trim().toLowerCase()))
+    .filter((t) => !statusF || t.status === statusF || (statusF === "NEW" && t.unread));
   const interestList = (
     <>
       <div className="pd-toolbar">
         <input placeholder="Search enquiries" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search enquiries" />
-        <button type="button" className="pd-btn" onClick={() => setQ("")}><RefreshCw />Clear filters</button>
+        <select value={statusF} onChange={(e) => setStatusF(e.target.value)} aria-label="Status">
+          <option value="">All</option><option value="NEW">New</option><option value="FOLLOW_UP">Follow-up</option><option value="CONFIRMED">Confirmed</option><option value="CLOSED">Closed</option>
+        </select>
+        <button type="button" className="pd-btn" onClick={() => { setQ(""); setStatusF(""); }}><RefreshCw />Clear filters</button>
       </div>
       <section className="pd-panel">
         <div className="pd-panel-head"><h2>Incoming interest</h2></div>
@@ -297,15 +314,16 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
                   <article className="pd-request-row">
                     <div>
                       <div className="pd-row-title">
-                        <strong>{t.other}</strong>
+                        <strong>{(t.messages.find((m) => m.id === t.rootId)?.body ?? t.messages[0]?.body ?? "Direct enquiry").slice(0, 70)}</strong>
                         <span className={`pd-badge ${label === "New" ? "pd-badge-pink" : label === "Follow-up" ? "pd-badge-orange" : ""}`}>{label}</span>
                       </div>
-                      <div className="pd-small pd-muted">{t.listingTitle ? `About: ${t.listingTitle}` : "Direct enquiry"}</div>
+                      <div className="pd-small pd-muted">{[t.other, t.kind === "HOME_LIVING" ? "Housing enquiry" : t.kind === "CAPACITY" ? "Capacity enquiry" : "Service enquiry", t.listingTitle].filter(Boolean).join(" · ")}</div>
                       <div className="pd-small pd-muted">Owner: {t.intake?.ownerName ?? "Unassigned"}</div>
                     </div>
                     <div className="pd-buttons">
-                      <button type="button" className="pd-btn pd-btn-sm" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</button>
-                      {canOpen && <button type="button" className="pd-btn pd-btn-sm pd-btn-primary" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</button>}
+                      {canOpen
+                        ? <button type="button" className="pd-btn pd-btn-primary" onClick={() => setIntakeFor(t.rootId)}>Open enquiry</button>
+                        : <button type="button" className="pd-btn" onClick={() => setOpenConv(openConv === t.rootId ? null : t.rootId)}>{openConv === t.rootId ? "Hide conversation" : "Conversation"}</button>}
                     </div>
                   </article>
                   {openConv === t.rootId && <div style={{ margin: "0 24px 16px" }}>{threadList([t], "")}</div>}
@@ -378,7 +396,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
             {replyFor === t.rootId && (
               <div className="mt-2 flex gap-2">
                 <input className="flex-1 rounded-md border border-slate-200 px-2 py-1 text-sm" value={replyBody} onChange={(e) => setReplyBody(e.target.value)} placeholder="Write a reply" maxLength={2000} />
-                <button type="button" disabled={busy || !replyBody.trim()} onClick={() => sendReply(t)} className="rounded-md bg-slate-900 px-3 py-1 text-sm font-semibold text-white disabled:opacity-50">Send</button>
+                <button type="button" disabled={busy || !replyBody.trim()} onClick={() => sendReply(t)} className="pd-btn pd-btn-primary pd-btn-sm" >Send</button>
               </div>
             )}
           </div>
@@ -397,6 +415,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
         <>
           <div className="pd-breadcrumb">Provider / Responses</div>
           <div className="pd-page-head">
+            <ProviderAreaTabs />
             <div>
               <h1>My Provider responses</h1>
               <p>Track proposals, discussions and agreed service starts.</p>
@@ -416,6 +435,7 @@ export function ResponsesInbox({ view = "all" }: { view?: InboxView }) {
         <>
           <div className="pd-breadcrumb">Provider / Enquiries</div>
           <div className="pd-page-head">
+            <ProviderAreaTabs />
             <div>
               <h1>Enquiries and applications</h1>
               <p>Respond, allocate an intake owner and track the next step on applications and enquiries about your posts and listings.</p>

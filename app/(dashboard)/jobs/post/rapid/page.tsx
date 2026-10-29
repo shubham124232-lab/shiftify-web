@@ -1,6 +1,6 @@
 "use client";
 
-// Rapid Support journey — support needed now or within 60 minutes. Shortest journey: no
+// Rapid Support journey — support needed now or within 2 hours. Shortest journey: no
 // mandatory long-form writing. Authoritative documents per role:
 //   Participant → Participant Posting Journeys R-01..R-11
 //   Coordinator → SC Journey SC-P00..P02 (participant + authority first) then SC-R01..R10
@@ -112,11 +112,11 @@ function RapidJourneyBase() {
   }, [isAuth]);
 
   function validate(): string | null {
-    if (key === "timing" && timing === "CHOOSE_TIME" && !chosenTime) return "Choose a time within the next 60 minutes.";
+    if (key === "timing" && timing === "CHOOSE_TIME" && !chosenTime) return "Choose a time within the next 2 hours.";
     if (key === "timing" && timing === "CHOOSE_TIME") {
       const m = (new Date(chosenTime).getTime() - Date.now()) / 60000;
       if (m < -1) return "Choose a time from now onwards.";
-      if (m > 60) return "Rapid Support must start within 60 minutes. For a later start, post an Urgent, Last-Minute or Routine request.";
+      if (m > 120) return "Rapid Support must start within 2 hours. For a later start, post an Urgent, Last-Minute or Routine request.";
     }
     if (key === "person" && isCoordinator && person.who !== "SOMEONE_ELSE" && person.who !== "EXISTING_PARTICIPANT") return "Select who this request is for.";
     if (key === "person" && person.who === "EXISTING_PARTICIPANT" && !person.existingParticipantId) return "Select a participant.";
@@ -153,7 +153,7 @@ function RapidJourneyBase() {
       // A request saved before signing up may have waited past the time it asked for.
       if (timing === "CHOOSE_TIME") {
         const m = (new Date(chosenTime).getTime() - Date.now()) / 60000;
-        if (!chosenTime || m < -1 || m > 60) { goTo("timing"); setError("The arrival time you chose is no longer within the next 60 minutes. Choose a new time, or pick As soon as possible."); return; }
+        if (!chosenTime || m < -1 || m > 120) { goTo("timing"); setError("The arrival time you chose is no longer within the next 2 hours. Choose a new time, or pick As soon as possible."); return; }
       }
       void submitCommon(false); return;
     }
@@ -256,7 +256,7 @@ function RapidJourneyBase() {
           <label className={lbl}>{titles.timing}</label>
           <RadioCards value={timing} onChange={setTiming} options={[
             { v: "ASAP", l: "As soon as possible" },
-            { v: "CHOOSE_TIME", l: "Choose a time within the next 60 minutes" },
+            { v: "CHOOSE_TIME", l: "Choose a time within the next 2 hours" },
           ]} />
           {timing === "CHOOSE_TIME" && (
             <input type="datetime-local" className={inp} value={chosenTime} onChange={(e) => setChosenTime(e.target.value)} />

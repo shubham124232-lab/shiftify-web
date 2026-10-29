@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Bell } from "lucide-react";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { WorkerAlertControls } from "@/components/notifications/WorkerAlertControls";
 import { ProviderNotificationControls } from "@/components/notifications/ProviderNotificationControls";
 import { WorkspacePage, Panel, Chip, Empty, ErrorNote, OutlineButton } from "@/components/coordinator/workspace-ui";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Notif {
   id: string; type: string; title: string; body: string;
@@ -115,12 +116,12 @@ export default function NotificationsPage() {
         <div className="pd-content">
         <div className="pd-breadcrumb">Provider / Notifications</div>
         <div className="pd-page-head">
+          <ProviderAreaTabs />
           <div>
             <h1>Notifications</h1>
             <p>Updates from your requests, team and organisation.</p>
           </div>
           <div className="pd-buttons">
-            <button type="button" className="pd-btn" onClick={() => setShowPrefs(v => !v)}>{showPrefs ? "Hide preferences" : "Notification preferences"}</button>
             <button type="button" className="pd-btn" onClick={markAllRead} disabled={unreadCount === 0}>Mark all read</button>
           </div>
         </div>
@@ -139,12 +140,12 @@ export default function NotificationsPage() {
           </section>
         )}
         <section className="pd-panel">
-          <div className="pd-panel-head"><h2>Inbox</h2></div>
+          <div className="pd-panel-head"><h2>Inbox</h2><button type="button" className="pd-textbtn" onClick={() => setShowPrefs(v => !v)}>{showPrefs ? "Hide preferences" : "Notification preferences"}</button></div>
           {loading ? <div className="pd-quiet-empty">Loading…</div>
             : notifs.length === 0 ? <div className="pd-quiet-empty">No notifications yet</div>
             : notifs.map((n) => (
               <div key={n.id} className="pd-notification-row">
-                <span className="pd-avatar"><Check width={18} height={18} /></span>
+                <span className="pd-avatar"><Bell width={18} height={18} /></span>
                 <div style={{ flex: 1 }}>
                   <p><strong>{n.title}</strong> {!n.read && <span className="pd-badge pd-badge-pink">New</span>}</p>
                   <small>{n.body}</small>

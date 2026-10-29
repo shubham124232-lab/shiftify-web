@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/jobs/post/shared";
 import { FileUploadField } from "@/components/registration/fields/FileUploadField";
 import { cn } from "@/lib/utils";
+import { ProviderAreaTabs } from "@/components/provider/ProviderAreaTabs";
 
 interface Profile {
   businessName?: string | null; legalEntityName?: string | null; abn?: string | null; logoUrl?: string | null;
@@ -93,6 +94,7 @@ export function OrganisationProfile() {
       <div className="pd-content">
       <div className="pd-breadcrumb">Provider / Profile</div>
       <div className="pd-page-head">
+        <ProviderAreaTabs />
         <div>
           <h1>Organisation profile</h1>
           <p>Control your public profile, services and private verification evidence.</p>

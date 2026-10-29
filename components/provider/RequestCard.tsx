@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PROVIDER_TIERS } from "@/components/provider/timing";
 
 export interface ProviderRequestRow {
   id: string;
@@ -27,12 +28,9 @@ export interface ProviderRequestRow {
   createdAt?: string | null;
 }
 
-export const URGENCY_BADGE: Record<string, { label: string; cls: string }> = {
-  RAPID:       { label: "Rapid",       cls: "pd-badge-rapid" },
-  URGENT:      { label: "Urgent",      cls: "pd-badge-urgent" },
-  LAST_MINUTE: { label: "Last-Minute", cls: "pd-badge-last-minute" },
-  ROUTINE:     { label: "Routine",     cls: "pd-badge-routine" },
-};
+export const URGENCY_BADGE: Record<string, { label: string; cls: string }> = Object.fromEntries(
+  PROVIDER_TIERS.map((t) => [t.key, { label: t.label, cls: `pd-badge ${t.badge}` }]),
+);
 
 const FUNDING: Record<string, string> = { SELF_MANAGED: "Self-managed", PLAN_MANAGED: "Plan-managed", NDIA_MANAGED: "NDIA-managed", PRIVATE: "Private" };
 const RESPONSE: Record<string, string> = { INTERESTED: "Responded", SHORTLISTED: "Shortlisted", SELECTED: "Accepted", DECLINED: "Unsuccessful", WITHDRAWN: "Withdrawn", REQUEST_FILLED: "Closed" };
@@ -44,7 +42,7 @@ export function ProviderRequestCard({ r, onToggleSave, busy }: { r: ProviderRequ
     <Card>
       <CardContent className="space-y-3 py-5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${u.cls}`}>{u.label}</span>
+          <span className={u.cls}>{u.label}</span>
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{r.posterKind}</span>
           {r.open === false && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">No longer open</span>}
           {r.responseStatus && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">{RESPONSE[r.responseStatus] ?? r.responseStatus}</span>}

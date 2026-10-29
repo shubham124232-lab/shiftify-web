@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
-import { Bell, ChevronDown, LogOut, User, CheckCircle, MessageSquare, MessageCircle, FileText, CreditCard, Settings, LifeBuoy } from "lucide-react";
+import { Bell, ChevronDown, LogOut, User, MessageSquare, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROLE_LABELS, ROLE_DASHBOARD_PATHS } from "@/lib/constants/roles";
 import { cn } from "@/lib/utils";
@@ -23,11 +23,13 @@ const STATUS_BADGE: Record<string, string> = {
   INACTIVE:  "bg-slate-100 text-slate-700",
 };
 
+// Provider profile menu (approved demo): organisation profile, documents, billing, settings and tickets.
 const PROVIDER_MENU = [
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/subscription", label: "Membership and billing", icon: CreditCard },
-  { href: "/provider/settings", label: "Settings", icon: Settings },
-  { href: "/provider/help", label: "Help and Tickets", icon: LifeBuoy },
+  { href: "/provider/organisation", label: "My profile" },
+  { href: "/documents", label: "Documents" },
+  { href: "/subscription", label: "Membership & billing" },
+  { href: "/provider/settings", label: "Settings" },
+  { href: "/provider/help", label: "Help & Tickets" },
 ];
 
 const COORDINATOR_MENU = [
@@ -42,8 +44,10 @@ function initials(name: string): string {
   return name.split(" ").filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
 }
 
-// Support Coordinator profile menu: avatar opens a plain card of links, as in the SC workspace.
-function CoordinatorProfileMenu({ name, onSignOut }: { name: string; onSignOut: () => void }) {
+// Workspace profile menu: avatar opens a plain card of links, as in the SC and Provider workspaces.
+function WorkspaceProfileMenu({ name, title, subtitle, items, onSignOut }: {
+  name: string; title: string; subtitle: string; items: { href: string; label: string }[]; onSignOut: () => void;
+}) {
   const ref = useRef<HTMLDetailsElement>(null);
   const pathname = usePathname();
   useEffect(() => { if (ref.current) ref.current.open = false; }, [pathname]);
@@ -55,12 +59,13 @@ function CoordinatorProfileMenu({ name, onSignOut }: { name: string; onSignOut: 
   return (
     <details ref={ref} className="sc-profile">
       <summary aria-label="Open profile menu">
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-[#fde8f0] text-[13px] font-bold text-[#c91355]">{initials(name)}</span>
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-[#fde8f0] text-sm font-bold text-[#c91355]">{initials(name)}</span>
+        <span className="text-base leading-none text-slate-700">⌄</span>
       </summary>
       <div className="sc-profile-menu">
-        <strong>{name}</strong>
-        <small>Support Coordinator</small>
-        {COORDINATOR_MENU.map((m) => <Link key={m.href} href={m.href}>{m.label}</Link>)}
+        <strong>{title}</strong>
+        <small>{subtitle}</small>
+        {items.map((m) => <Link key={m.href} href={m.href}>{m.label}</Link>)}
         <button type="button" onClick={onSignOut}>Sign out</button>
       </div>
     </details>
@@ -107,60 +112,15 @@ export function AppTopbar() {
 
   const isProviderUser = user.activeRole === UserRole.PROVIDER;
   const isCoordinatorUser = user.activeRole === UserRole.COORDINATOR;
-  // Provider and Support Coordinator workspaces share the full-width header.
-  const workspaceMenu = PROVIDER_MENU;
-
-  const profileMenuItems = (
-    <MenuItems
-      transition
-      className="absolute right-0 z-30 mt-1 w-72 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-lg focus:outline-none transition ease-out duration-100 data-[closed]:scale-95 data-[closed]:opacity-0 data-[closed]:transform"
-    >
-      <div className="border-b border-slate-100 px-4 py-3">
-        <p className="m-0 truncate text-sm font-semibold text-slate-900">{displayName}</p>
-        <p className="m-0 truncate text-xs text-slate-500">{isCoordinatorUser ? "Support Coordinator account" : "Provider account"}</p>
-      </div>
-      <MenuItem>
-        {({ focus }: { focus: boolean }) => (
-          <Link href="/profile" className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
-            <User className="h-4 w-4 text-slate-400" />
-            My profile
-          </Link>
-        )}
-      </MenuItem>
-      {workspaceMenu.map((m) => (
-        <MenuItem key={m.href}>
-          {({ focus }: { focus: boolean }) => (
-            <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
-              <m.icon className="h-4 w-4 text-slate-400" />
-              {m.label}
-            </Link>
-          )}
-        </MenuItem>
-      ))}
-      <MenuItem>
-        {({ focus }: { focus: boolean }) => (
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className={cn("flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}
-          >
-            <LogOut className="h-4 w-4 text-slate-400" />
-            Sign out
-          </button>
-        )}
-      </MenuItem>
-    </MenuItems>
-  );
-
   // Provider / Coordinator workspace header: full-width, 88px, logo + identity on the left, bell / messages / profile on the right.
   if (isProviderUser || isCoordinatorUser) {
     return (
-      <header className="z-20 flex h-[88px] shrink-0 items-center gap-6 border-b border-[#e4e6ed] bg-white px-8 py-3">
+      <header className="z-20 flex h-[88px] shrink-0 items-center gap-2 border-b border-[#e4e6ed] bg-white px-3 py-3 sm:gap-6 sm:px-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logo.png" alt="Shiftify" className="h-16 w-32 shrink-0 object-contain" />
-        {isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}
+        <img src="/images/logo.png" alt="Shiftify" className="h-16 w-24 shrink-0 object-contain sm:w-32" />
+        <span className="hidden sm:contents">{isCoordinatorUser ? <CoordinatorIdentity /> : <ProviderIdentity />}</span>
         <div className="flex-1" />
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {isProviderUser && <BranchWorkspaceSelect />}
           <button
             type="button"
@@ -179,15 +139,9 @@ export function AppTopbar() {
             <MessageCircle className="h-[18px] w-[18px]" />
           </Link>
           {isCoordinatorUser ? (
-            <CoordinatorProfileMenu name={displayName} onSignOut={handleLogout} />
+            <WorkspaceProfileMenu name={displayName} title={displayName} subtitle="Support Coordinator" items={COORDINATOR_MENU} onSignOut={handleLogout} />
           ) : (
-          <Menu as="div" className="relative">
-            <MenuButton className="flex items-center gap-[7px] focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Profile menu">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-[#fde8f0] text-sm font-bold text-[#c91355]">{initials(displayName)}</span>
-              <span className="text-base leading-none text-slate-700">⌄</span>
-            </MenuButton>
-            {profileMenuItems}
-          </Menu>
+            <WorkspaceProfileMenu name={displayName} title={displayName} subtitle="Provider account" items={PROVIDER_MENU} onSignOut={handleLogout} />
           )}
         </div>
       </header>
@@ -278,17 +232,6 @@ export function AppTopbar() {
                 )}
               </MenuItem>
 
-              {/* Provider handoff: profile menu also opens Documents, billing, Settings and Help & Tickets. */}
-              {isProviderUser && PROVIDER_MENU.map((m) => (
-                <MenuItem key={m.href}>
-                  {({ focus }: { focus: boolean }) => (
-                    <Link href={m.href} className={cn("flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-700", focus && "bg-slate-50")}>
-                      <m.icon className="h-4 w-4 text-slate-400" />
-                      {m.label}
-                    </Link>
-                  )}
-                </MenuItem>
-              ))}
 
               <MenuItem>
                 {({ focus }: { focus: boolean }) => (
